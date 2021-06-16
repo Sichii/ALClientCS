@@ -1,0 +1,15 @@
+﻿using Newtonsoft.Json;
+
+namespace AL.SocketClient.Model
+{
+    public record QueuedActionInfo
+    {
+        [JsonProperty]
+        public QueuedAction Compound { get; init; }
+        [JsonProperty]
+        public QueuedAction Exchange { get; init; }
+
+        [JsonProperty]
+        public QueuedAction Upgrade { get; init; }
+    }
+}

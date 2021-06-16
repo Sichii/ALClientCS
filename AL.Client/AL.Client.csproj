@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RootNamespace>ALClientCS</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
+    <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj" />
+    <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
+  </ItemGroup>
+
+</Project>
