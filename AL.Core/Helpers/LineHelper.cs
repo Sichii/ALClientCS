@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Geometry;
 using Common.Logging;
-using LogManager = Common.Logging.LogManager;
 
 namespace AL.Core.Helpers
 {
     public static class LineHelper
     {
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(LineHelper).FullName); 
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(LineHelper).FullName);
 
         public static FlatLine[] FixLines(FlatLine[] lines, bool isX)
         {

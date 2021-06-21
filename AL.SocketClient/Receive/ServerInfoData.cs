@@ -9,7 +9,7 @@ namespace AL.SocketClient.Receive
     public record ServerInfoData
     {
         [JsonIgnore]
-        public Dictionary<string, BossInfo> BossInfo { get; init; }
+        public IReadOnlyDictionary<string, BossInfo> BossInfo { get; init; } = new Dictionary<string, BossInfo>();
 
         [JsonProperty]
         public bool EggHunt { get; init; }

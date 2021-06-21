@@ -13,21 +13,27 @@ namespace AL.Visualizer.Extensions
 {
     public static class ImageExtensions
     {
-        public static Image<Rgba32> DrawTriangles(this Image<Rgba32> image, IEnumerable<DelaunayTriangle> triangles, Color color = default)
+        public static Image<Rgba32> DrawConnections(
+            this Image<Rgba32> image,
+            IEnumerable<GraphNode<Point>> nodes,
+            Color color = default)
         {
             if (color == default)
                 color = Color.Red;
-            
-            image.Mutate(context =>
-            {
-                foreach (var triangle in triangles)
-                    context.DrawPolygon(color, 1, triangle.Points.Select(point => new PointF((float) point.X, (float) point.Y)).ToArray());
-            });
+
+            foreach (var node in nodes)
+                foreach (var neighbor in node.Neighbors)
+                    image.DrawLine(node.Edge, node.Edge.MidPoint(neighbor.Edge), color);
 
             return image;
         }
 
-        public static Image<Rgba32> DrawLine(this Image<Rgba32> image, Point start, Point end, Color color = default, Color ptColor = default)
+        public static Image<Rgba32> DrawLine(
+            this Image<Rgba32> image,
+            Point start,
+            Point end,
+            Color color = default,
+            Color ptColor = default)
         {
             if (color == default)
                 color = Color.Gold;
@@ -44,18 +50,6 @@ namespace AL.Visualizer.Extensions
 
             image[(int) start.X, (int) start.Y] = ptColor;
             image[(int) end.X, (int) end.Y] = ptColor;
-            
-            return image;
-        }
-
-        public static Image<Rgba32> DrawConnections(this Image<Rgba32> image, IEnumerable<GraphNode<Point>> nodes, Color color = default)
-        {
-            if (color == default)
-                color = Color.Red;
-            
-            foreach(var node in nodes)
-                foreach (var neighbor in node.Neighbors)
-                    image.DrawLine(node.Edge, node.Edge.MidPoint(neighbor.Edge), color);
 
             return image;
         }
@@ -69,6 +63,24 @@ namespace AL.Visualizer.Extensions
             {
                 image.DrawLine(prev, cur, color);
                 return cur;
+            });
+
+            return image;
+        }
+
+        public static Image<Rgba32> DrawTriangles(
+            this Image<Rgba32> image,
+            IEnumerable<DelaunayTriangle> triangles,
+            Color color = default)
+        {
+            if (color == default)
+                color = Color.Red;
+
+            image.Mutate(context =>
+            {
+                foreach (var triangle in triangles)
+                    context.DrawPolygon(color, 1,
+                        triangle.Points.Select(point => new PointF((float) point.X, (float) point.Y)).ToArray());
             });
 
             return image;

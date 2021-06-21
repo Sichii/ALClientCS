@@ -61,7 +61,14 @@ namespace AL.Data.Maps
 
         [JsonIgnore]
         public Lazy<List<Exit>> Exits => new(GenerateExits);
-        
+        //quirks
+        //animatables obj
+        //machines obj[]
+        //ref obj
+        //old_monsters obj[]
+
+        public virtual bool Equals(Map other) => Key.Equals(other?.Key);
+
         private List<Exit> GenerateExits()
         {
             var exits = new List<Exit>();
@@ -71,21 +78,15 @@ namespace AL.Data.Maps
 
             var npcSets = NPCs.Select(npc => new { MapNPC = npc, GameNPC = GameData.NPCs[npc.Id] })
                 .Where(set => set.GameNPC != null && set.GameNPC.Role == NPCRole.Transport);
-            
-            foreach(var set in npcSets)
-                foreach(var position in set.MapNPC.Positions)
+
+            foreach (var set in npcSets)
+                foreach (var position in set.MapNPC.Positions)
                     foreach ((var toMap, var toSpawnId) in set.GameNPC.Places)
                         exits.Add(new Exit(position, toMap, toSpawnId, ExitType.NPC));
 
             return exits;
         }
-        //quirks
-        //animatables obj
-        //machines obj[]
-        //ref obj
-        //old_monsters obj[]
 
-        public virtual bool Equals(Map other) => Key.Equals(other?.Key);
         public override int GetHashCode() => Key.GetHashCode();
     }
 }

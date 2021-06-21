@@ -7,7 +7,12 @@ namespace AL.APIClient.Json.Converters
 {
     public class LoginResponseConverter : JsonConverter<LoginResponse>
     {
-        public override LoginResponse ReadJson(JsonReader reader, Type objectType, LoginResponse existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override LoginResponse ReadJson(
+            JsonReader reader,
+            Type objectType,
+            LoginResponse existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return default;
@@ -25,6 +30,7 @@ namespace AL.APIClient.Json.Converters
             };
         }
 
-        public override void WriteJson(JsonWriter writer, LoginResponse value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, LoginResponse value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

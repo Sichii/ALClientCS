@@ -7,7 +7,12 @@ namespace AL.Data.Json.Converters
 {
     public class ArrayToSliceConverter : JsonConverter<Slice>
     {
-        public override Slice ReadJson(JsonReader reader, Type objectType, Slice existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override Slice ReadJson(
+            JsonReader reader,
+            Type objectType,
+            Slice existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
@@ -41,6 +46,7 @@ namespace AL.Data.Json.Converters
             };
         }
 
-        public override void WriteJson(JsonWriter writer, Slice value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, Slice value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

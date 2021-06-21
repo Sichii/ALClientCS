@@ -284,7 +284,11 @@ namespace AL.Core.Definitions
         Withdrawal,
         XPower,
         XShotted,
-        Typing
+        Typing,
+
+        //MONSTER ABILITIES
+        [EnumMember(Value = "self_healing")]
+        SelfHealing
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -593,7 +597,7 @@ namespace AL.Core.Definitions
         CStand,
         Stand0
     }
-    
+
     [JsonConverter(typeof(StringEnumConverter))]
     public enum SpawnType
     {

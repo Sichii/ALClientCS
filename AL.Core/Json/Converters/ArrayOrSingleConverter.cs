@@ -5,7 +5,12 @@ namespace AL.Core.Json.Converters
 {
     public class ArrayOrSingleConverter<T> : JsonConverter<T[]> where T: struct, Enum
     {
-        public override T[] ReadJson(JsonReader reader, Type objectType, T[] existingValue, bool hasExistingValue, JsonSerializer serializer) =>
+        public override T[] ReadJson(
+            JsonReader reader,
+            Type objectType,
+            T[] existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer) =>
             reader.TokenType switch
             {
                 JsonToken.Null       => default,
@@ -13,6 +18,7 @@ namespace AL.Core.Json.Converters
                 _                    => new[] { serializer.Deserialize<T>(reader) }
             };
 
-        public override void WriteJson(JsonWriter writer, T[] value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, T[] value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

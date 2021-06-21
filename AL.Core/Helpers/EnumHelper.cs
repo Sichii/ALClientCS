@@ -7,6 +7,26 @@ namespace AL.Core.Helpers
 {
     public static class EnumHelper
     {
+        public static string ToString<T>(T value) where T: Enum
+        {
+            var result = value.ToString();
+
+            var members = typeof(T).GetFields();
+
+            foreach (var member in members)
+                if (member.GetValue(value)?.Equals(value) == true)
+                {
+                    var enumMemberAttr = member.GetCustomAttribute<EnumMemberAttribute>();
+
+                    if (enumMemberAttr == null)
+                        break;
+
+                    return enumMemberAttr.Value;
+                }
+
+            return result;
+        }
+
         public static bool TryParse<T>(string str, out T result) where T: struct
         {
             result = default;
@@ -32,28 +52,6 @@ namespace AL.Core.Helpers
             }
 
             return false;
-        }
-
-        public static string ToString<T>(T value) where T: Enum
-        {
-            var result = value.ToString();
-            
-            var members = typeof(T).GetFields();
-
-            foreach (var member in members)
-            {
-                if (member.GetValue(value)?.Equals(value) == true)
-                {
-                    var enumMemberAttr = member.GetCustomAttribute<EnumMemberAttribute>();
-
-                    if (enumMemberAttr == null)
-                        break;
-
-                    return enumMemberAttr.Value;
-                }
-            }
-
-            return result;
         }
     }
 }

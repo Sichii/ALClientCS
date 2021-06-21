@@ -8,7 +8,12 @@ namespace AL.SocketClient.Json.Converters
 {
     public class DisappearDataConverter : JsonConverter<DisappearData>
     {
-        public override DisappearData ReadJson(JsonReader reader, Type objectType, DisappearData existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override DisappearData ReadJson(
+            JsonReader reader,
+            Type objectType,
+            DisappearData existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return default;
@@ -35,6 +40,7 @@ namespace AL.SocketClient.Json.Converters
             return result;
         }
 
-        public override void WriteJson(JsonWriter writer, DisappearData value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, DisappearData value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

@@ -5,7 +5,6 @@ using NLog;
 using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
-using NLog.Targets.Wrappers;
 
 namespace ALClientCS
 {
@@ -15,6 +14,13 @@ namespace ALClientCS
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };
+
+        public static void SetLogLevel(LogLevel level)
+        {
+            foreach (var rule in LogManager.Configuration.LoggingRules)
+                if (rule.LoggerNamePattern == "AL.*")
+                    rule.SetLoggingLevels(level, LogLevel.Fatal);
+        }
 
         public static void UseDefaultLoggingConfiguration()
         {
@@ -29,7 +35,7 @@ namespace ALClientCS
                 ArchiveFileName = @"logs\old\${shortdate}.txt",
                 ArchiveEvery = FileArchivePeriod.Day,
                 ArchiveNumbering = ArchiveNumberingMode.Rolling,
-                MaxArchiveFiles = 30,
+                MaxArchiveFiles = 30
             };
 
             var consoleTarget = new ConsoleTarget("ALClientCSConsoleTarget")
@@ -41,15 +47,8 @@ namespace ALClientCS
             config.AddTarget(consoleTarget);
             config.AddRule(LogLevel.Trace, LogLevel.Fatal, "ALClientCSFileTarget", "AL.*");
             config.AddRule(LogLevel.Debug, LogLevel.Fatal, "ALClientCSConsoleTarget", "AL.*");
-            
-            LogManager.Configuration = config;
-        }
 
-        public static void SetLogLevel(LogLevel level)
-        {
-            foreach(var rule in LogManager.Configuration.LoggingRules)
-                if (rule.LoggerNamePattern == "AL.*")
-                    rule.SetLoggingLevels(level, LogLevel.Fatal);
+            LogManager.Configuration = config;
         }
     }
 }

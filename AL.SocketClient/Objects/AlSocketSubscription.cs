@@ -8,7 +8,9 @@ namespace AL.SocketClient.Objects
     {
         private readonly AwaitableList<ALSocketSubscription> InvocationList;
         internal abstract Delegate Callback { get; }
-        protected ALSocketSubscription(AwaitableList<ALSocketSubscription> invocationList) => InvocationList = invocationList;
+
+        protected ALSocketSubscription(AwaitableList<ALSocketSubscription> invocationList) =>
+            InvocationList = invocationList;
 
         public async ValueTask DisposeAsync() => await InvocationList.RemoveAsync(this);
 
@@ -23,7 +25,9 @@ namespace AL.SocketClient.Objects
             : base(invocationList) =>
             Callback = callback;
 
-        internal static ALSocketSubscription Create(AwaitableList<ALSocketSubscription> invocationList, Func<T, Task<bool>> callback)
+        internal static ALSocketSubscription Create(
+            AwaitableList<ALSocketSubscription> invocationList,
+            Func<T, Task<bool>> callback)
         {
             var subscription = new AlSocketSubscription<T>(invocationList, callback);
             //we dont need to await this because all we care about is that invocationList is synchronized

@@ -17,15 +17,18 @@ namespace AL.Data.Classes
         [JsonProperty("damage_type")]
         public string DamageType { get; init; }
 
-        public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Doublehands { get; init; }
+        public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Doublehands { get; init; } =
+            new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
         public float Frequency { get; init; }
         public int Hp { get; init; }
-        public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Mainhands { get; init; }
+        public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Mainhands { get; init; } =
+            new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
         public string MainStat { get; init; }
         public int Mcourage { get; init; }
         public int Mp { get; init; }
         public int MpCost { get; init; }
-        public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Offhands { get; init; }
+        public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Offhands { get; init; } =
+            new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
         public int Pcourage { get; init; }
         public string Projectile { get; init; }
         public int Range { get; init; }

@@ -17,15 +17,18 @@ namespace AL.Data
         public T this[Enum @enum] => this[@enum.ToString()];
 
         [JsonIgnore]
-        public IEnumerable<T> Values => LookupCache.Values;
-
-        [JsonIgnore]
         public IEnumerable<string> Keys => LookupCache.Keys;
 
-        private Dictionary<string, T> LookupCache { get; } = new(StringComparer.OrdinalIgnoreCase);
+        [JsonIgnore]
+        public IEnumerable<T> Values => LookupCache.Values;
+
+        private IReadOnlyDictionary<string, T> LookupCache { get; } =
+            new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
         internal void ConstructCache()
         {
+            var cache = (Dictionary<string, T>) LookupCache;
+
             foreach (var propertyInfo in GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
                 if (!propertyInfo.CanRead || propertyInfo.GetIndexParameters().Any())
@@ -38,12 +41,12 @@ namespace AL.Data
 
                 var value = (T) propertyInfo.GetValue(this);
 
-                LookupCache[propertyInfo.Name] = value;
+                cache[propertyInfo.Name] = value;
 
                 var jsonPropertyInfo = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>();
 
                 if (jsonPropertyInfo?.PropertyName != null)
-                    LookupCache[jsonPropertyInfo.PropertyName] = value;
+                    cache[jsonPropertyInfo.PropertyName] = value;
             }
         }
 

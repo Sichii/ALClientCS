@@ -7,7 +7,7 @@ namespace AL.Core.Interfaces
     public interface IAttributed
     {
         [JsonIgnore]
-        public IDictionary<ALAttribute, float> Attributes { get; init; }
+        public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; }
 
         [JsonProperty]
         public float APiercing { get; }

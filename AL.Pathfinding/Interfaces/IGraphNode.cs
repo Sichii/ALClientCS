@@ -5,12 +5,12 @@ namespace AL.Pathfinding.Interfaces
 {
     public interface IGraphNode<T> : IEquatable<IGraphNode<T>>, IComparable<IGraphNode<T>>
     {
-        int Index { get; }
-        int? Parent { get; set; }
-        float Priority { get; }
         bool Closed { get; set; }
-        List<IGraphNode<T>> Neighbors { get; }
+        int? Parent { get; set; }
         T Edge { get; }
+        int Index { get; }
+        List<IGraphNode<T>> Neighbors { get; }
+        float Priority { get; }
         void Reset();
     }
 }

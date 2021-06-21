@@ -10,7 +10,7 @@ namespace AL.SocketClient.Definitions
         None,
         All,
         [EnumMember(Value = "xy")]
-        Positions
+        Partial
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -21,8 +21,8 @@ namespace AL.SocketClient.Definitions
         Upgrade,
         Exchange
     }
-    
-        [JsonConverter(typeof(StringEnumConverter))]
+
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum UIDataType
     {
         Unknown,
@@ -120,7 +120,7 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "disabled")]
         Disabled,
         [EnumMember(Value = "ex_condition")]
-        ExCondition,
+        ConditionExpired,
         [EnumMember(Value = "gold_sent")]
         GoldSent,
         [EnumMember(Value = "item_sent")]

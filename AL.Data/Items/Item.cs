@@ -14,7 +14,8 @@ namespace AL.Data.Items
     public record Item : AttributedRecordBase
     {
         [JsonProperty("compound")]
-        public IReadOnlyDictionary<ALAttribute, float> CompoundModifiers { get; init; }
+        public IReadOnlyDictionary<ALAttribute, float> CompoundModifiers { get; init; } =
+            new Dictionary<ALAttribute, float>();
 
         [JsonProperty("damage")]
         public DamageType DamageType { get; init; }
@@ -34,7 +35,8 @@ namespace AL.Data.Items
         public ItemType Type { get; init; }
 
         [JsonProperty("upgrade")]
-        public IReadOnlyDictionary<ALAttribute, float> UpgradeModifiers { get; init; }
+        public IReadOnlyDictionary<ALAttribute, float> UpgradeModifiers { get; init; } =
+            new Dictionary<ALAttribute, float>();
 
         [JsonProperty("wtype")]
         public WeaponType WeaponType { get; init; }

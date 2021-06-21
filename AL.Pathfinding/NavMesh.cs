@@ -16,9 +16,9 @@ namespace AL.Pathfinding
     {
         protected sealed override ILog Logger { get; init; }
         internal PointType[,] PointMap { get; }
+        internal GraphNode<Point> TownNode { get; }
         internal int XOffset { get; }
         internal int YOffset { get; }
-        internal GraphNode<Point> TownNode { get; }
 
         internal NavMesh(NavMeshBuilderContext context)
             : base(context.Nodes, (current, neighbor) => current.Edge.Distance(neighbor.Edge),
@@ -30,6 +30,41 @@ namespace AL.Pathfinding
             PointMap = context.PointMap;
             TownNode = context.TownNode;
             Reset();
+        }
+
+        public bool CanMove(Point start, Point end)
+        {
+            foreach (var point in new Line(start, end).Points())
+                if (PointMap[(int) point.X, (int) point.Y].HasFlag(PointType.Wall))
+                    return false;
+
+            return true;
+        }
+
+        private static void FindDistanceShortcut(List<IConnector<Point>> connectors, float distance = 0)
+        {
+            var end = connectors[^1].End;
+            var circle = new Circle(end, distance * 0.95f);
+
+            for (var i = 0; i < connectors.Count; i++)
+            {
+                var connector = connectors[i];
+
+                if (connector.Type != ConnectorType.Walk)
+                    continue;
+
+                var intersection = circle.LineIntersection(connector.ToLine());
+
+                if (intersection != null)
+                {
+                    var chopIndex = i - 1;
+                    connectors.RemoveRange(chopIndex, connectors.Count - chopIndex);
+                    connectors.Add(new EdgeConnector<Point>
+                        { Start = connector.Start, End = intersection.Point(), Type = ConnectorType.Walk });
+
+                    break;
+                }
+            }
         }
 
         public async IAsyncEnumerable<IConnector<Point>> FindPath(
@@ -94,32 +129,6 @@ namespace AL.Pathfinding
                 yield return connector;
         }
 
-        private static void FindDistanceShortcut(List<IConnector<Point>> connectors, float distance = 0)
-        {
-            var end = connectors[^1].End;
-            var circle = new Circle(end, distance * 0.95f);
-
-            for (var i = 0; i < connectors.Count; i++)
-            {
-                var connector = connectors[i];
-
-                if (connector.Type != ConnectorType.Walk)
-                    continue;
-
-                var intersection = circle.LineIntersection(connector.ToLine());
-
-                if (intersection != null)
-                {
-                    var chopIndex = i - 1;
-                    connectors.RemoveRange(chopIndex, connectors.Count - chopIndex);
-                    connectors.Add(new EdgeConnector<Point>
-                        { Start = connector.Start, End = intersection.Point(), Type = ConnectorType.Walk });
-
-                    break;
-                }
-            }
-        }
-
         private IEnumerable<IConnector<Point>> SmoothPath(List<IConnector<Point>> connectors, float distance = 0)
         {
             if (connectors.Count == 0)
@@ -157,15 +166,6 @@ namespace AL.Pathfinding
 
                 bestIndex++;
             }
-        }
-
-        public bool CanMove(Point start, Point end)
-        {
-            foreach (var point in new Line(start, end).Points())
-                if (PointMap[(int) point.X, (int) point.Y].HasFlag(PointType.Wall))
-                    return false;
-
-            return true;
         }
     }
 }

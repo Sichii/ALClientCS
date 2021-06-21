@@ -10,7 +10,7 @@ namespace AL.APIClient.Model
         public string Map { get; init; }
         public string Name { get; init; }
         public string Server { get; init; }
-        public IReadOnlyDictionary<TradeSlot, TradeItem> Slots { get; init; }
+        public IReadOnlyDictionary<TradeSlot, TradeItem> Slots { get; init; } = new Dictionary<TradeSlot, TradeItem>();
         public string Stand { get; init; }
         public float X { get; init; }
         public float Y { get; init; }

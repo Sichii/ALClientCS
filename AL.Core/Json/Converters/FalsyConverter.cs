@@ -9,7 +9,12 @@ namespace AL.Core.Json.Converters
 
         public ObjOrFalseConverter(T @default = default) => Default = @default;
 
-        public override T ReadJson(JsonReader reader, Type objectType, T existingValue, bool hasExistingValue, JsonSerializer serializer) =>
+        public override T ReadJson(
+            JsonReader reader,
+            Type objectType,
+            T existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer) =>
             reader.TokenType switch
             {
                 JsonToken.Null    => Default,
@@ -17,6 +22,7 @@ namespace AL.Core.Json.Converters
                 _                 => serializer.Deserialize<T>(reader)
             };
 
-        public override void WriteJson(JsonWriter writer, T value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, T value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

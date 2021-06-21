@@ -16,15 +16,15 @@ namespace AL.Pathfinding
     public class NavMeshBuilder
     {
         private readonly MapGeometry Geometry;
+        private readonly int Height;
         public readonly string Key;
         private readonly Map Map;
-        private readonly int Height;
+        private readonly Dictionary<Point, GraphNode<Point>> NodeDic;
+        private readonly PointType[,] PointMap;
+        private readonly Dictionary<Point, DelaunayTriangle> Triangles;
         private readonly int Width;
         private readonly int XOffset;
         private readonly int YOffset;
-        private readonly PointType[,] PointMap;
-        private readonly Dictionary<Point, GraphNode<Point>> NodeDic;
-        private readonly Dictionary<Point, DelaunayTriangle> Triangles;
         private int Index;
         private GraphNode<Point> TownNode;
 
@@ -49,37 +49,37 @@ namespace AL.Pathfinding
 
             foreach (var spawn in Map.Spawns)
                 vertices.UnionWith(FloodFindVertices(spawn));
-            
+
             var polySet = TracePolygons(vertices);
             P2T.Triangulate(polySet);
-            
-            foreach(var triangle in polySet.Polygons.SelectMany(polygon => polygon.Triangles))
+
+            foreach (var triangle in polySet.Polygons.SelectMany(polygon => polygon.Triangles))
                 Triangles.Add(PolygonExtensions.Centroid(triangle), triangle);
-            
+
             foreach (var triangle in Triangles.Values)
             {
                 var vertex1 = triangle.Points._0.ToPoint();
                 var vertex2 = triangle.Points._1.ToPoint();
                 var vertex3 = triangle.Points._2.ToPoint();
-                
+
                 if (!NodeDic.TryGetValue(vertex1, out var node1))
                 {
                     node1 = new GraphNode<Point>(vertex1, Index++);
                     NodeDic[vertex1] = node1;
                 }
-                
+
                 if (!NodeDic.TryGetValue(vertex2, out var node2))
                 {
                     node2 = new GraphNode<Point>(vertex2, Index++);
                     NodeDic[vertex2] = node2;
                 }
-                
+
                 if (!NodeDic.TryGetValue(vertex3, out var node3))
                 {
                     node3 = new GraphNode<Point>(vertex3, Index++);
                     NodeDic[vertex3] = node3;
                 }
-                
+
                 node1.Neighbors.Add(node2);
                 node1.Neighbors.Add(node3);
                 node2.Neighbors.Add(node1);
@@ -87,16 +87,16 @@ namespace AL.Pathfinding
                 node3.Neighbors.Add(node1);
                 node3.Neighbors.Add(node2);
             }
-            
+
             TownNode = CreateTownNode();
-            
+
             if (TownNode != null)
                 NodeDic[TownNode.Edge] = TownNode;
 
             //ensure unique neighbors
             foreach (var node in NodeDic.Values)
                 node.Neighbors = node.Neighbors.Distinct().ToList();
-            
+
             var context = new NavMeshBuilderContext
             {
                 Key = Key,
@@ -105,11 +105,38 @@ namespace AL.Pathfinding
                 TownNode = TownNode,
                 XOffset = XOffset,
                 YOffset = YOffset,
-                PointMap = PointMap,
+                PointMap = PointMap
             };
-            
+
             return new NavMesh(context);
         }
+
+        #region Utility
+
+        private GraphNode<Point> CreateTownNode()
+        {
+            var spawn = Map.Spawns?.FirstOrDefault();
+
+            if (spawn == null || Map.Boundless)
+                return null;
+
+            var spawnPoint = new Point(spawn.X + XOffset, spawn.Y + YOffset);
+            var node = new GraphNode<Point>(spawnPoint, Index++);
+            var townTriangle = Triangles.OrderBy(kvp => kvp.Key.Distance(spawnPoint))
+                .FirstOrDefault(kvp => kvp.Value.ContainsPoint(spawnPoint.X, spawnPoint.Y))
+                .Value;
+
+            if (townTriangle == null)
+                return null;
+
+            foreach (var vertex in townTriangle.Points)
+                node.Neighbors.Add(NodeDic[vertex.ToPoint()]);
+
+            NodeDic.Add(node.Edge, node);
+            return node;
+        }
+
+        #endregion
 
         #region Polygons
 
@@ -197,17 +224,17 @@ namespace AL.Pathfinding
                 var polyLine = FloodPolyLine(vertices).Select((point, i) => point.ToPolyPoint(i)).ToArray();
                 var polygon = new Polygon(polyLine);
                 var isHole = false;
-                
+
                 //for each existing polygon
                 foreach (var existing in polygons.ToArray())
                     //check if the new polygon is inside of the existing polygon
-                    if (existing.ContainsPoint((float)polyLine[0].X, (float)polyLine[0].Y))
+                    if (existing.ContainsPoint((float) polyLine[0].X, (float) polyLine[0].Y))
                     {
                         existing.AddHole(polygon);
                         isHole = true;
                         break;
-                    //check if any existing polygons are inside of the new polygon    
-                    } else if (polygon.ContainsPoint((float)existing.Points[0].X, (float)existing.Points[0].Y))
+                        //check if any existing polygons are inside of the new polygon    
+                    } else if (polygon.ContainsPoint((float) existing.Points[0].X, (float) existing.Points[0].Y))
                     {
                         polygons.Remove(existing);
                         polygon.AddHole(existing);
@@ -220,8 +247,8 @@ namespace AL.Pathfinding
             }
 
             var polySet = new PolygonSet();
-            
-            foreach(var polygon in polygons)
+
+            foreach (var polygon in polygons)
                 polySet.Add(polygon);
 
             return polySet;
@@ -421,32 +448,6 @@ namespace AL.Pathfinding
             }
         }
 
-        #endregion
-        
-        #region Utility
-
-        private GraphNode<Point> CreateTownNode()
-        {
-            var spawn = Map.Spawns?.FirstOrDefault();
-
-            if (spawn == null || Map.Boundless)
-                return null;
-
-            var spawnPoint = new Point(spawn.X + XOffset, spawn.Y + YOffset);
-            var node = new GraphNode<Point>(spawnPoint, Index++);
-            var townTriangle = Triangles.OrderBy(kvp => kvp.Key.Distance(spawnPoint))
-                .FirstOrDefault(kvp => kvp.Value.ContainsPoint(spawnPoint.X, spawnPoint.Y))
-                .Value;
-
-            if (townTriangle == null)
-                return null;
-
-            foreach (var vertex in townTriangle.Points)
-                node.Neighbors.Add(NodeDic[vertex.ToPoint()]);
-
-            NodeDic.Add(node.Edge, node);
-            return node;
-        }
         #endregion
     }
 }

@@ -9,9 +9,6 @@ namespace AL.Tests.APIClient.Tests
     public class APIClientTests
     {
         private static ALAPIClient APIClient;
-        
-        [ClassInitialize]
-        public static void Init(TestContext context) => APIClient = AssemblyInit.APIClient;
 
         [TestMethod]
         public async Task GetMailTest()
@@ -29,7 +26,10 @@ namespace AL.Tests.APIClient.Tests
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Any());
         }
-        
+
+        [ClassInitialize]
+        public static void Init(TestContext context) => APIClient = AssemblyInit.APIClient;
+
         [TestMethod]
         public async Task UpdateServersAndCharactersTest()
         {

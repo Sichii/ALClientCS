@@ -9,7 +9,12 @@ namespace AL.SocketClient.Json.Converters
 {
     public class ServerInfoDataConverter : JsonConverter<ServerInfoData>
     {
-        public override ServerInfoData ReadJson(JsonReader reader, Type objectType, ServerInfoData existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override ServerInfoData ReadJson(
+            JsonReader reader,
+            Type objectType,
+            ServerInfoData existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
@@ -19,7 +24,9 @@ namespace AL.SocketClient.Json.Converters
             if (obj == null)
                 return null;
 
-            var info = new ServerInfoData { BossInfo = new Dictionary<string, BossInfo>(StringComparer.OrdinalIgnoreCase) };
+            var info = new ServerInfoData
+                { BossInfo = new Dictionary<string, BossInfo>(StringComparer.OrdinalIgnoreCase) };
+
             dynamic dObj = info;
 
             foreach ((var key, var token) in obj)
@@ -32,6 +39,7 @@ namespace AL.SocketClient.Json.Converters
             return info;
         }
 
-        public override void WriteJson(JsonWriter writer, ServerInfoData value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, ServerInfoData value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

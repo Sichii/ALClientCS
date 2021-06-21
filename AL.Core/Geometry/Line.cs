@@ -8,7 +8,7 @@ namespace AL.Core.Geometry
     {
         public IPoint Point1 { get; init; }
         public IPoint Point2 { get; init; }
-        
+
         [JsonIgnore]
         public float Length => Point1.Distance(Point2);
 

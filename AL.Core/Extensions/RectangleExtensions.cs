@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
+using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
+using Chaos.Core.Extensions;
 
 namespace AL.Core.Extensions
 {
@@ -14,15 +16,17 @@ namespace AL.Core.Extensions
             rect.Left <= point.X && rect.Right > point.X && rect.Top <= point.Y && rect.Bottom > point.Y;
 
         public static float Distance(this IRectangle rect, IRectangle other) =>
-            rect.Intersects(other) ? 0f : rect.Vertices.SelectMany(point => other.Vertices.Select(point.Distance)).Min();
+            rect.Intersects(other)
+                ? 0f
+                : rect.Vertices.SelectMany(point => other.Vertices.Select(point.Distance)).Min();
 
         public static bool Intersects(this IRectangle rect, IRectangle other) =>
             !(rect.Bottom > other.Top || rect.Left > other.Right || rect.Right < other.Left || rect.Top < other.Bottom);
 
         public static IEnumerable<IPoint> Points(this IRectangle rect, float numberOfSteps = -1f)
         {
-            var horizontalStep = numberOfSteps.NearlyEquals(-1f) ? 1 : rect.Width / numberOfSteps;
-            var verticalStep = numberOfSteps.NearlyEquals(-1f) ? 1 : rect.Height / numberOfSteps;
+            var horizontalStep = numberOfSteps.NearlyEquals(-1f, CONSTANTS.EPSILON) ? 1 : rect.Width / numberOfSteps;
+            var verticalStep = numberOfSteps.NearlyEquals(-1f, CONSTANTS.EPSILON) ? 1 : rect.Height / numberOfSteps;
 
             for (var x = rect.Left; x <= rect.Right; x += horizontalStep)
                 for (var y = rect.Top; y <= rect.Bottom; y += verticalStep)

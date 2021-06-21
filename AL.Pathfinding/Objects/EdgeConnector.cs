@@ -5,9 +5,9 @@ namespace AL.Pathfinding.Objects
 {
     public record EdgeConnector<TEdge> : IConnector<TEdge>
     {
-        public TEdge Start { get; init; }
-        public TEdge End { get; init; }
         public float Distance { get; init; }
+        public TEdge End { get; init; }
+        public TEdge Start { get; init; }
 
         public ConnectorType Type
         {

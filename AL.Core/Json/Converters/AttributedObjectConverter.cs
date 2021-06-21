@@ -10,7 +10,12 @@ namespace AL.Core.Json.Converters
 {
     public class AttributedObjectConverter<T> : JsonConverter<T> where T: IAttributed, new()
     {
-        public override T ReadJson(JsonReader reader, Type objectType, T existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override T ReadJson(
+            JsonReader reader,
+            Type objectType,
+            T existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return default;
@@ -20,13 +25,15 @@ namespace AL.Core.Json.Converters
             if (obj == null)
                 return default;
 
-            var value = new T { Attributes = new Dictionary<ALAttribute, float>() };
+            var attribs = new Dictionary<ALAttribute, float>();
+            var value = new T { Attributes = attribs };
 
             serializer.Populate(obj.CreateReader(), value);
 
             foreach ((var key, var jToken) in obj)
-                if (jToken is { Type: JTokenType.Integer or JTokenType.Float } && EnumHelper.TryParse<ALAttribute>(key, out var attribute))
-                    value.Attributes[attribute] = jToken.Value<float>();
+                if (jToken is { Type: JTokenType.Integer or JTokenType.Float }
+                    && EnumHelper.TryParse<ALAttribute>(key, out var attribute))
+                    attribs[attribute] = jToken.Value<float>();
 
             return value;
         }

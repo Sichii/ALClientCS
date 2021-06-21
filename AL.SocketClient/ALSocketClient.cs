@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,17 +17,17 @@ namespace AL.SocketClient
 {
     public class ALSocketClient
     {
-        internal ALAPIClient APIClient { get; }
-        private readonly Dictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
+        private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private Server Server;
         private WebSocket Socket;
+        internal ALAPIClient APIClient { get; }
         private ILog Logger { get; }
 
         public ALSocketClient(ALAPIClient apiClient)
         {
             APIClient = apiClient;
             Logger = LogManager.GetLogger<ALSocketClient>();
-            Subscriptions = new Dictionary<ALSocketMessageType, ALSocketSubscriptionList>();
+            Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
         }
 
         public async Task ConnectAsync(ServerRegion region, ServerId identifier)
@@ -58,8 +59,9 @@ namespace AL.SocketClient
             return !waitForCompletion || await source.Task;
         }
 
-        internal async ValueTask HandleMessageAsync(string raw)
+        public async ValueTask HandleMessageAsync(string raw)
         {
+            await Task.Yield();
             ALSocketMessage message;
 
             try
@@ -68,7 +70,7 @@ namespace AL.SocketClient
                     ArrayToObjectConverter<ALSocketMessage>.Singleton)!;
             } catch (Exception ex)
             {
-                var wrapper = new Exception($"Failed to deserialize top level message. See inner exception.", ex);
+                var wrapper = new Exception("Failed to deserialize top level message. See inner exception.", ex);
                 Logger.Fatal(wrapper);
 
                 throw wrapper;
@@ -127,7 +129,9 @@ RAW JSON:
             return AlSocketSubscription<T>.Create(invocationList, callback);
         }
 
-        public async ValueTask Unsubscribe<T>(ALSocketMessageType socketMessageType, Func<string, T, Task<bool>> callback)
+        public async ValueTask Unsubscribe<T>(
+            ALSocketMessageType socketMessageType,
+            Func<string, T, Task<bool>> callback)
         {
             if (Subscriptions.TryGetValue(socketMessageType, out var invocationList))
                 await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate) callback);

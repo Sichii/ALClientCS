@@ -8,14 +8,16 @@ using Newtonsoft.Json;
 namespace AL.SocketClient.Receive
 {
     [JsonConverter(typeof(GameResponseDataConverter))]
-    public record GameResponseData : IGoldReceivedResponse, ISkillResponse, IBankOpxResponse, IBuySuccessResponse,
+    public record GameResponseData : IGoldReceivedResponse, ISkillNameResponse, IBankOpxResponse, IBuySuccessResponse,
         ICooldownResponse, ICraftResponse, IDefeatedByAMonsterResponse, IGoldSentResponse, IItemSentResponse,
         ISeashellSuccessResponse, ITooFarResponse
     {
         [JsonProperty("name")]
         private readonly string _name;
         public int Amount { get; init; }
-        public string CooldownMS { get; init; }
+        [JsonIgnore]
+        public bool ContainsData { get; init; }
+        public float CooldownMS { get; init; }
         public int Cost { get; init; }
         public int Distance { get; init; }
         public string Place { get; init; }

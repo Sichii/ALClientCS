@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AL.Core.Extensions;
 using AL.Data.Maps;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
 using AL.Pathfinding.Objects;
+using Chaos.Core.Extensions;
 using Common.Logging;
 
 namespace AL.Pathfinding
@@ -27,7 +27,7 @@ namespace AL.Pathfinding
 
         public IAsyncEnumerable<IConnector<Map>> FindRoute(Map start, IEnumerable<Map> ends)
         {
-            if(!NodeLookup.TryGetValue(start, out var startNode))
+            if (!NodeLookup.TryGetValue(start, out var startNode))
                 throw new InvalidOperationException($"Unable to locate a start node for the given map. ({start.Key})");
 
             var endMaps = ends.ToArray();

@@ -56,7 +56,7 @@ namespace AL.Data
         public static ItemsDatum Items { get; private set; }
 
         [JsonProperty]
-        public static IReadOnlyDictionary<int, float> Levels { get; private set; }
+        public static IReadOnlyDictionary<int, float> Levels { get; private set; } = new Dictionary<int, float>();
 
         [JsonProperty]
         public static MapsDatum Maps { get; private set; }

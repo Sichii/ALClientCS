@@ -43,8 +43,10 @@ namespace AL.Data.Geometry
 
         IPoint[] IRectangle.Vertices => new IPoint[]
         {
-            new Point(((IRectangle) this).Top, ((IRectangle) this).Left), new Point(((IRectangle) this).Top, ((IRectangle) this).Right),
-            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Left), new Point(((IRectangle) this).Bottom, ((IRectangle) this).Right)
+            new Point(((IRectangle) this).Top, ((IRectangle) this).Left),
+            new Point(((IRectangle) this).Top, ((IRectangle) this).Right),
+            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Left),
+            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Right)
         };
 
         float IRectangle.Width => MaxX - MinX;

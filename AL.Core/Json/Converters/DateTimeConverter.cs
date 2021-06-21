@@ -5,7 +5,12 @@ namespace AL.Core.Json.Converters
 {
     public class DateTimeConverter : JsonConverter<DateTime>
     {
-        public override DateTime ReadJson(JsonReader reader, Type objectType, DateTime existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override DateTime ReadJson(
+            JsonReader reader,
+            Type objectType,
+            DateTime existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType != JsonToken.String && reader.TokenType != JsonToken.Date)
                 return default;
@@ -20,6 +25,7 @@ namespace AL.Core.Json.Converters
             return DateTime.Parse(str);
         }
 
-        public override void WriteJson(JsonWriter writer, DateTime value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, DateTime value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

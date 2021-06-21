@@ -25,7 +25,14 @@ namespace AL.Data.Maps
         public new float Y => base.Y;
 
         [JsonConstructor]
-        public Door(float x, float y, float width, float height, string destinationMap, int destinationSpawnId, float nearbySpawn)
+        public Door(
+            float x,
+            float y,
+            float width,
+            float height,
+            string destinationMap,
+            int destinationSpawnId,
+            float nearbySpawn)
             : base(x, y, width, height)
         {
             DestinationMap = destinationMap;

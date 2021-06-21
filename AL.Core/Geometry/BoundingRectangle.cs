@@ -15,7 +15,13 @@ namespace AL.Core.Geometry
         public float X { get; }
         public float Y { get; }
 
-        public BoundingRectangle(float x, float y, int halfWidth, int verticalNorth, int verticalNotNorth, string map = null)
+        public BoundingRectangle(
+            float x,
+            float y,
+            int halfWidth,
+            int verticalNorth,
+            int verticalNotNorth,
+            string map = null)
             : base(halfWidth, verticalNorth, verticalNotNorth)
         {
             X = x;
@@ -29,7 +35,8 @@ namespace AL.Core.Geometry
             Right = x + halfWidth;
             Bottom = y + verticalNotNorth;
 
-            Vertices = new IPoint[] { new Point(Top, Left), new Point(Top, Right), new Point(Bottom, Left), new Point(Bottom, Right) };
+            Vertices = new IPoint[]
+                { new Point(Top, Left), new Point(Top, Right), new Point(Bottom, Left), new Point(Bottom, Right) };
         }
     }
 }

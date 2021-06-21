@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace AL.SocketClient.Interfaces
 {
-    public interface ISkillResponse : INameResponse
+    public interface ISkillNameResponse : INameResponse
     {
         [JsonIgnore]
         string SkillName { get; }

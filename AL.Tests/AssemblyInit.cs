@@ -13,13 +13,13 @@ namespace AL.Tests
     public class AssemblyInit
     {
         public static ALAPIClient APIClient { get; set; }
-        
+
         [AssemblyInitialize]
         public static async Task Init(TestContext context)
         {
             if (!Directory.Exists("images"))
                 Directory.CreateDirectory("images");
-            
+
             ALClientSettings.UseDefaultLoggingConfiguration();
             ALClientSettings.SetLogLevel(LogLevel.Trace);
 
@@ -27,7 +27,7 @@ namespace AL.Tests
 
             if (lines.Length < 2)
                 throw new Exception("Put login info in TestCredentials.txt to perform tests.");
-            
+
             var email = lines[0];
             var pw = lines[1];
 

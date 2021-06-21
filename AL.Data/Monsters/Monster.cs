@@ -12,10 +12,12 @@ namespace AL.Data.Monsters
         public bool _1hp { get; init; }
 
         [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<Ability>))]
-        public IReadOnlyDictionary<string, Ability> Abilities { get; init; }
+        public IReadOnlyDictionary<string, Ability> Abilities { get; init; } = new Dictionary<string, Ability>();
 
-        [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<float, AchievementRewardType, ALAttribute, float>))]
-        public (float RequiredPoints, AchievementRewardType RewardType, ALAttribute Attribute, float Amount)[] Achievements { get; init; }
+        [JsonProperty(ItemConverterType =
+            typeof(ArrayToTupleConverter<float, AchievementRewardType, ALAttribute, float>))]
+        public (float RequiredPoints, AchievementRewardType RewardType, ALAttribute Attribute, float Amount)[]
+            Achievements { get; init; }
 
         public float Aggro { get; init; }
 
@@ -35,7 +37,8 @@ namespace AL.Data.Monsters
         public bool Immune { get; init; }
 
         [JsonProperty("s")]
-        public IReadOnlyDictionary<Condition, InitialCondition> InitialConditions { get; init; }
+        public IReadOnlyDictionary<Condition, InitialCondition> InitialConditions { get; init; } =
+            new Dictionary<Condition, InitialCondition>();
 
         [JsonProperty("orientation")]
         public Direction InitialDirection { get; init; }

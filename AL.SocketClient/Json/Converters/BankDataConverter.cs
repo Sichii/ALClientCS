@@ -11,7 +11,12 @@ namespace AL.SocketClient.Json.Converters
 {
     public class BankDataConverter : JsonConverter<BankInfo>
     {
-        public override BankInfo ReadJson(JsonReader reader, Type objectType, BankInfo existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override BankInfo ReadJson(
+            JsonReader reader,
+            Type objectType,
+            BankInfo existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
@@ -37,6 +42,7 @@ namespace AL.SocketClient.Json.Converters
             };
         }
 
-        public override void WriteJson(JsonWriter writer, BankInfo value, JsonSerializer serializer) => throw new NotImplementedException();
+        public override void WriteJson(JsonWriter writer, BankInfo value, JsonSerializer serializer) =>
+            throw new NotImplementedException();
     }
 }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using AL.Core.Geometry;
 using AL.Core.Json.Attributes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -30,10 +28,11 @@ namespace AL.Core.Json.Converters
 
             var propsByIndex = typeof(T)
                 .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                .Concat<MemberInfo>(
+                    typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
                 .Where(p => p.GetCustomAttribute<JsonArrayIndexAttribute>() != null)
                 .ToDictionary(p => p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index);
-            
+
             var obj = new JObject(array
                 .Select((jt, i) => propsByIndex.TryGetValue(i, out var prop) ? new JProperty(prop.Name, jt) : null)
                 .Where(jp => jp != null));

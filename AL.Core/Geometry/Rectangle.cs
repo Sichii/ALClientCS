@@ -18,7 +18,12 @@ namespace AL.Core.Geometry
         public float Y { get; }
 
         [JsonConstructor]
-        public Rectangle(float x, float y, float width, float height, string map = null)
+        public Rectangle(
+            float x,
+            float y,
+            float width,
+            float height,
+            string map = null)
         {
             X = x;
             Y = y;
@@ -31,13 +36,15 @@ namespace AL.Core.Geometry
             Right = x + width / 2;
             Bottom = y + height / 2;
 
-            Vertices = new IPoint[] { new Point(Top, Left), new Point(Top, Right), new Point(Bottom, Left), new Point(Bottom, Right) };
+            Vertices = new IPoint[]
+                { new Point(Top, Left), new Point(Top, Right), new Point(Bottom, Left), new Point(Bottom, Right) };
         }
 
         public Rectangle(float height, float width, ILocation center)
             : this(center.X, center.Y, width, height, center.Map) { }
 
         public Rectangle(IPoint pt1, IPoint pt2, string mapName = null)
-            : this(Math.Abs(pt1.Y - pt2.Y), Math.Abs(pt1.X - pt2.X), new Location((pt1.X + pt2.X) / 2, (pt1.Y + pt2.Y) / 2, mapName)) { }
+            : this(Math.Abs(pt1.Y - pt2.Y), Math.Abs(pt1.X - pt2.X),
+                new Location((pt1.X + pt2.X) / 2, (pt1.Y + pt2.Y) / 2, mapName)) { }
     }
 }

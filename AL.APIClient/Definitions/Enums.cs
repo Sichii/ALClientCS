@@ -1,5 +1,4 @@
 using System.Runtime.Serialization;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -24,7 +23,7 @@ namespace AL.APIClient.Definitions
         US,
         EU
     }
-    
+
     [JsonConverter(typeof(StringEnumConverter))]
     internal enum APIMethod
     {

@@ -3,10 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using AL.Core.Extensions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
 using AL.Pathfinding.Objects;
+using Chaos.Core.Extensions;
 using Common.Logging;
 using Priority_Queue;
 
@@ -15,12 +15,12 @@ namespace AL.Pathfinding.Abstractions
     public abstract class GraphBase<TNode, TEdge> : IEnumerable<TNode>
         where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
     {
-        protected abstract ILog Logger { get; init; }
-        protected List<TNode> Nodes { get; }
-        protected IConnector<TEdge>[,] Connectors { get; }
-        protected FastPriorityQueue<TNode> Opened { get; }
-        protected Func<TNode, TNode, float> DistanceFunc { get; }
         private readonly SemaphoreSlim Sync;
+        protected abstract ILog Logger { get; init; }
+        protected IConnector<TEdge>[,] Connectors { get; }
+        protected Func<TNode, TNode, float> DistanceFunc { get; }
+        protected List<TNode> Nodes { get; }
+        protected FastPriorityQueue<TNode> Opened { get; }
 
         protected GraphBase(
             List<TNode> nodes,
@@ -58,34 +58,9 @@ namespace AL.Pathfinding.Abstractions
             start.Neighbors.Remove(end);
         }
 
-        protected bool OpenNode(TNode node, float priority)
-        {
-            if (Opened.Contains(node))
-            {
-                if (node.Priority.SignificantlyGreaterThan(priority))
-                {
-                    Opened.UpdatePriority(node, priority);
-                    return true;
-                }
-            } else
-            {
-                Opened.Enqueue(node, priority);
-                return true;
-            }
+        public IEnumerator<TNode> GetEnumerator() => Nodes.AsEnumerable().GetEnumerator();
 
-            return false;
-        }
-
-        protected void Reset()
-        {
-            Opened.Clear();
-
-            foreach (var node in Nodes)
-            {
-                Opened.ResetNode(node);
-                node.Reset();
-            }
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public async IAsyncEnumerable<IConnector<TEdge>> Navigate(
             int start,
@@ -104,13 +79,13 @@ namespace AL.Pathfinding.Abstractions
                     return index;
                 })
                 .ToArray();
-            
+
             var path = new Stack<IConnector<TEdge>>();
             var startNode = Nodes[start];
             var endNodes = Nodes.ElementsAt(endIndexes).ToHashSet();
             var current = startNode;
             await Sync.WaitAsync();
-            
+
             try
             {
                 if (endNodes.Count == 0)
@@ -163,8 +138,33 @@ namespace AL.Pathfinding.Abstractions
                 yield return path.Pop();
         }
 
-        public IEnumerator<TNode> GetEnumerator() => Nodes.AsEnumerable().GetEnumerator();
+        protected bool OpenNode(TNode node, float priority)
+        {
+            if (Opened.Contains(node))
+            {
+                if (node.Priority.SignificantlyGreaterThan(priority, Core.Definitions.CONSTANTS.EPSILON))
+                {
+                    Opened.UpdatePriority(node, priority);
+                    return true;
+                }
+            } else
+            {
+                Opened.Enqueue(node, priority);
+                return true;
+            }
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            return false;
+        }
+
+        protected void Reset()
+        {
+            Opened.Clear();
+
+            foreach (var node in Nodes)
+            {
+                Opened.ResetNode(node);
+                node.Reset();
+            }
+        }
     }
 }

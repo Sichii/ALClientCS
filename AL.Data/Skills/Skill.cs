@@ -14,7 +14,8 @@ namespace AL.Data.Skills
         public bool AffectsParty { get; init; }
 
         [JsonProperty("requirements")]
-        public IReadOnlyDictionary<ALAttribute, float> AttributeRequirements { get; init; }
+        public IReadOnlyDictionary<ALAttribute, float> AttributeRequirements { get; init; } =
+            new Dictionary<ALAttribute, float>();
         public bool Aura { get; init; }
         public ALClass[] Class { get; init; }
         public string Complementary { get; init; }
@@ -22,7 +23,7 @@ namespace AL.Data.Skills
         public string Consume { get; init; }
 
         [JsonProperty("cooldown")]
-        public float Cooldown { get; private set; }
+        public float CooldownMS { get; private set; }
 
         [JsonProperty("cooldown_multiplier")]
         public float CooldownMultiplier { get; init; }
@@ -40,7 +41,7 @@ namespace AL.Data.Skills
         public float Max { get; init; }
 
         [JsonProperty("targets")]
-        public bool MultiTargets { get; private set; }
+        public bool MultiTargeted { get; private set; }
 
         public string Name { get; init; }
         public bool Passive { get; init; }
@@ -80,15 +81,15 @@ namespace AL.Data.Skills
         [JsonProperty("list")]
         private bool ListTargets
         {
-            get => MultiTargets;
-            set => MultiTargets = value;
+            get => MultiTargeted;
+            set => MultiTargeted = value;
         }
 
         [JsonProperty("reuse_cooldown")]
         private float ReuseCooldown
         {
-            get => Cooldown;
-            set => Cooldown = value;
+            get => CooldownMS;
+            set => CooldownMS = value;
         }
     }
 }

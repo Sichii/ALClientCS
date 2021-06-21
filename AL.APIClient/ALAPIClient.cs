@@ -91,7 +91,7 @@ namespace AL.APIClient
 
             Logger.Trace($"Message: {data?.Message}");
             Logger.Trace($"Set-Cookie: {setCookieHeader?.Value}");
-            
+
             if (data == null)
                 throw new Exception("Failed to log in. No response from server.");
 

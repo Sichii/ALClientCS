@@ -14,9 +14,6 @@ namespace AL.Pathfinding
 {
     public static class PathFinder
     {
-        internal static AwaitableDictionary<string, NavMesh> NavMeshes { get; } = new();
-        internal static WorldMesh WorldMesh { get; private set; }
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(PathFinder).FullName);
         private static readonly string[] IGNORED_MAPS =
         {
             "A/B Testing",
@@ -25,42 +22,13 @@ namespace AL.Pathfinding
             "New Town!",
             "Test"
         };
-
-        public static async Task InitializeAsync()
-        {
-            var maps = GameData.Maps.DistinctBy(kvp => kvp.Value.Key)
-                .Where(kvp => kvp.Value.Ignore == false)
-                .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
-                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-            Logger.Info("Preparing map navigation");
-            var timer = new Stopwatch();
-            timer.Start();
-
-            await Task.WhenAll(maps.AsParallel(new ParallelLinqOptions
-                {
-                    MaxDegreeOfParallelism = (int) (Environment.ProcessorCount * 1.5),
-                    ExecutionMode = ParallelExecutionMode.ForceParallelism,
-                    MergeOptions = ParallelMergeOptions.NotBuffered
-                })
-                .Select(async kvp =>
-                {
-                    (var name, var map) = kvp;
-                    var navMesh = TryBuildNavMesh(name, map);
-
-                    if (navMesh != null)
-                        await NavMeshes.AddAsync(map.Key, navMesh);
-                }));
-
-            BuildWorldMesh(maps);
-
-            timer.Stop();
-            Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
-        }
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(PathFinder).FullName);
+        internal static WorldMesh WorldMesh { get; private set; }
+        internal static AwaitableDictionary<string, NavMesh> NavMeshes { get; } = new();
 
         private static void BuildWorldMesh(Dictionary<string, Map> maps)
         {
-            Logger.Info($"Preparing world navigation");
+            Logger.Info("Preparing world navigation");
             var nodeDic = new Dictionary<Map, GraphNode<Map>>();
             var index = 0;
 
@@ -95,6 +63,38 @@ namespace AL.Pathfinding
             }
 
             WorldMesh = new WorldMesh(nodeDic);
+        }
+
+        public static async Task InitializeAsync()
+        {
+            var maps = GameData.Maps.DistinctBy(kvp => kvp.Value.Key)
+                .Where(kvp => kvp.Value.Ignore == false)
+                .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            Logger.Info("Preparing map navigation");
+            var timer = new Stopwatch();
+            timer.Start();
+
+            await Task.WhenAll(maps.AsParallel(new ParallelLinqOptions
+                {
+                    MaxDegreeOfParallelism = (int) (Environment.ProcessorCount * 1.5),
+                    ExecutionMode = ParallelExecutionMode.ForceParallelism,
+                    MergeOptions = ParallelMergeOptions.NotBuffered
+                })
+                .Select(async kvp =>
+                {
+                    (var name, var map) = kvp;
+                    var navMesh = TryBuildNavMesh(name, map);
+
+                    if (navMesh != null)
+                        await NavMeshes.AddAsync(map.Key, navMesh);
+                }));
+
+            BuildWorldMesh(maps);
+
+            timer.Stop();
+            Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
         }
 
         private static NavMesh TryBuildNavMesh(string name, Map map)

@@ -8,7 +8,7 @@ namespace AL.Core.Extensions
     public static class LineExtensions
     {
         /// <summary>
-        /// https://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
+        ///     https://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
         /// </summary>
         public static IEnumerable<IPoint> Points(this ILine line)
         {

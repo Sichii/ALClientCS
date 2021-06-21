@@ -7,6 +7,19 @@ namespace AL.Visualizer
 {
     public static class Visualizer
     {
+        public static Image<Rgba32> CreateGridImage(PointType[,] pointMap)
+        {
+            var width = pointMap.GetLength(0);
+            var height = pointMap.GetLength(1);
+            var image = new Image<Rgba32>(width, height, Color.White);
+
+            for (var x = 0; x < width; x++)
+                for (var y = 0; y < height; y++)
+                    image[x, y] = PointTypeToColor(pointMap[x, y]);
+
+            return image;
+        }
+
         private static Color PointTypeToColor(PointType type)
         {
             // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
@@ -31,19 +44,6 @@ namespace AL.Visualizer
 
                     throw new ArgumentOutOfRangeException($"Unknown point type {(int) type}");
             }
-        }
-        
-        public static Image<Rgba32> CreateGridImage(PointType[,] pointMap)
-        {
-            var width = pointMap.GetLength(0);
-            var height = pointMap.GetLength(1);
-            var image = new Image<Rgba32>(width, height, Color.White);
-
-            for (var x = 0; x < width; x++)
-                for (var y = 0; y < height; y++)
-                    image[x, y] = PointTypeToColor(pointMap[x, y]);
-
-            return image;
         }
     }
 }

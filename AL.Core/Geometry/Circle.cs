@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Interfaces;
+using Chaos.Core.Extensions;
 
 namespace AL.Core.Geometry
 {
@@ -13,27 +15,13 @@ namespace AL.Core.Geometry
         public bool Contains(Circle other) => Radius >= Distance(other) + other.Radius;
         public float Distance(Circle other) => Math.Max(0, this.Distance((IPoint) other) - (Radius + other.Radius));
 
-        public IEnumerable<IPoint> Fill(float numberOfSteps)
+        public IEnumerable<Point> GenerateCircumferencePoints(float numberOfPoints, float startingAngle = 0f)
         {
-            var stepSize = Radius / numberOfSteps * 2;
+            var anglePerPoint = 360 / numberOfPoints;
 
-            for (var x = X - Radius; x <= X; x += stepSize)
-                for (var y = Y - Radius; y <= Y; y += stepSize)
-                {
-                    var xdc = x - X;
-                    var ydc = y - Y;
-
-                    if (xdc * xdc + ydc * ydc <= Radius * Radius)
-                    {
-                        var xS = X - xdc;
-                        var yS = Y - ydc;
-
-                        yield return new Point(x, y);
-                        yield return new Point(x, yS);
-                        yield return new Point(xS, y);
-                        yield return new Point(xS, yS);
-                    }
-                }
+            for (var traversedAngle = 0f; traversedAngle.SignificantlyLessThan(360, CONSTANTS.EPSILON);
+                traversedAngle += anglePerPoint)
+                yield return this.AngularOffset(startingAngle + traversedAngle, Radius);
         }
 
         public override int GetHashCode() => HashCode.Combine(X, Y, Radius);
@@ -72,12 +60,27 @@ namespace AL.Core.Geometry
             return default;
         }
 
-        public IEnumerable<Point> GenerateCircumferencePoints(float numberOfPoints, float startingAngle = 0f)
+        public IEnumerable<IPoint> Points(float numberOfSteps)
         {
-            var anglePerPoint = 360 / numberOfPoints;
+            var stepSize = Radius / numberOfSteps * 2;
 
-            for (var traversedAngle = 0f; traversedAngle.SignificantlyLessThan(360); traversedAngle += anglePerPoint)
-                yield return this.AngularOffset(startingAngle + traversedAngle, Radius);
+            for (var x = X - Radius; x <= X; x += stepSize)
+                for (var y = Y - Radius; y <= Y; y += stepSize)
+                {
+                    var xdc = x - X;
+                    var ydc = y - Y;
+
+                    if (xdc * xdc + ydc * ydc <= Radius * Radius)
+                    {
+                        var xS = X - xdc;
+                        var yS = Y - ydc;
+
+                        yield return new Point(x, y);
+                        yield return new Point(x, yS);
+                        yield return new Point(xS, y);
+                        yield return new Point(xS, yS);
+                    }
+                }
         }
     }
 }

@@ -9,18 +9,18 @@ namespace AL.Core.Geometry
 {
     public record FlatLine : ILine
     {
+        [JsonProperty, JsonArrayIndex(2)]
+        private int End;
         [JsonProperty, JsonArrayIndex(0)]
         private int On;
         [JsonProperty, JsonArrayIndex(1)]
         private int Start;
-        [JsonProperty, JsonArrayIndex(2)]
-        private int End;
         [JsonIgnore]
         internal bool IsX { get; init; }
+        public float Length => Math.Abs(Start - End);
 
         public IPoint Point1 => IsX ? new Point(On, Start) : new Point(Start, On);
         public IPoint Point2 => IsX ? new Point(On, End) : new Point(End, On);
-        public float Length => Math.Abs(Start - End);
 
         public int MaxDistance(FlatLine other) => Math.Max(End, other.End) - Math.Min(Start, other.Start);
 

@@ -9,7 +9,7 @@ namespace AL.SocketClient.Receive
         [JsonProperty("list")]
         public string MemberNames { get; init; }
         [JsonProperty("party")]
-        public Dictionary<string, PartyMember> Members { get; init; }
+        public IReadOnlyDictionary<string, PartyMember> Members { get; init; } = new Dictionary<string, PartyMember>();
         public string Message { get; init; }
     }
 }

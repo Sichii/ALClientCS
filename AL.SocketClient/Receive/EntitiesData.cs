@@ -14,10 +14,10 @@ namespace AL.SocketClient.Receive
         public string Map { get; init; }
 
         [JsonProperty]
-        public IEnumerable<Monster> Monsters { get; init; }
+        public IEnumerable<Monster> Monsters { get; init; } = new List<Monster>();
 
         [JsonProperty]
-        public IEnumerable<PlayerData> Players { get; init; }
+        public IEnumerable<Player> Players { get; init; } = new List<Player>();
         [JsonProperty("type")]
         public EntitiesUpdateType UpdateType { get; init; }
     }

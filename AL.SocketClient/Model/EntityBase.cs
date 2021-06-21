@@ -1,54 +1,57 @@
-﻿using System;
-using AL.Core.Abstractions;
+﻿using AL.Core.Abstractions;
 using AL.Core.Interfaces;
-using Chaos.Core.Extensions;
+using Chaos.Core.Collections.Synchronized.Awaitable;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
 {
     public abstract record EntityBase : AttributedRecordBase, ILocation
     {
+        //TODO: what's this?
         [JsonProperty]
-        public bool ABS { get; init; }
+        public bool ABS { get; protected set; }
 
         [JsonProperty]
-        public float Angle { get; init; }
+        public float Angle { get; protected set; }
 
         [JsonProperty]
-        public float CID { get; init; }
+        public int CID { get; init; }
+
+        [JsonProperty("s")]
+        public AwaitableDictionary<Core.Definitions.Condition, Condition> Conditions { get; protected set; } = new();
 
         [JsonProperty("going_x")]
-        public float GoingX { get; init; }
+        public float GoingX { get; protected set; }
 
         [JsonProperty("going_y")]
-        public float GoingY { get; init; }
+        public float GoingY { get; protected set; }
 
         [JsonProperty]
         public string Id { get; init; }
 
         [JsonProperty]
-        public float Level { get; init; }
+        public int Level { get; protected set; }
 
         [JsonProperty("map")]
         public string Map { get; init; }
 
         [JsonProperty("max_hp")]
-        public float MaxHP { get; init; }
-
-        [JsonProperty("move_num")]
-        public float MoveNum { get; init; }
+        public int MaxHP { get; protected set; }
 
         [JsonProperty]
-        public bool Moving { get; init; }
+        public bool Moving { get; protected set; }
+
+        [JsonProperty("move_num")]
+        public ulong StepCount { get; protected set; }
 
         [JsonProperty]
         public string Target { get; init; }
 
         [JsonProperty]
-        public float X { get; init; }
+        public float X { get; protected set; }
 
         [JsonProperty]
-        public float Y { get; init; }
+        public float Y { get; protected set; }
 
         public virtual bool Equals(EntityBase other) => Id.Equals(other?.Id);
 

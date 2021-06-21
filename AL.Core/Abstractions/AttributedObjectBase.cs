@@ -12,7 +12,7 @@ namespace AL.Core.Abstractions
 
         public float Attack { get; init; }
 
-        public IDictionary<ALAttribute, float> Attributes { get; init; }
+        public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
 
         public float Awesomeness { get; init; }

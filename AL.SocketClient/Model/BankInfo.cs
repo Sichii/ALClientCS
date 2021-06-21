@@ -10,6 +10,6 @@ namespace AL.SocketClient.Model
         public long Gold { get; init; }
 
         [JsonIgnore]
-        public IReadOnlyDictionary<BankPack, Item> Items { get; init; }
+        public IReadOnlyDictionary<BankPack, Item> Items { get; init; } = new Dictionary<BankPack, Item>();
     }
 }

@@ -7,12 +7,12 @@ namespace AL.Core.Abstractions
     public abstract record AttributedRecordBase : IAttributed
     {
         public float APiercing { get; init; }
-        public float Armor { get; init; }
+        public float Armor { get; protected set; }
 
 
-        public float Attack { get; init; }
+        public float Attack { get; protected set; }
 
-        public IDictionary<ALAttribute, float> Attributes { get; init; }
+        public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
 
         public float Awesomeness { get; init; }
@@ -55,7 +55,7 @@ namespace AL.Core.Abstractions
         public float FreezeResistance { get; init; }
 
 
-        public float Frequency { get; init; }
+        public float Frequency { get; protected set; }
 
 
         public float FrequencyMod { get; init; }
@@ -70,7 +70,7 @@ namespace AL.Core.Abstractions
         public float HealMod { get; init; }
 
 
-        public float HP { get; init; }
+        public float HP { get; protected set; }
 
 
         public float Int { get; init; }
@@ -88,7 +88,7 @@ namespace AL.Core.Abstractions
         public float Miss { get; init; }
 
 
-        public float MP { get; init; }
+        public float MP { get; protected set; }
 
 
         public float MpCost { get; init; }
@@ -105,19 +105,19 @@ namespace AL.Core.Abstractions
         public float PotionsMod { get; init; }
 
 
-        public float Range { get; init; }
+        public float Range { get; protected set; }
 
 
         public float Reflection { get; init; }
 
 
-        public float Resistance { get; init; }
+        public float Resistance { get; protected set; }
 
 
         public float RPiercing { get; init; }
 
 
-        public float Speed { get; init; }
+        public float Speed { get; protected set; }
 
 
         public float Stat { get; init; }
@@ -132,6 +132,6 @@ namespace AL.Core.Abstractions
         public float Vit { get; init; }
 
 
-        public float XP { get; init; }
+        public float XP { get; protected set; }
     }
 }

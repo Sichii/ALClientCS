@@ -4,5 +4,7 @@ using Newtonsoft.Json.Linq;
 
 namespace AL.SocketClient.Objects
 {
-    public record ALSocketMessage([property: JsonArrayIndex(0)] ALSocketMessageType MessageType, [property: JsonArrayIndex(1)] JToken Data);
+    public record ALSocketMessage(
+        [property: JsonArrayIndex(0)] ALSocketMessageType MessageType,
+        [property: JsonArrayIndex(1)] JToken Data);
 }

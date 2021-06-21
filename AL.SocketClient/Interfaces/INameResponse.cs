@@ -5,6 +5,6 @@ namespace AL.SocketClient.Interfaces
     public interface INameResponse : IGameResponse
     {
         [JsonIgnore]
-         internal string Name { get; }
+        internal string Name { get; }
     }
 }

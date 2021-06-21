@@ -5,11 +5,11 @@ namespace AL.Core.Objects
 {
     public record Exit : IPoint
     {
-        public float X { get; }
-        public float Y { get; }
         public string DestinationMap { get; }
         public int DestinationSpawnId { get; }
         public ExitType Type { get; }
+        public float X { get; }
+        public float Y { get; }
 
         public Exit(IPoint point, string destinationMap, int destinationSpawnId, ExitType type)
         {
