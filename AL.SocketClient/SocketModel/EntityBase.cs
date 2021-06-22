@@ -3,7 +3,7 @@ using AL.Core.Interfaces;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Newtonsoft.Json;
 
-namespace AL.SocketClient.Model
+namespace AL.SocketClient.SocketModel
 {
     public abstract record EntityBase : AttributedRecordBase, ILocation
     {

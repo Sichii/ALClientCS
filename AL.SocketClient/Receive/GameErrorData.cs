@@ -1,15 +1,14 @@
+using AL.Core.Json;
+using AL.Core.Json.Converters;
+using AL.Core.Json.Interfaces;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Receive
 {
-    public record GameErrorData
+    [JsonConverter(typeof(StringOrObjectConverter<GameErrorData>), nameof(Message))]
+    public record GameErrorData : IOptionalObject
     {
         public string Message { get; set; }
-
-        [JsonProperty("data")]
-        private string Data
-        {
-            set => Message = value;
-        }
+        public bool ContainsData { get; init; }
     }
 }

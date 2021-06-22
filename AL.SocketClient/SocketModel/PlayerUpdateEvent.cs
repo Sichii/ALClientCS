@@ -1,4 +1,4 @@
-﻿namespace AL.SocketClient.Model
+﻿namespace AL.SocketClient.SocketModel
 {
     public record PlayerUpdateEvent
     {

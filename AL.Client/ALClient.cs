@@ -7,8 +7,8 @@ using AL.Data;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
-using AL.SocketClient.Model;
 using AL.SocketClient.Receive;
+using AL.SocketClient.SocketModel;
 using ALClientCS.Model;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Common.Logging;
@@ -28,11 +28,15 @@ namespace ALClientCS
         public string Name { get; }
         public AwaitableDictionary<string, Player> Players { get; }
         public ALSocketClient Socket { get; }
+        public AwaitableDictionary<string, AchievementProgressData> AchievementProgressInfo { get; }
+        public AwaitableDictionary<string, DropData> ChestInfo { get; }
+        public PartyUpdateData PartyInfo { get; private set; }
 
         internal ALClient(string name, ALAPIClient apiClient, ALSocketClient socketClient)
         {
             Name = name;
             Logger = LogManager.GetLogger<ALClient>();
+            AchievementProgressInfo = new AwaitableDictionary<string, AchievementProgressData>();
             API = apiClient;
             Socket = socketClient;
             Monsters = new AwaitableDictionary<string, Monster>();
@@ -40,16 +44,85 @@ namespace ALClientCS
             BaseGold = new Dictionary<string, IReadOnlyDictionary<string, int>>();
             CooldownInfo = new AwaitableDictionary<string, CooldownInfo>(StringComparer.OrdinalIgnoreCase);
             ServerInfo = new ServerInfoData();
+            ChestInfo = new AwaitableDictionary<string, DropData>();
 
             Socket.On<StartData>(ALSocketMessageType.Start, OnStart);
-            Socket.On<CharacterData>(ALSocketMessageType.Player, OnCharacter);
+            Socket.On<CharacterData>(ALSocketMessageType.Character, OnCharacter);
             Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, OnGameResponse);
+            Socket.On<EntitiesData>(ALSocketMessageType.Entities, OnEntities);
+            Socket.On<AchievementProgressData>(ALSocketMessageType.AchievementProgress, OnAchievementProgress);
+            Socket.On<DropData>(ALSocketMessageType.Drop, OnDrop);
+            Socket.On<EvalData>(ALSocketMessageType.Eval, OnEval);
+            Socket.On<GameErrorData>(ALSocketMessageType.GameError, OnGameError);
+            Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, OnPartyUpdate);
+            Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedAction);
+            Socket.On<UpgradeData>(ALSocketMessageType.Upgrade, OnUpgrade);
         }
 
-        public void Debug(string message) => Logger.Debug($"[{Name}] {message}");
-        public void Error(string message) => Logger.Error($"[{Name}] {message}");
-        public void Fatal(string message) => Logger.Fatal($"[{Name}] {message}");
-        public void Info(string message) => Logger.Info($"[{Name}] {message}");
+        private Task<bool> OnWelcome(WelcomeData data)
+        {
+            //TODO: left off here
+            
+            return Task.FromResult(false);
+        }
+        
+        private Task<bool> OnUpgrade(UpgradeData data)
+        {
+            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+            switch (data.UpgradeType)
+            {
+                case UpgradeType.Compound:
+                    Character.QueuedActions.Compound = null;
+                    break;
+                case UpgradeType.Upgrade:
+                    Character.QueuedActions.Upgrade = null;
+                    break;
+                case UpgradeType.Exchange:
+                    Character.QueuedActions.Exchange = null;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int) data.UpgradeType}.");
+            }
+
+            return Task.FromResult(false);
+        }
+        
+        private Task<bool> OnQueuedAction(QueuedActionData data)
+        {
+            Character.QueuedActions.Update(data.QueuedActionInfo);
+            
+            return Task.FromResult(false);
+        }
+        
+        private Task<bool> OnPartyUpdate(PartyUpdateData data)
+        {
+            PartyInfo = data;
+            return Task.FromResult(false);
+        }
+        
+        private Task<bool> OnGameError(GameErrorData data)
+        {
+            Warn($"GAME ERROR: {data.Message}");
+            return Task.FromResult(false);
+        }
+        
+        private async Task<bool> OnEval(EvalData data)
+        {
+            //TODO: figure out how to handle eval
+            return false;
+        }
+
+        private async Task<bool> OnDrop(DropData data)
+        {
+            await ChestInfo.AddOrUpdateAsync(data.Id, data);
+            return false;
+        }
+        
+        private async Task<bool> OnAchievementProgress(AchievementProgressData data)
+        {
+            await AchievementProgressInfo.AddOrUpdateAsync(data.Name, data);
+            return false;
+        }
 
         private async Task<bool> OnCharacter(CharacterData data)
         {
@@ -148,8 +221,6 @@ namespace ALClientCS
             return success;
         }
 
-        public void Trace(string message) => Logger.Trace($"[{Name}] {message}");
-
         private ValueTask UpdateMonsters(IEnumerable<Monster> monsters, bool full = false)
         {
             if (full)
@@ -192,7 +263,16 @@ namespace ALClientCS
                 }
             });
         }
+        
+        #region Logging
 
         public void Warn(string message) => Logger.Warn($"[{Name}] {message}");
+        public void Trace(string message) => Logger.Trace($"[{Name}] {message}");
+        public void Debug(string message) => Logger.Debug($"[{Name}] {message}");
+        public void Error(string message) => Logger.Error($"[{Name}] {message}");
+        public void Fatal(string message) => Logger.Fatal($"[{Name}] {message}");
+        public void Info(string message) => Logger.Info($"[{Name}] {message}");
+
+        #endregion
     }
 }

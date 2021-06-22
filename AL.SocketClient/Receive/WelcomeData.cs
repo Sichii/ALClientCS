@@ -1,6 +1,6 @@
 ﻿using AL.APIClient.Definitions;
 using AL.Core.Interfaces;
-using AL.SocketClient.Model;
+using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Receive

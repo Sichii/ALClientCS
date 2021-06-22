@@ -1,7 +1,7 @@
 using System;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 
-namespace AL.SocketClient.Objects
+namespace AL.SocketClient.ClientModel
 {
     internal class ALSocketSubscriptionList : AwaitableList<ALSocketSubscription>
     {

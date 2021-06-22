@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Model;
+using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Receive

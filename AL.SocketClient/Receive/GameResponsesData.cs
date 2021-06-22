@@ -1,16 +1,18 @@
+using AL.Core.Json;
+using AL.Core.Json.Converters;
+using AL.Core.Json.Interfaces;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
-using AL.SocketClient.Json.Converters;
 using Newtonsoft.Json;
 
 // ReSharper disable ConvertToAutoPropertyWhenPossible
 
 namespace AL.SocketClient.Receive
 {
-    [JsonConverter(typeof(GameResponseDataConverter))]
+    [JsonConverter(typeof(StringOrObjectConverter<GameResponseData>), nameof(ResponseType))]
     public record GameResponseData : IGoldReceivedResponse, ISkillNameResponse, IBankOpxResponse, IBuySuccessResponse,
         ICooldownResponse, ICraftResponse, IDefeatedByAMonsterResponse, IGoldSentResponse, IItemSentResponse,
-        ISeashellSuccessResponse, ITooFarResponse
+        ISeashellSuccessResponse, ITooFarResponse, IOptionalObject
     {
         [JsonProperty("name")]
         private readonly string _name;

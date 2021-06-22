@@ -5,14 +5,13 @@ using AL.SocketClient.Json.Converters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace AL.SocketClient.Model
+namespace AL.SocketClient.SocketModel
 {
     [JsonConverter(typeof(AttributedObjectConverter<Character>))]
     public record Character : Player
     {
         [JsonProperty("acx")]
-        //something to do with achievements?
-        public JObject ACX { get; init; }
+        public IReadOnlyDictionary<string, int> OwnedCosmetics { get; init; }
 
         [JsonProperty("targets")]
         public int AggroTargets { get; init; }

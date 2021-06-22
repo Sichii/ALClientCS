@@ -154,7 +154,8 @@ namespace AL.SocketClient.Definitions
     {
         Unknown,
         Welcome,
-        Player,
+        [EnumMember(Value = "player")]
+        Character,
         Players,
         [EnumMember(Value = "server_info")]
         ServerInfo,

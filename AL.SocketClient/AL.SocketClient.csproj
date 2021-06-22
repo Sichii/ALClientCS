@@ -12,4 +12,8 @@
       <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Send" />
+    </ItemGroup>
+
 </Project>

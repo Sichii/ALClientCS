@@ -1,5 +1,5 @@
 ﻿using AL.Core.Json.Converters;
-using AL.SocketClient.Model;
+using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 
-namespace AL.SocketClient.Objects
+namespace AL.SocketClient.ClientModel
 {
     internal abstract class ALSocketSubscription : IAsyncDisposable
     {
@@ -14,7 +14,7 @@ namespace AL.SocketClient.Objects
 
         public async ValueTask DisposeAsync() => await InvocationList.RemoveAsync(this);
 
-        internal abstract Task<bool> InvokeAsync(string raw, object dataObject);
+        internal abstract Task<bool> InvokeAsync(object dataObject);
     }
 
     internal class AlSocketSubscription<T> : ALSocketSubscription
@@ -35,7 +35,7 @@ namespace AL.SocketClient.Objects
             return subscription;
         }
 
-        internal override Task<bool> InvokeAsync(string raw, object dataObject) =>
+        internal override Task<bool> InvokeAsync(object dataObject) =>
             ((Func<T, Task<bool>>) Callback)((T) dataObject);
     }
 }

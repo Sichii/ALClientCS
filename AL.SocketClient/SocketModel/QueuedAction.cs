@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace AL.SocketClient.Model
+namespace AL.SocketClient.SocketModel
 {
     public record QueuedAction
     {

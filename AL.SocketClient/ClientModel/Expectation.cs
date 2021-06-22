@@ -1,6 +1,6 @@
 using System;
 
-namespace AL.SocketClient.Objects
+namespace AL.SocketClient.ClientModel
 {
     public readonly struct Expectation<T>
     {

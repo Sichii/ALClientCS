@@ -1,7 +1,6 @@
 ﻿using System.Linq;
-using AL.SocketClient.Model;
 using AL.SocketClient.Receive;
-using AL.SocketClient.Send;
+using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -3042,18 +3041,18 @@ namespace AL.Tests.SocketClient.Tests
    ""no_graphics"":""""
 }";
 
-            var obj = new AuthData
+            var obj = new
             {
-                User = "1234",
-                Character = "1234",
-                CodeSlot = "1234",
-                Auth = "abcd",
-                Width = 1920,
-                Height = 1080,
-                Scale = "2",
-                Passphrase = "",
-                NoHtml = "",
-                NoGraphics = ""
+                user = "1234",
+                character = "1234",
+                code_slot = "1234",
+                auth = "abcd",
+                width = 1920,
+                height = 1080,
+                scale = "2",
+                passphrase = "",
+                no_html = "",
+                no_graphics = ""
             };
 
             var json = JsonConvert.SerializeObject(obj);
@@ -3074,12 +3073,12 @@ namespace AL.Tests.SocketClient.Tests
    ""scale"":""2""
 }";
 
-            var obj = new LoadedData
+            var obj = new
             {
-                Success = 1,
-                Width = 1920,
-                Height = 1080,
-                Scale = "2"
+                success = 1,
+                width = 1920,
+                height = 1080,
+                scale = "2"
             };
 
             var json = JsonConvert.SerializeObject(obj);

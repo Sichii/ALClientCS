@@ -5,7 +5,7 @@ using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
 using Newtonsoft.Json;
 
-namespace AL.SocketClient.Model
+namespace AL.SocketClient.SocketModel
 {
     [JsonConverter(typeof(AttributedObjectConverter<Player>))]
     public record Player : EntityBase, IUpdateable<Player>

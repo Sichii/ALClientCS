@@ -7,8 +7,8 @@ using AL.APIClient;
 using AL.APIClient.Definitions;
 using AL.APIClient.Model;
 using AL.Core.Json.Converters;
+using AL.SocketClient.ClientModel;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Objects;
 using Common.Logging;
 using Newtonsoft.Json;
 using WebSocketSharp;
@@ -106,7 +106,7 @@ RAW JSON:
 
                 foreach (var subscription in subscriptions)
                 {
-                    var handled = await subscription.InvokeAsync(raw, dataObject);
+                    var handled = await subscription.InvokeAsync(dataObject);
 
                     if (handled)
                         return;

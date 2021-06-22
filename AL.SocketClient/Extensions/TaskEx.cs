@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using AL.SocketClient.Objects;
+using AL.SocketClient.ClientModel;
 
 namespace AL.SocketClient.Extensions
 {

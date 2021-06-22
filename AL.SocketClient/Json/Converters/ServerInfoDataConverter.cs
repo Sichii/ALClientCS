@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using AL.SocketClient.Model;
 using AL.SocketClient.Receive;
+using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
