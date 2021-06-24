@@ -1472,7 +1472,7 @@ namespace AL.Tests.SocketClient.Tests
    }
 }";
 
-            var obj = JsonConvert.DeserializeObject<ServerInfoData>(SERVER_INFO_DATA);
+            var obj = JsonConvert.DeserializeObject<EventAndBossInfo>(SERVER_INFO_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -2099,7 +2099,8 @@ namespace AL.Tests.SocketClient.Tests
          ""max_hp"":120000000,
          ""x"":-310.2996589373313,
          ""y"":222.54235316675556
-      }
+      },
+      ""holidayseason"":true
    },
    ""code"":""load_code('library');\nlet _scripted_self = new _merchant(parent.character);\n\nfor(let info of _CONSTANTS.PARTY_INFO)\n   start_character(info.name, info.code_slot);\n\n//_scripted_self.visit_party = false;\n_scripted_self.execute();\n_scripted_self.visit_party = false;"",
    ""code_slot"":6648264596652032,

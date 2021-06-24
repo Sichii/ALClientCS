@@ -1,11 +1,16 @@
 ﻿using AL.Core.Abstractions;
+using AL.Core.Definitions;
+using AL.Core.Extensions;
+using AL.Core.Geometry;
+using AL.Core.Helpers;
 using AL.Core.Interfaces;
 using Chaos.Core.Collections.Synchronized.Awaitable;
+using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    public abstract record EntityBase : AttributedRecordBase, ILocation
+    public abstract record EntityBase : AttributedRecordBase, ILocation, IMutable<EntityBase>, IDeltaUpdateable
     {
         //TODO: what's this?
         [JsonProperty]
@@ -28,6 +33,7 @@ namespace AL.SocketClient.SocketModel
 
         [JsonProperty]
         public string Id { get; init; }
+        public long Delta { get; set; } = DeltaTime.Value;
 
         [JsonProperty]
         public int Level { get; protected set; }
@@ -55,6 +61,63 @@ namespace AL.SocketClient.SocketModel
 
         public virtual bool Equals(EntityBase other) => Id.Equals(other?.Id);
 
+        public virtual void Mutate(EntityBase other)
+        {
+            ABS = other.ABS;
+            Angle = other.Angle;
+            Armor = other.Armor;
+            GoingX = other.GoingX;
+            GoingY = other.GoingY;
+            HP = other.HP;
+            MaxHP = other.MaxHP;
+            Level = other.Level;
+            StepCount = other.StepCount;
+            Moving = other.Moving;
+            Conditions = other.Conditions;
+            Speed = other.Speed;
+            X = other.X;
+            Y = other.Y;
+            XP = other.XP;
+            Attack = other.Attack;
+            Frequency = other.Frequency;
+            MP = other.MP;
+            Resistance = other.Resistance;
+        }
+
         public override int GetHashCode() => Id.GetHashCode();
+
+        public void Mutate(object other)
+        {
+            if (other is EntityBase entity)
+                Mutate(entity);
+        }
+
+        public void Update(long delta)
+        {
+            Delta += delta;
+            
+            //if not moving, or less than 1ms has passed, or we're already where we need to be, then dont update
+            if (!Moving || delta == 0 || X.NearlyEquals(GoingX, CONSTANTS.EPSILON) && Y.NearlyEquals(GoingY, CONSTANTS.EPSILON))
+                return;
+            
+            var going = new Point(GoingX, GoingY);
+            var speed = Speed / 1000 * delta;
+            var distance = this.Distance(going);
+
+            if (distance > speed)
+                distance = speed;
+            else
+            {
+                Moving = false;
+                X = GoingX;
+                Y = GoingY;
+
+                return;
+            }
+
+            (var newX, var newY) = this.AngularOffset(Angle, distance);
+            X = newX;
+            Y = newY;
+        }
     }
 }

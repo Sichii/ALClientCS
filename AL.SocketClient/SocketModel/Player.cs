@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 namespace AL.SocketClient.SocketModel
 {
     [JsonConverter(typeof(AttributedObjectConverter<Player>))]
-    public record Player : EntityBase, IUpdateable<Player>
+    public record Player : EntityBase, IMutable<Player>
     {
         [JsonProperty, JsonConverter(typeof(AfkConverter))]
         public bool AFK { get; protected set; }
@@ -81,48 +81,30 @@ namespace AL.SocketClient.SocketModel
 
         public override int GetHashCode() => HashCode.Combine(CID.GetHashCode(), base.GetHashCode());
 
-        public void Update(Player other)
+        public void Mutate(Player other)
         {
             if (CID != other.CID || Id != other.Id)
                 throw new InvalidOperationException(
-                    $"Attempting to update entity with ID: {Id} CID: {CID} with data for entity with ID: {other.Id}, CID: {other.CID}");
-
-            ABS = other.ABS;
-            Angle = other.Angle;
-            Armor = other.Armor;
+                    $"Attempting to update player with ID: {Id}, CID: {CID} with data for entity with ID: {other.Id}, CID: {other.CID}");
+            
             Channeling = other.Channeling;
             Cosmetics = other.Cosmetics;
-            GoingX = other.GoingX;
-            GoingY = other.GoingY;
-            HP = other.HP;
-            MaxHP = other.MaxHP;
-            Level = other.Level;
-            StepCount = other.StepCount;
-            Moving = other.Moving;
             QueuedActions = other.QueuedActions;
-            Conditions = other.Conditions;
             Skin = other.Skin;
-            Speed = other.Speed;
-            X = other.X;
-            Y = other.Y;
-            XP = other.XP;
 
             if (!IsNPC)
             {
+                Range = other.Range;
                 AFK = other.AFK;
                 Age = other.Age;
-                Attack = other.Attack;
                 Code = other.Code;
-                Frequency = other.Frequency;
-                MP = other.MP;
-                MaxMP = other.MaxMP;
                 PDPS = other.PDPS;
-                Range = other.Range;
-                Resistance = other.Resistance;
                 RIP = other.RIP;
                 Slots = other.Slots;
                 Stand = other.Stand;
             }
+
+            base.Mutate(other);
         }
     }
 }

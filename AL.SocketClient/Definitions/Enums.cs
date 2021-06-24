@@ -237,6 +237,7 @@ namespace AL.SocketClient.Definitions
         TakeMailItem,
         Transport,
         [EnumMember(Value = "town")]
-        ReturnToTown
+        ReturnToTown,
+        Loaded
     }
 }

@@ -82,8 +82,19 @@ namespace AL.Core.Extensions
         public static float FastDistance(this IPoint p1, IPoint p2) =>
             (float) (Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
 
-        public static Point Lerp(this IPoint p1, IPoint p2, float maxMove, float minDiff) =>
-            new(MathEx.Lerp(p1.X, p2.X, maxMove, minDiff), MathEx.Lerp(p1.Y, p2.Y, maxMove, minDiff));
+        public static Point Lerp(this IPoint p1, IPoint p2, float speed)
+        {
+            var distance = p1.Distance(p2);
+
+            if (distance.SignificantlyGreaterThan(speed, CONSTANTS.EPSILON))
+                distance = speed;
+            else if (distance.SignificantlyLessThan(speed, CONSTANTS.EPSILON))
+                return p2.Point();
+
+            var angle = p2.AngularRelationTo(p1);
+
+            return p1.AngularOffset(angle, distance);
+        }
 
         public static Point MidPoint(this IPoint p1, IPoint p2) => new((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
         public static Point Point(this IPoint point) => new(point.X, point.Y);

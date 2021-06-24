@@ -16,8 +16,8 @@ namespace AL.Core.Extensions
         public static float Distance(this ILocation l1, ILocation l2) =>
             !l1.Map.EqualsI(l2.Map) ? float.MaxValue : ((IPoint) l1).Distance(l2);
 
-        public static Point Lerp(this ILocation l1, ILocation l2, float maxMove, float minDiff) =>
-            !l1.Map.EqualsI(l2.Map) ? Point.None : ((IPoint) l1).Lerp(l2, maxMove, minDiff);
+        public static Point Lerp(this ILocation l1, ILocation l2, float speed) =>
+            !l1.Map.EqualsI(l2.Map) ? Point.None : ((IPoint) l1).Lerp(l2, speed);
 
         public static Point MidPoint(this ILocation l1, ILocation l2) =>
             !l1.Map.EqualsI(l2.Map) ? Point.None : ((IPoint) l1).MidPoint(l2);

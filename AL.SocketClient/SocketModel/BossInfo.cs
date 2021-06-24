@@ -1,8 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using AL.Core.Interfaces;
+using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    public record BossInfo
+    public record BossInfo : ILocation
     {
         [JsonProperty]
         public float HP { get; init; }

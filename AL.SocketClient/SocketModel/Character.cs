@@ -2,17 +2,14 @@
 using AL.Core.Definitions;
 using AL.Core.Json.Converters;
 using AL.SocketClient.Json.Converters;
+using Chaos.Core.Collections.Synchronized.Awaitable;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AL.SocketClient.SocketModel
 {
     [JsonConverter(typeof(AttributedObjectConverter<Character>))]
     public record Character : Player
     {
-        [JsonProperty("acx")]
-        public IReadOnlyDictionary<string, int> OwnedCosmetics { get; init; }
-
         [JsonProperty("targets")]
         public int AggroTargets { get; init; }
 
@@ -53,11 +50,13 @@ namespace AL.SocketClient.SocketModel
         public string IPass { get; init; }
 
         [JsonProperty]
-        public Item[] Items { get; init; }
+        public AwaitableList<Item> Items { get; init; }
 
         //TODO: what's this?
         [JsonProperty]
         public float M { get; init; }
+        [JsonProperty("acx")]
+        public IReadOnlyDictionary<string, int> OwnedCosmetics { get; init; }
 
         [JsonProperty]
         public float Tax { get; init; }

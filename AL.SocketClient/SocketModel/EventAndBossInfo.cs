@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 using AL.SocketClient.Json.Converters;
-using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 
-namespace AL.SocketClient.Receive
+namespace AL.SocketClient.SocketModel
 {
-    [JsonConverter(typeof(ServerInfoDataConverter))]
-    public record ServerInfoData
+    [JsonConverter(typeof(EventAndBossInfoConverter))]
+    public record EventAndBossInfo
     {
         [JsonIgnore]
         public IReadOnlyDictionary<string, BossInfo> BossInfo { get; init; } = new Dictionary<string, BossInfo>();

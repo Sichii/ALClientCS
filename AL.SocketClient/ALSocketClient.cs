@@ -18,7 +18,7 @@ namespace AL.SocketClient
     public class ALSocketClient
     {
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
-        private Server Server;
+        public Server Server;
         private WebSocket Socket;
         internal ALAPIClient APIClient { get; }
         private ILog Logger { get; }

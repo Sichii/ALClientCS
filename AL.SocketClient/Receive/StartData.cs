@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AL.Core.Json.Converters;
+using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Receive
@@ -15,6 +16,6 @@ namespace AL.SocketClient.Receive
         public EntitiesData Entities { get; init; }
 
         [JsonProperty("s_info")]
-        public ServerInfoData ServerInfo { get; init; }
+        public EventAndBossInfo EventAndBossInfo { get; init; }
     }
 }
