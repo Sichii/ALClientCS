@@ -13,8 +13,4 @@
     <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Helpers" />
-  </ItemGroup>
-
 </Project>

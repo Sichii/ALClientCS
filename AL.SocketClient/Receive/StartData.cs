@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using AL.Core.Json.Converters;
+using AL.SocketClient.Json.Converters;
 using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Receive
 {
-    [JsonConverter(typeof(AttributedObjectConverter<StartData>))]
+    [JsonConverter(typeof(CharacterConverter<StartData>))]
     public record StartData : CharacterData
     {
         [JsonProperty("base_gold")]

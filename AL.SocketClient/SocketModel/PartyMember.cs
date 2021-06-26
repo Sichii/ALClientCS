@@ -15,7 +15,7 @@ namespace AL.SocketClient.SocketModel
         public string Map { get; init; }
         [JsonProperty("l")]
         public int PartyLimit { get; init; }
-        public int Share { get; init; }
+        public float Share { get; init; }
         public string Skin { get; init; }
         public float X { get; init; }
         public int XP { get; init; }

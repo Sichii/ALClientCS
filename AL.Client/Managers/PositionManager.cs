@@ -18,15 +18,6 @@ namespace ALClientCS.Managers
             var character = Client.Character;
             character.Update(delta - character.Delta);
         }
-        
-        private ValueTask UpdatePlayerPositions() => Client.Players.AssertAsync(dic =>
-        {
-            foreach (var player in dic.Values)
-            {
-                var delta = DeltaTime.Value;
-                player.Update(delta - player.Delta);
-            }
-        });
 
         private ValueTask UpdateMonsterPositions() => Client.Monsters.AssertAsync(dic =>
         {
@@ -34,6 +25,15 @@ namespace ALClientCS.Managers
             {
                 var delta = DeltaTime.Value;
                 monster.Update(delta - monster.Delta);
+            }
+        });
+
+        private ValueTask UpdatePlayerPositions() => Client.Players.AssertAsync(dic =>
+        {
+            foreach (var player in dic.Values)
+            {
+                var delta = DeltaTime.Value;
+                player.Update(delta - player.Delta);
             }
         });
     }

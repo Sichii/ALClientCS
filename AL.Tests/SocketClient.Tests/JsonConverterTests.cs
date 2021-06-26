@@ -3,7 +3,6 @@ using AL.SocketClient.Receive;
 using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AL.Tests.SocketClient.Tests
 {
@@ -33,6 +32,45 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
+        public void DeserializeChestOpenedDataTest()
+        {
+            const string CHEST_OPENED_DATA = @"{
+   ""id"":""lUHVxKFHEl85OVZf5weJNBii0pip9x"",
+   ""goldm"":1.01,
+   ""opener"":""makiz"",
+   ""items"":[
+      {
+         ""name"":""ringsj"",
+         ""level"":0,
+         ""looter"":""makiz""
+      },
+      {
+         ""name"":""seashell"",
+         ""q"":1,
+         ""looter"":""makiz""
+      }
+   ],
+   ""gold"":1655
+}";
+
+            var obj = JsonConvert.DeserializeObject<ChestOpenedData>(CHEST_OPENED_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeDeathDataTest()
+        {
+            const string DEATH_DATA = @"{
+   ""id"":""43923109""
+}";
+
+            var obj = JsonConvert.DeserializeObject<DeathData>(DEATH_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
         public void DeserializeDisappearDataTest()
         {
             const string DISAPPEAR_DATA = @"{
@@ -42,6 +80,25 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<DisappearData>(DISAPPEAR_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeDisappearingTextData()
+        {
+            const string DISAPPEARING_TEXT_DATA = @"{
+   ""message"":""+100"",
+   ""x"":15.280000219733335,
+   ""y"":-413.5399998351999,
+   ""id"":""Ploob"",
+   ""args"":{
+      ""c"":""#006AA9"",
+      ""s"":""mp""
+   }
+}";
+
+            var obj = JsonConvert.DeserializeObject<DisappearingTextData>(DISAPPEARING_TEXT_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -187,6 +244,16 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
+        public void DeserializeGameLogDataTest()
+        {
+            const string GAME_LOG_DATA = "\"Stored 37,500,711 gold\"";
+
+            var obj = JsonConvert.DeserializeObject<string>(GAME_LOG_DATA);
+
+            Assert.AreEqual("Stored 37,500,711 gold", obj);
+        }
+
+        [TestMethod]
         public void DeserializeGameResponseDataTest()
         {
             const string STRING_GAME_RESPONSE_DATA = @"""ex_condition""";
@@ -220,6 +287,18 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<HitData>(HIT_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeInviteDataTest()
+        {
+            const string INVITE_DATA = @"{
+   ""name"":""earthMer""
+}";
+
+            var obj = JsonConvert.DeserializeObject<InviteData>(INVITE_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -486,6 +565,81 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
+        public void DeserializePartyUpdateDataTest()
+        {
+            const string PARTY_UPDATE_DATA = @"{
+   ""list"":[
+      ""earthMer"",
+      ""myranger"",
+      ""sichi""
+   ],
+   ""party"":{
+      ""earthMer"":{
+         ""skin"":""marmor12a"",
+         ""level"":74,
+         ""type"":""merchant"",
+         ""x"":153.3969219854852,
+         ""y"":-124.03322858515753,
+         ""in"":""main"",
+         ""map"":""main"",
+         ""share"":0,
+         ""pdps"":2.403978062438949e-15,
+         ""l"":1,
+         ""xp"":0,
+         ""luck"":10,
+         ""gold"":5,
+         ""cx"":{
+            ""hair"":""hairdo520"",
+            ""head"":""fmakeup01""
+         }
+      },
+      ""myranger"":{
+         ""skin"":""marmor5a"",
+         ""level"":44,
+         ""type"":""ranger"",
+         ""x"":-7.871881376000971,
+         ""y"":57.14241936867256,
+         ""in"":""main"",
+         ""map"":""main"",
+         ""share"":0.9999999899997225,
+         ""pdps"":0,
+         ""l"":1,
+         ""xp"":0,
+         ""luck"":10,
+         ""gold"":5,
+         ""cx"":{
+            ""hair"":""hairdo106"",
+            ""head"":""makeup117""
+         }
+      },
+      ""sichi"":{
+         ""skin"":""sarmor2c"",
+         ""level"":54,
+         ""type"":""merchant"",
+         ""x"":-86.51955384018893,
+         ""y"":-95.46821799675385,
+         ""in"":""main"",
+         ""map"":""main"",
+         ""share"":0,
+         ""pdps"":0,
+         ""l"":1,
+         ""xp"":0,
+         ""luck"":10,
+         ""gold"":5,
+         ""cx"":{
+            ""hat"":""hat322""
+         }
+      }
+   },
+   ""message"":""sichi joined the party""
+}";
+
+            var obj = JsonConvert.DeserializeObject<PartyUpdateData>(PARTY_UPDATE_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
         public void DeserializePingAckDataTest()
         {
             const string PING_ACK_DATA = @"{
@@ -493,6 +647,35 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<PingAckData>(PING_ACK_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeQueueActionDataTest()
+        {
+            const string QUEUED_ACTION_DATA = @"{
+   ""q"":{
+      ""upgrade"":{
+         ""ms"":161,
+         ""len"":500,
+         ""num"":1
+      }
+   },
+   ""num"":1,
+   ""p"":{
+      ""chance"":0.9999999,
+      ""name"":""blade"",
+      ""level"":0,
+      ""scroll"":""scroll0"",
+      ""nums"":[
+         1,
+         0
+      ]
+   }
+}";
+
+            var obj = JsonConvert.DeserializeObject<QueuedActionData>(QUEUED_ACTION_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -2747,6 +2930,37 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
+        public void DeserializeUIDataTest()
+        {
+            const string UI_DATA = @"{
+   ""type"":""+$"",
+   ""id"":""scrolls"",
+   ""name"":""earthMag2"",
+   ""item"":{
+      ""name"":""mpot1"",
+      ""q"":1
+   }
+}";
+
+            var obj = JsonConvert.DeserializeObject<UIData>(UI_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeUpgradeDataTest()
+        {
+            const string UPGRADE_DATA = @"{
+   ""type"":""compound"",
+   ""success"":1
+}";
+
+            var obj = JsonConvert.DeserializeObject<UpgradeData>(UPGRADE_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
         public void DeserializeWelcomeDataTest()
         {
             const string WELCOME_DATA = @"{
@@ -3024,70 +3238,6 @@ namespace AL.Tests.SocketClient.Tests
             var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
 
             Assert.IsNotNull(obj);
-        }
-
-        [TestMethod]
-        public void SerializeAuthDataTest()
-        {
-            const string AUTH_DATA = @"{
-   ""user"":""1234"",
-   ""character"":""1234"",
-   ""code_slot"":""1234"",
-   ""auth"":""abcd"",
-   ""width"":1920,
-   ""height"":1080,
-   ""scale"":""2"",
-   ""passphrase"":"""",
-   ""no_html"":"""",
-   ""no_graphics"":""""
-}";
-
-            var obj = new
-            {
-                user = "1234",
-                character = "1234",
-                code_slot = "1234",
-                auth = "abcd",
-                width = 1920,
-                height = 1080,
-                scale = "2",
-                passphrase = "",
-                no_html = "",
-                no_graphics = ""
-            };
-
-            var json = JsonConvert.SerializeObject(obj);
-
-            var obj1 = JObject.Parse(AUTH_DATA);
-            var obj2 = JObject.Parse(json);
-
-            Assert.IsTrue(JToken.DeepEquals(obj1, obj2));
-        }
-
-        [TestMethod]
-        public void SerializeLoadedDataTest()
-        {
-            const string LOADED_DATA = @"{
-   ""success"":1,
-   ""width"":1920,
-   ""height"":1080,
-   ""scale"":""2""
-}";
-
-            var obj = new
-            {
-                success = 1,
-                width = 1920,
-                height = 1080,
-                scale = "2"
-            };
-
-            var json = JsonConvert.SerializeObject(obj);
-
-            var obj1 = JObject.Parse(LOADED_DATA);
-            var obj2 = JObject.Parse(json);
-
-            Assert.IsTrue(JToken.DeepEquals(obj1, obj2));
         }
     }
 }

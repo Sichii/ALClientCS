@@ -63,8 +63,30 @@ namespace AL.SocketClient.Definitions
         BuyGetCloser,
         [EnumMember(Value = "cant_escape")]
         CantEscape,
+        [EnumMember(Value = "upgrade_no_item")]
+        UpgradeNoItem,
+        [EnumMember(Value = "upgrade_incompatible_scroll")]
+        UpgradeIncompatibleScroll,
+        [EnumMember(Value = "upgrade_in_progress")]
+        UpgradeInProgress,
+        [EnumMember(Value = "upgrade_chance")]
+        UpgradeChance,
+        [EnumMember(Value = "upgrade_success")]
+        UpgradeSuccess,
+        [EnumMember(Value = "upgrade_fail")]
+        UpgradeFail,
         [EnumMember(Value = "compound_no_item")]
         CompoundNoItem,
+        [EnumMember(Value = "upgrade_incompatible_scroll")]
+        CompoundIncompatibleScroll,
+        [EnumMember(Value = "compound_in_progress")]
+        CompoundInProgress,
+        [EnumMember(Value = "compound_chance")]
+        CompoundChance,
+        [EnumMember(Value = "compound_success")]
+        CompoundSuccess,
+        [EnumMember(Value = "compound_fail")]
+        CompoundFail,
         [EnumMember(Value = "ecu_get_closer")]
         ECUGetCloser,
         [EnumMember(Value = "emotion_cant")]
@@ -97,14 +119,6 @@ namespace AL.SocketClient.Definitions
         TradeBSpace,
         [EnumMember(Value = "trade_get_closer")]
         TradeGetCloser,
-        [EnumMember(Value = "upgrade_in_progress")]
-        UpgradeInProgress,
-        [EnumMember(Value = "upgrade_incompatible_scroll")]
-        UpgradeIncompatibleScroll,
-        [EnumMember(Value = "upgrade_fail")]
-        UpgradeFail,
-        [EnumMember(Value = "upgrade_success")]
-        UpgradeSuccess,
         [EnumMember(Value = "attack_failed")]
         AttackFailed,
         [EnumMember(Value = "bank_opx")]

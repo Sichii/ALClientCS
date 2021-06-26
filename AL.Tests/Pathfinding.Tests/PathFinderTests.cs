@@ -110,7 +110,7 @@ namespace AL.Tests.Pathfinding.Tests
         [TestMethod]
         public async Task FindPathBenchTest()
         {
-            var count = 10000;
+            var count = 1000;
             var timer = new Stopwatch();
             timer.Start();
 

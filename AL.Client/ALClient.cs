@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using AL.APIClient;
 using AL.APIClient.Model;
@@ -23,6 +22,8 @@ namespace ALClientCS
     public class ALClient
     {
         private readonly ILog Logger;
+        // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+        private readonly PositionManager PositionManager;
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
         public Character Character { get; private set; }
         public EventAndBossInfo EventsAndBosses { get; private set; }
@@ -36,8 +37,7 @@ namespace ALClientCS
         public AwaitableDictionary<string, Player> Players { get; }
         public Server Server => Socket.Server;
         public ALSocketClient Socket { get; }
-        private readonly PositionManager PositionManager;
-        
+
         internal ALClient(string name, ALAPIClient apiClient, ALSocketClient socketClient)
         {
             Name = name;
@@ -65,11 +65,11 @@ namespace ALClientCS
             Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedAction);
             Socket.On<UpgradeData>(ALSocketMessageType.Upgrade, OnUpgrade);
             Socket.On<WelcomeData>(ALSocketMessageType.Welcome, OnWelcome);
-            
+
             PositionManager = new PositionManager(this);
             PositionManager.Start(30);
         }
-        
+
         private async Task<bool> OnAchievementProgress(AchievementProgressData data)
         {
             await AchievementProgress.AddOrUpdateAsync(data.Name, data);
@@ -104,9 +104,8 @@ namespace ALClientCS
             return false;
         }
 
-        private async Task<bool> OnEval(EvalData data) =>
-            //TODO: figure out how to handle eval
-            false;
+        //TODO: figure out how to handle eval
+        private Task<bool> OnEval(EvalData data) => Task.FromResult(false);
 
         private Task<bool> OnGameError(GameErrorData data)
         {

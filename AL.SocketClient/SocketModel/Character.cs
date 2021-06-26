@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
+using System.Dynamic;
 using AL.Core.Definitions;
-using AL.Core.Json.Converters;
 using AL.SocketClient.Json.Converters;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    [JsonConverter(typeof(AttributedObjectConverter<Character>))]
+    [JsonConverter(typeof(CharacterConverter<Character>))]
     public record Character : Player
     {
         [JsonProperty("targets")]
@@ -39,7 +39,7 @@ namespace AL.SocketClient.SocketModel
 
         //TODO: what's this?
         [JsonProperty]
-        public dynamic Friends { get; init; }
+        public List<string> Friends { get; init; }
 
         [JsonProperty("isize")]
         public int InventorySize { get; init; }
@@ -50,7 +50,7 @@ namespace AL.SocketClient.SocketModel
         public string IPass { get; init; }
 
         [JsonProperty]
-        public AwaitableList<Item> Items { get; init; }
+        public IReadOnlyList<Item> Items { get; internal set; }
 
         //TODO: what's this?
         [JsonProperty]

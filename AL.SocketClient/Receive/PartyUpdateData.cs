@@ -7,7 +7,7 @@ namespace AL.SocketClient.Receive
     public record PartyUpdateData
     {
         [JsonProperty("list")]
-        public string MemberNames { get; init; }
+        public IReadOnlyList<string> MemberNames { get; init; }
         [JsonProperty("party")]
         public IReadOnlyDictionary<string, PartyMember> Members { get; init; } = new Dictionary<string, PartyMember>();
         public string Message { get; init; }

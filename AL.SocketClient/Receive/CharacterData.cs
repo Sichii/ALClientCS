@@ -1,11 +1,12 @@
 ﻿using AL.Core.Json.Converters;
+using AL.SocketClient.Json.Converters;
 using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace AL.SocketClient.Receive
 {
-    [JsonConverter(typeof(AttributedObjectConverter<CharacterData>))]
+    [JsonConverter(typeof(CharacterConverter<CharacterData>))]
     public record CharacterData : Character
     {
         [JsonProperty("hitchhikers")]

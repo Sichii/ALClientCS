@@ -8,22 +8,25 @@ namespace ALClientCS.Abstractions
     public abstract class AsyncManagerBase
     {
         protected readonly ALClient Client;
+        protected CancellationTokenSource Canceller;
         protected bool Running;
-        protected CancellationTokenSource Canceller; 
-        
+
         protected AsyncManagerBase(ALClient client) => Client = client;
+
+        protected abstract ValueTask DoWorkAsync();
 
         public async void Start(int loopsPerSecond)
         {
             if (Running)
                 return;
-            
+
             Running = true;
             var timePerLoop = 1000 / loopsPerSecond;
-            var delta = DeltaTime.Value;
 
             while (!Canceller.IsCancellationRequested)
             {
+                var delta = DeltaTime.Value;
+
                 try
                 {
                     await DoWorkAsync();
@@ -40,8 +43,6 @@ namespace ALClientCS.Abstractions
                 }
             }
         }
-
-        protected abstract ValueTask DoWorkAsync();
 
         public void Stop()
         {
