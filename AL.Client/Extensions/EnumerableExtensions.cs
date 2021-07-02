@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
+using AL.Client.Interfaces;
+using AL.Client.Model;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
-using ALClientCS.Interfaces;
-using ALClientCS.Model;
+
 // ReSharper disable ParameterTypeCanBeEnumerable.Global
 
-namespace ALClientCS.Extensions
+namespace AL.Client.Extensions
 {
     public static class EnumerableExtensions
     {

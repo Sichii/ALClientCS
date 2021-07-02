@@ -252,6 +252,8 @@ namespace AL.SocketClient.Definitions
         Transport,
         [EnumMember(Value = "town")]
         ReturnToTown,
-        Loaded
+        Loaded,
+        [EnumMember(Value = "ping_trig")]
+        Ping
     }
 }

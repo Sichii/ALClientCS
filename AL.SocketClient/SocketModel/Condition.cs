@@ -30,7 +30,7 @@ namespace AL.SocketClient.SocketModel
         public float RemainingMS { get; init; }
 
         [JsonProperty("sn")]
-        public ServerId ServerID { get; init; }
+        public string ServerKey { get; init; }
 
         [JsonProperty("f")]
         public string SourceId { get; init; }

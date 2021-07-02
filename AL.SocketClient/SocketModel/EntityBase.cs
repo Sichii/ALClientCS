@@ -1,4 +1,5 @@
-﻿using AL.Core.Abstractions;
+﻿using System;
+using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
@@ -63,6 +64,10 @@ namespace AL.SocketClient.SocketModel
 
         public virtual void Mutate(EntityBase other)
         {
+            if (Id != other.Id)
+                throw new InvalidOperationException(
+                    $"Attempting to update entity with ID: {Id}, with data for entity with ID: {other.Id}");
+                
             ABS = other.ABS;
             Angle = other.Angle;
             Armor = other.Armor;

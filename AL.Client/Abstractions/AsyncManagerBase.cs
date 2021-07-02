@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AL.Core.Helpers;
 
-namespace ALClientCS.Abstractions
+namespace AL.Client.Abstractions
 {
     public abstract class AsyncManagerBase
     {
@@ -11,11 +11,15 @@ namespace ALClientCS.Abstractions
         protected CancellationTokenSource Canceller;
         protected bool Running;
 
-        protected AsyncManagerBase(ALClient client) => Client = client;
+        protected AsyncManagerBase(ALClient client)
+        {
+            Canceller = new CancellationTokenSource();
+            Client = client;
+        }
 
-        protected abstract ValueTask DoWorkAsync();
+        protected abstract Task DoWorkAsync();
 
-        public async void Start(int loopsPerSecond)
+        public async void Start(float loopsPerSecond)
         {
             if (Running)
                 return;

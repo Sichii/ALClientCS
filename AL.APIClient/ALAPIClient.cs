@@ -19,7 +19,7 @@ namespace AL.APIClient
     {
         private static readonly RestClient CLIENT;
         private static readonly ILog Logger;
-        private AuthUser AuthUser;
+        public AuthUser AuthUser;
         public Character[] Characters { get; internal set; }
         public bool HasMail { get; internal set; }
         public Server[] Servers { get; internal set; }

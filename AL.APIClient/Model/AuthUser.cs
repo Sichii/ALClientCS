@@ -4,12 +4,12 @@ using AL.APIClient.Request;
 
 namespace AL.APIClient.Model
 {
-    internal record AuthUser
+    public record AuthUser
     {
-        internal string AuthKey { get; }
-        internal DateTime Expires { get; }
+        public string AuthKey { get; }
+        public DateTime Expires { get; }
         internal LoginInfo LoginInfo { get; }
-        internal long UserID { get; }
+        public long UserID { get; }
 
         internal AuthUser(LoginInfo loginInfo, string cookie)
         {

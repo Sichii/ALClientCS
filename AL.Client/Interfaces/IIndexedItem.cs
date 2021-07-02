@@ -1,6 +1,6 @@
 using AL.Core.Interfaces;
 
-namespace ALClientCS.Interfaces
+namespace AL.Client.Interfaces
 {
     public interface IIndexedItem
     {

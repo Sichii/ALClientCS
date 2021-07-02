@@ -8,7 +8,8 @@ namespace AL.APIClient.Model
         [JsonProperty("addr")]
         public string IPAddress { get; init; }
         public string Key { get; init; }
-        public ServerId Name { get; set; }
+        [JsonProperty("name")]
+        public ServerId Identifier { get; set; }
         public int Players { get; init; }
         public int Port { get; init; }
         public ServerRegion Region { get; set; }

@@ -1,6 +1,7 @@
 ﻿using AL.APIClient.Definitions;
 using AL.Core.Interfaces;
 using AL.SocketClient.SocketModel;
+using Newtonsoft.Json;
 
 namespace AL.SocketClient.Receive
 {
@@ -14,7 +15,8 @@ namespace AL.SocketClient.Receive
 
         public string Map { get; init; }
 
-        public ServerId Name { get; init; }
+        [JsonProperty("name")]
+        public ServerId Identifier { get; init; }
 
         public bool PvP { get; init; }
 

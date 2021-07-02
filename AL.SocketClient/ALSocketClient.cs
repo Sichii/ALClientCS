@@ -1,65 +1,49 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using AL.APIClient;
-using AL.APIClient.Definitions;
 using AL.APIClient.Model;
+using AL.Core.Helpers;
 using AL.Core.Json.Converters;
+using AL.SocketClient.Abstractions;
 using AL.SocketClient.ClientModel;
 using AL.SocketClient.Definitions;
 using Common.Logging;
 using Newtonsoft.Json;
-using WebSocketSharp;
+using H.Socket.IO;
+using H.Socket.IO.EventsArgs;
 
 namespace AL.SocketClient
 {
-    public class ALSocketClient
+    public class ALSocketClient : NamedLoggerBase
     {
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         public Server Server;
-        private WebSocket Socket;
-        internal ALAPIClient APIClient { get; }
-        private ILog Logger { get; }
+        private SocketIoClient Socket;
 
-        public ALSocketClient(ALAPIClient apiClient)
+        public ALSocketClient(string name)
         {
-            APIClient = apiClient;
+            Name = name;
             Logger = LogManager.GetLogger<ALSocketClient>();
             Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
         }
 
-        public async Task ConnectAsync(ServerRegion region, ServerId identifier)
+        public Task ConnectAsync(Server server)
         {
-            if (APIClient.Servers == null || APIClient.Servers.Length == 0)
-                await APIClient.UpdateServersAndCharactersAsync();
-
-            Server = APIClient.Servers.FirstOrDefault(server => server.Region == region && server.Name == identifier);
-
-            if (Server == null)
-                throw new Exception($"Failed to find server with region {region} and id {identifier}");
-
+            Server = server;
             var host = $"ws://{Server.IPAddress}:{Server.Port}";
 
-            Socket = new WebSocket(host);
-            Socket.OnMessage += MessageHandler;
+            Socket = new SocketIoClient();
+            Socket.EventReceived += EventHandler;
 
-            Logger.Info($"Connecting to {host}");
-            Socket.ConnectAsync();
+            Info($"Connecting to {host}");
+            return Socket.ConnectAsync(new Uri(host));
         }
 
-        public async Task<bool> Emit<T>(ALSocketEmitType socketEmitType, T data, bool waitForCompletion = false)
-        {
-            var source = new TaskCompletionSource<bool>();
-            void Callback(bool success) => source.SetResult(success);
-            var obj = new object[] { socketEmitType, data };
+        public Task Emit<T>(ALSocketEmitType socketEmitType, T data) =>
+            Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);
 
-            Socket.SendAsync(JsonConvert.SerializeObject(obj), Callback);
-            return !waitForCompletion || await source.Task;
-        }
-
-        public async ValueTask HandleMessageAsync(string raw)
+        public async ValueTask HandleEventAsync(string raw)
         {
             await Task.Yield();
             ALSocketMessage message;
@@ -71,7 +55,7 @@ namespace AL.SocketClient
             } catch (Exception ex)
             {
                 var wrapper = new Exception("Failed to deserialize top level message. See inner exception.", ex);
-                Logger.Fatal(wrapper);
+                Fatal(wrapper);
 
                 throw wrapper;
             }
@@ -86,7 +70,7 @@ namespace AL.SocketClient
 RAW JSON:
 {raw}", ex);
 
-                Logger.Fatal(wrapper);
+                Fatal(wrapper);
 
                 throw wrapper;
             }
@@ -100,7 +84,7 @@ RAW JSON:
 
                 if (dataObject == null)
                 {
-                    Logger.Error($"Failed to deserialize message. {Environment.NewLine}{raw}");
+                    Error($"Failed to deserialize message. {Environment.NewLine}{raw}");
                     return;
                 }
 
@@ -116,7 +100,7 @@ RAW JSON:
             return invocationList.AssertAsync(InnerInvokeAsync);
         }
 
-        private async void MessageHandler(object sender, MessageEventArgs e) => await HandleMessageAsync(e.Data);
+        private async void EventHandler(object sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value);
 
         public IAsyncDisposable On<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
         {
@@ -136,5 +120,8 @@ RAW JSON:
             if (Subscriptions.TryGetValue(socketMessageType, out var invocationList))
                 await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate) callback);
         }
+
+        public sealed override ILog Logger { get; init; }
+        public sealed override string Name { get; init; }
     }
 }

@@ -24,7 +24,7 @@ namespace AL.Tests.SocketClient.Tests
                 return source.Task;
             });
 
-            await Socket.HandleMessageAsync(@"[
+            await Socket.HandleEventAsync(@"[
    ""action"",
    {
       ""attacker"":""2144160"",
@@ -45,7 +45,7 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [ClassInitialize]
-        public static void Init(TestContext context) => Socket = new ALSocketClient(AssemblyInit.APIClient);
+        public static void Init(TestContext context) => Socket = new ALSocketClient("test");
 
         [TestMethod]
         public async Task TimeoutTest()
@@ -65,7 +65,7 @@ namespace AL.Tests.SocketClient.Tests
                 return source.Task;
             });
 
-            Assert.IsTrue(!await LongTask().Timeout(500));
+            Assert.IsTrue(!await LongTask().WithTimeout(500));
         }
     }
 }

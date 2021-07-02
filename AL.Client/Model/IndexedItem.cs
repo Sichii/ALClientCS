@@ -1,7 +1,7 @@
+using AL.Client.Interfaces;
 using AL.Core.Interfaces;
-using ALClientCS.Interfaces;
 
-namespace ALClientCS.Model
+namespace AL.Client.Model
 {
     public record IndexedItem : IIndexedItem
     {

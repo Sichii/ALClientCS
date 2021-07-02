@@ -83,9 +83,10 @@ namespace AL.SocketClient.SocketModel
 
         public void Mutate(Player other)
         {
-            if (CID != other.CID || Id != other.Id)
+            //TODO: CID is always +1 from previous CID?
+            if (Id != other.Id)
                 throw new InvalidOperationException(
-                    $"Attempting to update player with ID: {Id}, CID: {CID} with data for entity with ID: {other.Id}, CID: {other.CID}");
+                    $"Attempting to update player with ID: {Id}, with data for entity with ID: {other.Id}");
             
             Channeling = other.Channeling;
             Cosmetics = other.Cosmetics;

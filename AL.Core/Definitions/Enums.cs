@@ -235,6 +235,7 @@ namespace AL.Core.Definitions
         Burned,
         Charging,
         Charmed,
+        Citizen0Aura,
         Cursed,
         Dampened,
         DarkBlessing,
@@ -261,6 +262,7 @@ namespace AL.Core.Definitions
         MLuck,
         MonsterHunt,
         MShield,
+        MTangle,
         NotVerified,
         PhasedOut,
         Poisoned,
@@ -279,12 +281,13 @@ namespace AL.Core.Definitions
         SugarRush,
         Tangled,
         Town,
+        Typing,
         WarCry,
         Weakness,
         Withdrawal,
         XPower,
         XShotted,
-        Typing,
+        Young,
 
         //MONSTER ABILITIES
         [EnumMember(Value = "self_healing")]

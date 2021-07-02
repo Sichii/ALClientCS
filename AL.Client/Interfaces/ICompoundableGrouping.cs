@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ALClientCS.Interfaces
+namespace AL.Client.Interfaces
 {
     public interface ICompoundableGrouping<out T> : IReadOnlyList<T> where T: IIndexedItem
     {

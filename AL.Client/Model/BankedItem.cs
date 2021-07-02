@@ -1,8 +1,8 @@
+using AL.Client.Interfaces;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
-using ALClientCS.Interfaces;
 
-namespace ALClientCS.Model
+namespace AL.Client.Model
 {
     public record BankedItem : IIndexedItem
     {

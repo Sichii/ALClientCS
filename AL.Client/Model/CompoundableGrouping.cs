@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
-using ALClientCS.Interfaces;
+using AL.Client.Interfaces;
 
-namespace ALClientCS.Model
+namespace AL.Client.Model
 {
     public record CompoundableGrouping<T> : ICompoundableGrouping<T> where T: IIndexedItem
     {

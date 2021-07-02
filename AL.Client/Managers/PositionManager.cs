@@ -1,15 +1,15 @@
 using System.Threading.Tasks;
+using AL.Client.Abstractions;
 using AL.Core.Helpers;
-using ALClientCS.Abstractions;
 
-namespace ALClientCS.Managers
+namespace AL.Client.Managers
 {
     public class PositionManager : AsyncManagerBase
     {
         public PositionManager(ALClient client)
             : base(client) { }
 
-        protected override async ValueTask DoWorkAsync()
+        protected override async Task DoWorkAsync()
         {
             await UpdatePlayerPositions();
             await UpdateMonsterPositions();

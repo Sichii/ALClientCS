@@ -6,11 +6,12 @@ using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
 
-namespace ALClientCS
+namespace AL.Client
 {
     public static class ALClientSettings
     {
-        public static readonly ParallelOptions ParallelOptions = new()
+        public const int NETWORK_TIMEOUT_MS = 2500; 
+        public static readonly ParallelOptions PARALLEL_OPTIONS = new()
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };

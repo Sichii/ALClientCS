@@ -1,6 +1,6 @@
 using System;
 
-namespace ALClientCS.Model
+namespace AL.Client.Model
 {
     public record CooldownInfo
     {

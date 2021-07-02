@@ -5,11 +5,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="WebSocketSharp.Standard" Version="1.0.3" />
+      <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj" />
+      <PackageReference Include="H.Socket.IO" Version="1.1.7.1" />
     </ItemGroup>
 
 </Project>
