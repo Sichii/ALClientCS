@@ -13,7 +13,7 @@ namespace AL.SocketClient.SocketModel
         public string Name { get; init; }
 
         public virtual bool Equals(Monster other) => Name.Equals(other?.Name) && base.Equals(other);
-        
+
         public override int GetHashCode() =>
             HashCode.Combine(Name.GetHashCode(), base.GetHashCode());
     }

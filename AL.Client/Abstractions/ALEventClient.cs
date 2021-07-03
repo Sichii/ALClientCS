@@ -19,23 +19,23 @@ using Condition = AL.Core.Definitions.Condition;
 
 namespace AL.Client.Abstractions
 {
-    public class ALEventClient : NamedLoggerBase
+    public class ALEventClient : NamedLoggerBase, IAsyncDisposable
     {
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; protected set; }
         public Character Character { get; protected set; }
-        public string Identifier { get; protected set; }
         public EventAndBossInfo EventsAndBosses { get; protected set; }
+        public string Identifier { get; protected set; }
+        public sealed override ILog Logger { get; init; }
+        public sealed override string Name { get; init; }
         public PartyUpdateData Party { get; protected set; }
+        public Server Server { get; protected set; }
         public AwaitableDictionary<string, AchievementProgressData> AchievementProgress { get; }
         public ALAPIClient API { get; }
         public AwaitableDictionary<string, DropData> Chests { get; }
         public AwaitableDictionary<string, CooldownInfo> Cooldowns { get; }
         public AwaitableDictionary<string, Monster> Monsters { get; }
-        public sealed override ILog Logger { get; init; }
-        public sealed override string Name { get; init; }
         public AwaitableDictionary<string, Player> Players { get; }
-        public Server Server => Socket.Server;
-        public ALSocketClient Socket { get; }
+        public ALSocketClient Socket { get; protected set; }
 
         internal ALEventClient(string name, ALAPIClient apiClient)
         {
@@ -43,7 +43,6 @@ namespace AL.Client.Abstractions
             Logger = LogManager.GetLogger<ALClient>();
             AchievementProgress = new AwaitableDictionary<string, AchievementProgressData>();
             API = apiClient;
-            Socket = new ALSocketClient(name);
             Monsters = new AwaitableDictionary<string, Monster>();
             Players = new AwaitableDictionary<string, Player>();
             BaseGold = new Dictionary<string, IReadOnlyDictionary<string, int>>();
@@ -51,6 +50,14 @@ namespace AL.Client.Abstractions
             EventsAndBosses = new EventAndBossInfo();
             Chests = new AwaitableDictionary<string, DropData>();
             Character = new Character();
+        }
+
+        public event Action<InviteData> OnPartyInvite;
+        
+        protected Task<bool> OnPartyInviteAsync(InviteData data)
+        {
+            OnPartyInvite?.Invoke(data);
+            return Task.FromResult(false);
         }
         
         protected async Task<bool> OnAchievementProgressAsync(AchievementProgressData data)
@@ -219,7 +226,7 @@ namespace AL.Client.Abstractions
 
             return false;
         }
-        
+
         protected ValueTask UpdateMonsters(IEnumerable<Monster> monsters, bool full = false)
         {
             if (full)
@@ -261,6 +268,12 @@ namespace AL.Client.Abstractions
                         playerX.Mutate(player);
                 }
             });
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+            return Socket?.DisposeAsync() ?? default;
         }
     }
 }

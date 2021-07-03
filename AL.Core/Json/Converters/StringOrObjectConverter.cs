@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace AL.Core.Json.Converters
 {
-    public class StringOrObjectConverter<T> : JsonConverter<T> where T: IOptionalObject, new() 
+    public class StringOrObjectConverter<T> : JsonConverter<T> where T: IOptionalObject, new()
     {
         public string PropertyForString { get; set; }
 
@@ -26,7 +26,7 @@ namespace AL.Core.Json.Converters
                     var prop = typeof(T).GetProperty(PropertyForString);
                     var propType = prop?.PropertyType;
                     prop?.SetValue(result, serializer.Deserialize(reader, propType));
-                    
+
                     break;
                 case JsonToken.StartObject:
                 {
@@ -34,6 +34,7 @@ namespace AL.Core.Json.Converters
                     {
                         ContainsData = true
                     };
+
                     serializer.Populate(reader, result);
                     break;
                 }

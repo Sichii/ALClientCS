@@ -6,7 +6,6 @@ namespace AL.SocketClient.SocketModel
 {
     public record QueuedActionInfo : IMutable<QueuedActionInfo>
     {
-        public string Id { get; } = UniqueId.NextId.ToString(); 
         [JsonProperty]
         public QueuedAction Compound { get; set; }
         [JsonProperty]
@@ -14,6 +13,11 @@ namespace AL.SocketClient.SocketModel
 
         [JsonProperty]
         public QueuedAction Upgrade { get; set; }
+        public string Id { get; } = UniqueId.NextId.ToString();
+
+        public virtual bool Equals(QueuedActionInfo other) => Id.Equals(other?.Id);
+
+        public override int GetHashCode() => Id.GetHashCode();
 
         public void Mutate(QueuedActionInfo other)
         {
@@ -32,9 +36,5 @@ namespace AL.SocketClient.SocketModel
             if (other is QueuedActionInfo info)
                 Mutate(info);
         }
-
-        public virtual bool Equals(QueuedActionInfo other) => Id.Equals(other?.Id);
-
-        public override int GetHashCode() => Id.GetHashCode();
     }
 }

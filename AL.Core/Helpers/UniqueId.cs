@@ -4,7 +4,7 @@ namespace AL.Core.Helpers
 {
     public static class UniqueId
     {
-        private static long Id = 0;
+        private static long Id;
         public static long NextId => Interlocked.Increment(ref Id);
     }
 }

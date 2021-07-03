@@ -167,6 +167,8 @@ namespace AL.SocketClient.Definitions
     public enum ALSocketMessageType
     {
         Unknown,
+        //??
+        Invite,
         Welcome,
         [EnumMember(Value = "player")]
         Character,
@@ -210,6 +212,7 @@ namespace AL.SocketClient.Definitions
     public enum ALSocketEmitType
     {
         Unknown,
+        Attack,
         Auth,
         Property,
         [EnumMember(Value = "send_updates")]

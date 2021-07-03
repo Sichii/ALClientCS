@@ -11,6 +11,21 @@ namespace AL.Client.Extensions
 {
     public static class EnumerableExtensions
     {
+        public static IEnumerable<BankedItem> AsIndexed(this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic) =>
+            dic.SelectMany(kvp => kvp.Value.Select((item, index) => new BankedItem
+            {
+                BankPack = kvp.Key,
+                Index = index,
+                Item = item
+            }));
+
+        public static IEnumerable<IndexedItem> AsIndexed(this IReadOnlyList<IItem> list) =>
+            list.Select((item, index) => new IndexedItem
+            {
+                Index = index,
+                Item = item
+            });
+
         public static IEnumerable<ICompoundableGrouping<T>> CompoundableGroupBy<T>(this IEnumerable<T> enumerable)
             where T: IIndexedItem =>
             enumerable.GroupBy(indexed => indexed.Item.Name)
@@ -28,21 +43,5 @@ namespace AL.Client.Extensions
                         Items = arr
                     };
                 });
-
-        public static IEnumerable<BankedItem> AsIndexed(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic) =>
-            dic.SelectMany(kvp => kvp.Value.Select((item, index) => new BankedItem
-            {
-                BankPack = kvp.Key,
-                Index = index,
-                Item = item
-            }));
-
-        public static IEnumerable<IndexedItem> AsIndexed(this IReadOnlyList<IItem> list) =>
-            list.Select((item, index) => new IndexedItem
-            {
-                Index = index,
-                Item = item
-            });
     }
 }

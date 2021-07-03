@@ -12,7 +12,7 @@ namespace AL.SocketClient.Extensions
 
             throw new TimeoutException($"Operation timed out after {timeoutMS}ms");
         }
-        
+
         public static async Task WithTimeout(this Task task, int timeoutMS)
         {
             if (task != await Task.WhenAny(task, Task.Delay(timeoutMS)))

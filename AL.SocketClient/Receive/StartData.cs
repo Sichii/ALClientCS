@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using AL.Core.Json.Converters;
 using AL.SocketClient.Json.Converters;
 using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;

@@ -6,15 +6,20 @@ using NLog.Config;
 using NLog.Layouts;
 using NLog.Targets;
 
+// ReSharper disable FieldCanBeMadeReadOnly.Global
+// ReSharper disable InconsistentNaming
+// ReSharper disable CA2211
+// ReSharper disable ConvertToConstant.Global
+
 namespace AL.Client
 {
     public static class ALClientSettings
     {
-        public const int NETWORK_TIMEOUT_MS = 2500; 
         public static readonly ParallelOptions PARALLEL_OPTIONS = new()
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount
         };
+        public static int NETWORK_TIMEOUT_MS = 2000;
 
         public static void SetLogLevel(LogLevel level)
         {
@@ -31,7 +36,7 @@ namespace AL.Client
             var fileTarget = new FileTarget("ALClientCSFileTarget")
             {
                 Layout = new SimpleLayout(
-                    @"[${date:format=yyyy-MM-dd HH\:mm\:ss}][${level:uppercase=true}][${logger:shortName=true}] ${message}"),
+                    @"[${date:format=HH\:mm\:ss}][${level:uppercase=true}][${logger:shortName=true}] ${message}"),
                 FileName = @"logs\${shortdate}.txt",
                 ArchiveFileName = @"logs\old\${shortdate}.txt",
                 ArchiveEvery = FileArchivePeriod.Day,

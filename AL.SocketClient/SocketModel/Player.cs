@@ -87,7 +87,7 @@ namespace AL.SocketClient.SocketModel
             if (Id != other.Id)
                 throw new InvalidOperationException(
                     $"Attempting to update player with ID: {Id}, with data for entity with ID: {other.Id}");
-            
+
             Channeling = other.Channeling;
             Cosmetics = other.Cosmetics;
             QueuedActions = other.QueuedActions;

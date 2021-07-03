@@ -20,9 +20,9 @@ namespace AL.APIClient
         private static readonly RestClient CLIENT;
         private static readonly ILog Logger;
         public AuthUser AuthUser;
-        public Character[] Characters { get; internal set; }
+        public IReadOnlyList<Character> Characters { get; internal set; }
         public bool HasMail { get; internal set; }
-        public Server[] Servers { get; internal set; }
+        public IReadOnlyList<Server> Servers { get; internal set; }
 
         static ALAPIClient()
         {
@@ -48,7 +48,7 @@ namespace AL.APIClient
             MailResponse result = null;
             var more = true;
 
-            Logger.Debug("Fetching mail");
+            Logger.Info("Fetching mail");
             while (more)
             {
                 var arguments = result == null ? null : new { result.Cursor };
@@ -65,7 +65,7 @@ namespace AL.APIClient
 
         public async IAsyncEnumerable<Merchant> GetMerchantsAsync()
         {
-            Logger.Debug("Fetching merchants");
+            Logger.Info("Fetching merchants");
             var request = new APIRequest(Method.POST, APIMethod.PullMerchants, null, AuthUser);
             var response = await CLIENT.ExecutePostAsync(request);
             (var merchantList, _) = JsonConvert.DeserializeObject<(MerchantList, string)>(response.Content,
@@ -83,14 +83,14 @@ namespace AL.APIClient
                 Password = password
             };
 
-            Logger.Debug($"Logging in as {email}:{password}");
+            Logger.Info($"Logging in as {email}:{password}");
             var request = new APIRequest(Method.POST, APIMethod.SignupOrLogin, arguments);
             var response = await CLIENT.ExecutePostAsync(request);
             var setCookieHeader = response.Headers.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
             var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content);
 
-            Logger.Trace($"Message: {data?.Message}");
-            Logger.Trace($"Set-Cookie: {setCookieHeader?.Value}");
+            Logger.Debug($"Message: {data?.Message}");
+            Logger.Debug($"Set-Cookie: {setCookieHeader?.Value}");
 
             if (data == null)
                 throw new Exception("Failed to log in. No response from server.");
@@ -103,21 +103,21 @@ namespace AL.APIClient
 
         public async Task ReadMailAsync(Mail mail)
         {
-            Logger.Debug($"Marking mail {mail.Id} as read");
+            Logger.Info($"Marking mail {mail.Id} as read");
             var request = new APIRequest(Method.POST, APIMethod.ReadMail, new { mail = mail.Id }, AuthUser);
             await CLIENT.ExecutePostAsync(request);
         }
 
         public async Task RenewAuth()
         {
-            Logger.Debug("Renewing auth");
+            Logger.Info("Renewing auth");
             var apiClient = await LoginAsync(AuthUser.LoginInfo.Email, AuthUser.LoginInfo.Password);
             AuthUser = apiClient.AuthUser;
         }
 
         public async Task UpdateServersAndCharactersAsync()
         {
-            Logger.Debug("Fetching servers and characters");
+            Logger.Info("Fetching servers and characters");
             var request = new APIRequest(Method.POST, APIMethod.ServersAndCharacters, null, AuthUser);
             var response = await CLIENT.ExecutePostAsync(request);
 

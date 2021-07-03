@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Dynamic;
 using AL.Core.Definitions;
 using AL.SocketClient.Json.Converters;
-using Chaos.Core.Collections.Synchronized.Awaitable;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel

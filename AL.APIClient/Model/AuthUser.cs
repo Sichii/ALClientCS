@@ -8,8 +8,8 @@ namespace AL.APIClient.Model
     {
         public string AuthKey { get; }
         public DateTime Expires { get; }
-        internal LoginInfo LoginInfo { get; }
         public long UserID { get; }
+        internal LoginInfo LoginInfo { get; }
 
         internal AuthUser(LoginInfo loginInfo, string cookie)
         {

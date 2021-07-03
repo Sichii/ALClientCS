@@ -25,6 +25,7 @@ namespace AL.SocketClient.SocketModel
 
         [JsonProperty("s")]
         public AwaitableDictionary<Core.Definitions.Condition, Condition> Conditions { get; protected set; } = new();
+        public long Delta { get; set; } = DeltaTime.Value;
 
         [JsonProperty("going_x")]
         public float GoingX { get; protected set; }
@@ -34,7 +35,6 @@ namespace AL.SocketClient.SocketModel
 
         [JsonProperty]
         public string Id { get; init; }
-        public long Delta { get; set; } = DeltaTime.Value;
 
         [JsonProperty]
         public int Level { get; protected set; }
@@ -62,12 +62,14 @@ namespace AL.SocketClient.SocketModel
 
         public virtual bool Equals(EntityBase other) => Id.Equals(other?.Id);
 
+        public override int GetHashCode() => Id.GetHashCode();
+
         public virtual void Mutate(EntityBase other)
         {
             if (Id != other.Id)
                 throw new InvalidOperationException(
                     $"Attempting to update entity with ID: {Id}, with data for entity with ID: {other.Id}");
-                
+
             ABS = other.ABS;
             Angle = other.Angle;
             Armor = other.Armor;
@@ -89,8 +91,6 @@ namespace AL.SocketClient.SocketModel
             Resistance = other.Resistance;
         }
 
-        public override int GetHashCode() => Id.GetHashCode();
-
         public void Mutate(object other)
         {
             if (other is EntityBase entity)
@@ -100,11 +100,13 @@ namespace AL.SocketClient.SocketModel
         public void Update(long delta)
         {
             Delta += delta;
-            
+
             //if not moving, or less than 1ms has passed, or we're already where we need to be, then dont update
-            if (!Moving || delta == 0 || X.NearlyEquals(GoingX, CONSTANTS.EPSILON) && Y.NearlyEquals(GoingY, CONSTANTS.EPSILON))
+            if (!Moving
+                || delta == 0
+                || X.NearlyEquals(GoingX, CONSTANTS.EPSILON) && Y.NearlyEquals(GoingY, CONSTANTS.EPSILON))
                 return;
-            
+
             var going = new Point(GoingX, GoingY);
             var speed = Speed / 1000 * delta;
             var distance = this.Distance(going);

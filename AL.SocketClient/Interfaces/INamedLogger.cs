@@ -6,11 +6,11 @@ namespace AL.SocketClient.Interfaces
     {
         ILog Logger { get; }
         string Name { get; }
-        void Warn(object message);
-        void Trace(object message);
         void Debug(object message);
         void Error(object message);
         void Fatal(object message);
         void Info(object message);
+        void Trace(object message);
+        void Warn(object message);
     }
 }

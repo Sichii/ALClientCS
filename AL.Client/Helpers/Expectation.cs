@@ -6,9 +6,9 @@ namespace AL.Client.Helpers
     {
         private readonly T _result;
         private readonly Exception Exception;
-        internal bool Success => Exception == null;
         internal string Error => Exception?.Message;
         internal T Result => Exception == null ? _result : throw Exception;
+        internal bool Success => Exception == null;
 
         public static implicit operator bool(Expectation<T> expectation) => expectation.Success;
         public static implicit operator T(Expectation<T> expectation) => expectation.Result;

@@ -1,5 +1,4 @@
-﻿using AL.APIClient.Definitions;
-using AL.Core.Abstractions;
+﻿using AL.Core.Abstractions;
 using AL.Core.Json.Converters;
 using Newtonsoft.Json;
 

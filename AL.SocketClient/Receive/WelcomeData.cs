@@ -11,12 +11,12 @@ namespace AL.SocketClient.Receive
 
         public string GamePlay { get; init; }
 
+        [JsonProperty("name")]
+        public ServerId Identifier { get; init; }
+
         public string In { get; init; }
 
         public string Map { get; init; }
-
-        [JsonProperty("name")]
-        public ServerId Identifier { get; init; }
 
         public bool PvP { get; init; }
 

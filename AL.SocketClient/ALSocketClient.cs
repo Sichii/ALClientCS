@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.Core.Helpers;
@@ -9,21 +10,27 @@ using AL.SocketClient.Abstractions;
 using AL.SocketClient.ClientModel;
 using AL.SocketClient.Definitions;
 using Common.Logging;
-using Newtonsoft.Json;
 using H.Socket.IO;
 using H.Socket.IO.EventsArgs;
+using Newtonsoft.Json;
 
 namespace AL.SocketClient
 {
-    public class ALSocketClient : NamedLoggerBase
+    public class ALSocketClient : NamedLoggerBase, IAsyncDisposable
     {
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
-        public Server Server;
+        private Server Server;
         private SocketIoClient Socket;
+        public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
+        public JsonSerializer JsonSerializer;
+
+        public sealed override ILog Logger { get; init; }
+        public sealed override string Name { get; init; }
 
         public ALSocketClient(string name)
         {
             Name = name;
+            JsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
             Logger = LogManager.GetLogger<ALSocketClient>();
             Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
         }
@@ -40,8 +47,17 @@ namespace AL.SocketClient
             return Socket.ConnectAsync(new Uri(host));
         }
 
+        public async Task DisconnectAsync()
+        {
+            Warn("Disconnecting");
+            await Socket.DisconnectAsync();
+            await Socket.DisposeAsync();
+        }
+
         public Task Emit<T>(ALSocketEmitType socketEmitType, T data) =>
             Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);
+
+        private async void EventHandler(object sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value);
 
         public async ValueTask HandleEventAsync(string raw)
         {
@@ -54,7 +70,10 @@ namespace AL.SocketClient
                     ArrayToObjectConverter<ALSocketMessage>.Singleton)!;
             } catch (Exception ex)
             {
-                var wrapper = new Exception("Failed to deserialize top level message. See inner exception.", ex);
+                var wrapper = new Exception($@"Failed to deserialize top level message. See inner exception.
+RAW JSON:
+{raw}", ex);
+
                 Fatal(wrapper);
 
                 throw wrapper;
@@ -80,7 +99,8 @@ RAW JSON:
         {
             async ValueTask InnerInvokeAsync(List<ALSocketSubscription> subscriptions)
             {
-                var dataObject = JsonSerializer.CreateDefault().Deserialize(reader, invocationList.Type);
+                Trace(raw);
+                var dataObject = JsonSerializer.Deserialize(reader, invocationList.Type);
 
                 if (dataObject == null)
                 {
@@ -99,8 +119,6 @@ RAW JSON:
 
             return invocationList.AssertAsync(InnerInvokeAsync);
         }
-
-        private async void EventHandler(object sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value);
 
         public IAsyncDisposable On<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
         {
@@ -121,7 +139,16 @@ RAW JSON:
                 await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate) callback);
         }
 
-        public sealed override ILog Logger { get; init; }
-        public sealed override string Name { get; init; }
+        public async ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+
+            foreach ((_, var subList) in Subscriptions)
+                foreach (var sub in await subList.ToArrayAsync())
+                    await sub.DisposeAsync();
+
+            Subscriptions.Clear();
+            await Socket.DisposeAsync();
+        }
     }
 }

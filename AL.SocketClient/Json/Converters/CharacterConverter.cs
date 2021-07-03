@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
 using AL.SocketClient.SocketModel;
@@ -7,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace AL.SocketClient.Json.Converters
 {
-    public class CharacterConverter<T> : AttributedObjectConverter<T> where T : Character, IAttributed, new()
+    public class CharacterConverter<T> : AttributedObjectConverter<T> where T: Character, IAttributed, new()
     {
         public override T ReadJson(
             JsonReader reader,

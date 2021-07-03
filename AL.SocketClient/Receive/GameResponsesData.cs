@@ -11,7 +11,7 @@ namespace AL.SocketClient.Receive
     [JsonConverter(typeof(StringOrObjectConverter<GameResponseData>), nameof(ResponseType))]
     public record GameResponseData : IGoldReceivedResponse, ISkillNameResponse, IBankOpxResponse, IBuySuccessResponse,
         ICooldownResponse, ICraftResponse, IDefeatedByAMonsterResponse, IGoldSentResponse, IItemSentResponse,
-        ISeashellSuccessResponse, ITooFarResponse, IChanceResponse, IOptionalObject 
+        ISeashellSuccessResponse, ITooFarResponse, IChanceResponse, IOptionalObject
     {
         [JsonProperty("name")]
         private readonly string _name;
