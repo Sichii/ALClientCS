@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Definitions;
 using AL.Core.Json.Converters;
-using AL.Core.Objects;
+using AL.Core.Model;
 using Newtonsoft.Json;
 
 namespace AL.Data.Maps

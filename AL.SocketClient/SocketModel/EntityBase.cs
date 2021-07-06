@@ -1,17 +1,21 @@
 ﻿using System;
+using System.Linq;
+using System.Reflection;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
+using AL.Core.Model;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    public abstract record EntityBase : AttributedRecordBase, ILocation, IMutable<EntityBase>, IDeltaUpdateable
+    public abstract record EntityBase : AttributedRecordBase, ILocation, IMutable<EntityBase>, IMutable<Mutation>,
+        IDeltaUpdateable
     {
         //TODO: what's this?
         [JsonProperty]
@@ -40,10 +44,10 @@ namespace AL.SocketClient.SocketModel
         public int Level { get; protected set; }
 
         [JsonProperty("map")]
-        public string Map { get; init; }
+        public string Map { get; protected set; }
 
         [JsonProperty("max_hp")]
-        public int MaxHP { get; protected set; }
+        public float MaxHP { get; protected set; }
 
         [JsonProperty]
         public bool Moving { get; protected set; }
@@ -64,37 +68,39 @@ namespace AL.SocketClient.SocketModel
 
         public override int GetHashCode() => Id.GetHashCode();
 
-        public virtual void Mutate(EntityBase other)
+        public virtual void Mutate(EntityBase mutator)
         {
-            if (Id != other.Id)
+            if (Id != mutator.Id)
                 throw new InvalidOperationException(
-                    $"Attempting to update entity with ID: {Id}, with data for entity with ID: {other.Id}");
+                    $"Attempting to update entity with ID: {Id}, with data for entity with ID: {mutator.Id}");
 
-            ABS = other.ABS;
-            Angle = other.Angle;
-            Armor = other.Armor;
-            GoingX = other.GoingX;
-            GoingY = other.GoingY;
-            HP = other.HP;
-            MaxHP = other.MaxHP;
-            Level = other.Level;
-            StepCount = other.StepCount;
-            Moving = other.Moving;
-            Conditions = other.Conditions;
-            Speed = other.Speed;
-            X = other.X;
-            Y = other.Y;
-            XP = other.XP;
-            Attack = other.Attack;
-            Frequency = other.Frequency;
-            MP = other.MP;
-            Resistance = other.Resistance;
+            ABS = mutator.ABS;
+            Angle = mutator.Angle;
+            Armor = mutator.Armor;
+            GoingX = mutator.GoingX;
+            GoingY = mutator.GoingY;
+            HP = mutator.HP;
+            MaxHP = mutator.MaxHP;
+            Level = mutator.Level;
+            StepCount = mutator.StepCount;
+            Moving = mutator.Moving;
+            Conditions = mutator.Conditions;
+            Speed = mutator.Speed;
+            X = mutator.X;
+            Y = mutator.Y;
+            XP = mutator.XP;
+            Attack = mutator.Attack;
+            Frequency = mutator.Frequency;
+            MP = mutator.MP;
+            Resistance = mutator.Resistance;
         }
 
-        public void Mutate(object other)
+        public void Mutate(object mutator) => throw new NotImplementedException();
+
+        public void Mutate(Mutation mutator)
         {
-            if (other is EntityBase entity)
-                Mutate(entity);
+            if (mutator.Attribute == ALAttribute.Hp)
+                HP += (int) mutator.Mutator;
         }
 
         public void Update(long delta)

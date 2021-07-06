@@ -6,7 +6,7 @@ namespace AL.Core.Json.Converters
 {
     public class StringOrObjectConverter<T> : JsonConverter<T> where T: IOptionalObject, new()
     {
-        public string PropertyForString { get; set; }
+        public string PropertyForString { get; }
 
         public StringOrObjectConverter(string propertyForString) => PropertyForString = propertyForString;
 

@@ -31,7 +31,8 @@ namespace AL.SocketClient.ClientModel
         {
             var subscription = new AlSocketSubscription<T>(invocationList, callback);
             //we dont need to await this because all we care about is that invocationList is synchronized
-            _ = invocationList.AddAsync(subscription);
+            // ReSharper disable once CA2012
+            invocationList.AddAsync(subscription);
             return subscription;
         }
 

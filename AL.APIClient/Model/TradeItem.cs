@@ -27,7 +27,7 @@ namespace AL.APIClient.Model
         public string Prefix { get; init; }
         public long Price { get; init; }
         [JsonProperty("q")]
-        public int Quantity { get; init; }
+        public int Quantity { get; init; } = 1;
 
         [JsonProperty("stat_type")]
         public ALAttribute StatType { get; init; }

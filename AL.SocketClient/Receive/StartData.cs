@@ -15,7 +15,7 @@ namespace AL.SocketClient.Receive
         [JsonProperty]
         public EntitiesData Entities { get; init; }
 
-        [JsonProperty("s_info")]
+        [JsonProperty("s_info"), JsonConverter(typeof(EventAndBossDataConverter))]
         public EventAndBossInfo EventAndBossInfo { get; init; }
     }
 }

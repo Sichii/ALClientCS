@@ -22,7 +22,9 @@ namespace AL.SocketClient
         private Server Server;
         private SocketIoClient Socket;
         public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
-        public JsonSerializer JsonSerializer;
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
+        public static JsonSerializer JsonSerializer { get; set; } =
+            JsonSerializer.CreateDefault(JsonSerializerSettings);
 
         public sealed override ILog Logger { get; init; }
         public sealed override string Name { get; init; }
@@ -30,7 +32,6 @@ namespace AL.SocketClient
         public ALSocketClient(string name)
         {
             Name = name;
-            JsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
             Logger = LogManager.GetLogger<ALSocketClient>();
             Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
         }
@@ -54,8 +55,11 @@ namespace AL.SocketClient
             await Socket.DisposeAsync();
         }
 
-        public Task Emit<T>(ALSocketEmitType socketEmitType, T data) =>
-            Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);
+        public Task Emit<T>(ALSocketEmitType socketEmitType, T data)
+        {
+            Trace($"{socketEmitType}, {data}");
+            return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);
+        }
 
         private async void EventHandler(object sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value);
 
@@ -99,7 +103,9 @@ RAW JSON:
         {
             async ValueTask InnerInvokeAsync(List<ALSocketSubscription> subscriptions)
             {
+                //TODO: Remove this when not capturing stuff
                 Trace(raw);
+                
                 var dataObject = JsonSerializer.Deserialize(reader, invocationList.Type);
 
                 if (dataObject == null)

@@ -1,40 +1,15 @@
-﻿using AL.Core.Helpers;
-using AL.Core.Interfaces;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    public record QueuedActionInfo : IMutable<QueuedActionInfo>
+    public record QueuedActionInfo
     {
         [JsonProperty]
-        public QueuedAction Compound { get; set; }
+        public QueuedAction Compound { get; init; }
         [JsonProperty]
-        public QueuedAction Exchange { get; set; }
+        public QueuedAction Exchange { get; init; }
 
         [JsonProperty]
-        public QueuedAction Upgrade { get; set; }
-        public string Id { get; } = UniqueId.NextId.ToString();
-
-        public virtual bool Equals(QueuedActionInfo other) => Id.Equals(other?.Id);
-
-        public override int GetHashCode() => Id.GetHashCode();
-
-        public void Mutate(QueuedActionInfo other)
-        {
-            if (other.Compound != null)
-                Compound = other.Compound;
-
-            if (other.Upgrade != null)
-                Upgrade = other.Upgrade;
-
-            if (other.Exchange != null)
-                Exchange = other.Exchange;
-        }
-
-        public void Mutate(object other)
-        {
-            if (other is QueuedActionInfo info)
-                Mutate(info);
-        }
+        public QueuedAction Upgrade { get; init; }
     }
 }

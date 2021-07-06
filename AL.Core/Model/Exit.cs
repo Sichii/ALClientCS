@@ -1,7 +1,7 @@
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
 
-namespace AL.Core.Objects
+namespace AL.Core.Model
 {
     public record Exit : IPoint
     {

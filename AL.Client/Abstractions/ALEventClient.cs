@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using AL.APIClient;
 using AL.APIClient.Model;
 using AL.Client.Model;
+using AL.Core.Definitions;
 using AL.Core.Helpers;
+using AL.Core.Model;
 using AL.Data;
 using AL.SocketClient;
 using AL.SocketClient.Abstractions;
@@ -23,6 +25,7 @@ namespace AL.Client.Abstractions
     {
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; protected set; }
         public Character Character { get; protected set; }
+        public BankInfo Bank { get; protected set; }
         public EventAndBossInfo EventsAndBosses { get; protected set; }
         public string Identifier { get; protected set; }
         public sealed override ILog Logger { get; init; }
@@ -35,6 +38,7 @@ namespace AL.Client.Abstractions
         public AwaitableDictionary<string, CooldownInfo> Cooldowns { get; }
         public AwaitableDictionary<string, Monster> Monsters { get; }
         public AwaitableDictionary<string, Player> Players { get; }
+        public AwaitableDictionary<string, ActionData> Projectiles { get; }
         public ALSocketClient Socket { get; protected set; }
 
         internal ALEventClient(string name, ALAPIClient apiClient)
@@ -45,19 +49,12 @@ namespace AL.Client.Abstractions
             API = apiClient;
             Monsters = new AwaitableDictionary<string, Monster>();
             Players = new AwaitableDictionary<string, Player>();
+            Projectiles = new AwaitableDictionary<string, ActionData>();
             BaseGold = new Dictionary<string, IReadOnlyDictionary<string, int>>();
             Cooldowns = new AwaitableDictionary<string, CooldownInfo>(StringComparer.OrdinalIgnoreCase);
             EventsAndBosses = new EventAndBossInfo();
             Chests = new AwaitableDictionary<string, DropData>();
             Character = new Character();
-        }
-
-        public event Action<InviteData> OnPartyInvite;
-        
-        protected Task<bool> OnPartyInviteAsync(InviteData data)
-        {
-            OnPartyInvite?.Invoke(data);
-            return Task.FromResult(false);
         }
         
         protected async Task<bool> OnAchievementProgressAsync(AchievementProgressData data)
@@ -70,7 +67,11 @@ namespace AL.Client.Abstractions
         {
             Character = data;
 
-            if (data.ExtraEvents is { Length: > 0 })
+            //keep a copy of the bank data
+            if (data.Bank != null)
+                Bank = data.Bank;
+
+            if (data.ExtraEvents?.Count > 0)
                 foreach (var jArr in data.ExtraEvents)
                 {
                     var raw = jArr.ToString();
@@ -172,7 +173,7 @@ namespace AL.Client.Abstractions
 
         protected Task<bool> OnQueuedActionAsync(QueuedActionData data)
         {
-            Character.QueuedActions.Mutate(data.QueuedActionInfo);
+            Character.Mutate(data.QueuedActionInfo);
 
             return Task.FromResult(false);
         }
@@ -195,13 +196,13 @@ namespace AL.Client.Abstractions
             switch (data.UpgradeType)
             {
                 case UpgradeType.Compound:
-                    Character.QueuedActions.Compound = null;
+                    Character.Mutate(Character.QueuedActions with { Compound = null });
                     break;
                 case UpgradeType.Upgrade:
-                    Character.QueuedActions.Upgrade = null;
+                    Character.Mutate(Character.QueuedActions with { Upgrade = null });
                     break;
                 case UpgradeType.Exchange:
-                    Character.QueuedActions.Exchange = null;
+                    Character.Mutate(Character.QueuedActions with { Exchange = null });
                     break;
                 default:
                     throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int) data.UpgradeType}.");
@@ -226,6 +227,102 @@ namespace AL.Client.Abstractions
 
             return false;
         }
+
+        protected async Task<bool> OnActionAsync(ActionData data)
+        {
+            await Projectiles.AddOrUpdateAsync(data.ProjectileId, data);
+            return false;
+        }
+
+        protected async Task<bool> OnDeathAsync(DeathData data)
+        {
+            await DestroyEntity(data.Id);
+            return false;
+        }
+
+        protected async Task<bool> OnDisappearAsync(DisappearData data)
+        {
+            await DestroyEntity(data.Id);
+            return false;
+        }
+
+        protected async Task<bool> OnHitAsync(HitData data)
+        {
+            if (!string.IsNullOrEmpty(data.ProjectileId)
+                && await Projectiles.TryGetValueAsync(data.ProjectileId, out var projectileTask))
+            {
+                var projectile = await projectileTask;
+                await Projectiles.RemoveAsync(data.ProjectileId);
+                
+                if (data.Reflect != 0)
+                {
+                    var newProjectile = projectile with
+                    {
+                        Damage = data.Reflect, Target = data.HID, X = Character.X, Y = Character.Y
+                    };
+
+                    await Projectiles.AddOrUpdateAsync(newProjectile.ProjectileId, newProjectile);
+                }
+            }
+            
+            if (data.Kill)
+                await DestroyEntity(data.Id);
+            else if (data.Damage != 0)
+            {
+                var entity = await GetEntity(data.Id);
+
+                if (entity != null)
+                    entity.Mutate(new Mutation(ALAttribute.Hp, -data.Damage));
+            }
+
+            if (data.Reflect != 0)
+            {
+                var sourceEntity = await GetEntity(data.Source);
+
+                if (sourceEntity != null)
+                    sourceEntity.Mutate(new Mutation(ALAttribute.Hp, -data.Reflect));
+            }
+
+            return false;
+        }
+
+        protected async Task<bool> OnNewMapAsync(NewMapData data)
+        {
+            await Projectiles.ClearAsync();
+            Character?.Mutate(data);
+
+            await OnEntitiesAsync(data.Entities);
+            
+            return false;
+        }
+
+        protected Task<bool> OnServerInfo(EventAndBossData data)
+        {
+            var bossInfoDic = (Dictionary<string, BossInfo>) data.BossInfo;
+            EventsAndBosses = data;
+            
+            foreach((var name, var bossInfo) in bossInfoDic)
+                if (bossInfo.HP == 0)
+                    bossInfo.Mutate(new Mutation(ALAttribute.Hp, GameData.Monsters[name].HP));
+            
+            return Task.FromResult(false);
+        }
+
+        #region Helpers
+
+        protected async ValueTask<bool> DestroyEntity(string id)
+        {
+            var result = await Monsters.RemoveAsync(id) || await Players.RemoveAsync(id);
+            
+            var bossInfoDic = (Dictionary<string, BossInfo>) EventsAndBosses.BossInfo;
+            bossInfoDic.Remove(id);
+
+            return result;
+        }
+
+        protected async ValueTask<EntityBase> GetEntity(string id) =>
+            await Players.TryGetValueAsync(id, out var playerTask)   ? await playerTask :
+            await Monsters.TryGetValueAsync(id, out var monsterTask) ? await monsterTask : null;
 
         protected ValueTask UpdateMonsters(IEnumerable<Monster> monsters, bool full = false)
         {
@@ -269,6 +366,7 @@ namespace AL.Client.Abstractions
                 }
             });
         }
+        #endregion
 
         public ValueTask DisposeAsync()
         {

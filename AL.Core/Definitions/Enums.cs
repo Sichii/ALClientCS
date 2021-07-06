@@ -249,6 +249,7 @@ namespace AL.Core.Definitions
         FullGuard,
         HardShell,
         HolidaySpirit,
+        Heal,
         Invincible,
         Invis,
 
@@ -592,7 +593,7 @@ namespace AL.Core.Definitions
         Invalid
     }
 
-    [JsonConverter(typeof(ObjOrFalseConverter<Stand>), None)]
+    [JsonConverter(typeof(FalsyConverter<Stand>), None)]
     public enum Stand
     {
         None,

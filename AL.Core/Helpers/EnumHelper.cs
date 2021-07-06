@@ -26,7 +26,7 @@ namespace AL.Core.Helpers
 
             return result;
         }
-
+        
         public static bool TryParse<T>(string str, out T result) where T: struct
         {
             result = default;

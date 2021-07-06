@@ -16,7 +16,8 @@ namespace AL.SocketClient.Receive
         public float LifeSteal { get; init; }
         public float ManaSteal { get; init; }
         public bool Miss { get; init; }
-        public string PID { get; init; }
+        [JsonProperty("pid")]
+        public string ProjectileId { get; init; }
         public string Projectile { get; init; }
         public float Reflect { get; init; }
         public bool Sneak { get; init; }

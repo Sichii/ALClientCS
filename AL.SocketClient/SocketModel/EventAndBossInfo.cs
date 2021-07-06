@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    [JsonConverter(typeof(EventAndBossInfoConverter))]
+    [JsonConverter(typeof(EventAndBossDataConverter))]
     public record EventAndBossInfo
     {
         [JsonIgnore]
-        public IReadOnlyDictionary<string, BossInfo> BossInfo { get; init; } = new Dictionary<string, BossInfo>();
+        public IReadOnlyDictionary<string, BossInfo> BossInfo { get; } = new Dictionary<string, BossInfo>();
 
         [JsonProperty]
         public bool EggHunt { get; init; }

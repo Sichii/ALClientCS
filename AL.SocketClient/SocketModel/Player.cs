@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 namespace AL.SocketClient.SocketModel
 {
     [JsonConverter(typeof(AttributedObjectConverter<Player>))]
-    public record Player : EntityBase, IMutable<Player>
+    public record Player : EntityBase, IMutable<Player>, IMutable<QueuedActionInfo>
     {
         [JsonProperty, JsonConverter(typeof(AfkConverter))]
         public bool AFK { get; protected set; }
@@ -78,6 +78,8 @@ namespace AL.SocketClient.SocketModel
         public string Name => Id;
 
         public virtual bool Equals(Player other) => CID == other?.CID && base.Equals(other);
+
+        public void Mutate(QueuedActionInfo mutator) => QueuedActions = mutator;
 
         public override int GetHashCode() => HashCode.Combine(CID.GetHashCode(), base.GetHashCode());
 

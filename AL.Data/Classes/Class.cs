@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AL.Core.Definitions;
 using Newtonsoft.Json;
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 
 namespace AL.Data.Classes
 {

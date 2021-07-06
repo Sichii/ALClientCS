@@ -1655,7 +1655,7 @@ namespace AL.Tests.SocketClient.Tests
    }
 }";
 
-            var obj = JsonConvert.DeserializeObject<EventAndBossInfo>(SERVER_INFO_DATA);
+            var obj = JsonConvert.DeserializeObject<EventAndBossData>(SERVER_INFO_DATA);
 
             Assert.IsNotNull(obj);
         }

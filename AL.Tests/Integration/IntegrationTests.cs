@@ -9,13 +9,13 @@ namespace AL.Tests.Integration
     [TestClass]
     public class IntegrationTests
     {
-        [TestMethod]
+        //[TestMethod]
         public async Task Test()
         {
             var apiClient = AssemblyInit.APIClient;
-            //await PathFinder.InitializeAsync();
+            await PathFinder.InitializeAsync();
 
-            var client = await ALClient.CreateAsync("makiz", ServerRegion.US, ServerId.II, apiClient);
+            await using var client = await ALClient.CreateAsync("makiz", ServerRegion.US, ServerId.III, apiClient);
 
             //stand still for 1minute
             await Task.Delay(1000 * 60);

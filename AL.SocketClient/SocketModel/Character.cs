@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
 using AL.Core.Definitions;
+using AL.Core.Interfaces;
 using AL.SocketClient.Json.Converters;
+using AL.SocketClient.Receive;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
     [JsonConverter(typeof(CharacterConverter<Character>))]
-    public record Character : Player
+    public record Character : Player, IMutable<ILocation>, IMutable<NewMapData>
     {
         [JsonProperty("targets")]
         public int AggroTargets { get; init; }
@@ -47,12 +49,12 @@ namespace AL.SocketClient.SocketModel
         [JsonProperty]
         public string IPass { get; init; }
 
-        [JsonProperty]
-        public IReadOnlyList<Item> Items { get; internal set; }
+        [JsonProperty("items")]
+        public IReadOnlyList<Item> Inventory { get; internal set; }
 
         //TODO: what's this?
-        [JsonProperty]
-        public float M { get; init; }
+        [JsonProperty("m")]
+        public int MapChangeCount { get; protected set; }
         [JsonProperty("acx")]
         public IReadOnlyDictionary<string, int> OwnedCosmetics { get; init; }
 
@@ -64,6 +66,22 @@ namespace AL.SocketClient.SocketModel
         public string[] XCX { get; init; }
 
         public virtual bool Equals(Character other) => base.Equals(other);
+
+        public void Mutate(NewMapData mutator)
+        {
+            X = mutator.X;
+            Y = mutator.Y;
+            Map = mutator.Map;
+            MapChangeCount = mutator.MapChangeCount;
+        }
+        
+        public void Mutate(ILocation mutator)
+        {
+            X = mutator.X;
+            Y = mutator.Y;
+            Map = mutator.Map;
+        }
+
         public override int GetHashCode() => base.GetHashCode();
     }
 }

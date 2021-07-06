@@ -385,6 +385,7 @@ namespace AL.Pathfinding
             }
         }
 
+        // ReSharper disable once SuggestBaseTypeForParameter
         private IEnumerable<Point> FloodPolyLine(HashSet<Point> vertices)
         {
             //new points will always be on the top, allowing us to directly trace the inner poly line

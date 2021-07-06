@@ -7,7 +7,7 @@ namespace AL.Client.Extensions
     {
         public static async Task<T> WithNetworkTimeout<T>(this Task<T> task)
         {
-            var timeoutMS = ALClientSettings.NETWORK_TIMEOUT_MS;
+            var timeoutMS = ALClientSettings.NetworkTimeoutMS;
 
             if (task == await Task.WhenAny(task, Task.Delay(timeoutMS)))
                 return await task;
@@ -17,7 +17,7 @@ namespace AL.Client.Extensions
 
         public static async Task WithNetworkTimeout(this Task task)
         {
-            var timeoutMS = ALClientSettings.NETWORK_TIMEOUT_MS;
+            var timeoutMS = ALClientSettings.NetworkTimeoutMS;
 
             if (task != await Task.WhenAny(task, Task.Delay(timeoutMS)))
                 throw new TimeoutException($"Network operation timed out after {timeoutMS}ms");

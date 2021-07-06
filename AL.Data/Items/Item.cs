@@ -14,34 +14,36 @@ namespace AL.Data.Items
     public record Item : AttributedRecordBase
     {
         [JsonProperty("compound")]
-        public IReadOnlyDictionary<ALAttribute, float> CompoundModifiers { get; init; } =
-            new Dictionary<ALAttribute, float>();
+        //LEAVE NULLABLE - needed to chack if something is actually compoundable null vs empty
+        public IReadOnlyDictionary<ALAttribute, float> CompoundModifiers { get; init; }
 
         [JsonProperty("damage")]
         public DamageType DamageType { get; init; }
 
         [JsonProperty("g")]
         public float GoldValue { get; init; }
-        public int[] Grades { get; init; }
+        //LEAVE NULLABLE - needed to chack if something is actually compoundable/upgradeable null vs empty
+        public IReadOnlyList<int> Grades { get; init; }
         public bool Ignore { get; init; }
         public string Name { get; init; }
         public string Projectile { get; init; }
         public ALAttribute ScrollStat { get; private set; }
 
-        [JsonProperty("s"), JsonConverter(typeof(ObjOrFalseConverter<int>), 1)]
+        [JsonProperty("s"), JsonConverter(typeof(FalsyConverter<int>), 1)]
         public int StackSize { get; init; } = 1;
 
         public float Tier { get; init; }
         public ItemType Type { get; init; }
 
         [JsonProperty("upgrade")]
-        public IReadOnlyDictionary<ALAttribute, float> UpgradeModifiers { get; init; } =
-            new Dictionary<ALAttribute, float>();
+        //LEAVE NULLABLE - needed to chack if something is actually upgradeable null vs empty
+        public IReadOnlyDictionary<ALAttribute, float> UpgradeModifiers { get; init; }
 
         [JsonProperty("wtype")]
         public WeaponType WeaponType { get; init; }
 
         [OnError]
+        // ReSharper disable once UnusedParameter.Global
         public void OnError(StreamingContext context, ErrorContext errorContext)
         {
             if (errorContext.Member?.ToString().EqualsI("stat") == true)

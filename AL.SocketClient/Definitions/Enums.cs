@@ -77,7 +77,7 @@ namespace AL.SocketClient.Definitions
         UpgradeFail,
         [EnumMember(Value = "compound_no_item")]
         CompoundNoItem,
-        [EnumMember(Value = "upgrade_incompatible_scroll")]
+        [EnumMember(Value = "compound_incompatible_scroll")]
         CompoundIncompatibleScroll,
         [EnumMember(Value = "compound_in_progress")]
         CompoundInProgress,
@@ -167,7 +167,6 @@ namespace AL.SocketClient.Definitions
     public enum ALSocketMessageType
     {
         Unknown,
-        //??
         Invite,
         Welcome,
         [EnumMember(Value = "player")]

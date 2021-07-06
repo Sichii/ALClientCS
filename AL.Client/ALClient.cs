@@ -123,6 +123,12 @@ namespace AL.Client
             Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedActionAsync);
             Socket.On<UpgradeData>(ALSocketMessageType.Upgrade, OnUpgradeAsync);
             Socket.On<WelcomeData>(ALSocketMessageType.Welcome, OnWelcomeAsync);
+            Socket.On<ActionData>(ALSocketMessageType.Action, OnActionAsync);
+            Socket.On<DeathData>(ALSocketMessageType.Death, OnDeathAsync);
+            Socket.On<DisappearData>(ALSocketMessageType.Disappear, OnDisappearAsync);
+            Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
+            Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
+            Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
         }
 
         private async Task FetchCharacterAndServerAsync(ServerRegion region, ServerId identifier)

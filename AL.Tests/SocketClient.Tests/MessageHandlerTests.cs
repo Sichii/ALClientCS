@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Extensions;
 using AL.SocketClient.Receive;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -46,26 +45,5 @@ namespace AL.Tests.SocketClient.Tests
 
         [ClassInitialize]
         public static void Init(TestContext context) => Socket = new ALSocketClient("test");
-
-        [TestMethod]
-        public async Task TimeoutTest()
-        {
-            var source = new TaskCompletionSource<bool>();
-
-            static async Task<bool> LongTask()
-            {
-                await Task.Delay(2000);
-                return true;
-            }
-
-            await using var subscription = Socket.On<ActionData>(ALSocketMessageType.Action, obj =>
-            {
-                var result = obj != null;
-                source.TrySetResult(result);
-                return source.Task;
-            });
-
-            Assert.IsTrue(!await LongTask().WithTimeout(500));
-        }
     }
 }

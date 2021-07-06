@@ -12,7 +12,8 @@ namespace AL.SocketClient.Receive
         public EntitiesData Entities { get; init; }
         public string In { get; init; }
         public JObject Info { get; init; }
-        public float M { get; init; }
+        [JsonProperty("m")]
+        public int MapChangeCount { get; init; }
         [JsonProperty("name")]
         public string Map { get; init; }
         public float X { get; init; }

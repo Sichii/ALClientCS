@@ -16,14 +16,14 @@ namespace AL.SocketClient.Json.Converters
             JsonSerializer serializer)
         {
             var character = base.ReadJson(reader, objectType, existingValue, hasExistingValue, serializer);
-            var missing = character.InventorySize - character.Items.Count;
+            var missing = character.InventorySize - character.Inventory.Count;
 
             if (missing > 0)
             {
                 var newInventory = new Item[character.InventorySize];
 
-                for (var i = 0; i < character.Items.Count; i++)
-                    newInventory[i] = character.Items[i];
+                for (var i = 0; i < character.Inventory.Count; i++)
+                    newInventory[i] = character.Inventory[i];
             }
 
             return character;

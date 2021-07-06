@@ -6,11 +6,11 @@ namespace AL.Core.Interfaces
     {
         string Id { get; }
 
-        void Mutate(object other);
+        void Mutate(object mutator);
     }
 
-    public interface IMutable<T> : IEquatable<T>, IMutable
+    public interface IMutable<in TMutator> : IMutable
     {
-        void Mutate(T other);
+        void Mutate(TMutator mutator);
     }
 }

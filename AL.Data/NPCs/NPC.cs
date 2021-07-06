@@ -15,6 +15,7 @@ namespace AL.Data.NPCs
         public float Level { get; init; }
         public string Name { get; init; }
         public BankPack Pack { get; init; }
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
         public IReadOnlyDictionary<string, int> Places { get; init; } = new Dictionary<string, int>();
         public Quest Quest { get; init; }
         public NPCRole Role { get; init; }

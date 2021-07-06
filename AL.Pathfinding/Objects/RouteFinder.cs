@@ -10,6 +10,7 @@ namespace AL.Pathfinding.Objects
     public class RouteFinder
     {
         private static readonly ILog Logger = LogManager.GetLogger<RouteFinder>();
+        // ReSharper disable once NotAccessedField.Local
         private static WorldMesh WorldMesh;
 
         public static void Initialize()

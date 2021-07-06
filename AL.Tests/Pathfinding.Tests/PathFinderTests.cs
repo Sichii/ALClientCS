@@ -26,17 +26,17 @@ namespace AL.Tests.Pathfinding.Tests
         private static NavMesh NavMesh;
         private static WorldMesh WorldMesh;
         private readonly List<Point> EndPoints = new() { new Point(1891, -47) };
+        private const int COUNT = 1000;
 
         [TestMethod]
         public async Task FindAnyPathBenchTest()
         {
-            var count = 1000;
             var timer = new Stopwatch();
             var possibleEnds = new[] { new Point(-1250f, -163f), StartPoint };
 
             timer.Start();
 
-            var pathGenerator = Enumerable.Range(0, count)
+            var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
                 .SelectMany(_ => NavMesh.FindPath(EndPoints.First(), possibleEnds));
 
@@ -45,10 +45,10 @@ namespace AL.Tests.Pathfinding.Tests
                 i++;
 
             timer.Stop();
-            Logger.Debug($"{count} Paths found in {timer.ElapsedMilliseconds}ms");
+            Logger.Debug($"{COUNT} Paths found in {timer.ElapsedMilliseconds}ms");
             Logger.Debug($"{i} nodes traversed");
 
-            Assert.IsTrue(i > count);
+            Assert.IsTrue(i > COUNT);
         }
 
         [TestMethod]
@@ -70,13 +70,12 @@ namespace AL.Tests.Pathfinding.Tests
         [TestMethod]
         public async Task FindAnyPathWithDistanceBenchTest()
         {
-            var count = 1000;
             var timer = new Stopwatch();
             var possibleEnds = new[] { new Point(-1250f, -163f), StartPoint };
 
             timer.Start();
 
-            var pathGenerator = Enumerable.Range(0, count)
+            var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
                 .SelectMany(_ => NavMesh.FindPath(EndPoints.First(), possibleEnds, 200));
 
@@ -85,10 +84,10 @@ namespace AL.Tests.Pathfinding.Tests
                 i++;
 
             timer.Stop();
-            Logger.Debug($"{count} Paths found in {timer.ElapsedMilliseconds}ms");
+            Logger.Debug($"{COUNT} Paths found in {timer.ElapsedMilliseconds}ms");
             Logger.Debug($"{i} nodes traversed");
 
-            Assert.IsTrue(i > count);
+            Assert.IsTrue(i > COUNT);
         }
 
         [TestMethod]
@@ -110,11 +109,10 @@ namespace AL.Tests.Pathfinding.Tests
         [TestMethod]
         public async Task FindPathBenchTest()
         {
-            var count = 1000;
             var timer = new Stopwatch();
             timer.Start();
 
-            var pathGenerator = Enumerable.Range(0, count)
+            var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
                 .SelectMany(_ => NavMesh.FindPath(StartPoint, EndPoints));
 
@@ -123,10 +121,10 @@ namespace AL.Tests.Pathfinding.Tests
                 i++;
 
             timer.Stop();
-            Logger.Debug($"{count} Paths found in {timer.ElapsedMilliseconds}ms");
+            Logger.Debug($"{COUNT} Paths found in {timer.ElapsedMilliseconds}ms");
             Logger.Debug($"{i} nodes traversed");
 
-            Assert.IsTrue(i > count);
+            Assert.IsTrue(i > COUNT);
         }
 
         [TestMethod]
@@ -146,11 +144,10 @@ namespace AL.Tests.Pathfinding.Tests
         [TestMethod]
         public async Task FindPathWithDistanceBenchTest()
         {
-            var count = 1000;
             var timer = new Stopwatch();
             timer.Start();
 
-            var pathGenerator = Enumerable.Range(0, count)
+            var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
                 .SelectMany(_ => NavMesh.FindPath(StartPoint, EndPoints, 200));
 
@@ -159,10 +156,10 @@ namespace AL.Tests.Pathfinding.Tests
                 i++;
 
             timer.Stop();
-            Logger.Debug($"{count} Paths found in {timer.ElapsedMilliseconds}ms");
+            Logger.Debug($"{COUNT} Paths found in {timer.ElapsedMilliseconds}ms");
             Logger.Debug($"{i} nodes traversed");
 
-            Assert.IsTrue(i > count);
+            Assert.IsTrue(i > COUNT);
         }
 
         [TestMethod]

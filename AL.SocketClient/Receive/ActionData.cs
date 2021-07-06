@@ -20,8 +20,8 @@ namespace AL.SocketClient.Receive
         [JsonProperty]
         public float M { get; init; }
 
-        [JsonProperty]
-        public string PID { get; init; }
+        [JsonProperty("pid")]
+        public string ProjectileId { get; init; }
 
         [JsonProperty]
         public string Projectile { get; init; }
