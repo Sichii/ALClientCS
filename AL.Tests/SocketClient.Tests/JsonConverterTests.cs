@@ -1,5 +1,6 @@
 ﻿using System.Linq;
-using AL.SocketClient.Receive;
+using AL.SocketClient.Interfaces.Responses;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
@@ -262,10 +263,10 @@ namespace AL.Tests.SocketClient.Tests
    ""name"":""charging""
 }";
 
-            var obj = JsonConvert.DeserializeObject<GameResponseData>(GAME_RESPONSE_DATA);
+            var obj = JsonConvert.DeserializeObject<INameResponse>(GAME_RESPONSE_DATA);
             Assert.IsNotNull(obj);
-            Assert.IsNotNull(obj.SkillName);
-            obj = JsonConvert.DeserializeObject<GameResponseData>(STRING_GAME_RESPONSE_DATA);
+            Assert.IsNotNull(obj.Name);
+            obj = JsonConvert.DeserializeObject<INameResponse>(STRING_GAME_RESPONSE_DATA);
             Assert.IsNotNull(obj);
         }
 

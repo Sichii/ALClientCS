@@ -1,27 +1,31 @@
 ﻿using System;
 using AL.Core.Geometry;
-using AL.Core.Interfaces;
 using Newtonsoft.Json;
 
 namespace AL.Core.Json.Converters
 {
-    public class ArrayToPointConverter : JsonConverter<IPoint>
+    /// <summary>
+    ///     Provides conversion logic for <see cref="Point" />s represented as an array of 2 numbers.
+    /// </summary>
+    /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
+    public class ArrayToPointConverter : JsonConverter<Point>
     {
-        public override IPoint ReadJson(
+        public override Point ReadJson(
             JsonReader reader,
             Type objectType,
-            IPoint existingValue,
+            Point existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
-            var tupleConverter = new ArrayToTupleConverter<float, float>();
+            var arr = serializer.Deserialize<float[]>(reader);
 
-            (var x, var y) = tupleConverter.ReadJson(reader, objectType, default, false, serializer);
+            if (arr == null)
+                throw new InvalidOperationException("Failed to deserialize point values.");
 
-            return new Point(x, y);
+            return new Point(arr[0], arr[1]);
         }
 
-        public override void WriteJson(JsonWriter writer, IPoint value, JsonSerializer serializer) =>
+        public override void WriteJson(JsonWriter writer, Point value, JsonSerializer serializer) =>
             throw new NotImplementedException();
     }
 }

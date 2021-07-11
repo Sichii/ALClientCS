@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
 using AL.Core.Definitions;
-using AL.Core.Interfaces;
+using AL.SocketClient.Interfaces;
 using Chaos.Core.Extensions;
 
 namespace AL.Client.Extensions
@@ -17,11 +17,16 @@ namespace AL.Client.Extensions
                 Item = item
             }));
 
+        public static bool ContainsItem(
+            this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic,
+            string itemName) =>
+            dic.Values.Any(items => items.Any(item => item.Name.EqualsI(itemName)));
+
         public static int CountOf(this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic, string itemName) => dic
             .Values.SelectMany(items => items)
             .Where(item => item.Name.EqualsI(itemName))
             .Sum(item => item.Quantity);
-        
+
         public static BankedItem FindItem(
             this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic,
             string itemName,
@@ -31,12 +36,12 @@ namespace AL.Client.Extensions
             int quantityMax = int.MaxValue)
         {
             foreach ((var bankPack, var items) in dic)
-            {   
+            {
                 var index = items.FindIndex(item =>
-                    item.Level >= levelMin
-                    && item.Level <= levelMax
-                    && item.Quantity >= quantityMin
-                    && item.Quantity <= quantityMax
+                    (item.Level >= levelMin)
+                    && (item.Level <= levelMax)
+                    && (item.Quantity >= quantityMin)
+                    && (item.Quantity <= quantityMax)
                     && item.Name.EqualsI(itemName));
 
                 if (index == -1)
@@ -52,10 +57,5 @@ namespace AL.Client.Extensions
 
             return null;
         }
-
-        public static bool ContainsItem(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic,
-            string itemName) =>
-            dic.Values.Any(items => items.Any(item => item.Name.EqualsI(itemName)));
     }
 }

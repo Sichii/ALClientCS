@@ -4,6 +4,9 @@ using AL.Core.Json.Attributes;
 
 namespace AL.Data.Maps
 {
+    /// <inheritdoc cref="Orientation" />
+    /// <param name="Distance">The distance from the spawn in which you can spawn.</param>
+    /// <seealso cref="Orientation" />
     public record Spawn(
         float X,
         float Y,

@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using AL.Core.Helpers;
 using NLog;
 using NLog.Config;
@@ -10,11 +8,8 @@ namespace AL.Client
 {
     public static class ALClientSettings
     {
-        public static readonly ParallelOptions PARALLEL_OPTIONS = new()
-        {
-            MaxDegreeOfParallelism = Environment.ProcessorCount
-        };
-        public static int NetworkTimeoutMS => 1000;
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
+        public static int NetworkTimeoutMS { get; set; } = 1000;
 
         public static void SetLogLevel(LogLevel level)
         {

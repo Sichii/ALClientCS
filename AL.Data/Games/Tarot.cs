@@ -1,4 +1,6 @@
-﻿namespace AL.Data.Games
+﻿#nullable disable
+
+namespace AL.Data.Games
 {
     public record Tarot
     {

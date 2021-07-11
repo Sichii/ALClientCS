@@ -11,27 +11,28 @@ using AL.Data;
 using AL.SocketClient;
 using AL.SocketClient.Abstractions;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Interfaces;
-using AL.SocketClient.Receive;
+using AL.SocketClient.Interfaces.Responses;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Common.Logging;
-using Character = AL.SocketClient.SocketModel.Character;
+using Character = AL.SocketClient.Model.Character;
 using Condition = AL.Core.Definitions.Condition;
 
 namespace AL.Client.Abstractions
 {
     public class ALEventClient : NamedLoggerBase, IAsyncDisposable
     {
+        public BankInfo Bank { get; protected set; }
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; protected set; }
         public Character Character { get; protected set; }
-        public BankInfo Bank { get; protected set; }
         public EventAndBossInfo EventsAndBosses { get; protected set; }
         public string Identifier { get; protected set; }
         public sealed override ILog Logger { get; init; }
         public sealed override string Name { get; init; }
         public PartyUpdateData Party { get; protected set; }
         public Server Server { get; protected set; }
+        public ALSocketClient Socket { get; protected set; }
         public AwaitableDictionary<string, AchievementProgressData> AchievementProgress { get; }
         public ALAPIClient API { get; }
         public AwaitableDictionary<string, DropData> Chests { get; }
@@ -39,7 +40,6 @@ namespace AL.Client.Abstractions
         public AwaitableDictionary<string, Monster> Monsters { get; }
         public AwaitableDictionary<string, Player> Players { get; }
         public AwaitableDictionary<string, ActionData> Projectiles { get; }
-        public ALSocketClient Socket { get; protected set; }
 
         internal ALEventClient(string name, ALAPIClient apiClient)
         {
@@ -56,10 +56,22 @@ namespace AL.Client.Abstractions
             Chests = new AwaitableDictionary<string, DropData>();
             Character = new Character();
         }
-        
+
+        public ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+            return Socket?.DisposeAsync() ?? default;
+        }
+
         protected async Task<bool> OnAchievementProgressAsync(AchievementProgressData data)
         {
             await AchievementProgress.AddOrUpdateAsync(data.Name, data);
+            return false;
+        }
+
+        protected async Task<bool> OnActionAsync(ActionData data)
+        {
+            await Projectiles.AddOrUpdateAsync(data.ProjectileId, data);
             return false;
         }
 
@@ -78,6 +90,18 @@ namespace AL.Client.Abstractions
                     await Socket.HandleEventAsync(raw);
                 }
 
+            return false;
+        }
+
+        protected async Task<bool> OnDeathAsync(DeathData data)
+        {
+            await DestroyEntity(data.Id);
+            return false;
+        }
+
+        protected async Task<bool> OnDisappearAsync(DisappearData data)
+        {
+            await DestroyEntity(data.Id);
             return false;
         }
 
@@ -165,6 +189,56 @@ namespace AL.Client.Abstractions
             return false;
         }
 
+        protected async Task<bool> OnHitAsync(HitData data)
+        {
+            if (!string.IsNullOrEmpty(data.ProjectileId)
+                && await Projectiles.TryGetValueAsync(data.ProjectileId, out var projectileTask))
+            {
+                var projectile = await projectileTask;
+                await Projectiles.RemoveAsync(data.ProjectileId);
+
+                if (data.Reflect != 0)
+                {
+                    var newProjectile = projectile with
+                    {
+                        Damage = data.Reflect, Target = data.HID, X = Character.X, Y = Character.Y
+                    };
+
+                    await Projectiles.AddOrUpdateAsync(newProjectile.ProjectileId, newProjectile);
+                }
+            }
+
+            if (data.Kill)
+                await DestroyEntity(data.Id);
+            else if (data.Damage != 0)
+            {
+                var entity = await GetEntity(data.Id);
+
+                if (entity != null)
+                    entity.Mutate(new Mutation(ALAttribute.Hp, -data.Damage));
+            }
+
+            if (data.Reflect != 0)
+            {
+                var sourceEntity = await GetEntity(data.Source);
+
+                if (sourceEntity != null)
+                    sourceEntity.Mutate(new Mutation(ALAttribute.Hp, -data.Reflect));
+            }
+
+            return false;
+        }
+
+        protected async Task<bool> OnNewMapAsync(NewMapData data)
+        {
+            await Projectiles.ClearAsync();
+            Character?.Mutate(data);
+
+            await OnEntitiesAsync(data.Entities);
+
+            return false;
+        }
+
         protected Task<bool> OnPartyUpdateAsync(PartyUpdateData data)
         {
             Party = data;
@@ -174,6 +248,18 @@ namespace AL.Client.Abstractions
         protected Task<bool> OnQueuedActionAsync(QueuedActionData data)
         {
             Character.Mutate(data.QueuedActionInfo);
+
+            return Task.FromResult(false);
+        }
+
+        protected Task<bool> OnServerInfo(EventAndBossData data)
+        {
+            var bossInfoDic = (Dictionary<string, BossInfo>) data.BossInfo;
+            EventsAndBosses = data;
+
+            foreach ((var name, var bossInfo) in bossInfoDic)
+                if (bossInfo.HP == 0)
+                    bossInfo.Mutate(new Mutation(ALAttribute.Hp, GameData.Monsters[name].HP));
 
             return Task.FromResult(false);
         }
@@ -213,7 +299,7 @@ namespace AL.Client.Abstractions
 
         protected async Task<bool> OnWelcomeAsync(WelcomeData data)
         {
-            if (Server.Identifier != data.Identifier || Server.Region != data.Region)
+            if ((Server.Identifier != data.Identifier) || (Server.Region != data.Region))
                 throw new Exception(
                     $"Logged into wrong server. Expected: {Server.Region} {Server.Identifier}  Current: {data.Region} {data.Identifier}");
 
@@ -228,92 +314,12 @@ namespace AL.Client.Abstractions
             return false;
         }
 
-        protected async Task<bool> OnActionAsync(ActionData data)
-        {
-            await Projectiles.AddOrUpdateAsync(data.ProjectileId, data);
-            return false;
-        }
-
-        protected async Task<bool> OnDeathAsync(DeathData data)
-        {
-            await DestroyEntity(data.Id);
-            return false;
-        }
-
-        protected async Task<bool> OnDisappearAsync(DisappearData data)
-        {
-            await DestroyEntity(data.Id);
-            return false;
-        }
-
-        protected async Task<bool> OnHitAsync(HitData data)
-        {
-            if (!string.IsNullOrEmpty(data.ProjectileId)
-                && await Projectiles.TryGetValueAsync(data.ProjectileId, out var projectileTask))
-            {
-                var projectile = await projectileTask;
-                await Projectiles.RemoveAsync(data.ProjectileId);
-                
-                if (data.Reflect != 0)
-                {
-                    var newProjectile = projectile with
-                    {
-                        Damage = data.Reflect, Target = data.HID, X = Character.X, Y = Character.Y
-                    };
-
-                    await Projectiles.AddOrUpdateAsync(newProjectile.ProjectileId, newProjectile);
-                }
-            }
-            
-            if (data.Kill)
-                await DestroyEntity(data.Id);
-            else if (data.Damage != 0)
-            {
-                var entity = await GetEntity(data.Id);
-
-                if (entity != null)
-                    entity.Mutate(new Mutation(ALAttribute.Hp, -data.Damage));
-            }
-
-            if (data.Reflect != 0)
-            {
-                var sourceEntity = await GetEntity(data.Source);
-
-                if (sourceEntity != null)
-                    sourceEntity.Mutate(new Mutation(ALAttribute.Hp, -data.Reflect));
-            }
-
-            return false;
-        }
-
-        protected async Task<bool> OnNewMapAsync(NewMapData data)
-        {
-            await Projectiles.ClearAsync();
-            Character?.Mutate(data);
-
-            await OnEntitiesAsync(data.Entities);
-            
-            return false;
-        }
-
-        protected Task<bool> OnServerInfo(EventAndBossData data)
-        {
-            var bossInfoDic = (Dictionary<string, BossInfo>) data.BossInfo;
-            EventsAndBosses = data;
-            
-            foreach((var name, var bossInfo) in bossInfoDic)
-                if (bossInfo.HP == 0)
-                    bossInfo.Mutate(new Mutation(ALAttribute.Hp, GameData.Monsters[name].HP));
-            
-            return Task.FromResult(false);
-        }
-
         #region Helpers
 
         protected async ValueTask<bool> DestroyEntity(string id)
         {
             var result = await Monsters.RemoveAsync(id) || await Players.RemoveAsync(id);
-            
+
             var bossInfoDic = (Dictionary<string, BossInfo>) EventsAndBosses.BossInfo;
             bossInfoDic.Remove(id);
 
@@ -366,12 +372,7 @@ namespace AL.Client.Abstractions
                 }
             });
         }
-        #endregion
 
-        public ValueTask DisposeAsync()
-        {
-            GC.SuppressFinalize(this);
-            return Socket?.DisposeAsync() ?? default;
-        }
+        #endregion
     }
 }

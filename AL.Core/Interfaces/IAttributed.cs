@@ -4,6 +4,9 @@ using Newtonsoft.Json;
 
 namespace AL.Core.Interfaces
 {
+    /// <summary>
+    ///     Represents an object that has <see cref="ALAttribute" />s.
+    /// </summary>
     public interface IAttributed
     {
         [JsonIgnore]

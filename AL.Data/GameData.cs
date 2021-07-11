@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
 using AL.Core.Helpers;
 using AL.Data.Achievements;
 using AL.Data.Classes;
@@ -19,6 +17,9 @@ using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.Data.Tokens;
 using Newtonsoft.Json;
+
+#nullable enable
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 namespace AL.Data
 {
@@ -83,7 +84,6 @@ namespace AL.Data
         public static TokensDatum Tokens { get; private set; }
 
         //public Dimensions Dimensions { get; private set; }
-
         //public Sprites Sprites { get; private set; }
         //public Tilesets Tilesets { get; private set; }
         //public Sets Sets { get; private set; }
@@ -107,11 +107,8 @@ namespace AL.Data
             }
         }
 
-        public static async Task PopulateAsync()
+        public static void PopulateAsync(string json)
         {
-            using var webClient = new WebClient();
-            var json = await webClient.DownloadStringTaskAsync("http://adventure.land/data.js");
-            json = json.Substring(6, json.Length - 8);
             JsonConvert.DeserializeObject<GameData>(json);
 
             Achievements.ConstructCache();

@@ -3,509 +3,513 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Items
 {
+    /// <summary>
+    ///     <inheritdoc />
+    /// </summary>
+    /// <seealso cref="DatumBase{T}" />
     [JsonObject(ItemConverterType = typeof(AttributedObjectConverter<Item>))]
     public class ItemsDatum : DatumBase<Item>
     {
-        public Item _5bucks { get; set; }
-        public Item Ale { get; set; }
-        public Item Amuletofm { get; set; }
-        public Item Angelwings { get; set; }
-        public Item Apiercingscroll { get; set; }
-        public Item Apologybox { get; set; }
-        public Item Armorbox { get; set; }
-        public Item Armorring { get; set; }
-        public Item Armorscroll { get; set; }
-        public Item Ascale { get; set; }
-        public Item Axe3 { get; set; }
-        public Item Bandages { get; set; }
-        public Item Basher { get; set; }
-        public Item Basketofeggs { get; set; }
-        public Item Bataxe { get; set; }
-        public Item Bcandle { get; set; }
-        public Item Bcape { get; set; }
-        public Item Beewings { get; set; }
-        public Item Bfang { get; set; }
-        public Item Bfur { get; set; }
-        public Item Bkey { get; set; }
-        public Item Blade { get; set; }
-        public Item Blue { get; set; }
-        public Item Bottleofxp { get; set; }
-        public Item Bow { get; set; }
-        public Item Bow4 { get; set; }
-        public Item Bowofthedead { get; set; }
-        public Item Bronzeingot { get; set; }
-        public Item Bronzenugget { get; set; }
-        public Item Brownegg { get; set; }
-        public Item Btusk { get; set; }
-        public Item Bugbountybox { get; set; }
-        public Item Bunnyears { get; set; }
-        public Item Bunnyelixir { get; set; }
-        public Item Bwing { get; set; }
-        public Item Cake { get; set; }
-        public Item Candy0 { get; set; }
-        public Item Candy0V2 { get; set; }
-        public Item Candy0V3 { get; set; }
-        public Item Candy1 { get; set; }
-        public Item Candy1V2 { get; set; }
-        public Item Candy1V3 { get; set; }
-        public Item Candycane { get; set; }
-        public Item Candycanesword { get; set; }
-        public Item Candypop { get; set; }
-        public Item Cape { get; set; }
-        public Item Carrot { get; set; }
-        public Item Carrotsword { get; set; }
-        public Item Cclaw { get; set; }
-        public Item Cdarktristone { get; set; }
-        public Item Cdragon { get; set; }
-        public Item Cearring { get; set; }
-        public Item Charmer { get; set; }
-        public Item Chrysalis0 { get; set; }
-        public Item Claw { get; set; }
-        public Item Coal { get; set; }
-        public Item Coat { get; set; }
-        public Item Coat1 { get; set; }
-        public Item Cocoon { get; set; }
-        public Item Computer { get; set; }
-        public Item Confetti { get; set; }
-        public Item Cosmo0 { get; set; }
-        public Item Cosmo1 { get; set; }
-        public Item Cosmo2 { get; set; }
-        public Item Cosmo3 { get; set; }
-        public Item Cosmo4 { get; set; }
-        public Item Crabclaw { get; set; }
-        public Item Cring { get; set; }
-        public Item Critscroll { get; set; }
-        public Item Crossbow { get; set; }
-        public Item Cryptkey { get; set; }
-        public Item Cscale { get; set; }
-        public Item Cscroll0 { get; set; }
-        public Item Cscroll1 { get; set; }
-        public Item Cscroll2 { get; set; }
-        public Item Cscroll3 { get; set; }
-        public Item Cshell { get; set; }
-        public Item Ctristone { get; set; }
-        public Item Cupid { get; set; }
-        public Item Cxjar { get; set; }
-        public Item Cyber { get; set; }
-        public Item Dagger { get; set; }
-        public Item Daggerofthedead { get; set; }
-        public Item Darktristone { get; set; }
-        public Item Dartgun { get; set; }
-        public Item Dexamulet { get; set; }
-        public Item Dexbelt { get; set; }
-        public Item Dexearring { get; set; }
-        public Item Dexearringx { get; set; }
-        public Item Dexring { get; set; }
-        public Item Dexscroll { get; set; }
-        public Item Dkey { get; set; }
-        public Item Dragondagger { get; set; }
-        public Item Drapes { get; set; }
-        public Item Dreturnscroll { get; set; }
-        public Item Dstones { get; set; }
-        public Item Ecape { get; set; }
-        public Item Ectoplasm { get; set; }
-        public Item Eears { get; set; }
-        public Item Egg0 { get; set; }
-        public Item Egg1 { get; set; }
-        public Item Egg2 { get; set; }
-        public Item Egg3 { get; set; }
-        public Item Egg4 { get; set; }
-        public Item Egg5 { get; set; }
-        public Item Egg6 { get; set; }
-        public Item Egg7 { get; set; }
-        public Item Egg8 { get; set; }
-        public Item Eggnog { get; set; }
-        public Item Electronics { get; set; }
-        public Item Elixirdex0 { get; set; }
-        public Item Elixirdex1 { get; set; }
-        public Item Elixirdex2 { get; set; }
-        public Item Elixirfires { get; set; }
-        public Item Elixirfzres { get; set; }
-        public Item Elixirint0 { get; set; }
-        public Item Elixirint1 { get; set; }
-        public Item Elixirint2 { get; set; }
-        public Item Elixirluck { get; set; }
-        public Item Elixirpnres { get; set; }
-        public Item Elixirstr0 { get; set; }
-        public Item Elixirstr1 { get; set; }
-        public Item Elixirstr2 { get; set; }
-        public Item Elixirvit0 { get; set; }
-        public Item Elixirvit1 { get; set; }
-        public Item Elixirvit2 { get; set; }
-        public Item Emotionjar { get; set; }
-        public Item Emptyheart { get; set; }
-        public Item Emptyjar { get; set; }
-        public Item Epyjamas { get; set; }
-        public Item Eslippers { get; set; }
-        public Item Espresso { get; set; }
-        public Item Essenceofether { get; set; }
-        public Item Essenceoffire { get; set; }
-        public Item Essenceoffrost { get; set; }
-        public Item Essenceofgreed { get; set; }
-        public Item Essenceoflife { get; set; }
-        public Item Essenceofnature { get; set; }
-        public Item Evasionscroll { get; set; }
-        public Item Exoarm { get; set; }
-        public Item Fallen { get; set; }
-        public Item Fcape { get; set; }
-        public Item Fclaw { get; set; }
-        public Item Feather0 { get; set; }
-        public Item Fieldgen0 { get; set; }
-        public Item Fierygloves { get; set; }
-        public Item Figurine { get; set; }
-        public Item Fireblade { get; set; }
-        public Item Firebow { get; set; }
-        public Item Firecrackers { get; set; }
-        public Item Firestaff { get; set; }
-        public Item Firestars { get; set; }
-        public Item Flute { get; set; }
-        public Item Forscroll { get; set; }
-        public Item Frankypants { get; set; }
-        public Item Frequencyscroll { get; set; }
-        public Item Frogt { get; set; }
-        public Item Frostbow { get; set; }
-        public Item Froststaff { get; set; }
-        public Item Frozenkey { get; set; }
-        public Item Frozenstone { get; set; }
-        public Item Fsword { get; set; }
-        public Item Ftrinket { get; set; }
-        public Item Funtoken { get; set; }
-        public Item Fury { get; set; }
-        public Item Gbow { get; set; }
-        public Item Gcape { get; set; }
-        public Item Gem0 { get; set; }
-        public Item Gem1 { get; set; }
-        public Item Gem2 { get; set; }
-        public Item Gem3 { get; set; }
-        public Item Gemfragment { get; set; }
-        public Item Ghatb { get; set; }
-        public Item Ghatp { get; set; }
-        public Item Gift0 { get; set; }
-        public Item Gift1 { get; set; }
-        public Item Glitch { get; set; }
-        public Item Gloves { get; set; }
-        public Item Gloves1 { get; set; }
-        public Item Goldbooster { get; set; }
-        public Item Goldenegg { get; set; }
-        public Item Goldenpowerglove { get; set; }
-        public Item Goldingot { get; set; }
-        public Item Goldnugget { get; set; }
-        public Item Goldring { get; set; }
-        public Item Goldscroll { get; set; }
-        public Item Gphelmet { get; set; }
-        public Item Greenbomb { get; set; }
-        public Item Greenenvelope { get; set; }
-        public Item Gslime { get; set; }
-        public Item Gstaff { get; set; }
-        public Item Gum { get; set; }
-        public Item Hammer { get; set; }
-        public Item Handofmidas { get; set; }
-        public Item Harbringer { get; set; }
-        public Item Harmor { get; set; }
-        public Item Hboots { get; set; }
-        public Item Hbow { get; set; }
-        public Item Hdagger { get; set; }
-        public Item Heartwood { get; set; }
-        public Item Helmet { get; set; }
-        public Item Helmet1 { get; set; }
-        public Item Hgloves { get; set; }
-        public Item Hhelmet { get; set; }
-        public Item Hotchocolate { get; set; }
-        public Item Hpamulet { get; set; }
-        public Item Hpants { get; set; }
-        public Item Hpbelt { get; set; }
-        public Item Hpot0 { get; set; }
-        public Item Hpot1 { get; set; }
-        public Item Hpotx { get; set; }
-        public Item Iceskates { get; set; }
-        public Item Ijx { get; set; }
-        public Item Ink { get; set; }
-        public Item Intamulet { get; set; }
-        public Item Intbelt { get; set; }
-        public Item Intearring { get; set; }
-        public Item Intring { get; set; }
-        public Item Intscroll { get; set; }
-        public Item Jacko { get; set; }
-        public Item Jewellerybox { get; set; }
-        public Item Kitty1 { get; set; }
-        public Item Lantern { get; set; }
-        public Item Lbelt { get; set; }
-        public Item Leather { get; set; }
-        public Item Ledger { get; set; }
-        public Item Licence { get; set; }
-        public Item Lifestealscroll { get; set; }
-        public Item Lmace { get; set; }
-        public Item Lostearring { get; set; }
-        public Item Lotusf { get; set; }
-        public Item Lspores { get; set; }
-        public Item Luckbooster { get; set; }
-        public Item Luckscroll { get; set; }
-        public Item Luckyt { get; set; }
-        public Item Mace { get; set; }
-        public Item Maceofthedead { get; set; }
-        public Item Mageshood { get; set; }
-        public Item Manastealscroll { get; set; }
-        public Item Mbelt { get; set; }
-        public Item Mbones { get; set; }
-        public Item Mcape { get; set; }
-        public Item Mcarmor { get; set; }
-        public Item Mcboots { get; set; }
-        public Item Mcgloves { get; set; }
-        public Item Mchat { get; set; }
-        public Item Mcpants { get; set; }
-        public Item Mearring { get; set; }
-        public Item Merry { get; set; }
-        public Item Mistletoe { get; set; }
-        public Item Mittens { get; set; }
-        public Item Mmarmor { get; set; }
-        public Item Mmgloves { get; set; }
-        public Item Mmhat { get; set; }
-        public Item Mmpants { get; set; }
-        public Item Mmshoes { get; set; }
-        public Item Molesteeth { get; set; }
-        public Item Monsterbox { get; set; }
-        public Item Monstertoken { get; set; }
-        public Item Mparmor { get; set; }
-        public Item Mpcostscroll { get; set; }
-        public Item Mpgloves { get; set; }
-        public Item Mphat { get; set; }
-        public Item Mpot0 { get; set; }
-        public Item Mpot1 { get; set; }
-        public Item Mpotx { get; set; }
-        public Item Mppants { get; set; }
-        public Item Mpshoes { get; set; }
-        public Item Mpxamulet { get; set; }
-        public Item Mpxbelt { get; set; }
-        public Item Mpxgloves { get; set; }
-        public Item Mrarmor { get; set; }
-        public Item Mrboots { get; set; }
-        public Item Mrgloves { get; set; }
-        public Item Mrhood { get; set; }
-        public Item Mrnarmor { get; set; }
-        public Item Mrnboots { get; set; }
-        public Item Mrngloves { get; set; }
-        public Item Mrnhat { get; set; }
-        public Item Mrnpants { get; set; }
-        public Item Mrpants { get; set; }
-        public Item Mshield { get; set; }
-        public Item Mushroomstaff { get; set; }
-        public Item Mwarmor { get; set; }
-        public Item Mwboots { get; set; }
-        public Item Mwgloves { get; set; }
-        public Item Mwhelmet { get; set; }
-        public Item Mwpants { get; set; }
-        public Item Mysterybox { get; set; }
-        public Item Networkcard { get; set; }
-        public Item Nheart { get; set; }
-        public Item Northstar { get; set; }
-        public Item Offering { get; set; }
-        public Item Offeringp { get; set; }
-        public Item Offeringx { get; set; }
-        public Item Oozingterror { get; set; }
-        public Item Orbg { get; set; }
-        public Item Orbofdex { get; set; }
-        public Item Orbofint { get; set; }
-        public Item Orbofsc { get; set; }
-        public Item Orbofstr { get; set; }
-        public Item Orbofvit { get; set; }
-        public Item Ornament { get; set; }
-        public Item Ornamentstaff { get; set; }
-        public Item Outputscroll { get; set; }
-        public Item Oxhelmet { get; set; }
-        public Item Pants { get; set; }
-        public Item Pants1 { get; set; }
-        public Item Partyhat { get; set; }
-        public Item Phelmet { get; set; }
-        public Item Pickaxe { get; set; }
-        public Item Pico { get; set; }
-        public Item Pinkie { get; set; }
-        public Item Placeholder { get; set; }
+        public Item _5bucks { get; set; } = null!;
+        public Item Ale { get; set; } = null!;
+        public Item Amuletofm { get; set; } = null!;
+        public Item Angelwings { get; set; } = null!;
+        public Item Apiercingscroll { get; set; } = null!;
+        public Item Apologybox { get; set; } = null!;
+        public Item Armorbox { get; set; } = null!;
+        public Item Armorring { get; set; } = null!;
+        public Item Armorscroll { get; set; } = null!;
+        public Item Ascale { get; set; } = null!;
+        public Item Axe3 { get; set; } = null!;
+        public Item Bandages { get; set; } = null!;
+        public Item Basher { get; set; } = null!;
+        public Item Basketofeggs { get; set; } = null!;
+        public Item Bataxe { get; set; } = null!;
+        public Item Bcandle { get; set; } = null!;
+        public Item Bcape { get; set; } = null!;
+        public Item Beewings { get; set; } = null!;
+        public Item Bfang { get; set; } = null!;
+        public Item Bfur { get; set; } = null!;
+        public Item Bkey { get; set; } = null!;
+        public Item Blade { get; set; } = null!;
+        public Item Blue { get; set; } = null!;
+        public Item Bottleofxp { get; set; } = null!;
+        public Item Bow { get; set; } = null!;
+        public Item Bow4 { get; set; } = null!;
+        public Item Bowofthedead { get; set; } = null!;
+        public Item Bronzeingot { get; set; } = null!;
+        public Item Bronzenugget { get; set; } = null!;
+        public Item Brownegg { get; set; } = null!;
+        public Item Btusk { get; set; } = null!;
+        public Item Bugbountybox { get; set; } = null!;
+        public Item Bunnyears { get; set; } = null!;
+        public Item Bunnyelixir { get; set; } = null!;
+        public Item Bwing { get; set; } = null!;
+        public Item Cake { get; set; } = null!;
+        public Item Candy0 { get; set; } = null!;
+        public Item Candy0V2 { get; set; } = null!;
+        public Item Candy0V3 { get; set; } = null!;
+        public Item Candy1 { get; set; } = null!;
+        public Item Candy1V2 { get; set; } = null!;
+        public Item Candy1V3 { get; set; } = null!;
+        public Item Candycane { get; set; } = null!;
+        public Item Candycanesword { get; set; } = null!;
+        public Item Candypop { get; set; } = null!;
+        public Item Cape { get; set; } = null!;
+        public Item Carrot { get; set; } = null!;
+        public Item Carrotsword { get; set; } = null!;
+        public Item Cclaw { get; set; } = null!;
+        public Item Cdarktristone { get; set; } = null!;
+        public Item Cdragon { get; set; } = null!;
+        public Item Cearring { get; set; } = null!;
+        public Item Charmer { get; set; } = null!;
+        public Item Chrysalis0 { get; set; } = null!;
+        public Item Claw { get; set; } = null!;
+        public Item Coal { get; set; } = null!;
+        public Item Coat { get; set; } = null!;
+        public Item Coat1 { get; set; } = null!;
+        public Item Cocoon { get; set; } = null!;
+        public Item Computer { get; set; } = null!;
+        public Item Confetti { get; set; } = null!;
+        public Item Cosmo0 { get; set; } = null!;
+        public Item Cosmo1 { get; set; } = null!;
+        public Item Cosmo2 { get; set; } = null!;
+        public Item Cosmo3 { get; set; } = null!;
+        public Item Cosmo4 { get; set; } = null!;
+        public Item Crabclaw { get; set; } = null!;
+        public Item Cring { get; set; } = null!;
+        public Item Critscroll { get; set; } = null!;
+        public Item Crossbow { get; set; } = null!;
+        public Item Cryptkey { get; set; } = null!;
+        public Item Cscale { get; set; } = null!;
+        public Item Cscroll0 { get; set; } = null!;
+        public Item Cscroll1 { get; set; } = null!;
+        public Item Cscroll2 { get; set; } = null!;
+        public Item Cscroll3 { get; set; } = null!;
+        public Item Cshell { get; set; } = null!;
+        public Item Ctristone { get; set; } = null!;
+        public Item Cupid { get; set; } = null!;
+        public Item Cxjar { get; set; } = null!;
+        public Item Cyber { get; set; } = null!;
+        public Item Dagger { get; set; } = null!;
+        public Item Daggerofthedead { get; set; } = null!;
+        public Item Darktristone { get; set; } = null!;
+        public Item Dartgun { get; set; } = null!;
+        public Item Dexamulet { get; set; } = null!;
+        public Item Dexbelt { get; set; } = null!;
+        public Item Dexearring { get; set; } = null!;
+        public Item Dexearringx { get; set; } = null!;
+        public Item Dexring { get; set; } = null!;
+        public Item Dexscroll { get; set; } = null!;
+        public Item Dkey { get; set; } = null!;
+        public Item Dragondagger { get; set; } = null!;
+        public Item Drapes { get; set; } = null!;
+        public Item Dreturnscroll { get; set; } = null!;
+        public Item Dstones { get; set; } = null!;
+        public Item Ecape { get; set; } = null!;
+        public Item Ectoplasm { get; set; } = null!;
+        public Item Eears { get; set; } = null!;
+        public Item Egg0 { get; set; } = null!;
+        public Item Egg1 { get; set; } = null!;
+        public Item Egg2 { get; set; } = null!;
+        public Item Egg3 { get; set; } = null!;
+        public Item Egg4 { get; set; } = null!;
+        public Item Egg5 { get; set; } = null!;
+        public Item Egg6 { get; set; } = null!;
+        public Item Egg7 { get; set; } = null!;
+        public Item Egg8 { get; set; } = null!;
+        public Item Eggnog { get; set; } = null!;
+        public Item Electronics { get; set; } = null!;
+        public Item Elixirdex0 { get; set; } = null!;
+        public Item Elixirdex1 { get; set; } = null!;
+        public Item Elixirdex2 { get; set; } = null!;
+        public Item Elixirfires { get; set; } = null!;
+        public Item Elixirfzres { get; set; } = null!;
+        public Item Elixirint0 { get; set; } = null!;
+        public Item Elixirint1 { get; set; } = null!;
+        public Item Elixirint2 { get; set; } = null!;
+        public Item Elixirluck { get; set; } = null!;
+        public Item Elixirpnres { get; set; } = null!;
+        public Item Elixirstr0 { get; set; } = null!;
+        public Item Elixirstr1 { get; set; } = null!;
+        public Item Elixirstr2 { get; set; } = null!;
+        public Item Elixirvit0 { get; set; } = null!;
+        public Item Elixirvit1 { get; set; } = null!;
+        public Item Elixirvit2 { get; set; } = null!;
+        public Item Emotionjar { get; set; } = null!;
+        public Item Emptyheart { get; set; } = null!;
+        public Item Emptyjar { get; set; } = null!;
+        public Item Epyjamas { get; set; } = null!;
+        public Item Eslippers { get; set; } = null!;
+        public Item Espresso { get; set; } = null!;
+        public Item Essenceofether { get; set; } = null!;
+        public Item Essenceoffire { get; set; } = null!;
+        public Item Essenceoffrost { get; set; } = null!;
+        public Item Essenceofgreed { get; set; } = null!;
+        public Item Essenceoflife { get; set; } = null!;
+        public Item Essenceofnature { get; set; } = null!;
+        public Item Evasionscroll { get; set; } = null!;
+        public Item Exoarm { get; set; } = null!;
+        public Item Fallen { get; set; } = null!;
+        public Item Fcape { get; set; } = null!;
+        public Item Fclaw { get; set; } = null!;
+        public Item Feather0 { get; set; } = null!;
+        public Item Fieldgen0 { get; set; } = null!;
+        public Item Fierygloves { get; set; } = null!;
+        public Item Figurine { get; set; } = null!;
+        public Item Fireblade { get; set; } = null!;
+        public Item Firebow { get; set; } = null!;
+        public Item Firecrackers { get; set; } = null!;
+        public Item Firestaff { get; set; } = null!;
+        public Item Firestars { get; set; } = null!;
+        public Item Flute { get; set; } = null!;
+        public Item Forscroll { get; set; } = null!;
+        public Item Frankypants { get; set; } = null!;
+        public Item Frequencyscroll { get; set; } = null!;
+        public Item Frogt { get; set; } = null!;
+        public Item Frostbow { get; set; } = null!;
+        public Item Froststaff { get; set; } = null!;
+        public Item Frozenkey { get; set; } = null!;
+        public Item Frozenstone { get; set; } = null!;
+        public Item Fsword { get; set; } = null!;
+        public Item Ftrinket { get; set; } = null!;
+        public Item Funtoken { get; set; } = null!;
+        public Item Fury { get; set; } = null!;
+        public Item Gbow { get; set; } = null!;
+        public Item Gcape { get; set; } = null!;
+        public Item Gem0 { get; set; } = null!;
+        public Item Gem1 { get; set; } = null!;
+        public Item Gem2 { get; set; } = null!;
+        public Item Gem3 { get; set; } = null!;
+        public Item Gemfragment { get; set; } = null!;
+        public Item Ghatb { get; set; } = null!;
+        public Item Ghatp { get; set; } = null!;
+        public Item Gift0 { get; set; } = null!;
+        public Item Gift1 { get; set; } = null!;
+        public Item Glitch { get; set; } = null!;
+        public Item Gloves { get; set; } = null!;
+        public Item Gloves1 { get; set; } = null!;
+        public Item Goldbooster { get; set; } = null!;
+        public Item Goldenegg { get; set; } = null!;
+        public Item Goldenpowerglove { get; set; } = null!;
+        public Item Goldingot { get; set; } = null!;
+        public Item Goldnugget { get; set; } = null!;
+        public Item Goldring { get; set; } = null!;
+        public Item Goldscroll { get; set; } = null!;
+        public Item Gphelmet { get; set; } = null!;
+        public Item Greenbomb { get; set; } = null!;
+        public Item Greenenvelope { get; set; } = null!;
+        public Item Gslime { get; set; } = null!;
+        public Item Gstaff { get; set; } = null!;
+        public Item Gum { get; set; } = null!;
+        public Item Hammer { get; set; } = null!;
+        public Item Handofmidas { get; set; } = null!;
+        public Item Harbringer { get; set; } = null!;
+        public Item Harmor { get; set; } = null!;
+        public Item Hboots { get; set; } = null!;
+        public Item Hbow { get; set; } = null!;
+        public Item Hdagger { get; set; } = null!;
+        public Item Heartwood { get; set; } = null!;
+        public Item Helmet { get; set; } = null!;
+        public Item Helmet1 { get; set; } = null!;
+        public Item Hgloves { get; set; } = null!;
+        public Item Hhelmet { get; set; } = null!;
+        public Item Hotchocolate { get; set; } = null!;
+        public Item Hpamulet { get; set; } = null!;
+        public Item Hpants { get; set; } = null!;
+        public Item Hpbelt { get; set; } = null!;
+        public Item Hpot0 { get; set; } = null!;
+        public Item Hpot1 { get; set; } = null!;
+        public Item Hpotx { get; set; } = null!;
+        public Item Iceskates { get; set; } = null!;
+        public Item Ijx { get; set; } = null!;
+        public Item Ink { get; set; } = null!;
+        public Item Intamulet { get; set; } = null!;
+        public Item Intbelt { get; set; } = null!;
+        public Item Intearring { get; set; } = null!;
+        public Item Intring { get; set; } = null!;
+        public Item Intscroll { get; set; } = null!;
+        public Item Jacko { get; set; } = null!;
+        public Item Jewellerybox { get; set; } = null!;
+        public Item Kitty1 { get; set; } = null!;
+        public Item Lantern { get; set; } = null!;
+        public Item Lbelt { get; set; } = null!;
+        public Item Leather { get; set; } = null!;
+        public Item Ledger { get; set; } = null!;
+        public Item Licence { get; set; } = null!;
+        public Item Lifestealscroll { get; set; } = null!;
+        public Item Lmace { get; set; } = null!;
+        public Item Lostearring { get; set; } = null!;
+        public Item Lotusf { get; set; } = null!;
+        public Item Lspores { get; set; } = null!;
+        public Item Luckbooster { get; set; } = null!;
+        public Item Luckscroll { get; set; } = null!;
+        public Item Luckyt { get; set; } = null!;
+        public Item Mace { get; set; } = null!;
+        public Item Maceofthedead { get; set; } = null!;
+        public Item Mageshood { get; set; } = null!;
+        public Item Manastealscroll { get; set; } = null!;
+        public Item Mbelt { get; set; } = null!;
+        public Item Mbones { get; set; } = null!;
+        public Item Mcape { get; set; } = null!;
+        public Item Mcarmor { get; set; } = null!;
+        public Item Mcboots { get; set; } = null!;
+        public Item Mcgloves { get; set; } = null!;
+        public Item Mchat { get; set; } = null!;
+        public Item Mcpants { get; set; } = null!;
+        public Item Mearring { get; set; } = null!;
+        public Item Merry { get; set; } = null!;
+        public Item Mistletoe { get; set; } = null!;
+        public Item Mittens { get; set; } = null!;
+        public Item Mmarmor { get; set; } = null!;
+        public Item Mmgloves { get; set; } = null!;
+        public Item Mmhat { get; set; } = null!;
+        public Item Mmpants { get; set; } = null!;
+        public Item Mmshoes { get; set; } = null!;
+        public Item Molesteeth { get; set; } = null!;
+        public Item Monsterbox { get; set; } = null!;
+        public Item Monstertoken { get; set; } = null!;
+        public Item Mparmor { get; set; } = null!;
+        public Item Mpcostscroll { get; set; } = null!;
+        public Item Mpgloves { get; set; } = null!;
+        public Item Mphat { get; set; } = null!;
+        public Item Mpot0 { get; set; } = null!;
+        public Item Mpot1 { get; set; } = null!;
+        public Item Mpotx { get; set; } = null!;
+        public Item Mppants { get; set; } = null!;
+        public Item Mpshoes { get; set; } = null!;
+        public Item Mpxamulet { get; set; } = null!;
+        public Item Mpxbelt { get; set; } = null!;
+        public Item Mpxgloves { get; set; } = null!;
+        public Item Mrarmor { get; set; } = null!;
+        public Item Mrboots { get; set; } = null!;
+        public Item Mrgloves { get; set; } = null!;
+        public Item Mrhood { get; set; } = null!;
+        public Item Mrnarmor { get; set; } = null!;
+        public Item Mrnboots { get; set; } = null!;
+        public Item Mrngloves { get; set; } = null!;
+        public Item Mrnhat { get; set; } = null!;
+        public Item Mrnpants { get; set; } = null!;
+        public Item Mrpants { get; set; } = null!;
+        public Item Mshield { get; set; } = null!;
+        public Item Mushroomstaff { get; set; } = null!;
+        public Item Mwarmor { get; set; } = null!;
+        public Item Mwboots { get; set; } = null!;
+        public Item Mwgloves { get; set; } = null!;
+        public Item Mwhelmet { get; set; } = null!;
+        public Item Mwpants { get; set; } = null!;
+        public Item Mysterybox { get; set; } = null!;
+        public Item Networkcard { get; set; } = null!;
+        public Item Nheart { get; set; } = null!;
+        public Item Northstar { get; set; } = null!;
+        public Item Offering { get; set; } = null!;
+        public Item Offeringp { get; set; } = null!;
+        public Item Offeringx { get; set; } = null!;
+        public Item Oozingterror { get; set; } = null!;
+        public Item Orbg { get; set; } = null!;
+        public Item Orbofdex { get; set; } = null!;
+        public Item Orbofint { get; set; } = null!;
+        public Item Orbofsc { get; set; } = null!;
+        public Item Orbofstr { get; set; } = null!;
+        public Item Orbofvit { get; set; } = null!;
+        public Item Ornament { get; set; } = null!;
+        public Item Ornamentstaff { get; set; } = null!;
+        public Item Outputscroll { get; set; } = null!;
+        public Item Oxhelmet { get; set; } = null!;
+        public Item Pants { get; set; } = null!;
+        public Item Pants1 { get; set; } = null!;
+        public Item Partyhat { get; set; } = null!;
+        public Item Phelmet { get; set; } = null!;
+        public Item Pickaxe { get; set; } = null!;
+        public Item Pico { get; set; } = null!;
+        public Item Pinkie { get; set; } = null!;
+        public Item Placeholder { get; set; } = null!;
 
         [JsonProperty("placeholder_m")]
-        public Item PlaceholderM { get; set; }
+        public Item PlaceholderM { get; set; } = null!;
 
-        public Item Platinumingot { get; set; }
-        public Item Platinumnugget { get; set; }
-        public Item Pleather { get; set; }
-        public Item Pmace { get; set; }
-        public Item Poison { get; set; }
-        public Item Poker { get; set; }
-        public Item Pouchbow { get; set; }
-        public Item Powerglove { get; set; }
-        public Item Pstem { get; set; }
-        public Item Pumpkinspice { get; set; }
-        public Item Puppy1 { get; set; }
-        public Item Puppyer { get; set; }
-        public Item Pvptoken { get; set; }
-        public Item Pyjamas { get; set; }
-        public Item Qubics { get; set; }
-        public Item Quiver { get; set; }
-        public Item Rabbitsfoot { get; set; }
-        public Item Rapier { get; set; }
-        public Item Rattail { get; set; }
-        public Item Redenvelope { get; set; }
-        public Item Redenvelopev2 { get; set; }
-        public Item Redenvelopev3 { get; set; }
-        public Item Rednose { get; set; }
-        public Item Reflectionscroll { get; set; }
-        public Item Resistancering { get; set; }
-        public Item Resistancescroll { get; set; }
-        public Item Rfangs { get; set; }
-        public Item Rfur { get; set; }
-        public Item Ringofluck { get; set; }
-        public Item Ringsj { get; set; }
-        public Item Rod { get; set; }
-        public Item Rpiercingscroll { get; set; }
-        public Item Sanguine { get; set; }
-        public Item Santasbelt { get; set; }
-        public Item Scroll0 { get; set; }
-        public Item Scroll1 { get; set; }
-        public Item Scroll2 { get; set; }
-        public Item Scroll3 { get; set; }
-        public Item Scroll4 { get; set; }
-        public Item Scythe { get; set; }
-        public Item Seashell { get; set; }
-        public Item Shadowstone { get; set; }
-        public Item Shield { get; set; }
-        public Item Shoes { get; set; }
-        public Item Shoes1 { get; set; }
-        public Item Slimestaff { get; set; }
-        public Item Smoke { get; set; }
-        public Item Smush { get; set; }
-        public Item Snakefang { get; set; }
-        public Item Snakeoil { get; set; }
-        public Item Snowball { get; set; }
-        public Item Snowboots { get; set; }
-        public Item Snowflakes { get; set; }
-        public Item Snring { get; set; }
-        public Item Solitaire { get; set; }
-        public Item Spear { get; set; }
-        public Item Spearofthedead { get; set; }
-        public Item Speedscroll { get; set; }
-        public Item Spidersilk { get; set; }
-        public Item Spores { get; set; }
-        public Item Sshield { get; set; }
-        public Item Sstinger { get; set; }
-        public Item Staff { get; set; }
-        public Item Staff2 { get; set; }
-        public Item Staff3 { get; set; }
-        public Item Staff4 { get; set; }
-        public Item Staffofthedead { get; set; }
-        public Item Stand0 { get; set; }
-        public Item Stand1 { get; set; }
-        public Item Starkillers { get; set; }
-        public Item Stealthcape { get; set; }
-        public Item Stick { get; set; }
-        public Item Stinger { get; set; }
-        public Item Stonekey { get; set; }
-        public Item Stoneofgold { get; set; }
-        public Item Stoneofluck { get; set; }
-        public Item Stoneofxp { get; set; }
-        public Item Storagebox { get; set; }
-        public Item Stramulet { get; set; }
-        public Item Strbelt { get; set; }
-        public Item Strearring { get; set; }
-        public Item Strring { get; set; }
-        public Item Strscroll { get; set; }
-        public Item Suckerpunch { get; set; }
-        public Item Supermittens { get; set; }
-        public Item Svenom { get; set; }
-        public Item Swifty { get; set; }
-        public Item Swirlipop { get; set; }
-        public Item Sword { get; set; }
-        public Item Swordofthedead { get; set; }
-        public Item T2Bow { get; set; }
-        public Item T2dexamulet { get; set; }
-        public Item T2Intamulet { get; set; }
-        public Item T2Quiver { get; set; }
-        public Item T2Stramulet { get; set; }
-        public Item T3Bow { get; set; }
-        public Item Talkingskull { get; set; }
-        public Item Test { get; set; }
-        public Item Test2 { get; set; }
+        public Item Platinumingot { get; set; } = null!;
+        public Item Platinumnugget { get; set; } = null!;
+        public Item Pleather { get; set; } = null!;
+        public Item Pmace { get; set; } = null!;
+        public Item Poison { get; set; } = null!;
+        public Item Poker { get; set; } = null!;
+        public Item Pouchbow { get; set; } = null!;
+        public Item Powerglove { get; set; } = null!;
+        public Item Pstem { get; set; } = null!;
+        public Item Pumpkinspice { get; set; } = null!;
+        public Item Puppy1 { get; set; } = null!;
+        public Item Puppyer { get; set; } = null!;
+        public Item Pvptoken { get; set; } = null!;
+        public Item Pyjamas { get; set; } = null!;
+        public Item Qubics { get; set; } = null!;
+        public Item Quiver { get; set; } = null!;
+        public Item Rabbitsfoot { get; set; } = null!;
+        public Item Rapier { get; set; } = null!;
+        public Item Rattail { get; set; } = null!;
+        public Item Redenvelope { get; set; } = null!;
+        public Item Redenvelopev2 { get; set; } = null!;
+        public Item Redenvelopev3 { get; set; } = null!;
+        public Item Rednose { get; set; } = null!;
+        public Item Reflectionscroll { get; set; } = null!;
+        public Item Resistancering { get; set; } = null!;
+        public Item Resistancescroll { get; set; } = null!;
+        public Item Rfangs { get; set; } = null!;
+        public Item Rfur { get; set; } = null!;
+        public Item Ringofluck { get; set; } = null!;
+        public Item Ringsj { get; set; } = null!;
+        public Item Rod { get; set; } = null!;
+        public Item Rpiercingscroll { get; set; } = null!;
+        public Item Sanguine { get; set; } = null!;
+        public Item Santasbelt { get; set; } = null!;
+        public Item Scroll0 { get; set; } = null!;
+        public Item Scroll1 { get; set; } = null!;
+        public Item Scroll2 { get; set; } = null!;
+        public Item Scroll3 { get; set; } = null!;
+        public Item Scroll4 { get; set; } = null!;
+        public Item Scythe { get; set; } = null!;
+        public Item Seashell { get; set; } = null!;
+        public Item Shadowstone { get; set; } = null!;
+        public Item Shield { get; set; } = null!;
+        public Item Shoes { get; set; } = null!;
+        public Item Shoes1 { get; set; } = null!;
+        public Item Slimestaff { get; set; } = null!;
+        public Item Smoke { get; set; } = null!;
+        public Item Smush { get; set; } = null!;
+        public Item Snakefang { get; set; } = null!;
+        public Item Snakeoil { get; set; } = null!;
+        public Item Snowball { get; set; } = null!;
+        public Item Snowboots { get; set; } = null!;
+        public Item Snowflakes { get; set; } = null!;
+        public Item Snring { get; set; } = null!;
+        public Item Solitaire { get; set; } = null!;
+        public Item Spear { get; set; } = null!;
+        public Item Spearofthedead { get; set; } = null!;
+        public Item Speedscroll { get; set; } = null!;
+        public Item Spidersilk { get; set; } = null!;
+        public Item Spores { get; set; } = null!;
+        public Item Sshield { get; set; } = null!;
+        public Item Sstinger { get; set; } = null!;
+        public Item Staff { get; set; } = null!;
+        public Item Staff2 { get; set; } = null!;
+        public Item Staff3 { get; set; } = null!;
+        public Item Staff4 { get; set; } = null!;
+        public Item Staffofthedead { get; set; } = null!;
+        public Item Stand0 { get; set; } = null!;
+        public Item Stand1 { get; set; } = null!;
+        public Item Starkillers { get; set; } = null!;
+        public Item Stealthcape { get; set; } = null!;
+        public Item Stick { get; set; } = null!;
+        public Item Stinger { get; set; } = null!;
+        public Item Stonekey { get; set; } = null!;
+        public Item Stoneofgold { get; set; } = null!;
+        public Item Stoneofluck { get; set; } = null!;
+        public Item Stoneofxp { get; set; } = null!;
+        public Item Storagebox { get; set; } = null!;
+        public Item Stramulet { get; set; } = null!;
+        public Item Strbelt { get; set; } = null!;
+        public Item Strearring { get; set; } = null!;
+        public Item Strring { get; set; } = null!;
+        public Item Strscroll { get; set; } = null!;
+        public Item Suckerpunch { get; set; } = null!;
+        public Item Supermittens { get; set; } = null!;
+        public Item Svenom { get; set; } = null!;
+        public Item Swifty { get; set; } = null!;
+        public Item Swirlipop { get; set; } = null!;
+        public Item Sword { get; set; } = null!;
+        public Item Swordofthedead { get; set; } = null!;
+        public Item T2Bow { get; set; } = null!;
+        public Item T2dexamulet { get; set; } = null!;
+        public Item T2Intamulet { get; set; } = null!;
+        public Item T2Quiver { get; set; } = null!;
+        public Item T2Stramulet { get; set; } = null!;
+        public Item T3Bow { get; set; } = null!;
+        public Item Talkingskull { get; set; } = null!;
+        public Item Test { get; set; } = null!;
+        public Item Test2 { get; set; } = null!;
 
         [JsonProperty("test_orb")]
-        public Item TestOrb { get; set; }
+        public Item TestOrb { get; set; } = null!;
 
-        public Item Throwingstars { get; set; }
-        public Item Tombkey { get; set; }
-        public Item Tracker { get; set; }
-        public Item Trigger { get; set; }
-        public Item Trinkets { get; set; }
-        public Item Tristone { get; set; }
-        public Item Troll { get; set; }
-        public Item Tshell { get; set; }
-        public Item Tshirt0 { get; set; }
-        public Item Tshirt1 { get; set; }
-        public Item Tshirt2 { get; set; }
-        public Item Tshirt3 { get; set; }
-        public Item Tshirt4 { get; set; }
-        public Item Tshirt6 { get; set; }
-        public Item Tshirt7 { get; set; }
-        public Item Tshirt8 { get; set; }
-        public Item Tshirt88 { get; set; }
-        public Item Tshirt9 { get; set; }
-        public Item Ukey { get; set; }
-        public Item Vattire { get; set; }
-        public Item Vblood { get; set; }
-        public Item Vboots { get; set; }
-        public Item Vcape { get; set; }
-        public Item Vdagger { get; set; }
-        public Item Vgloves { get; set; }
-        public Item Vhammer { get; set; }
-        public Item Vitearring { get; set; }
-        public Item Vitring { get; set; }
-        public Item Vitscroll { get; set; }
-        public Item Vorb { get; set; }
-        public Item Vring { get; set; }
-        public Item Vstaff { get; set; }
-        public Item Vsword { get; set; }
-        public Item Wand { get; set; }
-        public Item Warmscarf { get; set; }
-        public Item Warpvest { get; set; }
-        public Item Watercore { get; set; }
-        public Item Wattire { get; set; }
-        public Item Wbasher { get; set; }
-        public Item Wblade { get; set; }
-        public Item Wbook0 { get; set; }
-        public Item Wbook1 { get; set; }
-        public Item Wbreeches { get; set; }
-        public Item Wcap { get; set; }
-        public Item Weaponbox { get; set; }
-        public Item Weaver { get; set; }
-        public Item Wgloves { get; set; }
-        public Item Whiskey { get; set; }
-        public Item Whiteegg { get; set; }
-        public Item Wine { get; set; }
-        public Item Wingedboots { get; set; }
-        public Item Woodensword { get; set; }
-        public Item Wshield { get; set; }
-        public Item Wshoes { get; set; }
-        public Item X0 { get; set; }
-        public Item X1 { get; set; }
-        public Item X2 { get; set; }
-        public Item X3 { get; set; }
-        public Item X4 { get; set; }
-        public Item X5 { get; set; }
-        public Item X6 { get; set; }
-        public Item X7 { get; set; }
-        public Item X8 { get; set; }
-        public Item Xarmor { get; set; }
-        public Item Xboots { get; set; }
-        public Item Xbox { get; set; }
-        public Item Xgloves { get; set; }
-        public Item Xhelmet { get; set; }
-        public Item Xmace { get; set; }
-        public Item Xmashat { get; set; }
-        public Item Xmaspants { get; set; }
-        public Item Xmasshoes { get; set; }
-        public Item Xmassweater { get; set; }
-        public Item Xpants { get; set; }
-        public Item Xpbooster { get; set; }
-        public Item Xpscroll { get; set; }
-        public Item Xptome { get; set; }
-        public Item Xshield { get; set; }
-        public Item Xshot { get; set; }
-        public Item Zapper { get; set; }
+        public Item Throwingstars { get; set; } = null!;
+        public Item Tombkey { get; set; } = null!;
+        public Item Tracker { get; set; } = null!;
+        public Item Trigger { get; set; } = null!;
+        public Item Trinkets { get; set; } = null!;
+        public Item Tristone { get; set; } = null!;
+        public Item Troll { get; set; } = null!;
+        public Item Tshell { get; set; } = null!;
+        public Item Tshirt0 { get; set; } = null!;
+        public Item Tshirt1 { get; set; } = null!;
+        public Item Tshirt2 { get; set; } = null!;
+        public Item Tshirt3 { get; set; } = null!;
+        public Item Tshirt4 { get; set; } = null!;
+        public Item Tshirt6 { get; set; } = null!;
+        public Item Tshirt7 { get; set; } = null!;
+        public Item Tshirt8 { get; set; } = null!;
+        public Item Tshirt88 { get; set; } = null!;
+        public Item Tshirt9 { get; set; } = null!;
+        public Item Ukey { get; set; } = null!;
+        public Item Vattire { get; set; } = null!;
+        public Item Vblood { get; set; } = null!;
+        public Item Vboots { get; set; } = null!;
+        public Item Vcape { get; set; } = null!;
+        public Item Vdagger { get; set; } = null!;
+        public Item Vgloves { get; set; } = null!;
+        public Item Vhammer { get; set; } = null!;
+        public Item Vitearring { get; set; } = null!;
+        public Item Vitring { get; set; } = null!;
+        public Item Vitscroll { get; set; } = null!;
+        public Item Vorb { get; set; } = null!;
+        public Item Vring { get; set; } = null!;
+        public Item Vstaff { get; set; } = null!;
+        public Item Vsword { get; set; } = null!;
+        public Item Wand { get; set; } = null!;
+        public Item Warmscarf { get; set; } = null!;
+        public Item Warpvest { get; set; } = null!;
+        public Item Watercore { get; set; } = null!;
+        public Item Wattire { get; set; } = null!;
+        public Item Wbasher { get; set; } = null!;
+        public Item Wblade { get; set; } = null!;
+        public Item Wbook0 { get; set; } = null!;
+        public Item Wbook1 { get; set; } = null!;
+        public Item Wbreeches { get; set; } = null!;
+        public Item Wcap { get; set; } = null!;
+        public Item Weaponbox { get; set; } = null!;
+        public Item Weaver { get; set; } = null!;
+        public Item Wgloves { get; set; } = null!;
+        public Item Whiskey { get; set; } = null!;
+        public Item Whiteegg { get; set; } = null!;
+        public Item Wine { get; set; } = null!;
+        public Item Wingedboots { get; set; } = null!;
+        public Item Woodensword { get; set; } = null!;
+        public Item Wshield { get; set; } = null!;
+        public Item Wshoes { get; set; } = null!;
+        public Item X0 { get; set; } = null!;
+        public Item X1 { get; set; } = null!;
+        public Item X2 { get; set; } = null!;
+        public Item X3 { get; set; } = null!;
+        public Item X4 { get; set; } = null!;
+        public Item X5 { get; set; } = null!;
+        public Item X6 { get; set; } = null!;
+        public Item X7 { get; set; } = null!;
+        public Item X8 { get; set; } = null!;
+        public Item Xarmor { get; set; } = null!;
+        public Item Xboots { get; set; } = null!;
+        public Item Xbox { get; set; } = null!;
+        public Item Xgloves { get; set; } = null!;
+        public Item Xhelmet { get; set; } = null!;
+        public Item Xmace { get; set; } = null!;
+        public Item Xmashat { get; set; } = null!;
+        public Item Xmaspants { get; set; } = null!;
+        public Item Xmasshoes { get; set; } = null!;
+        public Item Xmassweater { get; set; } = null!;
+        public Item Xpants { get; set; } = null!;
+        public Item Xpbooster { get; set; } = null!;
+        public Item Xpscroll { get; set; } = null!;
+        public Item Xptome { get; set; } = null!;
+        public Item Xshield { get; set; } = null!;
+        public Item Xshot { get; set; } = null!;
+        public Item Zapper { get; set; } = null!;
     }
 }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AL.Data;
 using AL.Data.Maps;
-using AL.Pathfinding.Objects;
+using AL.Pathfinding.Model;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Chaos.Core.Extensions;
 using Common.Logging;
@@ -101,7 +101,7 @@ namespace AL.Pathfinding
         {
             var geometry = GameData.Geometry[name];
 
-            if (geometry?.XLines == null || geometry.YLines == null)
+            if ((geometry?.XLines == null) || (geometry.YLines == null))
             {
                 Logger.Info($"Ignored {name}");
                 return null;

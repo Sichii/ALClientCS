@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using AL.Core.Geometry;
 using AL.Pathfinding.Definitions;
-using AL.Pathfinding.Objects;
+using AL.Pathfinding.Model;
 using Poly2Tri;
 
 namespace AL.Pathfinding

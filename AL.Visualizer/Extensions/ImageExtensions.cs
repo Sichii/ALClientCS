@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Extensions;
-using AL.Pathfinding.Objects;
+using AL.Pathfinding.Model;
 using Poly2Tri;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;

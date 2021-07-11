@@ -4,20 +4,26 @@ using Newtonsoft.Json;
 
 namespace AL.Core.Json.Converters
 {
-    public class StringOrObjectConverter<T> : JsonConverter<T> where T: IOptionalObject, new()
+    /// <summary>
+    ///     Provides conversion logic for objects that can optionally be strings.
+    ///     Implements <see cref="Newtonsoft.Json.JsonConverter{T}" />
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
+    public class StringOrObjectConverter<T> : JsonConverter<T?> where T: IOptionalObject, new()
     {
         public string PropertyForString { get; }
 
         public StringOrObjectConverter(string propertyForString) => PropertyForString = propertyForString;
 
-        public override T ReadJson(
+        public override T? ReadJson(
             JsonReader reader,
             Type objectType,
-            T existingValue,
+            T? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
-            T result;
+            T? result;
 
             switch (reader.TokenType)
             {
@@ -45,7 +51,7 @@ namespace AL.Core.Json.Converters
             return result;
         }
 
-        public override void WriteJson(JsonWriter writer, T value, JsonSerializer serializer) =>
+        public override void WriteJson(JsonWriter writer, T? value, JsonSerializer serializer) =>
             throw new NotImplementedException();
     }
 }

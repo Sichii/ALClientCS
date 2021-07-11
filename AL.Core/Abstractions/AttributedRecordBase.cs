@@ -4,6 +4,10 @@ using AL.Core.Interfaces;
 
 namespace AL.Core.Abstractions
 {
+    /// <summary>
+    ///     Provides a base for records that have <see cref="ALAttribute" />s.
+    /// </summary>
+    /// <seealso cref="AL.Core.Interfaces.IAttributed" />
     public abstract record AttributedRecordBase : IAttributed
     {
         public float APiercing { get; init; }
@@ -130,7 +134,6 @@ namespace AL.Core.Abstractions
 
 
         public float Vit { get; init; }
-
 
         public float XP { get; protected set; }
     }

@@ -1,8 +1,13 @@
 namespace AL.Core.Definitions
 {
+    /// <summary>
+    ///     Provides assembly level compile time values
+    /// </summary>
     public static class CONSTANTS
     {
-        public const float EPSILON = 0.0001f;
-        public const int VERTEX_SIGNATURE = 0b11;
+        /// <summary>
+        ///     A default equality descriminator for floating point arithmetic specific to this library's use case.
+        /// </summary>
+        public const float EPSILON = 0.000001f;
     }
 }

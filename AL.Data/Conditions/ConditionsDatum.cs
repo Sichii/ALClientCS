@@ -3,63 +3,67 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Conditions
 {
+    /// <summary>
+    ///     <inheritdoc />
+    /// </summary>
+    /// <seealso cref="DatumBase{T}" />
     [JsonObject(ItemConverterType = typeof(AttributedObjectConverter<Condition>))]
     public class ConditionsDatum : DatumBase<Condition>
     {
-        public Condition AuthFail { get; set; }
-        public Condition Blink { get; set; }
-        public Condition Burned { get; set; }
-        public Condition Charging { get; set; }
-        public Condition Charmed { get; set; }
-        public Condition Cursed { get; set; }
-        public Condition Dampened { get; set; }
-        public Condition DarkBlessing { get; set; }
-        public Condition DeepFreezed { get; set; }
-        public Condition EasterLuck { get; set; }
-        public Condition EBurn { get; set; }
-        public Condition EHeal { get; set; }
-        public Condition Energized { get; set; }
-        public Condition Fingered { get; set; }
-        public Condition Fishing { get; set; }
-        public Condition Frozen { get; set; }
-        public Condition FullGuard { get; set; }
-        public Condition HardShell { get; set; }
-        public Condition HolidaySpirit { get; set; }
-        public Condition Invincible { get; set; }
-        public Condition Invis { get; set; }
+        public Condition AuthFail { get; set; } = null!;
+        public Condition Blink { get; set; } = null!;
+        public Condition Burned { get; set; } = null!;
+        public Condition Charging { get; set; } = null!;
+        public Condition Charmed { get; set; } = null!;
+        public Condition Cursed { get; set; } = null!;
+        public Condition Dampened { get; set; } = null!;
+        public Condition DarkBlessing { get; set; } = null!;
+        public Condition DeepFreezed { get; set; } = null!;
+        public Condition EasterLuck { get; set; } = null!;
+        public Condition EBurn { get; set; } = null!;
+        public Condition EHeal { get; set; } = null!;
+        public Condition Energized { get; set; } = null!;
+        public Condition Fingered { get; set; } = null!;
+        public Condition Fishing { get; set; } = null!;
+        public Condition Frozen { get; set; } = null!;
+        public Condition FullGuard { get; set; } = null!;
+        public Condition HardShell { get; set; } = null!;
+        public Condition HolidaySpirit { get; set; } = null!;
+        public Condition Invincible { get; set; } = null!;
+        public Condition Invis { get; set; } = null!;
 
         [JsonProperty("licenced")]
-        public Condition Licensed { get; set; }
+        public Condition Licensed { get; set; } = null!;
 
-        public Condition Marked { get; set; }
-        public Condition MassProduction { get; set; }
-        public Condition MassProductionPP { get; set; }
-        public Condition MCourage { get; set; }
-        public Condition MLifeSteal { get; set; }
-        public Condition MLuck { get; set; }
-        public Condition MonsterHunt { get; set; }
-        public Condition MShield { get; set; }
-        public Condition NewcomersBlessing { get; set; }
-        public Condition NotVerified { get; set; }
-        public Condition PhasedOut { get; set; }
-        public Condition Poisoned { get; set; }
-        public Condition Poisonous { get; set; }
-        public Condition Power { get; set; }
-        public Condition Reflection { get; set; }
-        public Condition RSpeed { get; set; }
-        public Condition Sanguine { get; set; }
-        public Condition Shocked { get; set; }
-        public Condition Slowness { get; set; }
-        public Condition Stack { get; set; }
-        public Condition Stoned { get; set; }
-        public Condition Stunned { get; set; }
-        public Condition SugarRush { get; set; }
-        public Condition Tangled { get; set; }
-        public Condition Town { get; set; }
-        public Condition WarCry { get; set; }
-        public Condition Weakness { get; set; }
-        public Condition Withdrawal { get; set; }
-        public Condition XPower { get; set; }
-        public Condition XShotted { get; set; }
+        public Condition Marked { get; set; } = null!;
+        public Condition MassProduction { get; set; } = null!;
+        public Condition MassProductionPP { get; set; } = null!;
+        public Condition MCourage { get; set; } = null!;
+        public Condition MLifeSteal { get; set; } = null!;
+        public Condition MLuck { get; set; } = null!;
+        public Condition MonsterHunt { get; set; } = null!;
+        public Condition MShield { get; set; } = null!;
+        public Condition NewcomersBlessing { get; set; } = null!;
+        public Condition NotVerified { get; set; } = null!;
+        public Condition PhasedOut { get; set; } = null!;
+        public Condition Poisoned { get; set; } = null!;
+        public Condition Poisonous { get; set; } = null!;
+        public Condition Power { get; set; } = null!;
+        public Condition Reflection { get; set; } = null!;
+        public Condition RSpeed { get; set; } = null!;
+        public Condition Sanguine { get; set; } = null!;
+        public Condition Shocked { get; set; } = null!;
+        public Condition Slowness { get; set; } = null!;
+        public Condition Stack { get; set; } = null!;
+        public Condition Stoned { get; set; } = null!;
+        public Condition Stunned { get; set; } = null!;
+        public Condition SugarRush { get; set; } = null!;
+        public Condition Tangled { get; set; } = null!;
+        public Condition Town { get; set; } = null!;
+        public Condition WarCry { get; set; } = null!;
+        public Condition Weakness { get; set; } = null!;
+        public Condition Withdrawal { get; set; } = null!;
+        public Condition XPower { get; set; } = null!;
+        public Condition XShotted { get; set; } = null!;
     }
 }

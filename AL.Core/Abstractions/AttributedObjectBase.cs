@@ -4,6 +4,10 @@ using AL.Core.Interfaces;
 
 namespace AL.Core.Abstractions
 {
+    /// <summary>
+    ///     Provides a base for classes that have <see cref="ALAttribute" />s.
+    /// </summary>
+    /// <seealso cref="AL.Core.Interfaces.IAttributed" />
     public abstract class AttributedObjectBase : IAttributed
     {
         public float APiercing { get; init; }
@@ -12,6 +16,7 @@ namespace AL.Core.Abstractions
 
         public float Attack { get; init; }
 
+        //TODO: Should i keep this?
         public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
 

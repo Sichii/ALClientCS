@@ -7,7 +7,7 @@ using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Extensions;
 using AL.Pathfinding.Interfaces;
-using AL.Pathfinding.Objects;
+using AL.Pathfinding.Model;
 using Common.Logging;
 
 namespace AL.Pathfinding
@@ -53,14 +53,14 @@ namespace AL.Pathfinding
                 if (connector.Type != ConnectorType.Walk)
                     continue;
 
-                var intersection = circle.LineIntersection(connector.ToLine());
+                var intersection = circle.IntersectsLine(connector.ToLine());
 
                 if (intersection != null)
                 {
                     var chopIndex = i - 1;
                     connectors.RemoveRange(chopIndex, connectors.Count - chopIndex);
                     connectors.Add(new EdgeConnector<Point>
-                        { Start = connector.Start, End = intersection.Point(), Type = ConnectorType.Walk });
+                        { Start = connector.Start, End = intersection.GetPoint(), Type = ConnectorType.Walk });
 
                     break;
                 }
@@ -106,11 +106,11 @@ namespace AL.Pathfinding
                 throw new InvalidOperationException(
                     $"Unable to locate any end nodes for the given points. {string.Join(',', endsArr)}");
 
-            var setup = useTownIfOptimal && TownNode != null
+            var setup = useTownIfOptimal && (TownNode != null)
                 ? () => Connect(startNode, TownNode, ConnectorType.Town)
                 : default(Action);
 
-            var cleanup = useTownIfOptimal && TownNode != null
+            var cleanup = useTownIfOptimal && (TownNode != null)
                 ? () => Disconnect(startNode, TownNode)
                 : default(Action);
 

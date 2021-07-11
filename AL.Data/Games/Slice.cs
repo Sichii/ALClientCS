@@ -1,6 +1,8 @@
 ﻿using AL.Data.Json.Converters;
 using Newtonsoft.Json;
 
+#nullable disable
+
 namespace AL.Data.Games
 {
     [JsonConverter(typeof(ArrayToSliceConverter))]

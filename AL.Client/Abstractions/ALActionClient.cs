@@ -10,9 +10,10 @@ using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Data;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Receive;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Chaos.Core.Extensions;
+using CONSTANTS = AL.Client.Definitions.CONSTANTS;
 
 namespace AL.Client.Abstractions
 {
@@ -124,7 +125,7 @@ namespace AL.Client.Abstractions
             {
                 var result = false;
 
-                if (data.Attacker.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && data.Type == "attack")
+                if (data.Attacker.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && (data.Type == "attack"))
                     result = source.TrySetResult(data);
 
                 return Task.FromResult(result);
@@ -134,40 +135,6 @@ namespace AL.Client.Abstractions
                 throw new InvalidOperationException($"Attack on {targetId} failed. (not found)");
 
             await Socket.Emit(ALSocketEmitType.Attack, new { id = targetId });
-            return await source.Task.WithNetworkTimeout();
-        }
-
-        // ReSharper disable once UnusedMethodReturnValue.Global
-        public async Task<PingAckData> PingAsync(long pingCount)
-        {
-            var source = new TaskCompletionSource<Expectation<PingAckData>>();
-
-            await using var pingAckCallback = Socket.On<PingAckData>(ALSocketMessageType.PingAck,
-                data => Task.FromResult(source.TrySetResult(data)));
-
-            await Socket.Emit(ALSocketEmitType.Ping, new { id = pingCount.ToString() });
-            return await source.Task.WithNetworkTimeout();
-        }
-
-        public async Task<CharacterData> RequestCharacterAsync()
-        {
-            var source = new TaskCompletionSource<Expectation<CharacterData>>();
-
-            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character,
-                data => Task.FromResult(source.TrySetResult(data)));
-
-            await Socket.Emit(ALSocketEmitType.Property, new { typing = true });
-            return await source.Task.WithNetworkTimeout();
-        }
-
-        public async Task<EntitiesData> RequestEntitiesAsync()
-        {
-            var source = new TaskCompletionSource<Expectation<EntitiesData>>();
-
-            await using var entitiesCallback = Socket.On<EntitiesData>(ALSocketMessageType.Entities,
-                data => Task.FromResult(source.TrySetResult(data)));
-
-            await Socket.Emit(ALSocketEmitType.SendUpdates, new object());
             return await source.Task.WithNetworkTimeout();
         }
 
@@ -207,7 +174,11 @@ namespace AL.Client.Abstractions
             return await source.Task.WithNetworkTimeout();
         }
 
-        public async Task<IndexedItem> BuyFromPlayerAsync(string playerName, TradeSlot slot, string itemId, int quantity = 1)
+        public async Task<IndexedItem> BuyFromPlayerAsync(
+            string playerName,
+            TradeSlot slot,
+            string itemId,
+            int quantity = 1)
         {
             var source = new TaskCompletionSource<Expectation<IndexedItem>>();
 
@@ -240,7 +211,8 @@ namespace AL.Client.Abstractions
                 var result = false;
 
                 if (data.EqualsI("not enough gold"))
-                    result = source.TrySetResult($"Failed to buy {slotItem.Name} from {player.Name}. (not enough gold)");
+                    result = source.TrySetResult(
+                        $"Failed to buy {slotItem.Name} from {player.Name}. (not enough gold)");
                 else if (data.EqualsI("you can't buy that many"))
                     result = source.TrySetResult($"Failed to buy {slotItem.Name} from {player.Name}. (wrong quantity)");
 
@@ -292,7 +264,7 @@ namespace AL.Client.Abstractions
 
                 return Task.FromResult(result);
             });
-            
+
             await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
             {
                 var result = false;
@@ -302,7 +274,7 @@ namespace AL.Client.Abstractions
 
                 return Task.FromResult(result);
             });
-            
+
             await using var disappearingTextCallback = Socket.On<DisappearingTextData>(
                 ALSocketMessageType.DisappearingText, data =>
                 {
@@ -339,7 +311,7 @@ namespace AL.Client.Abstractions
             var price = data.Gold;
 
             if (fromPonty)
-                price *= Definitions.CONSTANTS.PONTY_MARKUP;
+                price *= CONSTANTS.PONTY_MARKUP;
 
             if (price > Character.Gold)
                 return false;
@@ -348,6 +320,40 @@ namespace AL.Client.Abstractions
 
 
             return false;
+        }
+
+        // ReSharper disable once UnusedMethodReturnValue.Global
+        public async Task<PingAckData> PingAsync(long pingCount)
+        {
+            var source = new TaskCompletionSource<Expectation<PingAckData>>();
+
+            await using var pingAckCallback = Socket.On<PingAckData>(ALSocketMessageType.PingAck,
+                data => Task.FromResult(source.TrySetResult(data)));
+
+            await Socket.Emit(ALSocketEmitType.Ping, new { id = pingCount.ToString() });
+            return await source.Task.WithNetworkTimeout();
+        }
+
+        public async Task<CharacterData> RequestCharacterAsync()
+        {
+            var source = new TaskCompletionSource<Expectation<CharacterData>>();
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character,
+                data => Task.FromResult(source.TrySetResult(data)));
+
+            await Socket.Emit(ALSocketEmitType.Property, new { typing = true });
+            return await source.Task.WithNetworkTimeout();
+        }
+
+        public async Task<EntitiesData> RequestEntitiesAsync()
+        {
+            var source = new TaskCompletionSource<Expectation<EntitiesData>>();
+
+            await using var entitiesCallback = Socket.On<EntitiesData>(ALSocketMessageType.Entities,
+                data => Task.FromResult(source.TrySetResult(data)));
+
+            await Socket.Emit(ALSocketEmitType.SendUpdates, new object());
+            return await source.Task.WithNetworkTimeout();
         }
     }
 }

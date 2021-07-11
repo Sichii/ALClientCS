@@ -1,9 +1,15 @@
 namespace AL.Core.Interfaces
 {
+    /// <summary>
+    ///     Represents a line denoted by two points.
+    /// </summary>
     public interface ILine
     {
-        public float Length { get; }
-        public IPoint Point1 { get; }
-        public IPoint Point2 { get; }
+        /// <summary>
+        ///     The length of the line.
+        /// </summary>
+        float Length { get; }
+        IPoint Point1 { get; }
+        IPoint Point2 { get; }
     }
 }

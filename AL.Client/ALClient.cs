@@ -10,7 +10,7 @@ using AL.Client.Managers;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Extensions;
-using AL.SocketClient.Receive;
+using AL.SocketClient.SocketModel;
 using Chaos.Core.Extensions;
 
 // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
@@ -20,15 +20,37 @@ namespace AL.Client
     public class ALClient : ALActionClient
     {
         private static readonly SemaphoreSlim ConnectSync = new(1, 1);
-        private readonly SemaphoreSlim Sync = new(1, 1);
         private readonly PingManager PingManager;
         private readonly PositionManager PositionManager;
+        private readonly SemaphoreSlim Sync = new(1, 1);
 
         public ALClient(string name, ALAPIClient apiClient)
             : base(name, apiClient)
         {
             PositionManager = new PositionManager(this);
             PingManager = new PingManager(this);
+        }
+
+        private void AttachListeners()
+        {
+            Socket.On<StartData>(ALSocketMessageType.Start, OnStartAsync);
+            Socket.On<CharacterData>(ALSocketMessageType.Character, OnCharacterAsync);
+            Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, OnGameResponseAsync);
+            Socket.On<EntitiesData>(ALSocketMessageType.Entities, OnEntitiesAsync);
+            Socket.On<AchievementProgressData>(ALSocketMessageType.AchievementProgress, OnAchievementProgressAsync);
+            Socket.On<DropData>(ALSocketMessageType.Drop, OnDropAsync);
+            Socket.On<EvalData>(ALSocketMessageType.Eval, OnEvalAsync);
+            Socket.On<GameErrorData>(ALSocketMessageType.GameError, OnGameErrorAsync);
+            Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, OnPartyUpdateAsync);
+            Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedActionAsync);
+            Socket.On<UpgradeData>(ALSocketMessageType.Upgrade, OnUpgradeAsync);
+            Socket.On<WelcomeData>(ALSocketMessageType.Welcome, OnWelcomeAsync);
+            Socket.On<ActionData>(ALSocketMessageType.Action, OnActionAsync);
+            Socket.On<DeathData>(ALSocketMessageType.Death, OnDeathAsync);
+            Socket.On<DisappearData>(ALSocketMessageType.Disappear, OnDisappearAsync);
+            Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
+            Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
+            Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
         }
 
         public async Task ConnectAsync(ServerRegion region, ServerId identifier)
@@ -81,6 +103,18 @@ namespace AL.Client
             }
         }
 
+        public static async Task<ALClient> CreateAsync(
+            string characterName,
+            ServerRegion region,
+            ServerId identifier,
+            ALAPIClient apiClient)
+        {
+            var client = new ALClient(characterName, apiClient);
+            await client.ConnectAsync(region, identifier);
+
+            return client;
+        }
+
         public async Task DisconnectAsync()
         {
             await Sync.WaitAsync();
@@ -97,40 +131,6 @@ namespace AL.Client
             }
         }
 
-        public static async Task<ALClient> CreateAsync(
-            string characterName,
-            ServerRegion region,
-            ServerId identifier,
-            ALAPIClient apiClient)
-        {
-            var client = new ALClient(characterName, apiClient);
-            await client.ConnectAsync(region, identifier);
-
-            return client;
-        }
-
-        private void AttachListeners()
-        {
-            Socket.On<StartData>(ALSocketMessageType.Start, OnStartAsync);
-            Socket.On<CharacterData>(ALSocketMessageType.Character, OnCharacterAsync);
-            Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, OnGameResponseAsync);
-            Socket.On<EntitiesData>(ALSocketMessageType.Entities, OnEntitiesAsync);
-            Socket.On<AchievementProgressData>(ALSocketMessageType.AchievementProgress, OnAchievementProgressAsync);
-            Socket.On<DropData>(ALSocketMessageType.Drop, OnDropAsync);
-            Socket.On<EvalData>(ALSocketMessageType.Eval, OnEvalAsync);
-            Socket.On<GameErrorData>(ALSocketMessageType.GameError, OnGameErrorAsync);
-            Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, OnPartyUpdateAsync);
-            Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedActionAsync);
-            Socket.On<UpgradeData>(ALSocketMessageType.Upgrade, OnUpgradeAsync);
-            Socket.On<WelcomeData>(ALSocketMessageType.Welcome, OnWelcomeAsync);
-            Socket.On<ActionData>(ALSocketMessageType.Action, OnActionAsync);
-            Socket.On<DeathData>(ALSocketMessageType.Death, OnDeathAsync);
-            Socket.On<DisappearData>(ALSocketMessageType.Disappear, OnDisappearAsync);
-            Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
-            Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
-            Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
-        }
-
         private async Task FetchCharacterAndServerAsync(ServerRegion region, ServerId identifier)
         {
             await ConnectSync.WaitAsync();
@@ -138,10 +138,10 @@ namespace AL.Client
             try
             {
                 //if servers/characters not populated, populate them
-                if (API.Servers == null
-                    || API.Servers.Count == 0
-                    || API.Characters == null
-                    || API.Characters.Count == 0)
+                if ((API.Servers == null)
+                    || (API.Servers.Count == 0)
+                    || (API.Characters == null)
+                    || (API.Characters.Count == 0))
                     await API.UpdateServersAndCharactersAsync();
             } finally
             {
@@ -151,7 +151,7 @@ namespace AL.Client
             //find server and character
             var charInfo = API.Characters.FirstOrDefault(character => character.Name.EqualsI(Name));
             var serverInfo =
-                API.Servers.FirstOrDefault(server => server.Region == region && server.Identifier == identifier);
+                API.Servers.FirstOrDefault(server => (server.Region == region) && (server.Identifier == identifier));
 
             if (charInfo == null)
                 throw new InvalidOperationException($@"Character ""{Name}"" not found.");

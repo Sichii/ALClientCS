@@ -8,12 +8,18 @@ using Newtonsoft.Json.Linq;
 
 namespace AL.Core.Json.Converters
 {
+    /// <summary>
+    ///     Provides conversion logic for <see cref="IAttributed" /> objects.
+    ///     Implements <see cref="Newtonsoft.Json.JsonConverter{T}" />
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
     public class AttributedObjectConverter<T> : JsonConverter<T> where T: IAttributed, new()
     {
-        public override T ReadJson(
+        public override T? ReadJson(
             JsonReader reader,
             Type objectType,
-            T existingValue,
+            T? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
@@ -38,7 +44,7 @@ namespace AL.Core.Json.Converters
             return value;
         }
 
-        public override void WriteJson(JsonWriter writer, T value, JsonSerializer serializer) =>
+        public override void WriteJson(JsonWriter writer, T? value, JsonSerializer serializer) =>
             throw new NotImplementedException();
     }
 }

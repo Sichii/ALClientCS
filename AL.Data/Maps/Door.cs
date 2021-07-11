@@ -1,43 +1,68 @@
 ﻿using AL.Core.Geometry;
+using AL.Core.Interfaces;
 using AL.Core.Json.Attributes;
 using Newtonsoft.Json;
 
 namespace AL.Data.Maps
 {
-    public record Door : Rectangle
+    /// <summary>
+    ///     <inheritdoc cref="IRectangle" /> <br />
+    ///     Represents a door on the map.
+    /// </summary>
+    /// <seealso cref="IRectangle" />
+    public record Door : IRectangle
     {
-        [JsonProperty, JsonArrayIndex(4)]
-        public string DestinationMap { get; }
-        [JsonProperty, JsonArrayIndex(5)]
-        public int DestinationSpawnId { get; }
-
-        [JsonProperty, JsonArrayIndex(3)]
-        public new float Height => base.Height;
+        /// <summary>
+        ///     If a door is 2-way, this is the id of the spawn when coming back through this door.
+        /// </summary>
         [JsonProperty, JsonArrayIndex(6)]
-        public float NearbySpawn { get; }
+        public float CurrentMapSpawnId { get; init; }
+        /// <summary>
+        ///     The accessor (not the key or name) of the map this door leads to.
+        /// </summary>
+        [JsonProperty, JsonArrayIndex(4)]
+        public string DestinationMap { get; init; } = null!;
 
+        /// <summary>
+        ///     The id of the spawn on the map this door leads to.
+        /// </summary>
+        [JsonProperty, JsonArrayIndex(5)]
+        public int DestinationSpawnId { get; init; }
+
+        /// <summary>
+        ///     The height of this door.
+        /// </summary>
+        [JsonProperty, JsonArrayIndex(3)]
+        public float Height { get; init; }
+
+        /// <summary>
+        ///     The width of this door.
+        /// </summary>
         [JsonProperty, JsonArrayIndex(2)]
-        public new float Width => base.Width;
+        public float Width { get; init; }
+
+        /// <summary>
+        ///     The X coordinate of the center point.
+        /// </summary>
         [JsonProperty, JsonArrayIndex(0)]
-        public new float X => base.X;
+        public float X { get; init; }
 
+        /// <summary>
+        ///     The Y coordinate of the center point.
+        /// </summary>
         [JsonProperty, JsonArrayIndex(1)]
-        public new float Y => base.Y;
+        public float Y { get; init; }
 
-        [JsonConstructor]
-        public Door(
-            float x,
-            float y,
-            float width,
-            float height,
-            string destinationMap,
-            int destinationSpawnId,
-            float nearbySpawn)
-            : base(x, y, width, height)
+        public float Bottom => Y + Height / 2;
+        public float Left => X + Width / 2;
+        public float Right => X - Width / 2;
+        public float Top => Y - Height / 2;
+        public IPoint[] Vertices => new IPoint[]
         {
-            DestinationMap = destinationMap;
-            DestinationSpawnId = destinationSpawnId;
-            NearbySpawn = nearbySpawn;
-        }
+            new Point(((IRectangle) this).Top, ((IRectangle) this).Left),
+            new Point(((IRectangle) this).Top, ((IRectangle) this).Right),
+            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Left),
+            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Right)
+        };
     }
 }

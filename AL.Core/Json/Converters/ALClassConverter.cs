@@ -6,6 +6,10 @@ using Newtonsoft.Json.Linq;
 
 namespace AL.Core.Json.Converters
 {
+    /// <summary>
+    ///     Provides conversion logic specifically for <see cref="ALClass" />.
+    /// </summary>
+    /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
     public class ALClassConverter : JsonConverter<ALClass>
     {
         public override ALClass ReadJson(

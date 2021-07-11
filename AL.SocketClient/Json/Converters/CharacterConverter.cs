@@ -1,7 +1,7 @@
 using System;
 using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
-using AL.SocketClient.SocketModel;
+using AL.SocketClient.Model;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Json.Converters
@@ -24,6 +24,8 @@ namespace AL.SocketClient.Json.Converters
 
                 for (var i = 0; i < character.Inventory.Count; i++)
                     newInventory[i] = character.Inventory[i];
+
+                character.Inventory = newInventory;
             }
 
             return character;

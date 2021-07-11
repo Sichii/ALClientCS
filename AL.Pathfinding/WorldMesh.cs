@@ -5,7 +5,7 @@ using AL.Data.Maps;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
-using AL.Pathfinding.Objects;
+using AL.Pathfinding.Model;
 using Chaos.Core.Extensions;
 using Common.Logging;
 

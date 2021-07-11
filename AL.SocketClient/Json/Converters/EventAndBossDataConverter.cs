@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using AL.SocketClient.Receive;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,7 +11,7 @@ namespace AL.SocketClient.Json.Converters
     public class EventAndBossDataConverter : JsonConverter<EventAndBossData>
     {
         private static readonly PropertyInfo PropertyInfo = typeof(BossInfo).GetProperty(nameof(BossInfo.Id));
-        
+
         public override EventAndBossData ReadJson(
             JsonReader reader,
             Type objectType,
@@ -30,15 +30,15 @@ namespace AL.SocketClient.Json.Converters
             var eventAndBossData = new EventAndBossData();
             var bossInfoDic = (Dictionary<string, BossInfo>) eventAndBossData!.BossInfo;
             serializer.Populate(obj.CreateReader(), eventAndBossData);
-            
+
             foreach ((var key, var token) in obj)
-                if(token.Type == JTokenType.Object)
+                if (token.Type == JTokenType.Object)
                 {
                     var bossInfo = token.ToObject<BossInfo>(serializer);
                     PropertyInfo.SetValue(bossInfo, key);
                     bossInfoDic[key] = bossInfo;
                 }
-            
+
             return eventAndBossData;
         }
 

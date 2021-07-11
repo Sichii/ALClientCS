@@ -3,6 +3,10 @@ using Newtonsoft.Json;
 
 namespace AL.Core.Json.Converters
 {
+    /// <summary>
+    ///     Provides conversion logic for <see cref="DateTime" /> values.
+    /// </summary>
+    /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
     public class DateTimeConverter : JsonConverter<DateTime>
     {
         public override DateTime ReadJson(
@@ -12,7 +16,7 @@ namespace AL.Core.Json.Converters
             bool hasExistingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType != JsonToken.String && reader.TokenType != JsonToken.Date)
+            if ((reader.TokenType != JsonToken.String) && (reader.TokenType != JsonToken.Date))
                 return default;
 
             var str = serializer.Deserialize<string>(reader);

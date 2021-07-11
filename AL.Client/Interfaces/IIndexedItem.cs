@@ -1,4 +1,4 @@
-using AL.Core.Interfaces;
+using AL.SocketClient.Interfaces;
 
 namespace AL.Client.Interfaces
 {

@@ -6,34 +6,50 @@ using Common.Logging;
 
 namespace AL.Core.Helpers
 {
+    /// <summary>
+    ///     Provides a set of helper methods for interacting with <see cref="Interfaces.ILine" />.
+    /// </summary>
     public static class LineHelper
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(LineHelper).FullName);
 
-        public static FlatLine[] FixLines(FlatLine[] lines, bool isX)
+        /// <summary>
+        ///     A helper method for fixing overlapping lines.
+        /// </summary>
+        /// <param name="lines">The lines to fix.</param>
+        /// <param name="isX">Whether or not the lines are X lines or not.</param>
+        /// <returns><see cref="Array" /> of <see cref="StraightLine" /></returns>
+        /// <exception cref="System.ArgumentNullException">lines</exception>
+        public static StraightLine[] FixLines(IReadOnlyList<StraightLine> lines, bool isX)
         {
-            if (lines == null || lines.Length == 0)
-                return Array.Empty<FlatLine>();
+            if (lines == null)
+                throw new ArgumentNullException(nameof(lines));
 
-            var newLines = new HashSet<FlatLine>();
+            if (lines.Count == 0)
+                return Array.Empty<StraightLine>();
 
-            for (var i = 0; i < lines.Length; i++)
+            var newLines = new HashSet<StraightLine>();
+
+            for (var i = 0; i < lines.Count; i++)
             {
-                var line = lines[i];
+                var line1 = lines[i] with { IsX = isX };
 
-                for (var i2 = 0; i2 < lines.Length; i2++)
-                    if (i != i2 && line.Overlaps(lines[i2]))
+                for (var i2 = 0; i2 < lines.Count; i2++)
+                {
+                    var line2 = lines[i2] with { IsX = isX };
+                    if ((i != i2) && line1.Overlaps(line2))
                     {
                         Logger.Trace($@"Merging lines
-{line}
+{line1}
 {lines[i2]}
 ");
 
-                        line = line.Merge(lines[i2]);
+                        line1 = line1.Merge(line2);
                         break;
                     }
+                }
 
-                newLines.Add(line with { IsX = isX });
+                newLines.Add(line1);
             }
 
             return newLines.ToArray();

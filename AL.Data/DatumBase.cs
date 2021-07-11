@@ -3,22 +3,43 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using AL.Core.Helpers;
 using Newtonsoft.Json;
+
+#nullable enable
 
 namespace AL.Data
 {
+    /// <summary>
+    ///     Provides dictionary-like access to contained properties.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     [JsonObject]
     public abstract class DatumBase<T> : IEnumerable<KeyValuePair<string, T>>
     {
+        /// <summary>
+        ///     Allows using a string to access properties.
+        /// </summary>
+        /// <param name="datumName"></param>
         [JsonIgnore]
-        public T this[string datumName] => LookupCache.TryGetValue(datumName, out var value) ? value : default;
+        public T? this[string datumName] => LookupCache.TryGetValue(datumName, out var value) ? value : default;
 
+        /// <summary>
+        ///     Allows using string representation of an enum to access properties.
+        /// </summary>
+        /// <param name="enum"></param>
         [JsonIgnore]
-        public T this[Enum @enum] => this[@enum.ToString()];
+        public T? this[Enum @enum] => this[EnumHelper.ToString(@enum)];
 
+        /// <summary>
+        ///     Gets all property names.
+        /// </summary>
         [JsonIgnore]
         public IEnumerable<string> Keys => LookupCache.Keys;
 
+        /// <summary>
+        ///     Gets all property values.
+        /// </summary>
         [JsonIgnore]
         public IEnumerable<T> Values => LookupCache.Values;
 
@@ -39,7 +60,10 @@ namespace AL.Data
                 if (jsonIgnoreInfo != null)
                     continue;
 
-                var value = (T) propertyInfo.GetValue(this);
+                var value = (T?) propertyInfo.GetValue(this);
+
+                if (value == null)
+                    continue;
 
                 cache[propertyInfo.Name] = value;
 

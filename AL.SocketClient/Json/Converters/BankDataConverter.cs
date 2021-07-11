@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
-using AL.SocketClient.SocketModel;
+using AL.SocketClient.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

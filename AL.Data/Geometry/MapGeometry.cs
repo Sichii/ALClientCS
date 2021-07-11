@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
@@ -6,42 +6,66 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Geometry
 {
+    /// <summary>
+    ///     <inheritdoc cref="IRectangle" /> <br />
+    ///     Provides geometric information for a map.
+    /// </summary>
+    /// <seealso cref="IRectangle" />
     public record MapGeometry : IRectangle
     {
+        /// <summary>
+        ///     Maximum X coordinate on the map.
+        /// </summary>
         [JsonProperty("max_x")]
         public int MaxX { get; init; }
 
+        /// <summary>
+        ///     Maximum Y coordinate on the map.
+        /// </summary>
         [JsonProperty("max_y")]
         public int MaxY { get; init; }
 
+        /// <summary>
+        ///     Minimum X coordinate on the map.
+        /// </summary>
         [JsonProperty("min_x")]
         public int MinX { get; init; }
 
+        /// <summary>
+        ///     Minimum Y coordinate on the map.
+        /// </summary>
         [JsonProperty("min_y")]
         public int MinY { get; init; }
 
+        /// <summary>
+        ///     A list of tiles on this map.
+        /// </summary>
         [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<Tile>))]
-        public Tile[] Tiles { get; init; }
+        public IReadOnlyList<Tile> Tiles { get; init; } = new List<Tile>();
 
-        [JsonProperty("x_lines", ItemConverterType = typeof(ArrayToObjectConverter<FlatLine>))]
-        public FlatLine[] XLines { get; internal set; }
+        /// <summary>
+        ///     A list of vertical lines that should be considered as walls.
+        /// </summary>
+        [JsonProperty("x_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
+        public IReadOnlyList<StraightLine> XLines { get; internal set; } = new List<StraightLine>();
 
-        [JsonProperty("y_lines", ItemConverterType = typeof(ArrayToObjectConverter<FlatLine>))]
-        public FlatLine[] YLines { get; internal set; }
+        /// <summary>
+        ///     A list of horizontal lines that should be considered as walls.
+        /// </summary>
+        [JsonProperty("y_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
+        public IReadOnlyList<StraightLine> YLines { get; internal set; } = new List<StraightLine>();
 
-        float IRectangle.Bottom => MaxY;
+        public float Bottom => MaxY;
 
-        float IRectangle.Height => MaxY - MinY;
+        public float Height => MaxY - MinY;
 
-        float IRectangle.Left => MinX;
+        public float Left => MinX;
 
-        string IRectangle.Map => throw new NotImplementedException();
+        public float Right => MaxX;
 
-        float IRectangle.Right => MaxX;
+        public float Top => MinY;
 
-        float IRectangle.Top => MinY;
-
-        IPoint[] IRectangle.Vertices => new IPoint[]
+        public IPoint[] Vertices => new IPoint[]
         {
             new Point(((IRectangle) this).Top, ((IRectangle) this).Left),
             new Point(((IRectangle) this).Top, ((IRectangle) this).Right),
@@ -49,15 +73,15 @@ namespace AL.Data.Geometry
             new Point(((IRectangle) this).Bottom, ((IRectangle) this).Right)
         };
 
-        float IRectangle.Width => MaxX - MinX;
+        public float Width => MaxX - MinX;
 
         //public object Points { get; set; }
         //public object Rectangles { get; set; }
         //public object Polygons { get; set; }
         //public int[][] Placements { get; set; }
         //public int Default { get; set; }
-        float IPoint.X => 0;
+        public float X => (MaxX + Width) / 2;
 
-        float IPoint.Y => 0;
+        public float Y => (MaxY + Height) / 2;
     }
 }

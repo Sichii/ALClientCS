@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
-using AL.Pathfinding.Objects;
+using AL.Pathfinding.Model;
 using Chaos.Core.Extensions;
 using Common.Logging;
 using Priority_Queue;
@@ -68,12 +68,12 @@ namespace AL.Pathfinding.Abstractions
             Action synchronizedSetup = default,
             Action synchronizedCleanup = default)
         {
-            if (start < 0 || start >= Nodes.Count)
+            if ((start < 0) || (start >= Nodes.Count))
                 throw new IndexOutOfRangeException("Invalid start index.");
 
             var endIndexes = ends.Select(index =>
                 {
-                    if (index < 0 || index >= Nodes.Count)
+                    if ((index < 0) || (index >= Nodes.Count))
                         throw new IndexOutOfRangeException("Invalid end index.");
 
                     return index;

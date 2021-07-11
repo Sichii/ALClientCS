@@ -36,7 +36,7 @@ namespace AL.Tests
 
             APIClient = await ALAPIClient.LoginAsync(email, pw);
 
-            await GameData.PopulateAsync();
+            GameData.PopulateAsync(await ALAPIClient.GetGameDataAsync());
         }
     }
 }

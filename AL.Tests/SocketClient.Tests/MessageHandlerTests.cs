@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Receive;
+using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.SocketClient.Tests

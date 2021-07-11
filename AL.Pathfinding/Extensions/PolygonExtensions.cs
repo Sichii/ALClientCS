@@ -24,8 +24,8 @@ namespace AL.Pathfinding.Extensions
 
             for (int i = 0, j = count - 1; i < count; i++)
             {
-                if ((poly[i].Y < y && poly[j].Y >= y || poly[j].Y < y && poly[i].Y >= y)
-                    && (poly[i].X <= x || poly[j].X <= x))
+                if ((((poly[i].Y < y) && (poly[j].Y >= y)) || ((poly[j].Y < y) && (poly[i].Y >= y)))
+                    && ((poly[i].X <= x) || (poly[j].X <= x)))
                     inside ^= poly[i].X + (y - poly[i].Y) / (poly[j].Y - poly[i].Y) * (poly[j].X - poly[i].X) < x;
 
                 j = i;

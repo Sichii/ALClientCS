@@ -1,5 +1,5 @@
 using AL.Client.Interfaces;
-using AL.Core.Interfaces;
+using AL.SocketClient.Interfaces;
 
 namespace AL.Client.Model
 {

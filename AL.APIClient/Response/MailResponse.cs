@@ -7,7 +7,7 @@ namespace AL.APIClient.Response
     {
         public string Cursor { get; init; }
         public bool Cursored { get; init; }
-        public IEnumerable<Mail> Mail { get; } = new List<Mail>();
         public bool More { get; init; }
+        public IEnumerable<Mail> Mail { get; } = new List<Mail>();
     }
 }

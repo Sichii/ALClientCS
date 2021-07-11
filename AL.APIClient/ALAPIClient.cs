@@ -95,7 +95,7 @@ namespace AL.APIClient
             if (data == null)
                 throw new Exception("Failed to log in. No response from server.");
 
-            if (setCookieHeader?.Value != null && data.Message.EqualsI("Logged In!"))
+            if ((setCookieHeader?.Value != null) && data.Message.EqualsI("Logged In!"))
                 return new ALAPIClient(new AuthUser(arguments, setCookieHeader.Value.ToString()));
 
             throw new Exception($@"Failed to log in. {data.Message ?? "Unknown"}");

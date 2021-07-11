@@ -227,6 +227,13 @@ namespace AL.Core.Definitions
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
+    public enum WorldType
+    {
+        None,
+        Dungeon
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Condition
     {
         None,
@@ -370,43 +377,43 @@ namespace AL.Core.Definitions
     }
 
     [Flags, JsonConverter(typeof(StringEnumConverter))]
-    public enum WeaponType
+    public enum WeaponType : ulong
     {
-        None,
-        Axe,
-        Basher,
-        Bow,
-        Crossbow,
-        Dagger,
-        DartGun,
-        Fist,
+        None = 0,
+        Axe = 1,
+        Basher = 1 << 1,
+        Bow = 1 << 2,
+        Crossbow = 1 << 3,
+        Dagger = 1 << 4,
+        DartGun = 1 << 5,
+        Fist = 1 << 6,
 
         [EnumMember(Value = "great_staff")]
-        GreatStaff,
+        GreatStaff = 1 << 7,
 
         [EnumMember(Value = "great_sword")]
-        GreatSword,
-        Mace,
+        GreatSword = 1 << 8,
+        Mace = 1 << 9,
 
         [EnumMember(Value = "misc_offhand")]
-        MiscOffhand,
-        PMace,
-        Quiver,
-        Rapier,
-        Rod,
-        Scythe,
-        Shield,
+        MiscOffhand = 1 << 10,
+        PMace = 1 << 11,
+        Quiver = 1 << 12,
+        Rapier = 1 << 13,
+        Rod = 1 << 14,
+        Scythe = 1 << 15,
+        Shield = 1 << 16,
 
         [EnumMember(Value = "short_sword")]
-        ShortSword,
-        Source,
-        Spear,
-        Staff,
-        Stars,
-        Sword,
-        Wand,
-        WBlade,
-        PickAxe
+        ShortSword = 1 << 17,
+        Source = 1 << 18,
+        Spear = 1 << 19,
+        Staff = 1 << 20,
+        Stars = 1 << 21,
+        Sword = 1 << 22,
+        Wand = 1 << 23,
+        WBlade = 1 << 24,
+        PickAxe = 1 << 25
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -600,6 +607,15 @@ namespace AL.Core.Definitions
         Stand,
         CStand,
         Stand0
+    }
+
+    public enum DropType
+    {
+        None,
+        [EnumMember(Value = "m1")]
+        Mining1,
+        [EnumMember(Value = "f1")]
+        Fishing1
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

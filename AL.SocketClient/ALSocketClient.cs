@@ -21,13 +21,13 @@ namespace AL.SocketClient
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private Server Server;
         private SocketIoClient Socket;
-        public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
         // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
         public static JsonSerializer JsonSerializer { get; set; } =
             JsonSerializer.CreateDefault(JsonSerializerSettings);
 
         public sealed override ILog Logger { get; init; }
         public sealed override string Name { get; init; }
+        public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
 
         public ALSocketClient(string name)
         {
@@ -52,6 +52,18 @@ namespace AL.SocketClient
         {
             Warn("Disconnecting");
             await Socket.DisconnectAsync();
+            await Socket.DisposeAsync();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+
+            foreach ((_, var subList) in Subscriptions)
+                foreach (var sub in await subList.ToArrayAsync())
+                    await sub.DisposeAsync();
+
+            Subscriptions.Clear();
             await Socket.DisposeAsync();
         }
 
@@ -105,7 +117,7 @@ RAW JSON:
             {
                 //TODO: Remove this when not capturing stuff
                 Trace(raw);
-                
+
                 var dataObject = JsonSerializer.Deserialize(reader, invocationList.Type);
 
                 if (dataObject == null)
@@ -143,18 +155,6 @@ RAW JSON:
         {
             if (Subscriptions.TryGetValue(socketMessageType, out var invocationList))
                 await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate) callback);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            GC.SuppressFinalize(this);
-
-            foreach ((_, var subList) in Subscriptions)
-                foreach (var sub in await subList.ToArrayAsync())
-                    await sub.DisposeAsync();
-
-            Subscriptions.Clear();
-            await Socket.DisposeAsync();
         }
     }
 }

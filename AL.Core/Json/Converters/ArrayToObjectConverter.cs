@@ -7,6 +7,12 @@ using Newtonsoft.Json.Linq;
 
 namespace AL.Core.Json.Converters
 {
+    /// <summary>
+    ///     Provides conversion logic for objects that are represented as an array of property values.
+    ///     Implements <see cref="Newtonsoft.Json.JsonConverter" />
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <seealso cref="Newtonsoft.Json.JsonConverter" />
     public class ArrayToObjectConverter<T> : JsonConverter
     {
         public static readonly ArrayToObjectConverter<T> Singleton = new();
@@ -15,10 +21,10 @@ namespace AL.Core.Json.Converters
 
         public override bool CanConvert(Type objectType) => objectType == typeof(T);
 
-        public override object ReadJson(
+        public override object? ReadJson(
             JsonReader reader,
             Type objectType,
-            object existingValue,
+            object? existingValue,
             JsonSerializer serializer)
         {
             if (reader.TokenType != JsonToken.StartArray)
@@ -30,8 +36,13 @@ namespace AL.Core.Json.Converters
                 .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Concat<MemberInfo>(
                     typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-                .Where(p => p.GetCustomAttribute<JsonArrayIndexAttribute>() != null)
-                .ToDictionary(p => p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index);
+                .Select(p => new
+                {
+                    p,
+                    p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index
+                })
+                .Where(set => set.Index.HasValue)
+                .ToDictionary(set => set.Index!.Value, set => set.p);
 
             var obj = new JObject(array
                 .Select((jt, i) => propsByIndex.TryGetValue(i, out var prop) ? new JProperty(prop.Name, jt) : null)
@@ -40,14 +51,31 @@ namespace AL.Core.Json.Converters
             return obj.ToObject<T>();
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            var propsByIndex = value.GetType()
-                .GetProperties()
-                .Where(p => p.CanRead && p.GetCustomAttribute<JsonArrayIndexAttribute>() != null)
-                .ToDictionary(p => p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index);
+            var propsByIndex = typeof(T)
+                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Concat<MemberInfo>(
+                    typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                .Select(p => new
+                {
+                    p,
+                    p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index
+                })
+                .Where(set => set.Index.HasValue)
+                .ToDictionary(set => set.Index!.Value, set => set.p);
 
-            var arr = propsByIndex.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value.GetValue(value)).ToArray();
+            var arr = propsByIndex.OrderBy(kvp => kvp.Key)
+                .Select(kvp =>
+                {
+                    return kvp.Value switch
+                    {
+                        FieldInfo fieldInfo       => fieldInfo.GetValue(value),
+                        PropertyInfo propertyInfo => propertyInfo.GetValue(value),
+                        _                         => throw new ArgumentOutOfRangeException(nameof(kvp.Value))
+                    };
+                })
+                .ToArray();
 
             serializer.Serialize(writer, arr);
         }

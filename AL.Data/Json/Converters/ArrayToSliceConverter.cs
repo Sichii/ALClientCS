@@ -3,6 +3,8 @@ using AL.Data.Games;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+#nullable disable
+
 namespace AL.Data.Json.Converters
 {
     public class ArrayToSliceConverter : JsonConverter<Slice>

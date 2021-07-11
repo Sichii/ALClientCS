@@ -2,21 +2,20 @@
 
 namespace AL.Core.Extensions
 {
+    /// <summary>
+    ///     Provides a set of extensions for the <see cref="Math" /> class.
+    /// </summary>
     public static class MathEx
     {
-        public static float Hypot(float d1, float d2) => (float) Math.Sqrt(Math.Pow(d1, 2) + Math.Pow(d2, 2));
-
-        public static float Lerp(float start, float end, float maxMove, float minDiff)
-        {
-            var diff = end - start;
-
-            if (maxMove > 0)
-                diff = Math.Max(Math.Min(diff, maxMove), -maxMove);
-
-            if (Math.Abs(diff) < minDiff)
-                return end;
-
-            return start + diff;
-        }
+        /// <summary>
+        ///     Calculates the length of the hypotenuse of a triangle.
+        /// </summary>
+        /// <param name="a">The lenth of side a of a triangle.</param>
+        /// <param name="b">The length of side b of a triangle.</param>
+        /// <returns>
+        ///     <see cref="float" /> <br />
+        ///     The length of the hyptenuse(c).
+        /// </returns>
+        public static float Hypot(float a, float b) => (float) Math.Sqrt(Math.Pow(a, 2) + Math.Pow(b, 2));
     }
 }

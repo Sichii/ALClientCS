@@ -2,83 +2,87 @@
 
 namespace AL.Data.Geometry
 {
+    /// <summary>
+    ///     <inheritdoc />
+    /// </summary>
+    /// <seealso cref="DatumBase{T}" />
     public class GeometryDatum : DatumBase<MapGeometry>
     {
-        public MapGeometry ABTesting { get; set; }
-        public MapGeometry Arena { get; set; }
-        public MapGeometry Bank { get; set; }
+        public MapGeometry ABTesting { get; set; } = null!;
+        public MapGeometry Arena { get; set; } = null!;
+        public MapGeometry Bank { get; set; } = null!;
 
         [JsonProperty("bank_b")]
-        public MapGeometry BankB { get; set; }
+        public MapGeometry BankB { get; set; } = null!;
 
         [JsonProperty("bank_u")]
-        public MapGeometry BankU { get; set; }
+        public MapGeometry BankU { get; set; } = null!;
 
-        public MapGeometry Cave { get; set; }
-        public MapGeometry Cgallery { get; set; }
-        public MapGeometry Crypt { get; set; }
-        public MapGeometry Cyberland { get; set; }
+        public MapGeometry Cave { get; set; } = null!;
+        public MapGeometry Cgallery { get; set; } = null!;
+        public MapGeometry Crypt { get; set; } = null!;
+        public MapGeometry Cyberland { get; set; } = null!;
 
         [JsonProperty("d_a1")]
-        public MapGeometry DA1 { get; set; }
+        public MapGeometry DA1 { get; set; } = null!;
 
         [JsonProperty("d_a2")]
-        public MapGeometry DA2 { get; set; }
+        public MapGeometry DA2 { get; set; } = null!;
 
         [JsonProperty("d_b1")]
-        public MapGeometry DB1 { get; set; }
+        public MapGeometry DB1 { get; set; } = null!;
 
         [JsonProperty("d_e")]
-        public MapGeometry DE { get; set; }
+        public MapGeometry DE { get; set; } = null!;
 
-        public MapGeometry Desertland { get; set; }
+        public MapGeometry Desertland { get; set; } = null!;
 
         [JsonProperty("d_g")]
-        public MapGeometry DG { get; set; }
+        public MapGeometry DG { get; set; } = null!;
 
-        public MapGeometry Duelland { get; set; }
-        public MapGeometry Dungeon0 { get; set; }
-        public MapGeometry Goobrawl { get; set; }
-        public MapGeometry Halloween { get; set; }
-        public MapGeometry Hut { get; set; }
-        public MapGeometry Jail { get; set; }
-        public MapGeometry Level1 { get; set; }
-        public MapGeometry Level2 { get; set; }
-        public MapGeometry Level2E { get; set; }
-        public MapGeometry Level2N { get; set; }
-        public MapGeometry Level2S { get; set; }
-        public MapGeometry Level2W { get; set; }
-        public MapGeometry Level3 { get; set; }
-        public MapGeometry Level4 { get; set; }
-        public MapGeometry Main { get; set; }
-        public MapGeometry Mansion { get; set; }
-        public MapGeometry Mtunnel { get; set; }
-        public MapGeometry Resort { get; set; }
+        public MapGeometry Duelland { get; set; } = null!;
+        public MapGeometry Dungeon0 { get; set; } = null!;
+        public MapGeometry Goobrawl { get; set; } = null!;
+        public MapGeometry Halloween { get; set; } = null!;
+        public MapGeometry Hut { get; set; } = null!;
+        public MapGeometry Jail { get; set; } = null!;
+        public MapGeometry Level1 { get; set; } = null!;
+        public MapGeometry Level2 { get; set; } = null!;
+        public MapGeometry Level2E { get; set; } = null!;
+        public MapGeometry Level2N { get; set; } = null!;
+        public MapGeometry Level2S { get; set; } = null!;
+        public MapGeometry Level2W { get; set; } = null!;
+        public MapGeometry Level3 { get; set; } = null!;
+        public MapGeometry Level4 { get; set; } = null!;
+        public MapGeometry Main { get; set; } = null!;
+        public MapGeometry Mansion { get; set; } = null!;
+        public MapGeometry Mtunnel { get; set; } = null!;
+        public MapGeometry Resort { get; set; } = null!;
 
         [JsonProperty("resort_e")]
-        public MapGeometry ResortE { get; set; }
+        public MapGeometry ResortE { get; set; } = null!;
 
-        public MapGeometry Shellsisland { get; set; }
-        public MapGeometry Ship0 { get; set; }
-        public MapGeometry Spookytown { get; set; }
-        public MapGeometry Tavern { get; set; }
-        public MapGeometry Test { get; set; }
-        public MapGeometry Tomb { get; set; }
-        public MapGeometry Tunnel { get; set; }
+        public MapGeometry Shellsisland { get; set; } = null!;
+        public MapGeometry Ship0 { get; set; } = null!;
+        public MapGeometry Spookytown { get; set; } = null!;
+        public MapGeometry Tavern { get; set; } = null!;
+        public MapGeometry Test { get; set; } = null!;
+        public MapGeometry Tomb { get; set; } = null!;
+        public MapGeometry Tunnel { get; set; } = null!;
 
         [JsonProperty("winter_cave")]
-        public MapGeometry WinterCave { get; set; }
+        public MapGeometry WinterCave { get; set; } = null!;
 
         [JsonProperty("winter_inn")]
-        public MapGeometry WinterInn { get; set; }
+        public MapGeometry WinterInn { get; set; } = null!;
 
         [JsonProperty("winter_inn_rooms")]
-        public MapGeometry WinterInnRooms { get; set; }
+        public MapGeometry WinterInnRooms { get; set; } = null!;
 
         [JsonProperty("winter_instance")]
-        public MapGeometry WinterInstance { get; set; }
+        public MapGeometry WinterInstance { get; set; } = null!;
 
-        public MapGeometry Winterland { get; set; }
-        public MapGeometry Woffice { get; set; }
+        public MapGeometry Winterland { get; set; } = null!;
+        public MapGeometry Woffice { get; set; } = null!;
     }
 }

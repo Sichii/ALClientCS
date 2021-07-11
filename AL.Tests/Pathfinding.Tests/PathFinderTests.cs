@@ -18,6 +18,7 @@ namespace AL.Tests.Pathfinding.Tests
     [TestClass]
     public class PathFinderTests
     {
+        private const int COUNT = 1000;
         private static readonly Map EndMap = GameData.Maps["winter_cave"];
         private static readonly ILog Logger = LogManager.GetLogger<PathFinderTests>();
         private static readonly Map StartMap = GameData.Maps["main"];
@@ -26,7 +27,6 @@ namespace AL.Tests.Pathfinding.Tests
         private static NavMesh NavMesh;
         private static WorldMesh WorldMesh;
         private readonly List<Point> EndPoints = new() { new Point(1891, -47) };
-        private const int COUNT = 1000;
 
         [TestMethod]
         public async Task FindAnyPathBenchTest()

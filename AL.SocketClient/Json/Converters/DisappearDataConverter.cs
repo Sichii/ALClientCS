@@ -1,6 +1,6 @@
 using System;
 using AL.Core.Geometry;
-using AL.SocketClient.Receive;
+using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
