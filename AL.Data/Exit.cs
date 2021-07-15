@@ -7,7 +7,7 @@ namespace AL.Data
     ///     Represents a point on a map that will teleport you to another map or point.
     /// </summary>
     /// <seealso cref="AL.Core.Interfaces.IPoint" />
-    public record Exit : IPoint
+    public record Exit : ILocation
     {
         /// <summary>
         ///     The accessor (not name or key) of the map this exit leads to.
@@ -26,13 +26,16 @@ namespace AL.Data
         public float X { get; }
         public float Y { get; }
 
-        internal Exit(IPoint point, string destinationMap, int destinationSpawnId, ExitType type)
+        internal Exit(IPoint point, string map, string destinationMap, int destinationSpawnId, ExitType type)
         {
             X = point.X;
             Y = point.Y;
+            Map = map;
             DestinationMap = destinationMap;
             DestinationSpawnId = destinationSpawnId;
             Type = type;
         }
+
+        public string Map { get; } = null!;
     }
 }

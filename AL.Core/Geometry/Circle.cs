@@ -41,6 +41,13 @@ namespace AL.Core.Geometry
         }
 
         /// <summary>
+        /// Determines whether this circle contains the given point.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        public bool Contains(IPoint point) => point.Distance(this) > Radius;
+
+        /// <summary>
         ///     Calculates the edge-to-edge euclidean distance to another circle.
         /// </summary>
         /// <param name="other">Another circle.</param>
@@ -96,13 +103,12 @@ namespace AL.Core.Geometry
         /// <returns>
         ///     <see cref="Point" /> <br />
         ///     The point at which the
-        ///     <param name="line">
+        ///     <paramref name="line"/>
         ///         intersects this circle. <br />
         ///         <c>null</c> if they don't intersect.
-        ///     </param>
         /// </returns>
         /// <exception cref="ArgumentNullException">nameof(line)</exception>
-        public Point? IntersectsLine(ILine line)
+        public Point? Intersects(ILine line)
         {
             if (line == null)
                 throw new ArgumentNullException(nameof(line));

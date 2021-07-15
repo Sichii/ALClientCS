@@ -1,4 +1,5 @@
 ﻿using AL.Core.Definitions;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
 using Newtonsoft.Json;
@@ -21,10 +22,9 @@ namespace AL.Data.Maps
         public ZoneType Type { get; init; }
 
         /// <summary>
-        ///     Vertices of the polygon of the zone. <br />
-        ///     TODO: Add IPolygon support
+        ///     A polygon representing the bounds of the zone. <br />
         /// </summary>
         [JsonProperty("polygon", ItemConverterType = typeof(ArrayToPointConverter))]
-        public IPoint[] Vertices { get; init; } = null!;
+        public Polygon Vertices { get; init; } = null!;
     }
 }

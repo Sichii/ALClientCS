@@ -96,5 +96,13 @@ namespace AL.Data.Maps
 
         public Map WinterLand { get; set; } = null!;
         public Map Woffice { get; set; } = null!;
+
+        internal override void ConstructCache()
+        {
+            base.ConstructCache();
+
+            foreach ((var accessor, var map) in this)
+                map.Accessor = accessor;
+        }
     }
 }

@@ -7,6 +7,11 @@ namespace AL.Tests.Data.Tests
     public class JsonConverterTests
     {
         [TestMethod]
-        public void GameDataTest() => Assert.IsNotNull(GameData.Classes);
+        public void GameDataTest()
+        {
+            Assert.IsNotNull(GameData.Classes);
+            Assert.IsNotNull(GameData.Achievements);
+            Assert.IsNotNull(GameData.Maps);
+        }
     }
 }

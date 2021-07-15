@@ -11,7 +11,7 @@ namespace AL.SocketClient.SocketModel
         public float GoldMod { get; set; }
         public bool Gone { get; set; }
         public string Id { get; set; }
-        public IEnumerable<ChestItem> Items { get; set; } = new List<ChestItem>();
+        public IReadOnlyList<ChestItem> Items { get; set; } = new List<ChestItem>();
         [JsonProperty("opener")]
         public string OpenerName { get; set; }
         public bool Party { get; set; }

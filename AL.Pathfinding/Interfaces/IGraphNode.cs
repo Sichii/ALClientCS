@@ -3,14 +3,48 @@ using System.Collections.Generic;
 
 namespace AL.Pathfinding.Interfaces
 {
-    public interface IGraphNode<T> : IEquatable<IGraphNode<T>>, IComparable<IGraphNode<T>>
+    /// <summary>
+    ///     Represents a node on a graph intended to be searched via dijkstra algorithm.
+    /// </summary>
+    /// <typeparam name="TEdge">The type of the underlying edge.</typeparam>
+    /// <seealso cref="IEquatable{T}" />
+    /// <seealso cref="IComparable{T}" />
+    public interface IGraphNode<TEdge> : IEquatable<IGraphNode<TEdge>>, IComparable<IGraphNode<TEdge>>
     {
+        /// <summary>
+        ///     If true, the node and it's neighbors have been searched.
+        /// </summary>
         bool Closed { get; set; }
+
+        /// <summary>
+        ///     The index of the parent of this node.
+        /// </summary>
         int? Parent { get; set; }
-        T Edge { get; }
+
+        /// <summary>
+        ///     The underlying edge data.
+        /// </summary>
+        TEdge Edge { get; }
+
+        /// <summary>
+        ///     The index of this node.
+        /// </summary>
         int Index { get; }
-        List<IGraphNode<T>> Neighbors { get; }
+
+        /// <summary>
+        ///     The neighboring nodes of this node.
+        /// </summary>
+        List<IGraphNode<TEdge>> Neighbors { get; }
+
+        /// <summary>
+        ///     The priority of this node, as used in a Priority Queue.
+        /// </summary>
         float Priority { get; }
+
+        /// <summary>
+        ///     Resets this nodes <see cref="Closed" /> and <see cref="Parent" /> to their default values. <br />
+        ///     The containing connection will need to reset the <see cref="Priority" />.
+        /// </summary>
         void Reset();
     }
 }

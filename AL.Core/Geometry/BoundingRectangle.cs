@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using AL.Core.Interfaces;
 
 // ReSharper disable ConstantConditionalAccessQualifier
@@ -19,7 +21,7 @@ namespace AL.Core.Geometry
         public float Left { get; }
         public float Right { get; }
         public float Top { get; }
-        public IPoint[] Vertices { get; }
+        public IReadOnlyList<IPoint> Vertices { get; }
         public float Width { get; }
         public float X { get; }
         public float Y { get; }
@@ -51,7 +53,7 @@ namespace AL.Core.Geometry
             Bottom = y + verticalNotNorth;
 
             Vertices = new IPoint[]
-                { new Point(Top, Left), new Point(Top, Right), new Point(Bottom, Left), new Point(Bottom, Right) };
+                { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
         }
 
         // ReSharper disable once UseDeconstructionOnParameter        
@@ -68,5 +70,9 @@ namespace AL.Core.Geometry
                 boundingBase?.HalfWidth ?? throw new ArgumentNullException(nameof(boundingBase)),
                 boundingBase?.VerticalNorth ?? throw new ArgumentNullException(nameof(boundingBase)),
                 boundingBase?.VerticalNotNorth ?? throw new ArgumentNullException(nameof(boundingBase))) { }
+
+        public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

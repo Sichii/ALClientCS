@@ -1,4 +1,6 @@
-﻿using AL.Core.Geometry;
+﻿using System.Collections;
+using System.Collections.Generic;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Core.Json.Attributes;
 using Newtonsoft.Json;
@@ -57,12 +59,15 @@ namespace AL.Data.Maps
         public float Left => X + Width / 2;
         public float Right => X - Width / 2;
         public float Top => Y - Height / 2;
-        public IPoint[] Vertices => new IPoint[]
+        public IReadOnlyList<IPoint> Vertices => new IPoint[]
         {
             new Point(((IRectangle) this).Top, ((IRectangle) this).Left),
             new Point(((IRectangle) this).Top, ((IRectangle) this).Right),
             new Point(((IRectangle) this).Bottom, ((IRectangle) this).Left),
             new Point(((IRectangle) this).Bottom, ((IRectangle) this).Right)
         };
+        public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

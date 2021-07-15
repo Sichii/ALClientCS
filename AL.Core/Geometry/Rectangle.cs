@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using AL.Core.Interfaces;
 using Newtonsoft.Json;
 
@@ -10,7 +12,6 @@ namespace AL.Core.Geometry
     ///     <inheritdoc cref="IRectangle" />
     /// </summary>
     /// <seealso cref="AL.Core.Interfaces.IRectangle" />
-    /// <seealso cref="AL.Core.Interfaces.IPoint" />
     public record Rectangle : IRectangle
     {
         public float Bottom { get; }
@@ -18,7 +19,7 @@ namespace AL.Core.Geometry
         public float Left { get; }
         public float Right { get; }
         public float Top { get; }
-        public IPoint[] Vertices { get; }
+        public IReadOnlyList<IPoint> Vertices { get; }
         public float Width { get; }
         public float X { get; }
         public float Y { get; }
@@ -44,7 +45,7 @@ namespace AL.Core.Geometry
             Bottom = y + height / 2;
 
             Vertices = new IPoint[]
-                { new Point(Top, Left), new Point(Top, Right), new Point(Bottom, Left), new Point(Bottom, Right) };
+                { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
         }
 
         /// <summary>
@@ -69,5 +70,9 @@ namespace AL.Core.Geometry
                 Math.Abs((pt1?.Y ?? throw new ArgumentNullException(nameof(pt1)))
                          - (pt2?.Y ?? throw new ArgumentNullException(nameof(pt2)))), Math.Abs(pt1.X - pt2.X),
                 new Point((pt1.X + pt2.X) / 2, (pt1.Y + pt2.Y) / 2)) { }
+
+        public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

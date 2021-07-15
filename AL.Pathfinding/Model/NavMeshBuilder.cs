@@ -8,16 +8,15 @@ using AL.Data.Geometry;
 using AL.Data.Maps;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Extensions;
-using AL.Pathfinding.Model;
 using Poly2Tri;
+using Polygon = Poly2Tri.Polygon;
 
-namespace AL.Pathfinding
+namespace AL.Pathfinding.Model
 {
-    public class NavMeshBuilder
+    internal class NavMeshBuilder
     {
         private readonly MapGeometry Geometry;
         private readonly int Height;
-        public readonly string Key;
         private readonly Map Map;
         private readonly Dictionary<Point, GraphNode<Point>> NodeDic;
         private readonly PointType[,] PointMap;
@@ -26,11 +25,10 @@ namespace AL.Pathfinding
         private readonly int XOffset;
         private readonly int YOffset;
         private int Index;
-        private GraphNode<Point> TownNode;
+        private GraphNode<Point>? TownNode;
 
-        public NavMeshBuilder(Map map, MapGeometry geometry)
+        internal NavMeshBuilder(Map map, MapGeometry geometry)
         {
-            Key = map.Key;
             Map = map;
             Geometry = geometry;
             Width = Geometry.MaxX - Geometry.MinX;
@@ -42,7 +40,7 @@ namespace AL.Pathfinding
             Triangles = new Dictionary<Point, DelaunayTriangle>();
         }
 
-        public NavMesh Build()
+        internal NavMesh Build()
         {
             FillWalls();
             var vertices = new HashSet<Point>();
@@ -54,7 +52,7 @@ namespace AL.Pathfinding
             P2T.Triangulate(polySet);
 
             foreach (var triangle in polySet.Polygons.SelectMany(polygon => polygon.Triangles))
-                Triangles.Add(PolygonExtensions.Centroid(triangle), triangle);
+                Triangles.Add(TriangleNetExtensions.Centroid(triangle), triangle);
 
             foreach (var triangle in Triangles.Values)
             {
@@ -99,7 +97,6 @@ namespace AL.Pathfinding
 
             var context = new NavMeshBuilderContext
             {
-                Key = Key,
                 Nodes = NodeDic.Values.ToList(),
                 Triangles = Triangles,
                 TownNode = TownNode,
@@ -113,9 +110,9 @@ namespace AL.Pathfinding
 
         #region Utility
 
-        private GraphNode<Point> CreateTownNode()
+        private GraphNode<Point>? CreateTownNode()
         {
-            var spawn = Map.Spawns?.FirstOrDefault();
+            var spawn = Map.Spawns.Count > 0 ? Map.Spawns[0] : default;
 
             if ((spawn == null) || Map.Boundless)
                 return null;
@@ -123,8 +120,8 @@ namespace AL.Pathfinding
             var spawnPoint = new Point(spawn.X + XOffset, spawn.Y + YOffset);
             var node = new GraphNode<Point>(spawnPoint, Index++);
             var townTriangle = Triangles.OrderBy(kvp => kvp.Key.Distance(spawnPoint))
-                .FirstOrDefault(kvp => kvp.Value.ContainsPoint(spawnPoint.X, spawnPoint.Y))
-                .Value;
+                .Select(kvp => kvp.Value)
+                .FirstOrDefault(triangle => triangle.ContainsPoint(spawnPoint.X, spawnPoint.Y));
 
             if (townTriangle == null)
                 return null;

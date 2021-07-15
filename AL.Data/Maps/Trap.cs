@@ -24,9 +24,8 @@ namespace AL.Data.Maps
 
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, this is the vertices of the polygon of the trap.<br />
-        ///     TODO: Add IPolygon support
         /// </summary>
-        [JsonProperty("polygon", ItemConverterType = typeof(ArrayToPointConverter))]
-        public IReadOnlyList<Point>? Vertices { get; init; }
+        [JsonProperty(ItemConverterType = typeof(ArrayToPointConverter))]
+        public Polygon? Polygon { get; init; }
     }
 }

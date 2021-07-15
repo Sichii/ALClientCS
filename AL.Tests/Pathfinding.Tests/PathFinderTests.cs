@@ -4,8 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AL.Data;
-using AL.Data.Maps;
+using AL.Core.Interfaces;
 using AL.Pathfinding;
 using AL.Visualizer.Extensions;
 using Common.Logging;
@@ -19,14 +18,10 @@ namespace AL.Tests.Pathfinding.Tests
     public class PathFinderTests
     {
         private const int COUNT = 1000;
-        private static readonly Map EndMap = GameData.Maps["winter_cave"];
         private static readonly ILog Logger = LogManager.GetLogger<PathFinderTests>();
-        private static readonly Map StartMap = GameData.Maps["main"];
-        private static readonly Point StartPoint = new(-1582, 496);
+        private static readonly IPoint StartPoint = new Point(-1582, 496);
         private static readonly SemaphoreSlim Sync = new(1, 1);
-        private static NavMesh NavMesh;
-        private static WorldMesh WorldMesh;
-        private readonly List<Point> EndPoints = new() { new Point(1891, -47) };
+        private readonly List<IPoint> EndPoints = new() { new Point(1891, -47) };
 
         [TestMethod]
         public async Task FindAnyPathBenchTest()
@@ -38,7 +33,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
-                .SelectMany(_ => NavMesh.FindPath(EndPoints.First(), possibleEnds));
+                .SelectMany(_ => PathFinder.FindPath("main", EndPoints.First(), possibleEnds));
 
             var i = 0;
             await foreach (var _ in pathGenerator)
@@ -59,7 +54,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             timer.Start();
 
-            var path = await NavMesh.FindPath(EndPoints.First(), possibleEnds).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", EndPoints.First(), possibleEnds).ToArrayAsync();
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -77,7 +72,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
-                .SelectMany(_ => NavMesh.FindPath(EndPoints.First(), possibleEnds, 200));
+                .SelectMany(_ => PathFinder.FindPath("main", EndPoints.First(), possibleEnds, 200));
 
             var i = 0;
             await foreach (var _ in pathGenerator)
@@ -98,7 +93,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             timer.Start();
 
-            var path = await NavMesh.FindPath(EndPoints.First(), possibleEnds, 200).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", EndPoints.First(), possibleEnds, 200).ToArrayAsync();
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -114,7 +109,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
-                .SelectMany(_ => NavMesh.FindPath(StartPoint, EndPoints));
+                .SelectMany(_ => PathFinder.FindPath("main", StartPoint, EndPoints));
 
             var i = 0;
             await foreach (var _ in pathGenerator)
@@ -133,7 +128,7 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var path = await NavMesh.FindPath(StartPoint, EndPoints).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", StartPoint, EndPoints).ToArrayAsync();
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -149,7 +144,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             var pathGenerator = Enumerable.Range(0, COUNT)
                 .ToAsyncEnumerable()
-                .SelectMany(_ => NavMesh.FindPath(StartPoint, EndPoints, 200));
+                .SelectMany(_ => PathFinder.FindPath("main", StartPoint, EndPoints, 200));
 
             var i = 0;
             await foreach (var _ in pathGenerator)
@@ -168,7 +163,7 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var path = await NavMesh.FindPath(StartPoint, EndPoints, 200).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", StartPoint, EndPoints, 200).ToArrayAsync();
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -182,7 +177,7 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var route = await WorldMesh.FindRoute(StartMap, new[] { EndMap }).ToArrayAsync();
+            var route = await PathFinder.FindRoute("main", new[] { "winter_cave" }).ToArrayAsync();
 
             timer.Stop();
             Logger.Debug($"Route found from main to winter_cave in {timer.ElapsedMilliseconds}");
@@ -192,12 +187,7 @@ namespace AL.Tests.Pathfinding.Tests
         }
 
         [ClassInitialize]
-        public static async Task Init(TestContext context)
-        {
-            await PathFinder.InitializeAsync();
-            NavMesh = await PathFinder.NavMeshes[GameData.Maps["main"].Key];
-            WorldMesh = PathFinder.WorldMesh;
-        }
+        public static async Task Init(TestContext context) => await PathFinder.InitializeAsync();
 
         [TestCleanup]
         public void TestCleanup() => Sync.Release();
@@ -211,15 +201,16 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var path = await NavMesh
-                .FindPath(StartPoint, EndPoints, smoothPath: true, useTownIfOptimal: true, distance: 0)
+            var path = await PathFinder
+                .FindPath("main", StartPoint, EndPoints, smoothPath: true, useTownIfOptimal: true, distance: 0)
                 .ToArrayAsync();
 
             timer.Stop();
-            var current = new Point(StartPoint.X + NavMesh.XOffset, StartPoint.Y + NavMesh.YOffset);
+            var navMesh = PathFinder.GetNavMesh("main");
+            var current = new Point(StartPoint.X + navMesh.XOffset, StartPoint.Y + navMesh.YOffset);
 
-            var image = Visualizer.Visualizer.CreateGridImage(NavMesh.PointMap)
-                .DrawConnections(NavMesh)
+            var image = Visualizer.Visualizer.CreateGridImage(navMesh.PointMap)
+                .DrawConnections(navMesh)
                 .DrawPath(new[] { current }.Concat(path.Select(connector => connector.End)));
 
             await image.SaveAsync(@"images\singlePath.png");
@@ -234,13 +225,14 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var path = await NavMesh.FindPath(StartPoint, EndPoints, 500).ToArrayAsync();
+            var navMesh = PathFinder.GetNavMesh("main");
+            var path = await PathFinder.FindPath("main", StartPoint, EndPoints, 500).ToArrayAsync();
 
             timer.Stop();
-            var current = new Point(StartPoint.X + NavMesh.XOffset, StartPoint.Y + NavMesh.YOffset);
+            var current = new Point(StartPoint.X + navMesh.XOffset, StartPoint.Y + navMesh.YOffset);
 
-            var image = Visualizer.Visualizer.CreateGridImage(NavMesh.PointMap)
-                .DrawConnections(NavMesh)
+            var image = Visualizer.Visualizer.CreateGridImage(navMesh.PointMap)
+                .DrawConnections(navMesh)
                 .DrawPath(new[] { current }.Concat(path.Select(connector => connector.End)));
 
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");

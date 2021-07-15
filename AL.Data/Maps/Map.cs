@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Definitions;
 using AL.Core.Json.Converters;
+using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
 namespace AL.Data.Maps
@@ -12,6 +13,11 @@ namespace AL.Data.Maps
     /// </summary>
     public record Map
     {
+        /// <summary>
+        /// The accessor for this map.
+        /// </summary>
+        [JsonIgnore]
+        public string Accessor { get; internal set; } = null!;
         /// <summary>
         ///     If true, the map has no walls.
         /// </summary>
@@ -173,26 +179,27 @@ namespace AL.Data.Maps
         //ref obj
         //old_monsters obj[]
 
-        public virtual bool Equals(Map? other) => other is not null && Key.Equals(other.Key);
+        public virtual bool Equals(Map? other) =>
+            other is not null && Accessor.EqualsI(other.Accessor) && Key.Equals(other.Key);
 
         private List<Exit> GenerateExits()
         {
             var exits = new List<Exit>();
 
             foreach (var door in Doors)
-                exits.Add(new Exit(door, door.DestinationMap, door.DestinationSpawnId, ExitType.Door));
+                exits.Add(new Exit(door, Accessor, door.DestinationMap, door.DestinationSpawnId, ExitType.Door));
 
             var npcSets = NPCs.Select(npc => new { MapNPC = npc, GameNPC = GameData.NPCs[npc.Id] })
                 .Where(set => (set.GameNPC != null) && (set.GameNPC.Role == NPCRole.Transport));
 
             foreach (var set in npcSets)
                 foreach (var position in set.MapNPC.Positions)
-                    foreach ((var toMap, var toSpawnId) in set.GameNPC!.Places)
-                        exits.Add(new Exit(position, toMap, toSpawnId, ExitType.NPC));
+                    foreach ((var toMap, var toSpawnId) in set.GameNPC!.Places!)
+                        exits.Add(new Exit(position, Accessor, toMap, toSpawnId, ExitType.NPC));
 
             return exits;
         }
 
-        public override int GetHashCode() => Key.GetHashCode();
+        public override int GetHashCode() => HashCode.Combine(Name.GetHashCode(), Key.GetHashCode());
     }
 }
