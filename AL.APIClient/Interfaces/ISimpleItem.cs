@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace AL.SocketClient.Interfaces
+namespace AL.APIClient.Interfaces
 {
     /// <summary>
     ///     Represents the simplest information possible about an item.

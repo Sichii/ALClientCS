@@ -25,14 +25,8 @@ namespace AL.SocketClient
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private Server? Server;
         private SocketIoClient? Socket;
-
-        /// <summary>
-        ///     A default <see cref="JsonSerializer" /> instance using the default <see cref="JsonSerializerSettings" /> instance.
-        ///     <br />
-        ///     Caching an instance of this helps with performance.
-        /// </summary>
-        public static JsonSerializer JsonSerializer { get; set; } =
-            JsonSerializer.CreateDefault(JsonSerializerSettings);
+        
+        #region Do Not ReOrder
         /// <summary>
         ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing emits and deserializing messages.
         ///     <br />
@@ -42,6 +36,15 @@ namespace AL.SocketClient
         // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
         public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
 
+        /// <summary>
+        ///     A default <see cref="JsonSerializer" /> instance using the default <see cref="JsonSerializerSettings" /> instance.
+        ///     <br />
+        ///     Caching an instance of this helps with performance.
+        /// </summary>
+        public static JsonSerializer JsonSerializer { get; set; } =
+            JsonSerializer.CreateDefault(JsonSerializerSettings);
+        #endregion
+        
         /// <summary>
         ///     The name of the character this client is for.
         /// </summary>

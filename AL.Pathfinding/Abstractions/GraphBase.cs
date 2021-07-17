@@ -41,12 +41,12 @@ namespace AL.Pathfinding.Abstractions
         /// <summary>
         ///     The connections between the edges.
         /// </summary>
-        protected IConnector<TEdge>?[,] Connectors { get; }
+        protected internal IConnector<TEdge>?[,] Connectors { get; }
 
         /// <summary>
         ///     A list of nodes, index is important.
         /// </summary>
-        protected List<TNode> Nodes { get; }
+        protected internal List<TNode> Nodes { get; }
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="GraphBase{TNode,TEdge}" /> class.

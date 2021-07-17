@@ -1,3 +1,4 @@
+using AL.APIClient.Interfaces;
 using AL.SocketClient.Interfaces;
 using Newtonsoft.Json;
 

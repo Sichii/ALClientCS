@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AL.Core.Interfaces;
 using AL.Pathfinding;
+using AL.Pathfinding.Interfaces;
 using AL.Visualizer.Extensions;
 using Common.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -206,12 +207,11 @@ namespace AL.Tests.Pathfinding.Tests
                 .ToArrayAsync();
 
             timer.Stop();
-            var navMesh = PathFinder.GetNavMesh("main");
-            var current = new Point(StartPoint.X + navMesh.XOffset, StartPoint.Y + navMesh.YOffset);
+            var navMesh = PathFinder.GetNavMesh("main")!;
 
-            var image = Visualizer.Visualizer.CreateGridImage(navMesh.PointMap)
+            var image = Visualizer.Visualizer.CreateGridImage(navMesh)
                 .DrawConnections(navMesh)
-                .DrawPath(new[] { current }.Concat(path.Select(connector => connector.End)));
+                .DrawPath<IConnector<Point>, Point>(path);
 
             await image.SaveAsync(@"images\singlePath.png");
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -225,15 +225,13 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var navMesh = PathFinder.GetNavMesh("main");
+            var navMesh = PathFinder.GetNavMesh("main")!;
             var path = await PathFinder.FindPath("main", StartPoint, EndPoints, 500).ToArrayAsync();
 
             timer.Stop();
-            var current = new Point(StartPoint.X + navMesh.XOffset, StartPoint.Y + navMesh.YOffset);
-
-            var image = Visualizer.Visualizer.CreateGridImage(navMesh.PointMap)
+            var image = Visualizer.Visualizer.CreateGridImage(navMesh)
                 .DrawConnections(navMesh)
-                .DrawPath(new[] { current }.Concat(path.Select(connector => connector.End)));
+                .DrawPath<IConnector<Point>, Point>(path);
 
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
             await image.SaveAsync(@"images\singlePathDistance.png");

@@ -8,7 +8,7 @@ namespace AL.APIClient.Request
 {
     internal class APIRequest : RestRequest
     {
-        internal APIRequest(Method method, APIMethod apiMethod, object arguments, AuthUser authUser = null)
+        internal APIRequest(Method method, APIMethod apiMethod, object? arguments, AuthUser? authUser = null)
             : base($"api/{EnumHelper.ToString(apiMethod)}", method)
         {
             AddParameter("method", EnumHelper.ToString(apiMethod), ParameterType.GetOrPost);

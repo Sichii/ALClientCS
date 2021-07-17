@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace AL.SocketClient.Extensions
+namespace AL.APIClient.Extensions
 {
     /// <summary>
     ///     Provides a set of extensions for <see cref="Task" />s.

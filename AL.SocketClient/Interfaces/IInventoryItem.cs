@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using AL.APIClient.Interfaces;
 using AL.Core.Definitions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;

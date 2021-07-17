@@ -4,10 +4,24 @@ using AL.APIClient.Request;
 
 namespace AL.APIClient.Model
 {
+    /// <summary>
+    /// Represents a logged in user.
+    /// </summary>
     public record AuthUser
     {
+        /// <summary>
+        /// The user's authorization key.
+        /// </summary>
         public string AuthKey { get; }
+        
+        /// <summary>
+        /// When the authorization expires.
+        /// </summary>
         public DateTime Expires { get; }
+        
+        /// <summary>
+        /// The user's id.
+        /// </summary>
         public long UserID { get; }
         internal LoginInfo LoginInfo { get; }
 
@@ -30,7 +44,7 @@ namespace AL.APIClient.Model
             if (DateTime.TryParse(str, out var expires))
                 Expires = expires.ToUniversalTime();
         }
-
+        
         public override string ToString() => $"{UserID}-{AuthKey}";
     }
 }

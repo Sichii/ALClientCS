@@ -4,12 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using AL.APIClient;
 using AL.APIClient.Definitions;
+using AL.APIClient.Extensions;
 using AL.Client.Abstractions;
 using AL.Client.Helpers;
 using AL.Client.Managers;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Extensions;
 using AL.SocketClient.SocketModel;
 using Chaos.Core.Extensions;
 

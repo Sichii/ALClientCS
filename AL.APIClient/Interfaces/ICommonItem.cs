@@ -1,7 +1,7 @@
 using AL.Core.Definitions;
 using Newtonsoft.Json;
 
-namespace AL.SocketClient.Interfaces
+namespace AL.APIClient.Interfaces
 {
     /// <summary>
     ///     Represents the information that is common between most instances of an item.
