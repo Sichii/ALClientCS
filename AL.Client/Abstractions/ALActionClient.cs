@@ -125,7 +125,7 @@ namespace AL.Client.Abstractions
             {
                 var result = false;
 
-                if (data.Attacker.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && (data.Type == "attack"))
+                if (data.AttackerId.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && (data.Type == "attack"))
                     result = source.TrySetResult(data);
 
                 return Task.FromResult(result);
@@ -151,7 +151,7 @@ namespace AL.Client.Abstractions
                 {
                     GameResponseType.BuySuccess => source.TrySetResult(new SimpleItem
                     {
-                        Name = data.ItemName,
+                        Name = data.Name,
                         Quantity = data.Quantity
                     }),
                     GameResponseType.BuyCantNPC => source.TrySetResult($"Failed to buy {itemName}. (wrong npc)"),

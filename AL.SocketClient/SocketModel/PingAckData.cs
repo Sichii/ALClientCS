@@ -1,7 +1,13 @@
 namespace AL.SocketClient.SocketModel
 {
+    /// <summary>
+    ///     Represents data received when getting a response to our ping.
+    /// </summary>
     public record PingAckData
     {
-        public string Id { get; init; }
+        /// <summary>
+        ///     The id of the ping being responded to.
+        /// </summary>
+        public string Id { get; init; } = null!;
     }
 }

@@ -5,6 +5,9 @@
     /// </summary>
     public interface ILocation : IPoint
     {
+        /// <summary>
+        ///     The map this object is in.
+        /// </summary>
         string Map { get; }
     }
 }

@@ -22,8 +22,9 @@ namespace AL.Data.Monsters
         /// <summary>
         ///     The abilities this monster has, indexed by the name of the ability.
         /// </summary>
-        [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<Ability>))]
-        public IReadOnlyDictionary<string, Ability> Abilities { get; init; } = new Dictionary<string, Ability>();
+        [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<MonsterAbility>))]
+        public IReadOnlyDictionary<string, MonsterAbility> Abilities { get; init; } =
+            new Dictionary<string, MonsterAbility>();
 
         /// <summary>
         ///     A list of the achievements associated with this monster.

@@ -43,7 +43,7 @@ namespace AL.Client
             Socket.On<GameErrorData>(ALSocketMessageType.GameError, OnGameErrorAsync);
             Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, OnPartyUpdateAsync);
             Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedActionAsync);
-            Socket.On<UpgradeData>(ALSocketMessageType.Upgrade, OnUpgradeAsync);
+            Socket.On<QueuedActionResultData>(ALSocketMessageType.Upgrade, OnUpgradeAsync);
             Socket.On<WelcomeData>(ALSocketMessageType.Welcome, OnWelcomeAsync);
             Socket.On<ActionData>(ALSocketMessageType.Action, OnActionAsync);
             Socket.On<DeathData>(ALSocketMessageType.Death, OnDeathAsync);

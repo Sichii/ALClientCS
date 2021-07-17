@@ -5,17 +5,40 @@ using Newtonsoft.Json.Linq;
 
 namespace AL.SocketClient.SocketModel
 {
-    public record NewMapData : ILocation, IOriented
+    /// <summary>
+    ///     Represents the data received when switching maps.
+    /// </summary>
+    /// <seealso cref="IInstancedLocation" />
+    /// <seealso cref="IOriented" />
+    public record NewMapData : IInstancedLocation, IOriented
     {
         public Direction Direction { get; init; }
+
+        /// <summary>
+        ///     GUI related. The effect that plays to make your character disappear from the previous map.
+        /// </summary>
         public DisappearEffect Effect { get; init; }
-        public EntitiesData Entities { get; init; }
-        public string In { get; init; }
-        public JObject Info { get; init; }
+
+        /// <summary>
+        ///     A full entities update for the entities on the new map.
+        /// </summary>
+        public EntitiesData Entities { get; init; } = null!;
+        public string In { get; init; } = null!;
+
+        /// <summary>
+        ///     TODO: unknown, always empty? maybe map specific info?
+        /// </summary>
+        public JObject? Info { get; init; }
+
         [JsonProperty("name")]
-        public string Map { get; init; }
+        public string Map { get; init; } = null!;
+
+        /// <summary>
+        ///     The map change count value for this map change.
+        /// </summary>
         [JsonProperty("m")]
         public int MapChangeCount { get; init; }
+
         public float X { get; init; }
         public float Y { get; init; }
     }

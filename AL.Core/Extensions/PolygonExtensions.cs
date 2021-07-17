@@ -3,18 +3,20 @@ using AL.Core.Interfaces;
 namespace AL.Core.Extensions
 {
     /// <summary>
-    /// Provides a set of extensions for <see cref="IPolygon"/>s.
+    ///     Provides a set of extensions for <see cref="IPolygon" />s.
     /// </summary>
     public static class PolygonExtensions
     {
         /// <summary>
-        /// Determins if a given <see cref="IPoint"/> is inside of a <see cref="IPolygon"/>. <br/>
-        /// https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
+        ///     Determins if a given <see cref="IPoint" /> is inside of a <see cref="IPolygon" />. <br />
+        ///     https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
         /// </summary>
         /// <param name="polygon">A polygon.</param>
         /// <param name="point">A point.</param>
-        /// <returns><see cref="bool"/> <br/>
-        /// <c>true</c> if the point lies inside(or on the endge) the polygon, otherwise <c>false</c>.</returns>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the point lies inside(or on the endge) the polygon, otherwise <c>false</c>.
+        /// </returns>
         public static bool Contains(this IPolygon polygon, IPoint point)
         {
             var inside = false;

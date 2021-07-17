@@ -16,7 +16,7 @@ namespace AL.SocketClient.SocketModel
         [JsonProperty("to")]
         public string ToMap { get; init; }
         [JsonIgnore]
-        public Orientation ToOrientation { get; internal set; }
+        public Orientation? ToOrientation { get; internal set; }
         [JsonIgnore]
         public int? ToSpawnId { get; internal set; }
     }

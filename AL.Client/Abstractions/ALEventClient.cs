@@ -4,18 +4,16 @@ using System.Threading.Tasks;
 using AL.APIClient;
 using AL.APIClient.Model;
 using AL.Client.Model;
+using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.Core.Model;
 using AL.Data;
 using AL.SocketClient;
-using AL.SocketClient.Abstractions;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Interfaces.Responses;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Chaos.Core.Collections.Synchronized.Awaitable;
-using Common.Logging;
 using Character = AL.SocketClient.Model.Character;
 using Condition = AL.Core.Definitions.Condition;
 
@@ -28,8 +26,6 @@ namespace AL.Client.Abstractions
         public Character Character { get; protected set; }
         public EventAndBossInfo EventsAndBosses { get; protected set; }
         public string Identifier { get; protected set; }
-        public sealed override ILog Logger { get; init; }
-        public sealed override string Name { get; init; }
         public PartyUpdateData Party { get; protected set; }
         public Server Server { get; protected set; }
         public ALSocketClient Socket { get; protected set; }
@@ -38,13 +34,17 @@ namespace AL.Client.Abstractions
         public AwaitableDictionary<string, DropData> Chests { get; }
         public AwaitableDictionary<string, CooldownInfo> Cooldowns { get; }
         public AwaitableDictionary<string, Monster> Monsters { get; }
+        /// <summary>
+        ///     The name of the character this client is for.
+        /// </summary>
+        public override string Name { get; }
         public AwaitableDictionary<string, Player> Players { get; }
         public AwaitableDictionary<string, ActionData> Projectiles { get; }
 
         internal ALEventClient(string name, ALAPIClient apiClient)
+            : base(name)
         {
             Name = name;
-            Logger = LogManager.GetLogger<ALClient>();
             AchievementProgress = new AwaitableDictionary<string, AchievementProgressData>();
             API = apiClient;
             Monsters = new AwaitableDictionary<string, Monster>();
@@ -138,28 +138,24 @@ namespace AL.Client.Abstractions
             {
                 case GameResponseType.Cooldown:
                 {
-                    ICooldownResponse response = data;
-
-                    if (await Cooldowns.TryGetValueAsync(response.SkillName, out var infoTask))
+                    if (await Cooldowns.TryGetValueAsync(data.SkillName, out var infoTask))
                     {
                         var info = await infoTask;
                         await Cooldowns.AddOrUpdateAsync(info.SkillName,
-                            info with { ServerCooldownMS = response.CooldownMS });
+                            info with { ServerCooldownMS = data.CooldownMS });
                     } else
-                        await Cooldowns.AddOrUpdateAsync(response.SkillName, new CooldownInfo
+                        await Cooldowns.AddOrUpdateAsync(data.SkillName, new CooldownInfo
                         {
-                            SkillName = response.SkillName,
+                            SkillName = data.SkillName,
                             LocalLastUse = DateTime.UtcNow,
-                            ServerCooldownMS = response.CooldownMS
+                            ServerCooldownMS = data.CooldownMS
                         });
 
                     break;
                 }
                 case GameResponseType.ConditionExpired:
                 {
-                    ISkillNameResponse response = data;
-
-                    if (EnumHelper.TryParse(response.SkillName, out Condition conditionName))
+                    if (EnumHelper.TryParse(data.Name, out Condition conditionName))
                         await Character.Conditions.RemoveAsync(conditionName);
 
                     break;
@@ -167,17 +163,16 @@ namespace AL.Client.Abstractions
 
                 case GameResponseType.SkillSuccess:
                 {
-                    ISkillNameResponse response = data;
-                    var cooldownMS = GameData.Skills[data.SkillName].CooldownMS;
+                    var cooldownMS = GameData.Skills[data.Name].CooldownMS;
 
-                    if (await Cooldowns.TryGetValueAsync(response.SkillName, out var infoTask))
+                    if (await Cooldowns.TryGetValueAsync(data.Name, out var infoTask))
                     {
                         var info = await infoTask;
                         await Cooldowns.AddOrUpdateAsync(info.SkillName, info with { ServerCooldownMS = cooldownMS });
                     } else
-                        await Cooldowns.AddOrUpdateAsync(response.SkillName, new CooldownInfo
+                        await Cooldowns.AddOrUpdateAsync(data.Name, new CooldownInfo
                         {
-                            SkillName = response.SkillName,
+                            SkillName = data.Name,
                             LocalLastUse = DateTime.UtcNow,
                             ServerCooldownMS = cooldownMS
                         });
@@ -201,7 +196,7 @@ namespace AL.Client.Abstractions
                 {
                     var newProjectile = projectile with
                     {
-                        Damage = data.Reflect, Target = data.HID, X = Character.X, Y = Character.Y
+                        Damage = data.Reflect, Target = data.HitId, X = Character.X, Y = Character.Y
                     };
 
                     await Projectiles.AddOrUpdateAsync(newProjectile.ProjectileId, newProjectile);
@@ -276,22 +271,22 @@ namespace AL.Client.Abstractions
             return false;
         }
 
-        protected Task<bool> OnUpgradeAsync(UpgradeData data)
+        protected Task<bool> OnUpgradeAsync(QueuedActionResultData data)
         {
             // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-            switch (data.UpgradeType)
+            switch (data.QueuedActionType)
             {
-                case UpgradeType.Compound:
+                case QueuedActionType.Compound:
                     Character.Mutate(Character.QueuedActions with { Compound = null });
                     break;
-                case UpgradeType.Upgrade:
+                case QueuedActionType.Upgrade:
                     Character.Mutate(Character.QueuedActions with { Upgrade = null });
                     break;
-                case UpgradeType.Exchange:
+                case QueuedActionType.Exchange:
                     Character.Mutate(Character.QueuedActions with { Exchange = null });
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int) data.UpgradeType}.");
+                    throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int) data.QueuedActionType}.");
             }
 
             return Task.FromResult(false);

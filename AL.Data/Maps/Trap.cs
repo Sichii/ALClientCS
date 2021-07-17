@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AL.Core.Definitions;
+﻿using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Json.Converters;
 using Newtonsoft.Json;
@@ -12,6 +11,11 @@ namespace AL.Data.Maps
     public record Trap
     {
         /// <summary>
+        ///     <b>NULLABLE</b>. If populated, this is the vertices of the polygon of the trap.<br />
+        /// </summary>
+        [JsonProperty(ItemConverterType = typeof(ArrayToPointConverter))]
+        public Polygon? Polygon { get; init; }
+        /// <summary>
         ///     The coordinate of the trap.
         /// </summary>
         [JsonConverter(typeof(ArrayToPointConverter))]
@@ -21,11 +25,5 @@ namespace AL.Data.Maps
         ///     The type of trap.
         /// </summary>
         public TrapType Type { get; init; }
-
-        /// <summary>
-        ///     <b>NULLABLE</b>. If populated, this is the vertices of the polygon of the trap.<br />
-        /// </summary>
-        [JsonProperty(ItemConverterType = typeof(ArrayToPointConverter))]
-        public Polygon? Polygon { get; init; }
     }
 }

@@ -8,10 +8,10 @@ namespace AL.SocketClient.Json.Converters
 {
     public class DisappearDataConverter : JsonConverter<DisappearData>
     {
-        public override DisappearData ReadJson(
+        public override DisappearData? ReadJson(
             JsonReader reader,
             Type objectType,
-            DisappearData existingValue,
+            DisappearData? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
@@ -40,7 +40,7 @@ namespace AL.SocketClient.Json.Converters
             return result;
         }
 
-        public override void WriteJson(JsonWriter writer, DisappearData value, JsonSerializer serializer) =>
+        public override void WriteJson(JsonWriter writer, DisappearData? value, JsonSerializer serializer) =>
             throw new NotImplementedException();
     }
 }

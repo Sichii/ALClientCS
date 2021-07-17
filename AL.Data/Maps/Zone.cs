@@ -1,6 +1,5 @@
 ﻿using AL.Core.Definitions;
 using AL.Core.Geometry;
-using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
 using Newtonsoft.Json;
 

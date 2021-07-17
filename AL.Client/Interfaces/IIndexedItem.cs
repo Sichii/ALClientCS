@@ -5,6 +5,6 @@ namespace AL.Client.Interfaces
     public interface IIndexedItem
     {
         int Index { get; }
-        IItem Item { get; }
+        IInventoryItem Item { get; }
     }
 }

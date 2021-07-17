@@ -41,7 +41,7 @@ namespace AL.Core.Geometry
         }
 
         /// <summary>
-        /// Determines whether this circle contains the given point.
+        ///     Determines whether this circle contains the given point.
         /// </summary>
         /// <param name="point"></param>
         /// <returns></returns>
@@ -103,9 +103,9 @@ namespace AL.Core.Geometry
         /// <returns>
         ///     <see cref="Point" /> <br />
         ///     The point at which the
-        ///     <paramref name="line"/>
-        ///         intersects this circle. <br />
-        ///         <c>null</c> if they don't intersect.
+        ///     <paramref name="line" />
+        ///     intersects this circle. <br />
+        ///     <c>null</c> if they don't intersect.
         /// </returns>
         /// <exception cref="ArgumentNullException">nameof(line)</exception>
         public Point? Intersects(ILine line)

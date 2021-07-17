@@ -8,6 +8,7 @@ namespace AL.Data.Conditions
     ///     Represents a buff or detriment. <br />
     ///     <inheritdoc cref="AttributedRecordBase" />
     /// </summary>
+    /// <seealso cref="AttributedRecordBase" />
     public record Condition : AttributedRecordBase
     {
         [JsonProperty("can_move")]

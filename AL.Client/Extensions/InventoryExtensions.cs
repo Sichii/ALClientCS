@@ -10,21 +10,21 @@ namespace AL.Client.Extensions
 {
     public static class InventoryExtensions
     {
-        public static IEnumerable<IndexedItem> AsIndexed(this IReadOnlyList<IItem> items) =>
+        public static IEnumerable<IndexedItem> AsIndexed(this IReadOnlyList<IInventoryItem> items) =>
             items.Select((item, index) => new IndexedItem
             {
                 Index = index,
                 Item = item
             });
 
-        public static bool ContainsItem(this IReadOnlyList<IItem> items, string itemName) =>
+        public static bool ContainsItem(this IReadOnlyList<IInventoryItem> items, string itemName) =>
             items.Any(item => item.Name.EqualsI(itemName));
 
-        public static int CountOf(this IReadOnlyList<IItem> items, string itemName) =>
+        public static int CountOf(this IReadOnlyList<IInventoryItem> items, string itemName) =>
             items.Where(item => item.Name.EqualsI(itemName)).Sum(item => item.Quantity);
 
         public static IndexedItem FindItem(
-            this IReadOnlyList<IItem> items,
+            this IReadOnlyList<IInventoryItem> items,
             string itemName,
             int levelMin = int.MinValue,
             int levelMax = int.MaxValue,

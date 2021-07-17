@@ -3,9 +3,10 @@ using Newtonsoft.Json;
 
 namespace AL.APIClient.Model
 {
-    public record Character : ILocation
+    public record Character : IInstancedLocation
     {
         public string Id { get; init; }
+
         public string In { get; init; }
         public int Level { get; init; }
         public string Map { get; init; }

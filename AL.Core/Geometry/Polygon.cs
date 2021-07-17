@@ -6,15 +6,15 @@ using Newtonsoft.Json;
 
 namespace AL.Core.Geometry
 {
-    /// <inheritdoc cref="IPolygon"/>
-    /// <seealso cref="IPolygon"/>
+    /// <inheritdoc cref="IPolygon" />
+    /// <seealso cref="IPolygon" />
     [JsonArray]
     public record Polygon : IPolygon
     {
         public IReadOnlyList<IPoint> Vertices { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Polygon" /> class.
+        ///     Initializes a new instance of the <see cref="Polygon" /> class.
         /// </summary>
         /// <param name="vertices">An ordered list of vertices. (must be ordered to draw the outline of the polygon)</param>
         public Polygon(IEnumerable<IPoint> vertices) => Vertices = vertices.ToList();

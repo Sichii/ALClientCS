@@ -10,12 +10,12 @@ namespace AL.SocketClient.Json.Converters
 {
     public class EventAndBossDataConverter : JsonConverter<EventAndBossData>
     {
-        private static readonly PropertyInfo PropertyInfo = typeof(BossInfo).GetProperty(nameof(BossInfo.Id));
+        private static readonly PropertyInfo PropertyInfo = typeof(BossInfo).GetProperty(nameof(BossInfo.Id))!;
 
-        public override EventAndBossData ReadJson(
+        public override EventAndBossData? ReadJson(
             JsonReader reader,
             Type objectType,
-            EventAndBossData existingValue,
+            EventAndBossData? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
@@ -32,9 +32,11 @@ namespace AL.SocketClient.Json.Converters
             serializer.Populate(obj.CreateReader(), eventAndBossData);
 
             foreach ((var key, var token) in obj)
-                if (token.Type == JTokenType.Object)
+                if (token!.Type == JTokenType.Object)
                 {
-                    var bossInfo = token.ToObject<BossInfo>(serializer);
+                    var bossInfo = token.ToObject<BossInfo>(serializer)
+                                   ?? throw new InvalidOperationException("Failed to deserialize boss info.");
+
                     PropertyInfo.SetValue(bossInfo, key);
                     bossInfoDic[key] = bossInfo;
                 }
@@ -42,7 +44,7 @@ namespace AL.SocketClient.Json.Converters
             return eventAndBossData;
         }
 
-        public override void WriteJson(JsonWriter writer, EventAndBossData value, JsonSerializer serializer) =>
+        public override void WriteJson(JsonWriter writer, EventAndBossData? value, JsonSerializer serializer) =>
             throw new NotImplementedException();
     }
 }

@@ -12,49 +12,84 @@ using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
 {
+    /// <summary>
+    ///     Provides a base for <see cref="Player" />s and <see cref="Monster" />s.
+    /// </summary>
+    /// <seealso cref="AttributedRecordBase" />
+    /// <seealso cref="ILocation" />
+    /// <seealso cref="IMutable{TMutator}" />
+    /// <remarks>Mutated by <see cref="EntityBase" />, <see cref="Mutation" /></remarks>
     public abstract record EntityBase : AttributedRecordBase, ILocation, IMutable<EntityBase>, IMutable<Mutation>,
         IDeltaUpdateable
     {
-        //TODO: what's this?
+        /// <summary>
+        ///     TODO: what's this?
+        /// </summary>
         [JsonProperty]
         public bool ABS { get; protected set; }
 
+        /// <summary>
+        ///     If moving, this is the angle they are moving at. (in degrees +/- 180)
+        /// </summary>
         [JsonProperty]
         public float Angle { get; protected set; }
 
-        [JsonProperty]
-        public int CID { get; init; }
-
+        /// <summary>
+        ///     The conditions this entity has.
+        /// </summary>
         [JsonProperty("s")]
         public AwaitableDictionary<Core.Definitions.Condition, Condition> Conditions { get; protected set; } = new();
+
+        /// <summary>
+        ///     A unique ID for this version of the entity's data. <br />
+        ///     This number starts at 0 and iterates by 1 every time a new version of this entity's data is sent.
+        /// </summary>
+        [JsonProperty("cid")]
+        public int ContinuousId { get; init; }
         public long Delta { get; set; } = DeltaTime.Value;
 
+        /// <summary>
+        ///     If this entity is moving, this is the X coordinate they are moving to.
+        /// </summary>
         [JsonProperty("going_x")]
         public float GoingX { get; protected set; }
 
+        /// <summary>
+        ///     If this entity is moving, this is the Y coordinate they are moving to.
+        /// </summary>
         [JsonProperty("going_y")]
         public float GoingY { get; protected set; }
 
+        /// <summary>
+        ///     <see cref="Player" /> name, or <see cref="Monster" /> unique id.
+        /// </summary>
         [JsonProperty]
-        public string Id { get; init; }
+        public string Id { get; init; } = null!;
 
         [JsonProperty]
         public int Level { get; protected set; }
 
         [JsonProperty("map")]
-        public string Map { get; protected set; }
+        public string Map { get; protected set; } = null!;
+
 
         [JsonProperty("max_hp")]
         public float MaxHP { get; protected set; }
 
+        /// <summary>
+        ///     The number of individual movements this entity has done.
+        /// </summary>
+        [JsonProperty("move_num")]
+        public ulong MoveNum { get; protected set; }
+
         [JsonProperty]
         public bool Moving { get; protected set; }
 
-        [JsonProperty("move_num")]
-        public ulong StepCount { get; protected set; }
-
+        /// <summary>
+        ///     If populated, the <see cref="Id" /> of this entity's target.
+        /// </summary>
         [JsonProperty]
-        public string Target { get; init; }
+        public string? Target { get; init; }
 
         [JsonProperty]
         public float X { get; protected set; }
@@ -62,7 +97,7 @@ namespace AL.SocketClient.Model
         [JsonProperty]
         public float Y { get; protected set; }
 
-        public virtual bool Equals(EntityBase other) => Id.Equals(other?.Id);
+        public virtual bool Equals(EntityBase? other) => Id.Equals(other?.Id);
 
         public override int GetHashCode() => Id.GetHashCode();
 
@@ -80,7 +115,7 @@ namespace AL.SocketClient.Model
             HP = mutator.HP;
             MaxHP = mutator.MaxHP;
             Level = mutator.Level;
-            StepCount = mutator.StepCount;
+            MoveNum = mutator.MoveNum;
             Moving = mutator.Moving;
             Conditions = mutator.Conditions;
             Speed = mutator.Speed;
@@ -92,8 +127,6 @@ namespace AL.SocketClient.Model
             MP = mutator.MP;
             Resistance = mutator.Resistance;
         }
-
-        public void Mutate(object mutator) => throw new NotImplementedException();
 
         public void Mutate(Mutation mutator)
         {

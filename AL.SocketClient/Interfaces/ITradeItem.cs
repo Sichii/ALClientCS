@@ -1,44 +1,42 @@
-﻿using AL.Core.Definitions;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Interfaces
 {
-    public interface ITradeItem
+    /// <summary>
+    ///     Represents an item for trade or sale.
+    /// </summary>
+    /// <seealso cref="ICommonItem" />
+    public interface ITradeItem : ICommonItem
     {
-        [JsonProperty("ach")]
-        public string AchievementName { get; init; }
-
+        /// <summary>
+        ///     Whether or not the item is being bought by a merchant.
+        /// </summary>
         [JsonProperty("b")]
-        public bool Buying { get; init; }
+        bool Buying { get; init; }
 
+        /// <summary>
+        ///     If populated, the remaining number of minutes left in the giveaway for this item.
+        /// </summary>
         [JsonProperty("giveaway")]
-        public float GiveawayMins { get; init; }
+        float? GiveawayMins { get; init; }
 
+        /// <summary>
+        ///     If populated, a list of names of the participants in the giveaway for this item.
+        /// </summary>
         [JsonProperty("list")]
-        public string[] GiveawayParticipants { get; init; }
+        IReadOnlyList<string>? GiveawayParticipants { get; init; }
 
-        [JsonProperty]
-        public float Grace { get; init; }
-
+        /// <summary>
+        ///     A unique id, required to be sent if buying or entering the giveaway for this item.
+        /// </summary>
         [JsonProperty("rid")]
-        public string Id { get; init; }
+        string Id { get; init; }
 
+        /// <summary>
+        ///     The price of this item to buy.
+        /// </summary>
         [JsonProperty]
-        public int Level { get; init; }
-
-        [JsonProperty]
-        public string Name { get; init; }
-
-        [JsonProperty("p")]
-        public string Prefix { get; init; }
-
-        [JsonProperty]
-        public long Price { get; init; }
-
-        [JsonProperty("q")]
-        public int Quantity { get; init; }
-
-        [JsonProperty("stat_type")]
-        public ALAttribute StatType { get; init; }
+        long Price { get; init; }
     }
 }

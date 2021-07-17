@@ -8,6 +8,6 @@ namespace AL.Client.Model
     {
         public BankPack BankPack { get; init; }
         public int Index { get; init; }
-        public IItem Item { get; init; }
+        public IInventoryItem Item { get; init; }
     }
 }

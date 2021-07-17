@@ -757,4 +757,47 @@ namespace AL.Core.Definitions
         Door,
         NPC
     }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum EntitiesUpdateType
+    {
+        None,
+        All,
+        [EnumMember(Value = "xy")]
+        Partial
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum QueuedActionType
+    {
+        Unknown,
+        Compound,
+        Upgrade,
+        Exchange
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum UIDataType
+    {
+        Unknown,
+        [EnumMember(Value = "fishing_fail")]
+        FishingFail,
+        [EnumMember(Value = "fishing_none")]
+        FishingNone,
+        [EnumMember(Value = "fishing_start")]
+        FishingStart,
+        MassProduction,
+        [EnumMember(Value = "mining_fail")]
+        MiningFail,
+        [EnumMember(Value = "mining_none")]
+        MiningNone,
+        [EnumMember(Value = "mining_start")]
+        MiningStart,
+        MLuck,
+        Scare,
+        [EnumMember(Value = "+$")]
+        GainMoney,
+        [EnumMember(Value = "-$")]
+        LoseMoney
+    }
 }

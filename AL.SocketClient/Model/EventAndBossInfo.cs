@@ -4,6 +4,9 @@ using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
 {
+    /// <summary>
+    ///     Represents all of the data for ongoing events and bosses for a server.
+    /// </summary>
     [JsonConverter(typeof(EventAndBossDataConverter))]
     public record EventAndBossInfo
     {
@@ -18,6 +21,10 @@ namespace AL.SocketClient.Model
 
         [JsonProperty]
         public bool Valentines { get; init; }
+
+        /// <summary>
+        ///     Contains information about bosses on this server.
+        /// </summary>
         [JsonIgnore]
         public IReadOnlyDictionary<string, BossInfo> BossInfo { get; } = new Dictionary<string, BossInfo>();
     }

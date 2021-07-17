@@ -14,7 +14,7 @@ namespace AL.Data.Maps
     public record Map
     {
         /// <summary>
-        /// The accessor for this map.
+        ///     The accessor for this map.
         /// </summary>
         [JsonIgnore]
         public string Accessor { get; internal set; } = null!;

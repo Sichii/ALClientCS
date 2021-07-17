@@ -7,9 +7,9 @@ namespace AL.Client.Extensions
 {
     public static class ItemExtensions
     {
-        public static Item GetData(this IItem item) => GameData.Items[item.Name];
+        public static Item GetData(this IInventoryItem item) => GameData.Items[item.Name];
 
-        public static Grade GetGrade(this IItem item)
+        public static Grade GetGrade(this IInventoryItem item)
         {
             var data = item.GetData();
 
@@ -27,9 +27,9 @@ namespace AL.Client.Extensions
             return (Grade) grade;
         }
 
-        public static bool IsCompoundable(this IItem item) => item.GetData().CompoundModifiers != null;
-        public static bool IsStackable(this IItem item) => item.GetData().StackSize > 1;
+        public static bool IsCompoundable(this IInventoryItem item) => item.GetData().CompoundModifiers != null;
+        public static bool IsStackable(this IInventoryItem item) => item.GetData().StackSize > 1;
 
-        public static bool IsUpgradeable(this IItem item) => item.GetData().UpgradeModifiers != null;
+        public static bool IsUpgradeable(this IInventoryItem item) => item.GetData().UpgradeModifiers != null;
     }
 }

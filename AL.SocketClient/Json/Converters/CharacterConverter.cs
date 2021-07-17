@@ -11,16 +11,18 @@ namespace AL.SocketClient.Json.Converters
         public override T ReadJson(
             JsonReader reader,
             Type objectType,
-            T existingValue,
+            T? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
-            var character = base.ReadJson(reader, objectType, existingValue, hasExistingValue, serializer);
+            var character = base.ReadJson(reader, objectType, existingValue, hasExistingValue, serializer)
+                            ?? throw new InvalidOperationException("Failed to deserialize character.");
+
             var missing = character.InventorySize - character.Inventory.Count;
 
             if (missing > 0)
             {
-                var newInventory = new Item[character.InventorySize];
+                var newInventory = new InventoryItem[character.InventorySize];
 
                 for (var i = 0; i < character.Inventory.Count; i++)
                     newInventory[i] = character.Inventory[i];

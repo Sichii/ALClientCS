@@ -6,6 +6,6 @@ namespace AL.Client.Model
     public record IndexedItem : IIndexedItem
     {
         public int Index { get; init; }
-        public IItem Item { get; init; }
+        public IInventoryItem Item { get; init; }
     }
 }

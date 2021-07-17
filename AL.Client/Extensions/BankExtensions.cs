@@ -9,7 +9,8 @@ namespace AL.Client.Extensions
 {
     public static class BankExtensions
     {
-        public static IEnumerable<BankedItem> AsIndexed(this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic) =>
+        public static IEnumerable<BankedItem> AsIndexed(
+            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic) =>
             dic.SelectMany(kvp => kvp.Value.Select((item, index) => new BankedItem
             {
                 BankPack = kvp.Key,
@@ -18,17 +19,18 @@ namespace AL.Client.Extensions
             }));
 
         public static bool ContainsItem(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic,
+            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic,
             string itemName) =>
             dic.Values.Any(items => items.Any(item => item.Name.EqualsI(itemName)));
 
-        public static int CountOf(this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic, string itemName) => dic
-            .Values.SelectMany(items => items)
+        public static int CountOf(
+            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic,
+            string itemName) => dic.Values.SelectMany(items => items)
             .Where(item => item.Name.EqualsI(itemName))
             .Sum(item => item.Quantity);
 
         public static BankedItem FindItem(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IItem>> dic,
+            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic,
             string itemName,
             int levelMin = int.MinValue,
             int levelMax = int.MaxValue,

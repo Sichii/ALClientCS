@@ -19,6 +19,8 @@ namespace AL.Data
         /// </summary>
         public int DestinationSpawnId { get; }
 
+        public string Map { get; } = null!;
+
         /// <summary>
         ///     The type of exit. (door, npc)
         /// </summary>
@@ -26,7 +28,12 @@ namespace AL.Data
         public float X { get; }
         public float Y { get; }
 
-        internal Exit(IPoint point, string map, string destinationMap, int destinationSpawnId, ExitType type)
+        internal Exit(
+            IPoint point,
+            string map,
+            string destinationMap,
+            int destinationSpawnId,
+            ExitType type)
         {
             X = point.X;
             Y = point.Y;
@@ -35,7 +42,5 @@ namespace AL.Data
             DestinationSpawnId = destinationSpawnId;
             Type = type;
         }
-
-        public string Map { get; } = null!;
     }
 }

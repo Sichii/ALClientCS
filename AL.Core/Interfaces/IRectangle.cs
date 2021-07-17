@@ -5,7 +5,7 @@ namespace AL.Core.Interfaces
     /// <summary>
     ///     Represents a rectangle.
     /// </summary>
-    /// <seealso cref="IPolygon"/>
+    /// <seealso cref="IPolygon" />
     /// <seealso cref="AL.Core.Interfaces.IPoint" />
     [JsonObject]
     public interface IRectangle : IPolygon, IPoint

@@ -9,7 +9,7 @@ namespace AL.Data.Monsters
     ///     Represents an ability used by a monster.
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record Ability : AttributedRecordBase
+    public record MonsterAbility : AttributedRecordBase
     {
         [JsonProperty("amount")]
         private float? _amount;
@@ -49,7 +49,8 @@ namespace AL.Data.Monsters
         /// <summary>
         ///     Whether or not this ability does pure damage.
         /// </summary>
-        public bool Pure { get; set; }
+        [JsonProperty("pure")]
+        public bool PureDamage { get; set; }
 
         /// <summary>
         ///     If this is an aura ability, this is the radius of the aura. <br />
