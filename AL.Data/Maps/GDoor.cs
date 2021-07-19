@@ -12,7 +12,7 @@ namespace AL.Data.Maps
     ///     Represents a door on the map.
     /// </summary>
     /// <seealso cref="IRectangle" />
-    public record Door : IRectangle
+    public record GDoor : IRectangle
     {
         /// <summary>
         ///     If a door is 2-way, this is the id of the spawn when coming back through this door.

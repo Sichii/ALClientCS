@@ -11,7 +11,7 @@ namespace AL.Data.Maps
     /// <summary>
     ///     Represents the static info of a map.
     /// </summary>
-    public record Map
+    public record GMap
     {
         /// <summary>
         ///     The accessor for this map.
@@ -33,8 +33,8 @@ namespace AL.Data.Maps
         /// <summary>
         ///     A list of doors on this map,
         /// </summary>
-        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<Door>))]
-        public IReadOnlyList<Door> Doors { get; init; } = new List<Door>();
+        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GDoor>))]
+        public IReadOnlyList<GDoor> Doors { get; init; } = new List<GDoor>();
 
         /// <summary>
         ///     <b>Currently not used.</b> <br />
@@ -88,7 +88,7 @@ namespace AL.Data.Maps
         /// <summary>
         ///     A list of monsters that spawn on this map, as well as the amount that spawn, and where they spawn.
         /// </summary>
-        public IReadOnlyList<MonsterMapInfo> Monsters { get; init; } = new List<MonsterMapInfo>();
+        public IReadOnlyList<GMapMonster> Monsters { get; init; } = new List<GMapMonster>();
 
         /// <summary>
         ///     Seems only one character on your account can be in a map with this flag at a time?
@@ -103,7 +103,7 @@ namespace AL.Data.Maps
         /// <summary>
         ///     A list of npcs on this map, as well as where they are located.
         /// </summary>
-        public IReadOnlyList<NPCMapInfo> NPCs { get; init; } = new List<NPCMapInfo>();
+        public IReadOnlyList<GMapNPC> NPCs { get; init; } = new List<GMapNPC>();
 
         /// <summary>
         ///     The map accessor and spawn id for that map that you will go to if you die on this map.
@@ -138,13 +138,13 @@ namespace AL.Data.Maps
         /// <summary>
         ///     A list of spawns on this map.
         /// </summary>
-        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<Spawn>))]
-        public IReadOnlyList<Spawn> Spawns { get; init; } = new List<Spawn>();
+        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GSpawn>))]
+        public IReadOnlyList<GSpawn> Spawns { get; init; } = new List<GSpawn>();
 
         /// <summary>
         ///     A list of traps on this map, as well as where they spawn, and their type.
         /// </summary>
-        public IReadOnlyList<Trap> Traps { get; init; } = new List<Trap>();
+        public IReadOnlyList<GTrap> Traps { get; init; } = new List<GTrap>();
 
         /// <summary>
         ///     TODO: Unknown
@@ -165,7 +165,7 @@ namespace AL.Data.Maps
         ///     A list of special zones on the map, and where they are. <br />
         ///     Zones are for things like fishing and mining.
         /// </summary>
-        public IReadOnlyList<Zone> Zones { get; init; } = new List<Zone>();
+        public IReadOnlyList<GZone> Zones { get; init; } = new List<GZone>();
 
         /// <summary>
         ///     A list of exits on this map. Exits can be either doors, or npcs that transport you.
@@ -179,7 +179,7 @@ namespace AL.Data.Maps
         //ref obj
         //old_monsters obj[]
 
-        public virtual bool Equals(Map? other) =>
+        public virtual bool Equals(GMap? other) =>
             other is not null && Accessor.EqualsI(other.Accessor) && Key.Equals(other.Key);
 
         private List<Exit> GenerateExits()

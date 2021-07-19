@@ -12,7 +12,7 @@ namespace AL.Data.Geometry
     ///     Provides geometric information for a map.
     /// </summary>
     /// <seealso cref="IRectangle" />
-    public record MapGeometry : IRectangle
+    public record GGeometry : IRectangle
     {
         /// <summary>
         ///     Maximum X coordinate on the map.
@@ -41,8 +41,8 @@ namespace AL.Data.Geometry
         /// <summary>
         ///     A list of tiles on this map.
         /// </summary>
-        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<Tile>))]
-        public IReadOnlyList<Tile> Tiles { get; init; } = new List<Tile>();
+        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GTile>))]
+        public IReadOnlyList<GTile> Tiles { get; init; } = new List<GTile>();
 
         /// <summary>
         ///     A list of vertical lines that should be considered as walls.

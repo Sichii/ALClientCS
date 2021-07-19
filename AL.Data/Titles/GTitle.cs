@@ -1,14 +1,15 @@
-﻿using Newtonsoft.Json;
+﻿using AL.Data.Achievements;
+using Newtonsoft.Json;
 
 namespace AL.Data.Titles
 {
     /// <summary>
     ///     Represents a title that can be applied to an item.
     /// </summary>
-    public record Title
+    public record GTitle
     {
         /// <summary>
-        ///     If populated, the <see cref="Data.Achievements.Achievement" /> this title is associated with.
+        ///     If populated, the <see cref="GAchievement" /> this title is associated with.
         /// </summary>
         public string? Achievement { get; init; }
 

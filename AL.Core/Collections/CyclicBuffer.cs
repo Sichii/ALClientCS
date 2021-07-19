@@ -30,12 +30,19 @@ namespace AL.Core.Collections
         ///     Adds a new item to the buffer, overwriting the oldest item if full.
         /// </summary>
         /// <param name="item">The item.</param>
-        public void Add(T? item)
+        /// <returns>
+        ///     <see cref="T" /> <br />
+        ///     If an item was replaced, it returns that item.
+        /// </returns>
+        public T? Add(T? item)
         {
             if (Index >= Count)
                 Index = 0;
 
+            var result = Items[Index++];
             Items[Index++] = item;
+
+            return result;
         }
 
         /// <inheritdoc />

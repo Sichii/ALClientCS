@@ -13,18 +13,20 @@ using SixLabors.ImageSharp.Processing;
 namespace AL.Visualizer.Extensions
 {
     /// <summary>
-    /// Provides a set of extensions for <see cref="Image{TPixel}"/>.
+    ///     Provides a set of extensions for <see cref="Image{TPixel}" />.
     /// </summary>
     public static class ImageExtensions
     {
         /// <summary>
-        /// Draws all connections between all navMesh and their neighbors on an image.
+        ///     Draws all connections between all navMesh and their neighbors on an image.
         /// </summary>
         /// <param name="image">The image to draw on.</param>
         /// <param name="navMesh">The navMesh to draw connections for.</param>
         /// <param name="color">The color to draw the connections as.</param>
-        /// <returns><see cref="Image{TPixel}"/> <br/>
-        /// The image with the connections drawn on it.</returns>
+        /// <returns>
+        ///     <see cref="Image{TPixel}" /> <br />
+        ///     The image with the connections drawn on it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">navMesh</exception>
         public static Image<Rgba32> DrawConnections(this Image<Rgba32> image, NavMesh navMesh, Color color = default)
@@ -46,14 +48,16 @@ namespace AL.Visualizer.Extensions
         }
 
         /// <summary>
-        /// Draws a line on an image.
+        ///     Draws a line on an image.
         /// </summary>
         /// <param name="image">The image to draw on.</param>
         /// <param name="line">The line to draw on the image.</param>
         /// <param name="color">The color to draw the line.</param>
         /// <param name="ptColor">The color to draw the pixel the start/end points.</param>
-        /// <returns><see cref="Image{TPixel}"/> <br/>
-        /// The image with the line drawn on it.</returns>
+        /// <returns>
+        ///     <see cref="Image{TPixel}" /> <br />
+        ///     The image with the line drawn on it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">line</exception>
         public static Image<Rgba32> DrawLine<TLine>(
@@ -64,23 +68,25 @@ namespace AL.Visualizer.Extensions
         {
             if (image == null)
                 throw new ArgumentNullException(nameof(image));
-            
+
             if (line == null)
                 throw new ArgumentNullException(nameof(line));
-            
+
             return image.DrawLine(line.Point1, line.Point2, color, ptColor);
         }
 
         /// <summary>
-        /// Draws a line on an image.
+        ///     Draws a line on an image.
         /// </summary>
         /// <param name="image">The image to draw on.</param>
         /// <param name="start">The start of the line.</param>
         /// <param name="end">The end of the line.</param>
         /// <param name="color">The color to draw the line.</param>
         /// <param name="ptColor">The color to draw the pixel the start/end points.</param>
-        /// <returns><see cref="Image{TPixel}"/> <br/>
-        /// The image with the line drawn on it.</returns>
+        /// <returns>
+        ///     <see cref="Image{TPixel}" /> <br />
+        ///     The image with the line drawn on it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">start</exception>
         /// <exception cref="ArgumentNullException">end</exception>
@@ -116,13 +122,15 @@ namespace AL.Visualizer.Extensions
         }
 
         /// <summary>
-        /// Draws a path along a number of path connectors on an image.
+        ///     Draws a path along a number of path connectors on an image.
         /// </summary>
         /// <param name="image">The image to draw on.</param>
         /// <param name="pathConnectors">The connectors to draw.</param>
         /// <param name="color">The color to draw the path.</param>
-        /// <returns><see cref="Image{TPixel}"/> <br/>
-        /// The image with the path drawn on it.</returns>
+        /// <returns>
+        ///     <see cref="Image{TPixel}" /> <br />
+        ///     The image with the path drawn on it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">pathConnectors</exception>
         public static Image<Rgba32> DrawPath<TConnector, TPoint>(
@@ -150,13 +158,15 @@ namespace AL.Visualizer.Extensions
         }
 
         /// <summary>
-        /// Draws a path along a number of points on an image.
+        ///     Draws a path along a number of points on an image.
         /// </summary>
         /// <param name="image">The image to draw on.</param>
         /// <param name="points">The points to draw the path along.</param>
         /// <param name="color">The color to draw the path.</param>
-        /// <returns><see cref="Image{TPixel}"/> <br/>
-        /// The image with the path drawn on it.</returns>
+        /// <returns>
+        ///     <see cref="Image{TPixel}" /> <br />
+        ///     The image with the path drawn on it.
+        /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">points</exception>
         public static Image<Rgba32> DrawPath<TPoint>(

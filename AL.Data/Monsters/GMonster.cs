@@ -11,7 +11,7 @@ namespace AL.Data.Monsters
     ///     Represents the static data for a monster.
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record Monster : AttributedRecordBase
+    public record GMonster : AttributedRecordBase
     {
         /// <summary>
         ///     If true, all attacks will do only 1 damage to this monster.
@@ -22,15 +22,15 @@ namespace AL.Data.Monsters
         /// <summary>
         ///     The abilities this monster has, indexed by the name of the ability.
         /// </summary>
-        [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<MonsterAbility>))]
-        public IReadOnlyDictionary<string, MonsterAbility> Abilities { get; init; } =
-            new Dictionary<string, MonsterAbility>();
+        [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<GMonsterAbility>))]
+        public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } =
+            new Dictionary<string, GMonsterAbility>();
 
         /// <summary>
         ///     A list of the achievements associated with this monster.
         /// </summary>
-        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<KillAchievement>))]
-        public IReadOnlyList<KillAchievement> Achievements { get; init; } = new List<KillAchievement>();
+        [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GKillAchievement>))]
+        public IReadOnlyList<GKillAchievement> Achievements { get; init; } = new List<GKillAchievement>();
 
         /// <summary>
         ///     The chance of this monster to attack you when you enter it's range. <br />
@@ -90,8 +90,8 @@ namespace AL.Data.Monsters
         ///     Some monsters will spawn with effects on them by default.
         /// </summary>
         [JsonProperty("s")]
-        public IReadOnlyDictionary<Condition, InitialCondition> InitialConditions { get; init; } =
-            new Dictionary<Condition, InitialCondition>();
+        public IReadOnlyDictionary<Condition, GInitialCondition> InitialConditions { get; init; } =
+            new Dictionary<Condition, GInitialCondition>();
 
         /// <summary>
         ///     The direction this monster will face when it spawns.

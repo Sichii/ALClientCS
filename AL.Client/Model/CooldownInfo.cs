@@ -1,14 +1,23 @@
-using System;
+using AL.Core.Helpers;
 
 namespace AL.Client.Model
 {
-    public record CooldownInfo
+    /// <summary>
+    ///     Represents the instant in time in which the server confirmed that a skill was used.
+    /// </summary>
+    /// <param name="CooldownMS">The cooldown of the skill used..</param>
+    public record CooldownInfo(float CooldownMS)
     {
-        public DateTime LocalLastUse { get; init; }
-        public float ServerCooldownMS { get; init; }
-        public string SkillName { get; init; }
+        private readonly long Delta = DeltaTime.Value;
 
-        public bool CanUse(int globalJitterMS) =>
-            DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(ServerCooldownMS + globalJitterMS)) > LocalLastUse;
+        /// <summary>
+        ///     Whether or not the skill can be used.
+        /// </summary>
+        /// <param name="offsetMS">The current ping offset to use when deciding if the skill is useable.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the skill can be used, otherwise <c>false</c>.
+        /// </returns>
+        public bool CanUse(int offsetMS) => DeltaTime.Value - Delta + offsetMS > CooldownMS;
     }
 }

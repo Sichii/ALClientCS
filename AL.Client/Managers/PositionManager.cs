@@ -4,9 +4,9 @@ using AL.Core.Helpers;
 
 namespace AL.Client.Managers
 {
-    public class PositionManager : AsyncManagerBase
+    internal sealed class PositionManager : AsyncDeltaLoop
     {
-        public PositionManager(ALClient client)
+        internal PositionManager(ALClient client)
             : base(client) { }
 
         protected override async Task DoWorkAsync()

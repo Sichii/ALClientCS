@@ -5,8 +5,8 @@ namespace AL.Client.Helpers
     internal readonly struct Expectation<T>
     {
         private readonly T _result;
-        private readonly Exception Exception;
-        internal string Error => Exception?.Message;
+        private readonly Exception? Exception;
+        internal string? Error => Exception?.Message;
         internal T Result => Exception == null ? _result : throw Exception;
         internal bool Success => Exception == null;
 
@@ -18,14 +18,14 @@ namespace AL.Client.Helpers
 
         internal Expectation(Exception e)
         {
-            _result = default;
             Exception = e;
+            _result = default!;
         }
 
         internal Expectation(string message)
         {
-            _result = default;
             Exception = new InvalidOperationException(message);
+            _result = default!;
         }
 
         internal Expectation(T result)
@@ -36,7 +36,7 @@ namespace AL.Client.Helpers
 
         public void ThrowIfUnsuccessful()
         {
-            if (!Success)
+            if (Exception != null)
                 throw Exception;
         }
     }

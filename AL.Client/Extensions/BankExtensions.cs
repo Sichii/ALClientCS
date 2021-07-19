@@ -1,50 +1,123 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
-using AL.Core.Definitions;
-using AL.SocketClient.Interfaces;
+using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 
 namespace AL.Client.Extensions
 {
+    /// <summary>
+    ///     Provides a set of extensions for the <see cref="ALClient" />'s <see cref="ALClient.Bank" />
+    /// </summary>
     public static class BankExtensions
     {
-        public static IEnumerable<BankedItem> AsIndexed(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic) =>
-            dic.SelectMany(kvp => kvp.Value.Select((item, index) => new BankedItem
-            {
-                BankPack = kvp.Key,
-                Index = index,
-                Item = item
-            }));
+        /// <summary>
+        ///     Lazily enumerates all items in all banks, providing a way to keep track of what bank the item was in, and the slot
+        ///     within the bank.
+        /// </summary>
+        /// <param name="bank">The client's <see cref="BankInfo" />.</param>
+        /// <returns>
+        ///     <see cref="IEnumerable{T}" /> of <see cref="BankedItem" /> <br />
+        ///     A lazy enumeration of banked items.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">bank</exception>
+        public static IEnumerable<BankedItem> AsIndexed(this BankInfo bank)
+        {
+            if (bank == null)
+                throw new ArgumentNullException(nameof(bank));
 
-        public static bool ContainsItem(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic,
-            string itemName) =>
-            dic.Values.Any(items => items.Any(item => item.Name.EqualsI(itemName)));
+            return bank.Items.SelectMany(kvp => kvp.Value.Select((item, index) => item == null
+                    ? null
+                    : new BankedItem
+                    {
+                        BankPack = kvp.Key,
+                        Index = index,
+                        Item = item
+                    }))
+                .Where(bankedItem => bankedItem != null)!;
+        }
 
-        public static int CountOf(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic,
-            string itemName) => dic.Values.SelectMany(items => items)
-            .Where(item => item.Name.EqualsI(itemName))
-            .Sum(item => item.Quantity);
+        /// <summary>
+        ///     Checks the bank to see if it contains an item with the given name.
+        /// </summary>
+        /// <param name="bank">The client's <see cref="BankInfo" />.</param>
+        /// <param name="itemName">The name of the item to search for.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if an item with the name was found, otherwise <c>false</c>
+        /// </returns>
+        /// <exception cref="ArgumentNullException">bank</exception>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        public static bool ContainsItem(this BankInfo bank, string itemName)
+        {
+            if (bank == null)
+                throw new ArgumentNullException(nameof(bank));
 
-        public static BankedItem FindItem(
-            this IReadOnlyDictionary<BankPack, IReadOnlyList<IInventoryItem>> dic,
-            string itemName,
+            if (string.IsNullOrWhiteSpace(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            return bank.Items.Values.Any(items => items.Any(item => (item != null) && item.Name.EqualsI(itemName)));
+        }
+
+        /// <summary>
+        ///     Checks the bank for all items with the given name and totals them up.
+        /// </summary>
+        /// <param name="bank">The client's <see cref="BankInfo" />.</param>
+        /// <param name="itemName">The name of the item to search for.</param>
+        /// <returns>
+        ///     <see cref="int" /> <br />
+        ///     The number of items with the given name. (counts items in stacks)
+        /// </returns>
+        /// <exception cref="ArgumentNullException">bank</exception>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        public static int CountOf(this BankInfo bank, string itemName)
+        {
+            if (bank == null)
+                throw new ArgumentNullException(nameof(bank));
+
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            return bank.Items.Values.SelectMany(items => items)
+                .Where(item => (item != null) && item.Name.EqualsI(itemName))
+                .Sum(item => item!.Quantity);
+        }
+
+        /// <summary>
+        ///     Finds the first item in the bank that meets the conditions.
+        /// </summary>
+        /// <param name="bank">The client's <see cref="BankInfo" />.</param>
+        /// <param name="itemName">The name of the item to search for. Leave null to ignore name.</param>
+        /// <param name="levelMin">The item must have at least this level.</param>
+        /// <param name="levelMax">The item must have at most this level.</param>
+        /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
+        /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
+        /// <returns>
+        ///     <see cref="BankedItem" /> <br />
+        ///     The item, and information about what bank and slot it is in, or <c>null</c> if no item was found.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">bank</exception>
+        public static BankedItem? FindItem(
+            this BankInfo bank,
+            string? itemName = null,
             int levelMin = int.MinValue,
             int levelMax = int.MaxValue,
             int quantityMin = int.MinValue,
             int quantityMax = int.MaxValue)
         {
-            foreach ((var bankPack, var items) in dic)
+            if (bank == null)
+                throw new ArgumentNullException(nameof(bank));
+
+            foreach ((var bankPack, var items) in bank.Items)
             {
                 var index = items.FindIndex(item =>
-                    (item.Level >= levelMin)
+                    (item != null)
+                    && (item.Level >= levelMin)
                     && (item.Level <= levelMax)
                     && (item.Quantity >= quantityMin)
                     && (item.Quantity <= quantityMax)
-                    && item.Name.EqualsI(itemName));
+                    && ((itemName == null) || item.Name.EqualsI(itemName)));
 
                 if (index == -1)
                     continue;
@@ -53,7 +126,7 @@ namespace AL.Client.Extensions
                 {
                     BankPack = bankPack,
                     Index = index,
-                    Item = items[index]
+                    Item = items[index]!
                 };
             }
 

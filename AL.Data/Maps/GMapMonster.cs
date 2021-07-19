@@ -2,6 +2,7 @@
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Json.Converters;
+using AL.Data.Monsters;
 using Newtonsoft.Json;
 
 namespace AL.Data.Maps
@@ -9,7 +10,7 @@ namespace AL.Data.Maps
     /// <summary>
     ///     Represents a monster's static data for a specific map.
     /// </summary>
-    public record MonsterMapInfo
+    public record GMapMonster
     {
         [JsonProperty("boundaries", ItemConverterType = typeof(BoundaryConverter))]
         private IReadOnlyList<Boundary>? _boundaries;
@@ -46,7 +47,7 @@ namespace AL.Data.Maps
 
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, specifies the boundary in which the entire
-        ///     spawn of this monster will swarm you at <see cref="AL.Data.Monsters.Monster.ChargeSpeed" />.
+        ///     spawn of this monster will swarm you at <see cref="GMonster.ChargeSpeed" />.
         /// </summary>
         [JsonProperty("rage"), JsonConverter(typeof(BoundaryConverter))]
         public Boundary? RageBoundary { get; init; }

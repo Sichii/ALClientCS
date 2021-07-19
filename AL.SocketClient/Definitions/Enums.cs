@@ -155,7 +155,8 @@ namespace AL.SocketClient.Definitions
         PartyUpdate,
         [EnumMember(Value = "q_data")]
         QueuedActionData,
-        Upgrade,
+        [EnumMember(Value = "upgrade")]
+        QueuedActionResult,
         [EnumMember(Value = "game_log")]
         GameLog,
         Death,

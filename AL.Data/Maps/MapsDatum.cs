@@ -6,96 +6,96 @@ namespace AL.Data.Maps
     ///     <inheritdoc />
     /// </summary>
     /// <seealso cref="DatumBase{T}" />
-    public class MapsDatum : DatumBase<Map>
+    public class MapsDatum : DatumBase<GMap>
     {
-        public Map ABTesting { get; set; } = null!;
-        public Map Arena { get; set; } = null!;
-        public Map Bank { get; set; } = null!;
+        public GMap ABTesting { get; set; } = null!;
+        public GMap Arena { get; set; } = null!;
+        public GMap Bank { get; set; } = null!;
 
         [JsonProperty("bank_b")]
-        public Map BankB { get; set; } = null!;
+        public GMap BankB { get; set; } = null!;
 
         [JsonProperty("bank_u")]
-        public Map BankU { get; set; } = null!;
+        public GMap BankU { get; set; } = null!;
 
-        public Map BatCave { get; set; } = null!;
-        public Map Cave { get; set; } = null!;
-        public Map CGallery { get; set; } = null!;
-        public Map Crypt { get; set; } = null!;
-        public Map CyberLand { get; set; } = null!;
-        public Map D2 { get; set; } = null!;
+        public GMap BatCave { get; set; } = null!;
+        public GMap Cave { get; set; } = null!;
+        public GMap CGallery { get; set; } = null!;
+        public GMap Crypt { get; set; } = null!;
+        public GMap CyberLand { get; set; } = null!;
+        public GMap D2 { get; set; } = null!;
 
         [JsonProperty("d_a1")]
-        public Map DA1 { get; set; } = null!;
+        public GMap DA1 { get; set; } = null!;
 
         [JsonProperty("d_a2")]
-        public Map DA2 { get; set; } = null!;
+        public GMap DA2 { get; set; } = null!;
 
         [JsonProperty("d_b1")]
-        public Map DB1 { get; set; } = null!;
+        public GMap DB1 { get; set; } = null!;
 
         [JsonProperty("d_e")]
-        public Map DE { get; set; } = null!;
+        public GMap DE { get; set; } = null!;
 
-        public Map Desertland { get; set; } = null!;
+        public GMap Desertland { get; set; } = null!;
 
         [JsonProperty("d_g")]
-        public Map DG { get; set; } = null!;
+        public GMap DG { get; set; } = null!;
 
-        public Map DuelLand { get; set; } = null!;
-        public Map Dungeon0 { get; set; } = null!;
-        public Map Goobrawl { get; set; } = null!;
-        public Map Halloween { get; set; } = null!;
-        public Map Hut { get; set; } = null!;
-        public Map Jail { get; set; } = null!;
-        public Map Level1 { get; set; } = null!;
-        public Map Level2 { get; set; } = null!;
-        public Map Level2E { get; set; } = null!;
-        public Map Level2N { get; set; } = null!;
-        public Map Level2S { get; set; } = null!;
-        public Map Level2W { get; set; } = null!;
-        public Map Level3 { get; set; } = null!;
-        public Map Level4 { get; set; } = null!;
-        public Map Main { get; set; } = null!;
-        public Map Mansion { get; set; } = null!;
-        public Map Mtunnel { get; set; } = null!;
+        public GMap DuelLand { get; set; } = null!;
+        public GMap Dungeon0 { get; set; } = null!;
+        public GMap Goobrawl { get; set; } = null!;
+        public GMap Halloween { get; set; } = null!;
+        public GMap Hut { get; set; } = null!;
+        public GMap Jail { get; set; } = null!;
+        public GMap Level1 { get; set; } = null!;
+        public GMap Level2 { get; set; } = null!;
+        public GMap Level2E { get; set; } = null!;
+        public GMap Level2N { get; set; } = null!;
+        public GMap Level2S { get; set; } = null!;
+        public GMap Level2W { get; set; } = null!;
+        public GMap Level3 { get; set; } = null!;
+        public GMap Level4 { get; set; } = null!;
+        public GMap Main { get; set; } = null!;
+        public GMap Mansion { get; set; } = null!;
+        public GMap Mtunnel { get; set; } = null!;
 
         [JsonProperty("old_bank")]
-        public Map OldBank { get; set; } = null!;
+        public GMap OldBank { get; set; } = null!;
 
         [JsonProperty("old_main")]
-        public Map OldMain { get; set; } = null!;
+        public GMap OldMain { get; set; } = null!;
 
         [JsonProperty("original_main")]
-        public Map OriginalMain { get; set; } = null!;
+        public GMap OriginalMain { get; set; } = null!;
 
-        public Map Resort { get; set; } = null!;
+        public GMap Resort { get; set; } = null!;
 
         [JsonProperty("resort_e")]
-        public Map ResortE { get; set; } = null!;
+        public GMap ResortE { get; set; } = null!;
 
-        public Map ShellsIsland { get; set; } = null!;
-        public Map Ship0 { get; set; } = null!;
-        public Map SpookyTown { get; set; } = null!;
-        public Map Tavern { get; set; } = null!;
-        public Map Test { get; set; } = null!;
-        public Map Tomb { get; set; } = null!;
-        public Map Tunnel { get; set; } = null!;
+        public GMap ShellsIsland { get; set; } = null!;
+        public GMap Ship0 { get; set; } = null!;
+        public GMap SpookyTown { get; set; } = null!;
+        public GMap Tavern { get; set; } = null!;
+        public GMap Test { get; set; } = null!;
+        public GMap Tomb { get; set; } = null!;
+        public GMap Tunnel { get; set; } = null!;
 
         [JsonProperty("winter_cave")]
-        public Map WinterCave { get; set; } = null!;
+        public GMap WinterCave { get; set; } = null!;
 
         [JsonProperty("winter_inn")]
-        public Map WinterInn { get; set; } = null!;
+        public GMap WinterInn { get; set; } = null!;
 
         [JsonProperty("winter_inn_rooms")]
-        public Map WinterInnRooms { get; set; } = null!;
+        public GMap WinterInnRooms { get; set; } = null!;
 
         [JsonProperty("winter_instance")]
-        public Map WinterInstance { get; set; } = null!;
+        public GMap WinterInstance { get; set; } = null!;
 
-        public Map WinterLand { get; set; } = null!;
-        public Map Woffice { get; set; } = null!;
+        public GMap WinterLand { get; set; } = null!;
+        public GMap Woffice { get; set; } = null!;
 
         internal override void ConstructCache()
         {

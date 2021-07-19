@@ -1,50 +1,124 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
-using AL.SocketClient.Interfaces;
+using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 
 // ReSharper disable ParameterTypeCanBeEnumerable.Global
 
 namespace AL.Client.Extensions
 {
+    /// <summary>
+    ///     Provides a set of extensions for the <see cref="Character" />'s <see cref="Inventory" />.
+    /// </summary>
     public static class InventoryExtensions
     {
-        public static IEnumerable<IndexedItem> AsIndexed(this IReadOnlyList<IInventoryItem> items) =>
-            items.Select((item, index) => new IndexedItem
-            {
-                Index = index,
-                Item = item
-            });
+        /// <summary>
+        ///     Lazily enumerates all inventory in the inventory, providing a way to keep track of what slot the item was in.
+        /// </summary>
+        /// <param name="inventory">The inventory to index.</param>
+        /// <returns><see cref="IEnumerable{T}" /> of <see cref="IndexedInventoryItem" /> <br /></returns>
+        /// <exception cref="ArgumentNullException">inventory</exception>
+        public static IEnumerable<IndexedInventoryItem> AsIndexed(this Inventory inventory)
+        {
+            if (inventory == null)
+                throw new ArgumentNullException(nameof(inventory));
 
-        public static bool ContainsItem(this IReadOnlyList<IInventoryItem> items, string itemName) =>
-            items.Any(item => item.Name.EqualsI(itemName));
+            return inventory.Select((item, index) => item == null
+                    ? null
+                    : new IndexedInventoryItem
+                    {
+                        Index = index,
+                        Item = item
+                    })
+                .Where(indexed => indexed != null)!;
+        }
 
-        public static int CountOf(this IReadOnlyList<IInventoryItem> items, string itemName) =>
-            items.Where(item => item.Name.EqualsI(itemName)).Sum(item => item.Quantity);
+        /// <summary>
+        ///     Checks the inventory to see if it contains an item with the given name.
+        /// </summary>
+        /// <param name="inventory">The character's <see cref="Inventory" />.</param>
+        /// <param name="itemName">The name of the item to search for.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if an item with the name was found, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">inventory</exception>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        public static bool ContainsItem(this Inventory inventory, string itemName)
+        {
+            if (inventory == null)
+                throw new ArgumentNullException(nameof(inventory));
 
-        public static IndexedItem FindItem(
-            this IReadOnlyList<IInventoryItem> items,
-            string itemName,
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(inventory));
+
+            return inventory.Any(item => (item != null) && item.Name.EqualsI(itemName));
+        }
+
+        /// <summary>
+        ///     Checks the inventory for all inventory with the given name and totals them up.
+        /// </summary>
+        /// <param name="inventory">The character's <see cref="Inventory" />.</param>
+        /// <param name="itemName">The name of the item to search for.</param>
+        /// <returns>
+        ///     <see cref="int" /> <br />
+        ///     The number of inventory with the given name. (counts inventory in stacks)
+        /// </returns>
+        /// <exception cref="ArgumentNullException">inventory</exception>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        public static int CountOf(this Inventory inventory, string itemName)
+        {
+            if (inventory == null)
+                throw new ArgumentNullException(nameof(inventory));
+
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            return inventory.Where(item => (item != null) && item.Name.EqualsI(itemName)).Sum(item => item!.Quantity);
+        }
+
+        /// <summary>
+        ///     Finds the first item in the inventory that meets the conditions.
+        /// </summary>
+        /// <param name="inventory">The character's <see cref="Inventory" />.</param>
+        /// <param name="itemName">The name of the item to search for. Leave null to ignore name.</param>
+        /// <param name="levelMin">The item must have at least this level.</param>
+        /// <param name="levelMax">The item must have at most this level.</param>
+        /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
+        /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">inventory</exception>
+        public static IndexedInventoryItem? FindItem(
+            this Inventory inventory,
+            string? itemName = null,
             int levelMin = int.MinValue,
             int levelMax = int.MaxValue,
             int quantityMin = int.MinValue,
             int quantityMax = int.MaxValue)
         {
-            var index = items.FindIndex(item =>
-                (item.Level >= levelMin)
+            if (inventory == null)
+                throw new ArgumentNullException(nameof(inventory));
+
+            var index = inventory.FindIndex(item =>
+                (item != null)
+                && (item.Level >= levelMin)
                 && (item.Level <= levelMax)
                 && (item.Quantity >= quantityMin)
                 && (item.Quantity <= quantityMax)
-                && item.Name.EqualsI(itemName));
+                && ((itemName == null) || item.Name.EqualsI(itemName)));
 
             if (index == -1)
                 return null;
 
-            return new IndexedItem
+            return new IndexedInventoryItem
             {
                 Index = index,
-                Item = items[index]
+                Item = inventory[index]!
             };
         }
     }

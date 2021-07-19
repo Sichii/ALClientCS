@@ -1,10 +1,20 @@
-using AL.SocketClient.Interfaces;
+using AL.APIClient.Interfaces;
 
 namespace AL.Client.Interfaces
 {
-    public interface IIndexedItem
+    /// <summary>
+    ///     Represents an item at a specific index within a collection of items.
+    /// </summary>
+    public interface IIndexedItem<out T> where T: ISimpleItem
     {
+        /// <summary>
+        ///     The index the item is at within it's collection.
+        /// </summary>
         int Index { get; }
-        IInventoryItem Item { get; }
+
+        /// <summary>
+        ///     The item itself.
+        /// </summary>
+        T Item { get; }
     }
 }

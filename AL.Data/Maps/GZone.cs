@@ -8,7 +8,7 @@ namespace AL.Data.Maps
     /// <summary>
     ///     Represents a special zone on a map.
     /// </summary>
-    public record Zone
+    public record GZone
     {
         /// <summary>
         ///     The type of drop this zone yields.

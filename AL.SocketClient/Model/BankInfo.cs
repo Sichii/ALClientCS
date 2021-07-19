@@ -19,7 +19,7 @@ namespace AL.SocketClient.Model
         ///     A dictionary of banks, and the items contained within each of those banks.
         /// </summary>
         [JsonIgnore]
-        public IReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem>> Items { get; init; } =
-            new Dictionary<BankPack, IReadOnlyList<InventoryItem>>();
+        public IReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem?>> Items { get; init; } =
+            new Dictionary<BankPack, IReadOnlyList<InventoryItem?>>();
     }
 }

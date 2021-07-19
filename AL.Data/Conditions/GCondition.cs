@@ -9,7 +9,7 @@ namespace AL.Data.Conditions
     ///     <inheritdoc cref="AttributedRecordBase" />
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record Condition : AttributedRecordBase
+    public record GCondition : AttributedRecordBase
     {
         [JsonProperty("can_move")]
         private bool _canMove;

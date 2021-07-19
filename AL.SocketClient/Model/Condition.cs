@@ -31,7 +31,7 @@ namespace AL.SocketClient.Model
         [JsonProperty]
         public float Intensity { get; init; }
         /// <summary>
-        ///     Whether or not this condition is from a <see cref="MonsterAbility" />.
+        ///     Whether or not this condition is from a monster ability.
         /// </summary>
         [JsonProperty("ability")]
         public bool IsMonsterAbility { get; init; }

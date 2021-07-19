@@ -1,14 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using AL.Client.Interfaces;
+using AL.SocketClient.Model;
 
 namespace AL.Client.Model
 {
-    public record CompoundableGrouping<T> : ICompoundableGrouping<T> where T: IIndexedItem
+    /// <seealso cref="ICompoundableGrouping{T}" />
+    /// <inheritdoc cref="ICompoundableGrouping{T}" />
+    public record CompoundableGrouping<T> : ICompoundableGrouping<T> where T: IIndexedItem<InventoryItem>
     {
         public int Level { get; init; }
-        public string Name { get; init; }
-        internal IReadOnlyList<T> Items { get; init; }
+        public string Name { get; init; } = null!;
+        internal IReadOnlyList<T> Items { get; init; } = new List<T>();
 
         public T this[int index] => Items[index];
         public int Count => Items.Count;

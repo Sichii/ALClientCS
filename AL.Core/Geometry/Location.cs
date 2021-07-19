@@ -18,7 +18,7 @@ namespace AL.Core.Geometry
         /// <summary>
         ///     This represents an invalid value since the default value of a point <c>(0, 0)</c> is a used value.
         /// </summary>
-        public static Location None = new(string.Empty, Point.None);
+        public static Location None => new(string.Empty, Point.None);
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="Location" /> class.

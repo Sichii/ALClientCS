@@ -5,6 +5,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <RootNamespace>AL.Client</RootNamespace>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

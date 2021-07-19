@@ -8,7 +8,7 @@ namespace AL.Data.Maps
     /// <summary>
     ///     Represents an NPC's static data for a specific map.
     /// </summary>
-    public record NPCMapInfo
+    public record GMapNPC
     {
         [JsonProperty("name")]
         private string? _name;

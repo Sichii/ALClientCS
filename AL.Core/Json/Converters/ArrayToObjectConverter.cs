@@ -72,7 +72,7 @@ namespace AL.Core.Json.Converters
                     {
                         FieldInfo fieldInfo       => fieldInfo.GetValue(value),
                         PropertyInfo propertyInfo => propertyInfo.GetValue(value),
-                        _                         => throw new ArgumentOutOfRangeException(nameof(kvp.Value))
+                        _                         => throw new IndexOutOfRangeException(nameof(kvp.Value))
                     };
                 })
                 .ToArray();

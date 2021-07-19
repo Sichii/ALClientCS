@@ -12,7 +12,7 @@ namespace AL.Data.Geometry
     ///     Represents a tile on a map.
     /// </summary>
     /// <seealso cref="IRectangle" />
-    public record Tile : IRectangle
+    public record GTile : IRectangle
     {
         /// <summary>
         ///     Tiles are square. The size is the height and width of the tile.

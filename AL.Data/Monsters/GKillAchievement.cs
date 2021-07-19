@@ -10,7 +10,7 @@ namespace AL.Data.Monsters
     /// <param name="RewardType">The type of achievement. (stats or nothing)</param>
     /// <param name="Attribute">The attribute this achievement grants, if any.</param>
     /// <param name="Amount">The amount of the attribute this achievement grants.</param>
-    public record KillAchievement(
+    public record GKillAchievement(
         [property: JsonArrayIndex(0)] float RequiredPoints,
         [property: JsonArrayIndex(1)] AchievementRewardType RewardType,
         [property: JsonArrayIndex(2)] ALAttribute Attribute,

@@ -16,7 +16,7 @@ namespace AL.Data.Items
     ///     Represents the static data for an item.
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record Item : AttributedRecordBase
+    public record GItem : AttributedRecordBase
     {
         /// <summary>
         ///     <b>NULLABLE</b>. If null, this item is not compoundable.

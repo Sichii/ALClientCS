@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 
 namespace AL.Client.Extensions
 {
-    public static class TaskExtensions
+    internal static class TaskExtensions
     {
-        public static async Task<T> WithNetworkTimeout<T>(this Task<T> task)
+        internal static async Task<T> WithNetworkTimeout<T>(this Task<T> task)
         {
             var timeoutMS = ALClientSettings.NetworkTimeoutMS;
 
@@ -15,7 +15,7 @@ namespace AL.Client.Extensions
             throw new TimeoutException($"Network operation timed out after {timeoutMS}ms");
         }
 
-        public static async Task WithNetworkTimeout(this Task task)
+        internal static async Task WithNetworkTimeout(this Task task)
         {
             var timeoutMS = ALClientSettings.NetworkTimeoutMS;
 

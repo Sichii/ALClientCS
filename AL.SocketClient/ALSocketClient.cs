@@ -25,30 +25,12 @@ namespace AL.SocketClient
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private Server? Server;
         private SocketIoClient? Socket;
-        
-        #region Do Not ReOrder
-        /// <summary>
-        ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing emits and deserializing messages.
-        ///     <br />
-        ///     Caching an instance of this helps with performance. <br />
-        ///     If you replace this instance, you must also replace the <see cref="JsonSerializer" /> instance.
-        /// </summary>
-        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
-        public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
 
-        /// <summary>
-        ///     A default <see cref="JsonSerializer" /> instance using the default <see cref="JsonSerializerSettings" /> instance.
-        ///     <br />
-        ///     Caching an instance of this helps with performance.
-        /// </summary>
-        public static JsonSerializer JsonSerializer { get; set; } =
-            JsonSerializer.CreateDefault(JsonSerializerSettings);
-        #endregion
-        
         /// <summary>
         ///     The name of the character this client is for.
         /// </summary>
         public override string Name { get; }
+        public bool Open => Socket?.EngineIoClient.IsOpened ?? false;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -88,6 +70,12 @@ namespace AL.SocketClient
         {
             Warn("Disconnecting");
 
+            foreach ((_, var subList) in Subscriptions)
+                foreach (var sub in await subList.ToArrayAsync())
+                    await sub.DisposeAsync();
+
+            Subscriptions.Clear();
+
             if (Socket != null)
             {
                 await Socket.DisconnectAsync();
@@ -98,15 +86,7 @@ namespace AL.SocketClient
         public async ValueTask DisposeAsync()
         {
             GC.SuppressFinalize(this);
-
-            foreach ((_, var subList) in Subscriptions)
-                foreach (var sub in await subList.ToArrayAsync())
-                    await sub.DisposeAsync();
-
-            Subscriptions.Clear();
-
-            if (Socket != null)
-                await Socket.DisposeAsync();
+            await DisconnectAsync();
         }
 
         /// <summary>
@@ -245,5 +225,26 @@ RAW JSON:
             if (Subscriptions.TryGetValue(socketMessageType, out var invocationList))
                 await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate) callback);
         }
+
+        #region Do Not ReOrder
+
+        /// <summary>
+        ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing emits and deserializing messages.
+        ///     <br />
+        ///     Caching an instance of this helps with performance. <br />
+        ///     If you replace this instance, you must also replace the <see cref="JsonSerializer" /> instance.
+        /// </summary>
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
+        public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
+
+        /// <summary>
+        ///     A default <see cref="JsonSerializer" /> instance using the default <see cref="JsonSerializerSettings" /> instance.
+        ///     <br />
+        ///     Caching an instance of this helps with performance.
+        /// </summary>
+        public static JsonSerializer JsonSerializer { get; set; } =
+            JsonSerializer.CreateDefault(JsonSerializerSettings);
+
+        #endregion
     }
 }

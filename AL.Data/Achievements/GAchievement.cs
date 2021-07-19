@@ -1,6 +1,6 @@
 ﻿namespace AL.Data.Achievements
 {
-    public record Achievement
+    public record GAchievement
     {
         /// <summary>
         ///     Amount of kills needed to earn this achievement.

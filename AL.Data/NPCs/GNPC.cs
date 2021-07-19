@@ -9,7 +9,7 @@ namespace AL.Data.NPCs
     ///     Represents the static data for an NPC.
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record NPC : AttributedRecordBase
+    public record GNPC : AttributedRecordBase
     {
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, this NPC has an aura, and that aura gives these attributes.

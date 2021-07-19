@@ -9,7 +9,7 @@ namespace AL.Data.Classes
     /// <summary>
     ///     Provides information about a class(archetype) in adventure land.
     /// </summary>
-    public record Class
+    public record GClass
     {
         /// <summary>
         ///     Base armor.

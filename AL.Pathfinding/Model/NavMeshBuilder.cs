@@ -15,9 +15,9 @@ namespace AL.Pathfinding.Model
 {
     internal class NavMeshBuilder
     {
-        private readonly MapGeometry Geometry;
+        private readonly GGeometry Geometry;
         private readonly int Height;
-        private readonly Map Map;
+        private readonly GMap Map;
         private readonly Dictionary<Point, GraphNode<Point>> NodeDic;
         private readonly PointType[,] PointMap;
         private readonly Dictionary<Point, DelaunayTriangle> Triangles;
@@ -27,7 +27,7 @@ namespace AL.Pathfinding.Model
         private int Index;
         private GraphNode<Point>? TownNode;
 
-        internal NavMeshBuilder(Map map, MapGeometry geometry)
+        internal NavMeshBuilder(GMap map, GGeometry geometry)
         {
             Map = map;
             Geometry = geometry;

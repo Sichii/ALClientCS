@@ -4,19 +4,19 @@
     ///     <inheritdoc />
     /// </summary>
     /// <seealso cref="DatumBase{T}" />
-    public class TitlesDatum : DatumBase<Title>
+    public class TitlesDatum : DatumBase<GTitle>
     {
-        public Title CritMonger { get; set; } = null!;
-        public Title Fast { get; set; } = null!;
-        public Title Festive { get; set; } = null!;
-        public Title FireHazard { get; set; } = null!;
-        public Title Glitched { get; set; } = null!;
-        public Title Gooped { get; set; } = null!;
-        public Title Legacy { get; set; } = null!;
-        public Title Lucky { get; set; } = null!;
-        public Title Shiny { get; set; } = null!;
-        public Title Sniper { get; set; } = null!;
-        public Title Stomped { get; set; } = null!;
-        public Title SuperFast { get; set; } = null!;
+        public GTitle CritMonger { get; set; } = null!;
+        public GTitle Fast { get; set; } = null!;
+        public GTitle Festive { get; set; } = null!;
+        public GTitle FireHazard { get; set; } = null!;
+        public GTitle Glitched { get; set; } = null!;
+        public GTitle Gooped { get; set; } = null!;
+        public GTitle Legacy { get; set; } = null!;
+        public GTitle Lucky { get; set; } = null!;
+        public GTitle Shiny { get; set; } = null!;
+        public GTitle Sniper { get; set; } = null!;
+        public GTitle Stomped { get; set; } = null!;
+        public GTitle SuperFast { get; set; } = null!;
     }
 }

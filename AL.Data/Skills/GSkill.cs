@@ -11,7 +11,7 @@ namespace AL.Data.Skills
     ///     Represents the static data of a skill.
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record Skill : AttributedRecordBase
+    public record GSkill : AttributedRecordBase
     {
         /// <summary>
         ///     If populated, when this skill is used this action text will appear on the GUI.
@@ -61,7 +61,7 @@ namespace AL.Data.Skills
         ///     The cooldown of this ability in milliseconds.
         /// </summary>
         [JsonProperty("cooldown")]
-        public float CooldownMS { get; private set; }
+        public int CooldownMS { get; private set; }
 
         /// <summary>
         ///     Used with <see cref="SharedCooldown" />. This is the multiplier applied to the shared cooldown to get this skill's
@@ -199,7 +199,7 @@ namespace AL.Data.Skills
         }
 
         [JsonProperty("reuse_cooldown")]
-        private float ReuseCooldown
+        private int ReuseCooldown
         {
             get => CooldownMS;
             set => CooldownMS = value;

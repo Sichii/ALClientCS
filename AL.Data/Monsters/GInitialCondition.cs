@@ -4,7 +4,7 @@
     ///     Represents a condition that a monster has when it spawns. <br />
     ///     No information aside from duration is generally given.
     /// </summary>
-    public record InitialCondition
+    public record GInitialCondition
     {
         /// <summary>
         ///     The duration in milliseconds.

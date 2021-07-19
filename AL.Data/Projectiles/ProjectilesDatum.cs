@@ -6,43 +6,43 @@ namespace AL.Data.Projectiles
     ///     <inheritdoc />
     /// </summary>
     /// <seealso cref="DatumBase{T}" />
-    public class ProjectilesDatum : DatumBase<Projectile>
+    public class ProjectilesDatum : DatumBase<GProjectile>
     {
-        public Projectile Acid { get; set; } = null!;
-        public Projectile Arrow { get; set; } = null!;
-        public Projectile BigMagic { get; set; } = null!;
-        public Projectile Burst { get; set; } = null!;
-        public Projectile CrossbowArrow { get; set; } = null!;
-        public Projectile Cupid { get; set; } = null!;
-        public Projectile Curse { get; set; } = null!;
-        public Projectile FireArrow { get; set; } = null!;
-        public Projectile Fireball { get; set; } = null!;
-        public Projectile FrostArrow { get; set; } = null!;
-        public Projectile FrostBall { get; set; } = null!;
-        public Projectile GArrow { get; set; } = null!;
-        public Projectile Magic { get; set; } = null!;
+        public GProjectile Acid { get; set; } = null!;
+        public GProjectile Arrow { get; set; } = null!;
+        public GProjectile BigMagic { get; set; } = null!;
+        public GProjectile Burst { get; set; } = null!;
+        public GProjectile CrossbowArrow { get; set; } = null!;
+        public GProjectile Cupid { get; set; } = null!;
+        public GProjectile Curse { get; set; } = null!;
+        public GProjectile FireArrow { get; set; } = null!;
+        public GProjectile Fireball { get; set; } = null!;
+        public GProjectile FrostArrow { get; set; } = null!;
+        public GProjectile FrostBall { get; set; } = null!;
+        public GProjectile GArrow { get; set; } = null!;
+        public GProjectile Magic { get; set; } = null!;
 
         [JsonProperty("magic_divine")]
-        public Projectile MagicDivine { get; set; } = null!;
+        public GProjectile MagicDivine { get; set; } = null!;
 
         [JsonProperty("magic_purple")]
-        public Projectile MagicPurple { get; set; } = null!;
+        public GProjectile MagicPurple { get; set; } = null!;
 
-        public Projectile MMagic { get; set; } = null!;
-        public Projectile Momentum { get; set; } = null!;
-        public Projectile Pinky { get; set; } = null!;
-        public Projectile Plight { get; set; } = null!;
-        public Projectile PMagic { get; set; } = null!;
-        public Projectile PoisonArrow { get; set; } = null!;
-        public Projectile Pouch { get; set; } = null!;
-        public Projectile SnowBall { get; set; } = null!;
-        public Projectile Stone { get; set; } = null!;
+        public GProjectile MMagic { get; set; } = null!;
+        public GProjectile Momentum { get; set; } = null!;
+        public GProjectile Pinky { get; set; } = null!;
+        public GProjectile Plight { get; set; } = null!;
+        public GProjectile PMagic { get; set; } = null!;
+        public GProjectile PoisonArrow { get; set; } = null!;
+        public GProjectile Pouch { get; set; } = null!;
+        public GProjectile SnowBall { get; set; } = null!;
+        public GProjectile Stone { get; set; } = null!;
 
         [JsonProperty("stone_k")]
-        public Projectile StoneK { get; set; } = null!;
+        public GProjectile StoneK { get; set; } = null!;
 
-        public Projectile SuperShot { get; set; } = null!;
-        public Projectile Wandy { get; set; } = null!;
-        public Projectile WMomentum { get; set; } = null!;
+        public GProjectile SuperShot { get; set; } = null!;
+        public GProjectile Wandy { get; set; } = null!;
+        public GProjectile WMomentum { get; set; } = null!;
     }
 }

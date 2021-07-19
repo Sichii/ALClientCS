@@ -8,7 +8,7 @@ namespace AL.Data.Maps
     /// <summary>
     ///     Represents the static data for a trap on a map.
     /// </summary>
-    public record Trap
+    public record GTrap
     {
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, this is the vertices of the polygon of the trap.<br />

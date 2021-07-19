@@ -87,7 +87,7 @@ namespace AL.SocketClient.Model
         ///     The character's inventory.
         /// </summary>
         [JsonProperty("items")]
-        public IReadOnlyList<InventoryItem> Inventory { get; internal set; } = new List<InventoryItem>();
+        public Inventory Inventory { get; internal set; } = null!;
 
         /// <summary>
         ///     The maximum size of this character's inventory.

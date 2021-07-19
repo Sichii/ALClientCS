@@ -37,14 +37,14 @@ namespace AL.Pathfinding
         public static WorldMesh WorldMesh { get; private set; } = null!;
         private static Dictionary<string, NavMesh> NavMeshes { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-        private static void BuildWorldMesh(Dictionary<string, Map> maps)
+        private static void BuildWorldMesh(Dictionary<string, GMap> maps)
         {
             Logger.Info("Preparing world navigation");
-            var nodeDic = new Dictionary<Map, GraphNode<Map>>();
+            var nodeDic = new Dictionary<GMap, GraphNode<GMap>>();
             var index = 0;
 
             foreach ((_, var map) in maps)
-                nodeDic.Add(map, new GraphNode<Map>(map, index++));
+                nodeDic.Add(map, new GraphNode<GMap>(map, index++));
 
             foreach ((var map, var node) in nodeDic)
             {
@@ -208,7 +208,7 @@ namespace AL.Pathfinding
         /// <param name="fromMapAccessor">A starting map.</param>
         /// <param name="endMapAccessors">Any number of end maps. Upon reaching any of the end maps, that path will be returned.</param>
         /// <returns>
-        ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="IConnector{TEdge}" /> of <see cref="Map" /> <br />
+        ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="IConnector{TEdge}" /> of <see cref="GMap" /> <br />
         ///     A lazy enumeration of maps along the most optimal path between the start node and the first end node a path is
         ///     found for.
         /// </returns>
@@ -216,7 +216,7 @@ namespace AL.Pathfinding
         /// <exception cref="ArgumentNullException">endMapAccessors</exception>
         /// <exception cref="InvalidOperationException">No map was found for the accessor "{fromMapAccessor}"</exception>
         /// <exception cref="InvalidOperationException">No map was found for the accessors {string.Join(", ", endAccessors)}</exception>
-        public static async IAsyncEnumerable<IConnector<Map>> FindRoute(
+        public static async IAsyncEnumerable<IConnector<GMap>> FindRoute(
             string fromMapAccessor,
             IEnumerable<string> endMapAccessors)
         {
@@ -277,7 +277,7 @@ namespace AL.Pathfinding
         /// </summary>
         public static async Task InitializeAsync()
         {
-            var navMeshes = new AwaitableDictionary<Map, NavMesh>();
+            var navMeshes = new AwaitableDictionary<GMap, NavMesh>();
 
             var maps = GameData.Maps.DistinctBy(kvp => kvp.Value.Key)
                 .Where(kvp => kvp.Value.Ignore == false)
@@ -312,7 +312,7 @@ namespace AL.Pathfinding
             Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
         }
 
-        private static NavMesh? TryBuildNavMesh(string name, Map map)
+        private static NavMesh? TryBuildNavMesh(string name, GMap map)
         {
             var geometry = GameData.Geometry[name];
 

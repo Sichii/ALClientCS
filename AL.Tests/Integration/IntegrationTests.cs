@@ -15,7 +15,8 @@ namespace AL.Tests.Integration
             var apiClient = AssemblyInit.APIClient;
             await PathFinder.InitializeAsync();
 
-            await using var client = await ALClient.CreateAsync("makiz", ServerRegion.US, ServerId.III, apiClient);
+            await using var client =
+                await ALClient.StartCharacterAsync("makiz", ServerRegion.US, ServerId.III, apiClient);
 
             //stand still for 1minute
             await Task.Delay(1000 * 60);

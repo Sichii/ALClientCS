@@ -9,7 +9,7 @@ namespace AL.Data.Monsters
     ///     Represents an ability used by a monster.
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
-    public record MonsterAbility : AttributedRecordBase
+    public record GMonsterAbility : AttributedRecordBase
     {
         [JsonProperty("amount")]
         private float? _amount;

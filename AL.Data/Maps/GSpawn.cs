@@ -7,7 +7,7 @@ namespace AL.Data.Maps
     /// <inheritdoc cref="Orientation" />
     /// <param name="Distance">The distance from the spawn in which you can spawn.</param>
     /// <seealso cref="Orientation" />
-    public record Spawn(
+    public record GSpawn(
         float X,
         float Y,
         Direction Direction,
