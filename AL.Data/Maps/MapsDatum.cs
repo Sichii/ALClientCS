@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System.Linq;
+using Chaos.Core.Extensions;
+using Newtonsoft.Json;
 
 namespace AL.Data.Maps
 {
@@ -101,7 +103,8 @@ namespace AL.Data.Maps
         {
             base.ConstructCache();
 
-            foreach ((var accessor, var map) in this)
+            //map accessors are populated based on the string from the server, not our local copy.
+            foreach ((var accessor, var map) in this.Reverse().DistinctBy(kvp => kvp.Value.Key))
                 map.Accessor = accessor;
         }
     }

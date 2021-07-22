@@ -25,6 +25,13 @@ namespace AL.Data.Maps
         public int Count { get; init; }
 
         /// <summary>
+        ///     This monster's data from <see cref="GameData.Monsters" />
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        [JsonIgnore]
+        public GMonster? Data { get; internal set; }
+
+        /// <summary>
         ///     Whether or not this monster is required to be killed to access an area.
         /// </summary>
         public bool GateKeeper { get; init; }
@@ -71,6 +78,7 @@ namespace AL.Data.Maps
         ///     Lazy enumeration of spawn boundaries for this monster. <br />
         ///     If you're familiar with the original form of this data, it's boundary(if present) + boundaries(if present).
         /// </summary>
+        /// <remarks>Aggregate property</remarks>
         [JsonIgnore]
         public IEnumerable<Boundary> Boundaries
         {

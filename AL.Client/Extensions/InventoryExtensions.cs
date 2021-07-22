@@ -84,6 +84,8 @@ namespace AL.Client.Extensions
         /// </summary>
         /// <param name="inventory">The character's <see cref="Inventory" />.</param>
         /// <param name="itemName">The name of the item to search for. Leave null to ignore name.</param>
+        /// <param name="level">Overrides levelMin/levelMax. Specifies exact level to look for.</param>
+        /// <param name="quantity">Overrides quantityMin/quantityMax. Specifies exact quantity to look for.</param>
         /// <param name="levelMin">The item must have at least this level.</param>
         /// <param name="levelMax">The item must have at most this level.</param>
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
@@ -96,6 +98,8 @@ namespace AL.Client.Extensions
         public static IndexedInventoryItem? FindItem(
             this Inventory inventory,
             string? itemName = null,
+            int? level = null,
+            int? quantity = null,
             int levelMin = int.MinValue,
             int levelMax = int.MaxValue,
             int quantityMin = int.MinValue,
@@ -103,6 +107,18 @@ namespace AL.Client.Extensions
         {
             if (inventory == null)
                 throw new ArgumentNullException(nameof(inventory));
+
+            if (level.HasValue)
+            {
+                levelMin = level.Value;
+                levelMax = level.Value;
+            }
+
+            if (quantity.HasValue)
+            {
+                quantityMin = quantity.Value;
+                quantityMax = quantity.Value;
+            }
 
             var index = inventory.FindIndex(item =>
                 (item != null)

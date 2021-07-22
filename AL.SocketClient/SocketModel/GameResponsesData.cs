@@ -1,6 +1,7 @@
 using AL.Core.Json.Converters;
 using AL.Core.Json.Interfaces;
 using AL.SocketClient.Definitions;
+using AL.SocketClient.Model;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
@@ -13,7 +14,7 @@ namespace AL.SocketClient.SocketModel
     public record GameResponseData : IOptionalObject
     {
         /// <summary>
-        ///     The of the item to be upgraded/compounded successfully.
+        ///     The chance of the item to be upgraded/compounded successfully.
         /// </summary>
         public float Chance { get; init; }
 
@@ -42,6 +43,16 @@ namespace AL.SocketClient.SocketModel
         /// </summary>
         [JsonProperty("gold")]
         public int Gold { get; init; }
+
+        /// <summary>
+        ///     The grace of the item to be upgrade/compounded successfully.
+        /// </summary>
+        public float Grace { get; init; }
+
+        /// <summary>
+        ///     The item you calculated chance for.
+        /// </summary>
+        public ChanceItem? Item { get; init; } = null!;
 
         /// <summary>
         ///     The name of the monster that defeated the player.

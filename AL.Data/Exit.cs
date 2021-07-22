@@ -1,4 +1,5 @@
 using AL.Core.Definitions;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 
 namespace AL.Data
@@ -9,17 +10,11 @@ namespace AL.Data
     /// <seealso cref="AL.Core.Interfaces.IPoint" />
     public record Exit : ILocation
     {
-        /// <summary>
-        ///     The accessor (not name or key) of the map this exit leads to.
-        /// </summary>
-        public string DestinationMap { get; }
-
-        /// <summary>
-        ///     The id of the spawn this map leads to.
-        /// </summary>
-        public int DestinationSpawnId { get; }
-
         public string Map { get; } = null!;
+        /// <summary>
+        ///     The location this exit leads to.
+        /// </summary>
+        public Location ToLocation { get; } = null!;
 
         /// <summary>
         ///     The type of exit. (door, npc)
@@ -28,18 +23,12 @@ namespace AL.Data
         public float X { get; }
         public float Y { get; }
 
-        internal Exit(
-            IPoint point,
-            string map,
-            string destinationMap,
-            int destinationSpawnId,
-            ExitType type)
+        internal Exit(string map, IPoint point, Location toLocation, ExitType type)
         {
+            Map = map;
             X = point.X;
             Y = point.Y;
-            Map = map;
-            DestinationMap = destinationMap;
-            DestinationSpawnId = destinationSpawnId;
+            ToLocation = toLocation;
             Type = type;
         }
     }

@@ -71,6 +71,7 @@ namespace AL.Core.Abstractions
         public float MP { get; init; }
 
         public float MpCost { get; init; }
+        public float MPCost { get; init; }
 
         public float MPReduction { get; init; }
 

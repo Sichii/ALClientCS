@@ -67,7 +67,7 @@ namespace AL.SocketClient.Model
         public string Id { get; init; } = null!;
 
         [JsonProperty]
-        public int Level { get; protected set; }
+        public int? Level { get; protected set; }
 
         [JsonProperty("map")]
         public string Map { get; protected set; } = null!;

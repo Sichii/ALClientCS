@@ -89,6 +89,8 @@ namespace AL.Client.Extensions
         /// </summary>
         /// <param name="bank">The client's <see cref="BankInfo" />.</param>
         /// <param name="itemName">The name of the item to search for. Leave null to ignore name.</param>
+        /// <param name="level">Overrides levelMin/levelMax. Specifies exact level to look for.</param>
+        /// <param name="quantity">Overrides quantityMin/quantityMax. Specifies exact quantity to look for.</param>
         /// <param name="levelMin">The item must have at least this level.</param>
         /// <param name="levelMax">The item must have at most this level.</param>
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
@@ -101,6 +103,8 @@ namespace AL.Client.Extensions
         public static BankedItem? FindItem(
             this BankInfo bank,
             string? itemName = null,
+            int? level = null,
+            int? quantity = null,
             int levelMin = int.MinValue,
             int levelMax = int.MaxValue,
             int quantityMin = int.MinValue,
@@ -108,6 +112,18 @@ namespace AL.Client.Extensions
         {
             if (bank == null)
                 throw new ArgumentNullException(nameof(bank));
+
+            if (level.HasValue)
+            {
+                levelMin = level.Value;
+                levelMax = level.Value;
+            }
+
+            if (quantity.HasValue)
+            {
+                quantityMin = quantity.Value;
+                quantityMax = quantity.Value;
+            }
 
             foreach ((var bankPack, var items) in bank.Items)
             {

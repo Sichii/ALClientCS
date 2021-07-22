@@ -14,7 +14,7 @@ namespace AL.Core.Json.Converters
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
-    public class AttributedObjectConverter<T> : JsonConverter<T> where T: IAttributed, new()
+    public class AttributedObjectConverter<T> : JsonConverter<T?> where T: IAttributed, new()
     {
         public override T? ReadJson(
             JsonReader reader,

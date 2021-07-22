@@ -39,7 +39,6 @@ namespace AL.Pathfinding
 
         private static void BuildWorldMesh(Dictionary<string, GMap> maps)
         {
-            Logger.Info("Preparing world navigation");
             var nodeDic = new Dictionary<GMap, GraphNode<GMap>>();
             var index = 0;
 
@@ -48,9 +47,9 @@ namespace AL.Pathfinding
 
             foreach ((var map, var node) in nodeDic)
             {
-                foreach (var exit in map.Exits.Value)
+                foreach (var exit in map.Exits)
                 {
-                    var exitMap = GameData.Maps[exit.DestinationMap];
+                    var exitMap = GameData.Maps[exit.ToLocation.Map];
 
                     if (exitMap == null)
                     {
@@ -284,9 +283,8 @@ namespace AL.Pathfinding
                 .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
+            var timer = Stopwatch.StartNew();
             Logger.Info("Preparing map navigation");
-            var timer = new Stopwatch();
-            timer.Start();
 
             await Task.WhenAll(maps.AsParallel(new ParallelLinqOptions
                 {
@@ -307,6 +305,7 @@ namespace AL.Pathfinding
                 NavMeshes.Add(map.Key, value);
 
             BuildWorldMesh(maps);
+            Logger.Trace("Prepared worldmesh");
 
             timer.Stop();
             Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
@@ -318,13 +317,13 @@ namespace AL.Pathfinding
 
             if ((geometry == null) || (geometry.XLines.Count == 0) || (geometry.YLines.Count == 0))
             {
-                Logger.Info($"Ignored {name}");
+                Logger.Trace($"Ignored {name}");
                 return null;
             }
 
-            Logger.Info($"Preparing {name}");
             var generator = new NavMeshBuilder(map, geometry);
             var navMesh = generator.Build();
+            Logger.Trace($"Prepared {name}");
             return navMesh;
         }
     }

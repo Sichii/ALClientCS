@@ -118,10 +118,12 @@ namespace AL.SocketClient.Model
         public string? Skin { get; protected set; }
 
         /// <summary>
-        ///     A collection of equipment the player is wearing, and items they are selling/buying.
+        ///     A collection of equipment the player is wearing, and items they are selling/buying. <br />
+        ///     All slots should have keys in the dictionary, but the items may be null.
         /// </summary>
+        /// <remarks>Enriched by converter</remarks>
         [JsonProperty]
-        public IReadOnlyDictionary<Slot, SlotItem> Slots { get; protected set; } = new Dictionary<Slot, SlotItem>();
+        public IReadOnlyDictionary<Slot, SlotItem?> Slots { get; protected set; } = new Dictionary<Slot, SlotItem?>();
 
         /// <summary>
         ///     The type of stand this player is using.

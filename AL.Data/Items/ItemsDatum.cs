@@ -1,4 +1,6 @@
-﻿using AL.Core.Json.Converters;
+﻿using System.Linq;
+using AL.Core.Json.Converters;
+using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
 namespace AL.Data.Items
@@ -511,5 +513,14 @@ namespace AL.Data.Items
         public GItem Xshield { get; set; } = null!;
         public GItem Xshot { get; set; } = null!;
         public GItem Zapper { get; set; } = null!;
+
+        internal override void ConstructCache()
+        {
+            base.ConstructCache();
+
+            //map accessors are populated based on the string from the server, not our local copy.
+            foreach ((var accessor, var item) in this.Reverse().DistinctBy(kvp => kvp.Value.Name))
+                item.Accessor = accessor;
+        }
     }
 }

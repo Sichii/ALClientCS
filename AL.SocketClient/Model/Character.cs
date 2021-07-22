@@ -102,6 +102,12 @@ namespace AL.SocketClient.Model
         public int MapChangeCount { get; protected set; }
 
         /// <summary>
+        ///     The mp cost of the character's basic attack.
+        /// </summary>
+        [JsonProperty("mp_cost")]
+        public new int MPCost { get; init; }
+
+        /// <summary>
         ///     A collection of all of the cosmetics owned by this character.
         /// </summary>
         [JsonProperty("acx")]

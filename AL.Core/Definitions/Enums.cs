@@ -45,9 +45,6 @@ namespace AL.Core.Definitions
         Vit,
         For,
         Luck,
-
-        [EnumMember(Value = "mp_cost")]
-        MpCost,
         Output,
         Blast,
         Explosion,
@@ -72,6 +69,10 @@ namespace AL.Core.Definitions
         MPReduction,
         Bling,
         Awesomeness,
+
+        //needed because AL.Data.Classes. doublehands/mainhand/offhand use it as a mod
+        [EnumMember(Value = "mp_cost")]
+        MpCost,
 
         [Obsolete("No idea what this is.")]
         Attr0,
@@ -528,60 +529,6 @@ namespace AL.Core.Definitions
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum NPCRole
-    {
-        None,
-        Announcer,
-        Blocker,
-        Bouncer,
-        Citizen,
-        Companion,
-        Compound,
-        Craftsman,
-        CX,
-
-        [EnumMember(Value = "daily_events")]
-        DailyEvents,
-        Exchange,
-        FunTokens,
-        Gold,
-        Guard,
-        Items,
-        Jailer,
-        Locksmith,
-        LostAndFound,
-        Lottery,
-        MCollector,
-        Merchant,
-        MonsterTokens,
-        NewUpgrade,
-
-        [EnumMember(Value = "newyear_tree")]
-        NewYearTree,
-        PetKeeper,
-        Premium,
-
-        [EnumMember(Value = "pvp_announcer")]
-        PvPAnnouncer,
-        PvPTokens,
-        Quest,
-        Repeater,
-        Rewards,
-        Resort,
-        Santa,
-        SecondHands,
-        Shells,
-        Ship,
-        Shrine,
-        StandMerchant,
-        Tavern,
-        Tease,
-        TheSearch,
-        Transport,
-        Witch
-    }
-
-    [JsonConverter(typeof(StringEnumConverter))]
     public enum DisappearEffect
     {
         None,
@@ -677,8 +624,9 @@ namespace AL.Core.Definitions
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum Role
+    public enum NPCRole
     {
+        None,
         Announcer,
         Blocker,
         Bouncer,
@@ -696,9 +644,9 @@ namespace AL.Core.Definitions
         Guard,
         Items,
         Jailer,
-        LockSmith,
+        Locksmith,
         LostAndFound,
-        LotteryLady,
+        Lottery,
         MCollector,
         Merchant,
         MonsterTokens,
@@ -714,8 +662,9 @@ namespace AL.Core.Definitions
         PvPTokens,
         Quest,
         Repeater,
-        Resort,
         Rewards,
+        Resort,
+        Santa,
         SecondHands,
         Shells,
         Ship,
@@ -799,5 +748,14 @@ namespace AL.Core.Definitions
         GainMoney,
         [EnumMember(Value = "-$")]
         LoseMoney
+    }
+
+    public enum ObtainType
+    {
+        Unknown,
+        Craft,
+        Exchange,
+        Buy,
+        Quest
     }
 }

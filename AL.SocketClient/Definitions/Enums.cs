@@ -20,30 +20,49 @@ namespace AL.SocketClient.Definitions
         BuyGetCloser,
         [EnumMember(Value = "cant_escape")]
         CantEscape,
-        [EnumMember(Value = "upgrade_no_item")]
-        UpgradeNoItem,
         [EnumMember(Value = "upgrade_incompatible_scroll")]
         UpgradeIncompatibleScroll,
         [EnumMember(Value = "upgrade_in_progress")]
         UpgradeInProgress,
         [EnumMember(Value = "upgrade_chance")]
-        UpgradeChance,
+        UpgradeChance, //emit calculate: true
         [EnumMember(Value = "upgrade_success")]
         UpgradeSuccess,
         [EnumMember(Value = "upgrade_fail")]
         UpgradeFail,
-        [EnumMember(Value = "compound_no_item")]
-        CompoundNoItem,
+        [EnumMember(Value = "upgrade_no_item")]
+        UpgradeNoItem,
+        [EnumMember(Value = "upgrade_mismatch")]
+        UpgradeMismatch,
+        [EnumMember(Value = "upgrade_cant")]
+        UpgradeCant,
+        [EnumMember(Value = "upgrade_invalid_offering")]
+        UpgradeInvalidOffering,
+        //The compound equivalent to this is exception (omegalul)
+        [EnumMember(Value = "upgrade_no_scroll")]
+        UpgradeNoScroll,
         [EnumMember(Value = "compound_incompatible_scroll")]
         CompoundIncompatibleScroll,
         [EnumMember(Value = "compound_in_progress")]
         CompoundInProgress,
         [EnumMember(Value = "compound_chance")]
-        CompoundChance,
+        CompoundChance, //emit calculate: true
         [EnumMember(Value = "compound_success")]
         CompoundSuccess,
         [EnumMember(Value = "compound_fail")]
         CompoundFail,
+        [EnumMember(Value = "compound_no_item")]
+        CompoundNoItem,
+        [EnumMember(Value = "compound_mismatch")]
+        CompoundMismatch,
+        [EnumMember(Value = "compound_cant")]
+        CompoundCant,
+        [EnumMember(Value = "compound_invalid_offering")]
+        CompoundInvalidOffering,
+        [EnumMember(Value = "misc_fail")]
+        MiscFail,
+        [EnumMember(Value = "exception")]
+        Exception,
         [EnumMember(Value = "ecu_get_closer")]
         ECUGetCloser,
         [EnumMember(Value = "emotion_cant")]
@@ -162,7 +181,8 @@ namespace AL.SocketClient.Definitions
         Death,
         [EnumMember(Value = "disappearing_text")]
         DisappearingText,
-        UI
+        UI,
+        NotThere
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

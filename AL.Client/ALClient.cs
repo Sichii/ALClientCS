@@ -159,17 +159,17 @@ namespace AL.Client
         }
 
         /// <summary>
-        ///     Determines if you are able to buy an item by checking inventory space, computer/distance, price, and other common
-        ///     factors.
+        ///     Determines if you should be able to buy an item.
         /// </summary>
-        /// <param name="itemName">The name of the item to check.</param>
+        /// <param name="itemName">The name of the buyable item.</param>
         /// <param name="fromPonty">Whether or not you're trying to buy it from Ponty.</param>
+        /// <param name="distanceCheck">Whether or not to include a distance check.</param>
         /// <returns>
         ///     <see cref="bool" /> <br />
-        ///     <c>true</c> if you should be able to buy this item, otherwise <c>false</c>.
+        ///     <c>true</c> if the item can be bought, otherwise <c>false</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException">itemName</exception>
-        public bool CanBuy(string itemName, bool fromPonty = false)
+        public bool CanBuy(string itemName, bool fromPonty = false, bool distanceCheck = true)
         {
             if (string.IsNullOrEmpty(itemName))
                 throw new ArgumentNullException(nameof(itemName));
@@ -190,17 +190,249 @@ namespace AL.Client
             if (price > Character.Gold)
                 return false;
 
-            //TODO: start here
-            var hasComputer = Character.Inventory.ContainsItem("computer");
+            if (!distanceCheck || Character.Inventory.ContainsItem("computer"))
+                return true;
 
+            if (fromPonty)
+                return GameData.NPCs["secondhands"]!.Locations.Any(location =>
+                    location.Distance(Character) < CONSTANTS.NPC_RANGE);
+
+            if (data.ObtainType != ObtainType.Buy)
+                return false;
+
+            return data.ObtainableFromNPC!.Locations.Any(location =>
+                Character.Distance(location) < CONSTANTS.NPC_RANGE);
+        }
+
+        /// <summary>
+        ///     Determines if you should be able to craft an item.
+        /// </summary>
+        /// <param name="itemName">The name of a craftable item.</param>
+        /// <param name="includeBank">
+        ///     Whether or not to include banked gold/items in the check. (only works if <see cref="Bank" />
+        ///     has been populated)
+        /// </param>
+        /// <param name="distanceCheck">Whether or not to include a distance check.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the item can be crafted, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        /// <remarks>
+        ///     There should never be a reason to use <paramref name="includeBank" /> and <paramref name="distanceCheck" />
+        ///     together.
+        /// </remarks>
+        public bool CanCraft(string itemName, bool includeBank = false, bool distanceCheck = true)
+        {
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            var data = GameData.Items[itemName];
+
+            if ((data == null) || (data.ObtainType != ObtainType.Craft) || (data.ObtainableFromNPC == null))
+                return false;
+
+            var gold = Character.Gold;
+
+            if (includeBank && (Bank != null))
+                gold += Bank.Gold;
+
+            if (data.Recipe!.Cost > gold)
+                return false;
+
+            foreach ((var quantity, var name, var level) in data.Recipe!.Items)
+                if (Character.Inventory.FindItem(name, level, quantity) == null)
+                    if (!includeBank || (Bank == null) || (Bank.FindItem(name, level, quantity) == null))
+                        return false;
+
+            return !distanceCheck
+                   || Character.Inventory.ContainsItem("computer")
+                   || data.ObtainableFromNPC.Locations.Any(location =>
+                       location.Distance(Character) < CONSTANTS.NPC_RANGE);
+        }
+
+        /// <summary>
+        ///     Determines if you should be able to exchange an item.
+        /// </summary>
+        /// <param name="itemName">The name of the exchangeable item.</param>
+        /// <param name="distanceCheck">Whether or not to include a distance chack.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the item can be exchanged, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        public bool CanExchange(string itemName, bool distanceCheck = true)
+        {
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            var data = GameData.Items[itemName];
+
+            if ((data == null) || (data.ExchangeCount == null) || (data.ExchangeAtNPC == null))
+                return false;
+
+            if (Character.Inventory.CountOf(itemName) < data.ExchangeCount)
+                return false;
+
+            return !distanceCheck
+                   || Character.Inventory.ContainsItem("computer")
+                   || data.ExchangeAtNPC.Locations.Any(location => location.Distance(Character) < CONSTANTS.NPC_RANGE);
+        }
+
+        /// <summary>
+        ///     Determines if you should be able to sell an item.
+        /// </summary>
+        /// <param name="itemName">The name of the sellable item.</param>
+        /// <returns><c>true</c> if the item can be sold, otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        public bool CanSell(string itemName)
+        {
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            if (!Character.Inventory.ContainsItem(itemName))
+                return false;
+
+            if (Character.Inventory.ContainsItem("computer"))
+                return true;
+
+            var map = GameData.Maps[Character.Map];
+
+            if (map == null)
+                return true;
+
+            foreach (var npc in map.NPCs)
+                if ((npc.Data?.Items != null)
+                    && npc.Data.Locations.Any(location => location.Distance(Character) < CONSTANTS.NPC_RANGE))
+                    return true;
 
             return false;
+        }
+
+        /// <summary>
+        ///     Determines if this skill can be used.
+        /// </summary>
+        /// <param name="skillName">The name of the skill.</param>
+        /// <param name="checkWeapon">
+        ///     Whether or not to check the equipped weapon against the required weapon type. (if there is
+        ///     one)
+        /// </param>
+        /// <returns><c>true</c> if the skill can be used, otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">skillName</exception>
+        public async ValueTask<bool> CanUseSkill(string skillName, bool checkWeapon = true)
+        {
+            if (string.IsNullOrEmpty(skillName))
+                throw new ArgumentNullException(nameof(skillName));
+
+            if (Character.RIP
+                || await Character.Conditions.ContainsKeyAsync(Condition.Stoned)
+                || (skillName.EqualsI("blink") && await Character.Conditions.ContainsKeyAsync(Condition.Dampened))
+                || !await IsOffCooldown(skillName))
+                return false;
+
+            var data = GameData.Skills[skillName]!;
+
+            if ((data.Classes != null) && !data.Classes.Contains(Character.Class))
+                return false;
+
+            if (data.Level.HasValue && (Character.Level < data.Level))
+                return false;
+
+            if (data.AttributeRequirements != null)
+                foreach ((var attribute, var requiredValue) in data.AttributeRequirements)
+                {
+                    if (!Character.Attributes.TryGetValue(attribute, out var value))
+                        value = 0;
+
+                    if (requiredValue > value)
+                        return false;
+                }
+
+            bool isAttack;
+            if ((isAttack = skillName.EqualsI("attack")) || skillName.EqualsI("heal"))
+            {
+                if (Character.MP < Character.MPCost)
+                    return false;
+
+                var mainHand = Character.Slots[Slot.MainHand];
+                var mainHandData = mainHand?.GetData();
+                var classData = Character.GetData();
+
+                if ((mainHand == null)
+                    || (classData == null)
+                    || (mainHandData == null)
+                    || (!classData.CanMainHand(mainHandData.WeaponType)
+                        && !classData.Can2Hand(mainHandData.WeaponType)))
+                    return false;
+
+                if (isAttack && mainHand.Name.EqualsI("dartgun") && (Character.Gold < 100))
+                    return false;
+            } else if (Character.MP < data.MP)
+                return false;
+
+            if (!string.IsNullOrEmpty(data.Consume) && !Character.Inventory.ContainsItem(data.Consume))
+                return false;
+
+            if ((data.RequiredInventoryItems != null)
+                && !data.RequiredInventoryItems.All(itemName => Character.Inventory.ContainsItem(itemName)))
+                return false;
+
+            if (data.RequiredSlotItems != null)
+            {
+                var equipped = false;
+                foreach ((var equipmentSlot, var itemName) in data.RequiredSlotItems)
+                {
+                    var slotItem = Character.Slots[equipmentSlot.ToSlot()];
+
+                    if ((slotItem != null) && slotItem.Name.EqualsI(itemName))
+                    {
+                        equipped = true;
+                        break;
+                    }
+                }
+
+                if (!equipped)
+                    return false;
+            }
+
+            if (checkWeapon && (data.WeaponTypes != null))
+            {
+                var slotItem = Character.Slots[Slot.MainHand];
+
+                if ((slotItem == null) || !data.WeaponTypes.Contains(slotItem.GetData()?.WeaponType ?? WeaponType.None))
+                    return false;
+            }
+
+            return true;
         }
 
         public async ValueTask DisposeAsync()
         {
             GC.SuppressFinalize(this);
             await DisconnectAsync();
+        }
+
+        /// <summary>
+        ///     Determines if this skill is off cooldown. (shared cooldown if it has one)
+        /// </summary>
+        /// <param name="skillName">The name of the skill.</param>
+        /// <returns><c>true</c> if the skill is off cooldown, otherwise <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">skillName</exception>
+        public async ValueTask<bool> IsOffCooldown(string skillName)
+        {
+            if (string.IsNullOrEmpty(skillName))
+                throw new ArgumentNullException(nameof(skillName));
+
+            var data = GameData.Skills[skillName];
+
+            if (data == null)
+                return false;
+
+            if (!string.IsNullOrEmpty(data.SharedCooldown))
+                skillName = data.SharedCooldown;
+
+            return !await Cooldowns.TryGetValueAsync(skillName, out var cooldownTask)
+                   || !(await cooldownTask).CanUse(PingManager.Offset);
         }
 
         #region Connection stuff
@@ -376,6 +608,7 @@ namespace AL.Client
         ///     Information about the party state after accepting the invite.
         /// </returns>
         /// <exception cref="ArgumentNullException">from</exception>
+        /// <exception cref="InvalidOperationException">Failed to accept party invite. ({reason})</exception>
         public async Task<PartyUpdateData> AcceptPartyInviteAsync(string from)
         {
             if (string.IsNullOrEmpty(from))
@@ -398,14 +631,14 @@ namespace AL.Client
                 var result = false;
 
                 if (data.EqualsI("invitation expired") || data.EqualsI($"{from} is not found"))
-                    result = source.TrySetResult(data);
+                    result = source.TrySetResult($"Failed to accept party invite. ({data})");
                 else if (data.EqualsI("already partying"))
                     if (Party == null)
-                        result = source.TrySetResult(data);
+                        result = source.TrySetResult($"Failed to accept party invite. ({data})");
                     else
                         result = Party.MemberNames.ContainsI(from)
                             ? source.TrySetResult(Party)
-                            : source.TrySetResult(data);
+                            : source.TrySetResult($"Failed to accept party invite. ({data})");
 
                 return Task.FromResult(result);
             });
@@ -423,7 +656,7 @@ namespace AL.Client
         ///     Information about the party state after accepting the request.
         /// </returns>
         /// <exception cref="ArgumentNullException">from</exception>
-        /// <exception cref="InvalidOperationException">{reason}</exception>
+        /// <exception cref="InvalidOperationException">Failed to accept party request. ({reason})</exception>
         public async Task<PartyUpdateData> AcceptPartyRequestAsync(string from)
         {
             if (string.IsNullOrEmpty(from))
@@ -445,15 +678,15 @@ namespace AL.Client
             {
                 var result = false;
 
-                if (data.EqualsI("request expired") || data.EqualsI($"{from} is not found"))
+                if (data.EqualsI("request expired") || data.EqualsI($"Failed to accept party request. ({data})"))
                     result = source.TrySetResult(data);
                 else if (data.EqualsI("already partying"))
                     if (Party == null)
-                        result = source.TrySetResult(data);
+                        result = source.TrySetResult($"Failed to accept party request. ({data})");
                     else
                         result = Party.MemberNames.ContainsI(from)
                             ? source.TrySetResult(Party)
-                            : source.TrySetResult(data);
+                            : source.TrySetResult($"Failed to accept party request. ({data})");
 
                 return Task.FromResult(result);
             });
@@ -490,7 +723,7 @@ namespace AL.Client
                     GameResponseType.Disabled when data.TargetID.EqualsI(targetId) => source.TrySetResult(
                         $"Attack on {targetId} failed. (disabled)"),
                     GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                        $"Attack on {targetId} failed."),
+                        $"Attack on {targetId} failed. (attack failed)"),
                     GameResponseType.TooFar when data.TargetID.EqualsI(targetId) => source.TrySetResult(
                         $"Attack on {targetId} failed. (too far: {data.Distance})"),
                     GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) => source.TrySetResult(
@@ -503,18 +736,21 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
+            await using var notThereCallback = Socket.On<NotThereData>(ALSocketMessageType.NotThere,
+                data => Task.FromResult(data.Source.EqualsI("attack")
+                                        && source.TrySetResult($"Attack on {targetId} failed. (invalid target)")));
+
             await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
             {
                 var result = false;
 
-                if (data.AttackerId.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && (data.Type == "attack"))
+                if (data.AttackerId.EqualsI(Character.Id)
+                    && data.Target.EqualsI(targetId)
+                    && data.Type.EqualsI("attack"))
                     result = source.TrySetResult(data);
 
                 return Task.FromResult(result);
             });
-
-            if (!await Monsters.ContainsKeyAsync(targetId) && !await Players.ContainsKeyAsync(targetId))
-                throw new InvalidOperationException($"Attack on {targetId} failed. (not found)");
 
             await Socket.Emit(ALSocketEmitType.Attack, new { id = targetId });
             return await source.Task.WithNetworkTimeout();
@@ -579,53 +815,55 @@ namespace AL.Client
         ///     Asynchronously attempts to buy an item from a player.
         /// </summary>
         /// <param name="playerName">The name of the player to buy from.</param>
-        /// <param name="slot">The slot in the player's stand the item is in.</param>
-        /// <param name="itemId">The unique id of the item.</param>
+        /// <param name="slot">The slot the item is in.</param>
+        /// <param name="item">The item to buy</param>
         /// <param name="quantity">The quantity of the item to buy.</param>
         /// <returns>
         ///     <see cref="IndexedInventoryItem" /> <br />
         ///     Information about the item that was bought.
         /// </returns>
         /// <exception cref="ArgumentNullException">playerName</exception>
-        /// <exception cref="ArgumentNullException">itemId</exception>
+        /// <exception cref="ArgumentNullException">item</exception>
         /// <exception cref="InvalidOperationException">{reason}</exception>
+        /// <remarks>
+        ///     There are cases of wrong information where server will not indicate something went wrong.
+        ///     Our solution is to handle those cases ourself.
+        /// </remarks>
         public async Task<IndexedInventoryItem> BuyFromPlayerAsync(
             string playerName,
             TradeSlot slot,
-            string itemId,
+            TradeItem item,
             int quantity = 1)
         {
             if (string.IsNullOrEmpty(playerName))
                 throw new ArgumentNullException(nameof(playerName));
 
-            if (string.IsNullOrEmpty(itemId))
-                throw new ArgumentNullException(nameof(itemId));
+            if (item == null)
+                throw new ArgumentNullException(nameof(item));
 
-            if (quantity < 1)
-                throw new InvalidOperationException("Quantity cannot be below 1.");
+            Player player;
+            if (!await Players.TryGetValueAsync(playerName, out var playerTask)
+                || ((player = await playerTask) == null))
+                throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (seller gone)");
+
+            if (Character.Distance(player) > CONSTANTS.NPC_RANGE)
+                throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (get closer)");
+
+            var slotItem = player.Slots[slot.ToSlot()];
+            if ((slotItem == null) || (slotItem.Id != item.Id))
+                throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (wrong id)");
 
             var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>();
 
-            if (!await Players.TryGetValueAsync(playerName, out var playerTask))
-                throw new InvalidOperationException($"{playerName} is not near.");
-
-            var player = await playerTask;
-
-            if (!player.Slots.TryGetValue(slot.ToSlot(), out var slotItem))
-                throw new InvalidOperationException($"{playerName} does not have an item in {slot}.");
-
-            if (slotItem.Id != itemId)
-                throw new InvalidOperationException($"Item in {slot} has different id than specified.");
-
-            var existingItems = Character.Inventory.AsIndexed();
-            var existingTotal = Character.Inventory.CountOf(slotItem.Name);
+            var inventorySnapshot = Character.Inventory.AsIndexed();
+            var existingTotal = Character.Inventory.CountOf(item.Name);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = false;
 
                 if (data.ResponseType == GameResponseType.TradeGetCloser)
-                    result = source.TrySetResult($"Failed to buy {slotItem.Name} from {player.Name}. (get closer)");
+                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (get closer)");
 
                 return Task.FromResult(result);
             });
@@ -634,11 +872,10 @@ namespace AL.Client
             {
                 var result = false;
 
-                if (data.EqualsI("not enough gold"))
-                    result = source.TrySetResult(
-                        $"Failed to buy {slotItem.Name} from {player.Name}. (not enough gold)");
-                else if (data.EqualsI("you can't buy that many"))
-                    result = source.TrySetResult($"Failed to buy {slotItem.Name} from {player.Name}. (wrong quantity)");
+                if (data.EqualsI("not enough gold")
+                    || data.EqualsI("you can't buy that many")
+                    || data.EqualsI("seller gone"))
+                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({data})");
 
                 return Task.FromResult(result);
             });
@@ -649,7 +886,7 @@ namespace AL.Client
                     var result = false;
 
                     if (data.Message.EqualsI("no space"))
-                        result = source.TrySetResult($"Failed to buy {slotItem.Name} from {player.Name}. (no space)");
+                        result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (no space)");
 
                     return Task.FromResult(result);
                 });
@@ -658,16 +895,16 @@ namespace AL.Client
             {
                 var result = false;
 
-                var newTotal = data.Inventory.CountOf(slotItem.Name);
+                var newTotal = data.Inventory.CountOf(item.Name);
 
                 if (newTotal - existingTotal == quantity)
-                    result = source.TrySetResult(data.Inventory.AsIndexed().Except(existingItems).First());
+                    result = source.TrySetResult(data.Inventory.AsIndexed().Except(inventorySnapshot).First());
 
                 return Task.FromResult(result);
             });
 
             await Socket.Emit(ALSocketEmitType.TradeBuy,
-                new { slot, id = playerName, rid = itemId, q = quantity.ToString() });
+                new { slot, id = playerName, rid = item.Id, q = quantity.ToString() });
 
             return await source.Task.WithNetworkTimeout();
         }
@@ -707,7 +944,7 @@ namespace AL.Client
                 var result = false;
 
                 if (data.EqualsI("item gone"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. (item gone)");
+                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data})");
 
                 return Task.FromResult(result);
             });
@@ -718,7 +955,7 @@ namespace AL.Client
                     var result = false;
 
                     if (data.Message.EqualsI("no space"))
-                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. (no space)");
+                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data.Message})");
 
                     return Task.FromResult(result);
                 });
@@ -737,6 +974,221 @@ namespace AL.Client
             await Socket.Emit(ALSocketEmitType.SecondHandsBuy, new { rid = item.Id });
 
             return await source.Task.WithNetworkTimeout();
+        }
+
+        /// <summary>
+        ///     Attempts to compound 3 items of the same level/name.
+        /// </summary>
+        /// <param name="itemIndex1">The inventory index of the first item.</param>
+        /// <param name="itemIndex2">The inventory index of the second item.</param>
+        /// <param name="itemIndex3">The inventory index of the third item.</param>
+        /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+        /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the compound succeeded, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Failed to compound. ({reason})</exception>
+        public async Task<bool> CompoundAsync(
+            int itemIndex1,
+            int itemIndex2,
+            int itemIndex3,
+            int scrollIndex,
+            int? offeringIndex = null)
+        {
+            var item = Character.Inventory[itemIndex1];
+            var source = new TaskCompletionSource<Expectation<bool?>>();
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.MiscFail when data.Place.EqualsI("compound") => source.TrySetResult(
+                        "Failed to compound. (misc, more than 1 issue)"),
+                    //this actually occurs when we set "clevel" to the wrong value, but that should only happen if index1 is the wrong item, or no item.
+                    GameResponseType.CompoundNoItem => source.TrySetResult("Failed to compound. (items not the same)"),
+                    GameResponseType.CompoundInProgress => source.TrySetResult(
+                        "Failed to compound. (already compounding)"),
+                    GameResponseType.CompoundIncompatibleScroll => source.TrySetResult(
+                        "Failed to compound. (wrong scroll)"),
+                    GameResponseType.CompoundMismatch => source.TrySetResult(
+                        "Failed to compound. (items not the same)"),
+                    GameResponseType.CompoundCant => source.TrySetResult(
+                        "Failed to compound. (items not compoundable)"),
+                    GameResponseType.CompoundInvalidOffering => source.TrySetResult(
+                        "Failed to compound. (offering is not an offering)"),
+                    GameResponseType.Exception when data.Place.EqualsI("compound") => source.TrySetResult(
+                        "Failed to compound. (exception, major issues)"),
+                    GameResponseType.BankRestrictions => source.TrySetResult(
+                        "Failed to compound. (can't compound from bank)"),
+                    GameResponseType.ECUGetCloser    => source.TrySetResult("Failed to compound. (get closer)"),
+                    GameResponseType.CompoundSuccess => source.TrySetResult(true),
+                    GameResponseType.CompoundFail    => source.TrySetResult(false),
+                    _                                => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+            await Socket.Emit(ALSocketEmitType.Compound, new
+            {
+                items = new[] { itemIndex1, itemIndex2, itemIndex3 },
+                scroll_num = scrollIndex,
+                clevel = item?.Level ?? 0,
+                offering_num = offeringIndex
+            });
+
+            return await source.Task.WithTimeout(60000);
+        }
+
+        /// <summary>
+        ///     Attempts to have the server calculate the chance for a compound to succeed.
+        /// </summary>
+        /// <param name="itemIndex1">The inventory index of the first item.</param>
+        /// <param name="itemIndex2">The inventory index of the second item.</param>
+        /// <param name="itemIndex3">The inventory index of the third item.</param>
+        /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+        /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
+        /// <returns>
+        ///     <see cref="ChanceItem" /> <br />
+        ///     An object containing details about the item, and it's chance to successully be compounded.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Failed to compound. ({reason})</exception>
+        public async Task<ChanceItem> CompoundCalculateAsync(
+            int itemIndex1,
+            int itemIndex2,
+            int itemIndex3,
+            int scrollIndex,
+            int? offeringIndex = null)
+        {
+            var item = Character.Inventory[itemIndex1];
+            var source = new TaskCompletionSource<Expectation<ChanceItem>>();
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.MiscFail when data.Place.EqualsI("compound") => source.TrySetResult(
+                        "Failed to compound. (misc, more than 1 issue)"),
+                    //this actually occurs when we set "clevel" to the wrong value, but that should only happen if index1 is the wrong item, or no item.
+                    GameResponseType.CompoundNoItem => source.TrySetResult("Failed to compound. (items not the same)"),
+                    GameResponseType.CompoundInProgress => source.TrySetResult(
+                        "Failed to compound. (already compounding)"),
+                    GameResponseType.CompoundIncompatibleScroll => source.TrySetResult(
+                        "Failed to compound. (wrong scroll)"),
+                    GameResponseType.CompoundMismatch => source.TrySetResult(
+                        "Failed to compound. (items not the same)"),
+                    GameResponseType.CompoundCant => source.TrySetResult(
+                        "Failed to compound. (items not compoundable)"),
+                    GameResponseType.CompoundInvalidOffering => source.TrySetResult(
+                        "Failed to compound. (offering is not an offering)"),
+                    GameResponseType.Exception when data.Place.EqualsI("compound") => source.TrySetResult(
+                        "Failed to compound. (exception, major issues)"),
+                    GameResponseType.BankRestrictions => source.TrySetResult(
+                        "Failed to compound. (can't compound from bank)"),
+                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to compound. (get closer)"),
+                    GameResponseType.CompoundChance when data.Item?.Name.EqualsI(item?.Name) ?? false =>
+                        source.TrySetResult(data.Item with { Grace = data.Grace, Chance = data.Chance }),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+            await Socket.Emit(ALSocketEmitType.Compound, new
+            {
+                items = new[] { itemIndex1, itemIndex2, itemIndex3 },
+                scroll_num = scrollIndex,
+                clevel = item?.Level ?? 0,
+                offering_num = offeringIndex,
+                calculate = 1
+            });
+
+            return await source.Task.WithTimeout(60000);
+        }
+
+        /// <summary>
+        ///     Attempts to exchange an item.
+        /// </summary>
+        /// <param name="itemIndex">The index of the item to exchange.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     The item received from the exchange.
+        /// </returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <remarks>
+        ///     There are cases of wrong information where server will not indicate something went wrong.
+        ///     Our solution is to handle those cases ourself.
+        /// </remarks>
+        public async Task<IndexedInventoryItem> ExchangeAsync(int itemIndex)
+        {
+            if (itemIndex >= Character.InventorySize)
+                throw new InvalidOperationException("Failed to exchange. (index out of range)");
+
+            var item = Character.Inventory[itemIndex];
+
+            if (item == null)
+                throw new InvalidOperationException("Failed to exchange. (no item at index)");
+
+            var itemData = item.GetData();
+
+            if (itemData == null)
+                throw new InvalidOperationException("Failed to exchange. (no data, contact me)");
+
+            if ((itemData.ExchangeAtNPC == null) || !itemData.ExchangeCount.HasValue)
+                throw new InvalidOperationException("Failed to exchange. (item not exchangeable)");
+
+            if (itemData.ExchangeCount > item.Quantity)
+                throw new InvalidOperationException($"Failed to exchange. (you do not have {itemData.ExchangeCount})");
+
+            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>();
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.ExchangeNotEnough => source.TrySetResult(
+                        $"Failed to exchange. (youd to not have {itemData.ExchangeCount})"),
+                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to exchange. (get closer)"),
+                    GameResponseType.BankRestrictions => source.TrySetResult(
+                        "Failed to exchange. (can't exchange from bank)"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+            var exchangeStarted = false;
+            Inventory? itemsSnapshot = null;
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+            {
+                var result = false;
+
+                if (!exchangeStarted
+                    && (data.QueuedActions?.Exchange != null)
+                    && (data.QueuedActions.Exchange.CurrentMS == data.QueuedActions.Exchange.LengthMS))
+                    exchangeStarted = true;
+
+                if (exchangeStarted)
+                {
+                    if (data.QueuedActions?.Exchange == null)
+                        result = source.TrySetResult(Character.Inventory.AsIndexed()
+                            .Except(itemsSnapshot!.AsIndexed())
+                            .First());
+                    else
+                        itemsSnapshot = Character.Inventory;
+                }
+
+                return Task.FromResult(result);
+            });
+
+            await Socket.Emit(ALSocketEmitType.Exchange, new
+            {
+                item_num = itemIndex,
+                q = itemData.ExchangeCount
+            });
+
+            return await source.Task.WithTimeout(60000);
         }
 
         /// <summary>
@@ -792,6 +1244,106 @@ namespace AL.Client
 
             await Socket.Emit(ALSocketEmitType.SendUpdates, new object());
             return await source.Task.WithNetworkTimeout();
+        }
+
+        /// <summary>
+        ///     Attempts to upgrade an item.
+        /// </summary>
+        /// <param name="itemIndex">The inventory index of the item.</param>
+        /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+        /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the upgrade succeeded, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Failed to upgrade. ({reason})</exception>
+        public async Task<bool> UpgradeAsync(int itemIndex, int scrollIndex, int? offeringIndex = null)
+        {
+            var item = Character.Inventory[itemIndex];
+            var source = new TaskCompletionSource<Expectation<bool?>>();
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.UpgradeNoItem => source.TrySetResult("Failed to compound. (items not the same)"),
+                    GameResponseType.UpgradeInProgress => source.TrySetResult("Failed to upgrade. (already upgrading)"),
+                    GameResponseType.UpgradeIncompatibleScroll => source.TrySetResult(
+                        "Failed to upgrade. (wrong scroll)"),
+                    GameResponseType.UpgradeNoScroll => source.TrySetResult("Failed to upgrade. (no scroll)"),
+                    GameResponseType.UpgradeMismatch => source.TrySetResult(
+                        "Failed to upgrade. (unknown, this seems to be a catch-all)"),
+                    GameResponseType.UpgradeCant => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
+                    GameResponseType.UpgradeInvalidOffering => source.TrySetResult(
+                        "Failed to upgrade. (offering is not an offering)"),
+                    GameResponseType.BankRestrictions => source.TrySetResult(
+                        "Failed to upgrade. (can't upgrade from bank)"),
+                    GameResponseType.ECUGetCloser   => source.TrySetResult("Failed to upgrade. (get closer)"),
+                    GameResponseType.UpgradeSuccess => source.TrySetResult(true),
+                    GameResponseType.UpgradeFail    => source.TrySetResult(false),
+                    _                               => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+            await Socket.Emit(ALSocketEmitType.Upgrade, new
+            {
+                item_num = itemIndex, scroll_num = scrollIndex, offering_num = offeringIndex,
+                clevel = item?.Level ?? 0
+            });
+
+            return await source.Task.WithTimeout(60000);
+        }
+
+        /// <summary>
+        ///     Attempts to have the server calculate the chance for an upgrade to succeed.
+        /// </summary>
+        /// <param name="itemIndex">The inventory index of the item.</param>
+        /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+        /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
+        /// <returns>
+        ///     <see cref="ChanceItem" /> <br />
+        ///     An object containing details about the item, and it's chance to successully be upgraded.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Failed to upgrade. ({reason})</exception>
+        public async Task<ChanceItem> UpgradeChanceAsync(int itemIndex, int scrollIndex, int? offeringIndex = null)
+        {
+            var item = Character.Inventory[itemIndex];
+            var source = new TaskCompletionSource<Expectation<ChanceItem>>();
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.UpgradeNoItem     => source.TrySetResult("Failed to compound. (no item at index)"),
+                    GameResponseType.UpgradeInProgress => source.TrySetResult("Failed to upgrade. (already upgrading)"),
+                    GameResponseType.UpgradeIncompatibleScroll => source.TrySetResult(
+                        "Failed to upgrade. (wrong scroll)"),
+                    GameResponseType.UpgradeNoScroll => source.TrySetResult("Failed to upgrade. (no scroll)"),
+                    GameResponseType.UpgradeMismatch => source.TrySetResult(
+                        "Failed to upgrade. (unknown, this seems to be a catch-all)"),
+                    GameResponseType.UpgradeCant => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
+                    GameResponseType.UpgradeInvalidOffering => source.TrySetResult(
+                        "Failed to upgrade. (offering is not an offering)"),
+                    GameResponseType.BankRestrictions => source.TrySetResult(
+                        "Failed to upgrade. (can't upgrade from bank)"),
+                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to upgrade. (get closer)"),
+                    GameResponseType.UpgradeChance when data.Item?.Name.EqualsI(item?.Name) ?? false =>
+                        source.TrySetResult(data.Item with { Grace = data.Grace, Chance = data.Chance }),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+            await Socket.Emit(ALSocketEmitType.Upgrade, new
+            {
+                item_num = itemIndex, scroll_num = scrollIndex, offering_num = offeringIndex,
+                clevel = item?.Level ?? 0
+            });
+
+            return await source.Task.WithTimeout(60000);
         }
 
         #endregion

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using AL.Core.Definitions;
 using AL.Core.Json.Converters;
+using AL.Data.Geometry;
 using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
@@ -49,6 +49,13 @@ namespace AL.Data.Maps
         public string? Event { get; init; }
 
         /// <summary>
+        ///     A list of exits on this map. Exits can be either doors, or npcs that transport you.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        [JsonIgnore]
+        public IReadOnlyList<Exit> Exits { get; internal set; } = new List<Exit>();
+
+        /// <summary>
         ///     Certain maps have a multiplier for the chance for <see cref="Condition.Frozen" /> to apply.
         /// </summary>
         [JsonProperty("freeze_multiplier")]
@@ -58,6 +65,11 @@ namespace AL.Data.Maps
         ///     The name of the special effect on the map, if it has one. Will also have <see cref="Weather" />.
         /// </summary>
         public string? FX { get; init; }
+
+        /// <summary>
+        ///     If populated, an object containing information about the geometry for this map.
+        /// </summary>
+        public GGeometry? Geomertry { get; internal set; }
 
         /// <summary>
         ///     If this is true, this is bad/old data that should be ignored.
@@ -167,12 +179,6 @@ namespace AL.Data.Maps
         /// </summary>
         public IReadOnlyList<GZone> Zones { get; init; } = new List<GZone>();
 
-        /// <summary>
-        ///     A list of exits on this map. Exits can be either doors, or npcs that transport you.
-        /// </summary>
-        [JsonIgnore]
-        public Lazy<IReadOnlyList<Exit>> Exits => new(GenerateExits);
-
         //quirks
         //animatables obj
         //machines obj[]
@@ -181,24 +187,6 @@ namespace AL.Data.Maps
 
         public virtual bool Equals(GMap? other) =>
             other is not null && Accessor.EqualsI(other.Accessor) && Key.Equals(other.Key);
-
-        private List<Exit> GenerateExits()
-        {
-            var exits = new List<Exit>();
-
-            foreach (var door in Doors)
-                exits.Add(new Exit(door, Accessor, door.DestinationMap, door.DestinationSpawnId, ExitType.Door));
-
-            var npcSets = NPCs.Select(npc => new { MapNPC = npc, GameNPC = GameData.NPCs[npc.Id] })
-                .Where(set => (set.GameNPC != null) && (set.GameNPC.Role == NPCRole.Transport));
-
-            foreach (var set in npcSets)
-                foreach (var position in set.MapNPC.Positions)
-                    foreach ((var toMap, var toSpawnId) in set.GameNPC!.Places!)
-                        exits.Add(new Exit(position, Accessor, toMap, toSpawnId, ExitType.NPC));
-
-            return exits;
-        }
 
         public override int GetHashCode() => HashCode.Combine(Name.GetHashCode(), Key.GetHashCode());
     }

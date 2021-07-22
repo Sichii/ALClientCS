@@ -98,8 +98,8 @@ namespace AL.Core.Interfaces
         [JsonProperty]
         public float MP { get; }
 
-        [JsonProperty("mp_cost")]
-        public float MpCost { get; }
+        [JsonProperty]
+        public float MPCost { get; }
 
         [JsonProperty("mp_reduction")]
         public float MPReduction { get; }

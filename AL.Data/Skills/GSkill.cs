@@ -40,7 +40,8 @@ namespace AL.Data.Skills
         ///     <b>NULlABLE</b>. If populated, this skill is only usable by certain classes. <br />
         ///     This list contains the classes this skill can be used by.
         /// </summary>
-        public IReadOnlyList<ALClass>? Class { get; init; }
+        [JsonProperty("class")]
+        public IReadOnlyList<ALClass>? Classes { get; init; }
 
         /// <summary>
         ///     <b>NULLABLE</b>. Extra information about the skill. Currently only used by magiport.
@@ -87,9 +88,10 @@ namespace AL.Data.Skills
         public bool Hostile { get; init; }
 
         /// <summary>
-        ///     The level requirement to use this skill.
+        ///     If populated, this skill has a level requirement. <br />
+        ///     This is the level requirement to use this skill.
         /// </summary>
-        public float Level { get; init; }
+        public int? Level { get; init; }
 
         /// <summary>
         ///     <b>NULlABLE</b>. If populated, this skill changes depending on the level of the caster. <br />
@@ -142,12 +144,19 @@ namespace AL.Data.Skills
         public float Ratio { get; init; }
 
         /// <summary>
-        ///     <b>NULLABLE</b>. If populated, this skill required items to be present in your inventory. <br />
+        ///     <b>NULLABLE</b>. If populated, this skill requires items to be present in your inventory. <br />
         ///     This list contains the items required to have in your inventory to use this skill. <br />
         ///     They are not necessarily consumed, look at <see cref="Consume" /> for that.
         /// </summary>
         [JsonProperty("inventory")]
-        public IReadOnlyList<string>? RequiredItems { get; init; }
+        public IReadOnlyList<string>? RequiredInventoryItems { get; init; }
+
+        /// <summary>
+        ///     <b>NULLABLE</b>. If populated, this skill requires an item to be equipped. <br />
+        ///     This list contains an item name that need to be equipped, and all the slots that item can go in.
+        /// </summary>
+        [JsonProperty("slot", ItemConverterType = typeof(ArrayToTupleConverter<EquipmentSlot, string>))]
+        public IReadOnlyList<(EquipmentSlot Slot, string ItemName)>? RequiredSlotItems { get; init; }
 
         /// <summary>
         ///     If populated, this is the name of the skill this skill shares a cooldown with. <br />

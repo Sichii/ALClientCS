@@ -5,6 +5,7 @@ using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.Core.Json.Converters;
+using AL.Data.NPCs;
 using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -19,6 +20,11 @@ namespace AL.Data.Items
     public record GItem : AttributedRecordBase
     {
         /// <summary>
+        ///     The accessor for this item.
+        /// </summary>
+        public string Accessor { get; internal set; } = null!;
+
+        /// <summary>
         ///     <b>NULLABLE</b>. If null, this item is not compoundable.
         ///     If NOT null, this dictionary contains the <see cref="ALAttribute" /> modifications per compound level.
         /// </summary>
@@ -32,14 +38,28 @@ namespace AL.Data.Items
         public DamageType DamageType { get; init; }
 
         /// <summary>
+        ///     If populated, this item can be exchanged at this NPC.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        public GNPC? ExchangeAtNPC { get; internal set; }
+
+        /// <summary>
+        ///     If populated, this item can be exchanged. <br />
+        ///     This is the amount of the item that is exchanged at once. <br />
+        ///     Check <see cref="ExchangeAtNPC" /> for the npc to exchange at.
+        /// </summary>
+        [JsonProperty("e")]
+        public int? ExchangeCount { get; init; }
+
+        /// <summary>
         ///     The default gold value of this item if selling to an NPC merchant.
         /// </summary>
         [JsonProperty("g")]
         public float GoldValue { get; init; }
 
         /// <summary>
-        ///     <b>NULLABLE</b>. If null, this item is not compoundable or upgradeable.
-        ///     If NOT null, this list contains the levels at which the grade increases.
+        ///     <b>NULLABLE</b>. If populated, this item is compoundable or upgradeable.
+        ///     This list contains the levels at which the grade increases.
         /// </summary>
         public IReadOnlyList<int>? Grades { get; init; }
 
@@ -54,9 +74,40 @@ namespace AL.Data.Items
         public string Name { get; init; } = null!;
 
         /// <summary>
+        ///     If populated, this item is obtainable from this NPC via a quest. <br />
+        ///     Check <see cref="ObtainableFromNPC" /> for that data.
+        /// </summary>
+        public string? NPC { get; init; }
+
+        /// <summary>
+        ///     If populated, this item can be obtained from this NPC. <br />
+        ///     Check <see cref="ObtainType" /> for the method of obtaining.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        public GNPC? ObtainableFromNPC { get; internal set; }
+
+        /// <summary>
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        public ObtainType ObtainType { get; internal set; }
+
+        /// <summary>
         ///     If this item is a weapon, this is the name of the projectile it emits when attacking.
         /// </summary>
         public string? Projectile { get; init; }
+
+        /// <summary>
+        ///     If populated, this item can be exchanged at an npc with this quest. <br />
+        ///     Check <see cref="ExchangeAtNPC" /> for that data.
+        /// </summary>
+        public Quest? Quest { get; init; }
+
+        /// <summary>
+        ///     If populated. this item is craftable. <br />
+        ///     This is the recipe to craft this item.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        public Recipe? Recipe { get; internal set; }
 
         /// <summary>
         ///     If this is an equipment item, this is the number of stats this item will give at level 0.

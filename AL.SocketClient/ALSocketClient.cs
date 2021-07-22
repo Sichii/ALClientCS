@@ -102,7 +102,7 @@ namespace AL.SocketClient
             Trace($"{socketEmitType}, {data}");
             #endif
 
-            if ((Socket == null) || !Socket.EngineIoClient.IsOpened)
+            if ((Socket == null) || !Open)
                 throw new InvalidOperationException("Socket is null or closed.");
 
             return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AL.Core.Geometry;
 using AL.Core.Json.Converters;
+using AL.Data.NPCs;
 using Newtonsoft.Json;
 
 namespace AL.Data.Maps
@@ -25,6 +26,13 @@ namespace AL.Data.Maps
         public Boundary? Boundary { get; init; }
 
         /// <summary>
+        ///     This NPC's data from <see cref="GameData.NPCs" />.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        [JsonIgnore]
+        public GNPC? Data { get; internal set; }
+
+        /// <summary>
         ///     The id/accessor of this NPC.
         /// </summary>
         public string Id { get; init; } = null!;
@@ -43,6 +51,7 @@ namespace AL.Data.Maps
         ///     Lazy enumeration of the spots this NPC can be at. <br />
         ///     If you're familiar with the original form of this data, it's _position(if present) + _positions(if present).
         /// </summary>
+        /// <remarks>Aggregate property</remarks>
         [JsonIgnore]
         public IEnumerable<Orientation> Positions
         {

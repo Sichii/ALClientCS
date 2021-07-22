@@ -1,4 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using AL.Core.Definitions;
+using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.Data.Achievements;
 using AL.Data.Classes;
@@ -16,6 +20,8 @@ using AL.Data.Projectiles;
 using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.Data.Tokens;
+using Chaos.Core.Extensions;
+using Common.Logging;
 using Newtonsoft.Json;
 
 #nullable enable
@@ -26,6 +32,8 @@ namespace AL.Data
     [JsonObject]
     public record GameData
     {
+        private static ILog Log = LogManager.GetLogger(typeof(GameData));
+
         [JsonProperty]
         public static AchievementsDatum Achievements { get; private set; }
 
@@ -71,6 +79,9 @@ namespace AL.Data
         [JsonProperty]
         public static ProjectilesDatum Projectiles { get; private set; }
 
+        [JsonIgnore]
+        public static IReadOnlyDictionary<Quest, GNPC> Quests { get; private set; }
+
         [JsonProperty("shells_to_gold")]
         public static int ShellsToGold { get; private set; }
 
@@ -98,8 +109,169 @@ namespace AL.Data
         [JsonProperty]
         public static int Version { get; private set; }
 
+        private static void ConnectItems()
+        {
+            //--CONNECT ITEM DATA--
+            //connect item recipes
+            foreach ((var itemName, var recipe) in Craft)
+            {
+                var item = Items[itemName];
+
+                if (item != null)
+                    item.Recipe = recipe;
+            }
+
+            //connect item ObtainableFromNPC and ExchangeAtNPC
+            foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
+            {
+                if (npc.Items != null)
+                    foreach (var itemName in npc.Items)
+                    {
+                        if (itemName == null)
+                            continue;
+
+                        var item = Items[itemName];
+
+                        if ((item != null) && (item.ObtainableFromNPC == null))
+                        {
+                            item.ObtainableFromNPC = npc;
+                            item.ObtainType = ObtainType.Buy;
+                        }
+                    }
+
+                if (npc.Token != Token.None)
+                {
+                    var item = Items[npc.Token];
+
+                    //exchange at (token)
+                    if ((item != null) && (item.ExchangeAtNPC == null))
+                        item.ExchangeAtNPC = npc;
+                }
+            }
+
+            foreach (var item in Items.Values.DistinctBy(item => item.Accessor))
+            {
+                if (item.ObtainableFromNPC == null)
+                    if (!string.IsNullOrEmpty(item.NPC))
+                    {
+                        var npc = NPCs[item.NPC];
+                        if (npc != null)
+                        {
+                            item.ObtainableFromNPC = NPCs[item.NPC];
+                            //(monstertoken)
+                            item.ObtainType = ObtainType.Quest;
+                        }
+                    } else if ((item.Recipe != null) && (item.Recipe.NPC != null))
+                    {
+                        item.ObtainableFromNPC = item.Recipe.NPC;
+                        item.ObtainType = ObtainType.Craft;
+                    }
+
+                //exchange at (quest)
+                if ((item.ExchangeAtNPC == null) && (item.Quest != null))
+                    item.ExchangeAtNPC = Quests[item.Quest.Value];
+            }
+
+            foreach ((var tokenName, var buyableItems) in Tokens)
+                foreach (var itemName in buyableItems.Keys)
+                {
+                    var item = Items[itemName];
+
+                    if ((item != null) && (item.ObtainableFromNPC == null))
+                        foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
+                            if (npc.Token.ToString().EqualsI(tokenName))
+                            {
+                                item.ObtainableFromNPC = npc;
+                                item.ObtainType = ObtainType.Exchange;
+                                break;
+                            }
+                }
+        }
+
+        private static void ConnectMaps()
+        {
+            //--CONNECT MAP DATA--
+            foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
+            {
+                if (map.Ignore)
+                    continue;
+
+                var geometry = Geometry[map.Accessor];
+                var exits = (List<Exit>) map.Exits;
+
+                //connect npc data
+                foreach (var npc in map.NPCs)
+                {
+                    npc.Data = NPCs[npc.Name];
+
+                    if (npc.Data != null)
+                    {
+                        //TODO: refactor this maybe
+                        //connect npcs to their potential locations
+                        var locations = (List<Location>) npc.Data.Locations;
+                        locations.AddRange(npc.Positions.Select(position => new Location(map.Accessor, position)));
+
+                        //populate exits with transport npc data
+                        if ((npc.Data.Places != null) && (npc.Data.Role == NPCRole.Transport))
+                            foreach ((var mapAccessor, var spawnId) in npc.Data.Places)
+                                foreach (var location in locations)
+                                {
+                                    var toMapData = Maps[mapAccessor];
+
+                                    if (toMapData == null)
+                                        continue;
+
+                                    var spawn = toMapData.Spawns[spawnId];
+
+                                    exits.Add(new Exit(map.Accessor, location, new Location(mapAccessor, spawn),
+                                        ExitType.NPC));
+                                }
+                    }
+                }
+
+                //connect monster data
+                foreach (var monster in map.Monsters)
+                    monster.Data = Monsters[monster.Name];
+
+                //connect map to it's geometry
+                if (geometry != null)
+                    map.Geomertry = geometry;
+
+                //populate exits with door data
+                foreach (var door in map.Doors)
+                {
+                    var toMapData = Maps[door.DestinationMap];
+
+                    if (toMapData == null)
+                        continue;
+
+                    var spawn = toMapData.Spawns[door.DestinationSpawnId];
+
+                    exits.Add(new Exit(map.Accessor, door, new Location(door.DestinationMap, spawn), ExitType.Door));
+                }
+            }
+        }
+
+        private static void ConnectRecipes()
+        {
+            var craftsman = NPCs["craftsman"]!;
+
+            //--CONNECT RECIPE DATA--
+            foreach (var recipe in Craft.Values)
+                if (recipe.Quest.HasValue && (recipe.Quest.Value != Quest.None))
+                    recipe.NPC = Quests[recipe.Quest.Value];
+                else
+                    recipe.NPC = craftsman;
+
+
+            foreach (var recipe in Dismantle.Values)
+                if (recipe.Quest.HasValue && (recipe.Quest.Value != Quest.None))
+                    recipe.NPC = Quests[recipe.Quest.Value];
+        }
+
         private static void FixLines()
         {
+            Log.Info("Merging overlapped lines");
             foreach (var mapGeometry in Geometry.Values)
             {
                 mapGeometry.XLines = LineHelper.FixLines(mapGeometry.XLines, true);
@@ -109,8 +281,12 @@ namespace AL.Data
 
         public static void PopulateAsync(string json)
         {
+            var stopwatch = Stopwatch.StartNew();
+
+            Log.Info("Deserializing game data");
             JsonConvert.DeserializeObject<GameData>(json);
 
+            Log.Info("Constructing caches");
             Achievements.ConstructCache();
             Classes.ConstructCache();
             Conditions.ConstructCache();
@@ -127,7 +303,29 @@ namespace AL.Data
             Titles.ConstructCache();
             Tokens.ConstructCache();
 
+            Log.Info("Enriching data");
+            //populate quest dictionary with npcs
+            PopulateQuests();
+            //fix line data (merge lines, set isX for x lines)
             FixLines();
+            //connect various data points
+            ConnectRecipes();
+            ConnectMaps();
+            ConnectItems();
+
+            stopwatch.Stop();
+            Log.Info($"Populated data in {stopwatch.ElapsedMilliseconds}ms");
+        }
+
+        private static void PopulateQuests()
+        {
+            var quests = new Dictionary<Quest, GNPC>();
+
+            foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
+                if (npc.Quest != Quest.None)
+                    quests[npc.Quest] = npc;
+
+            Quests = quests;
         }
     }
 }

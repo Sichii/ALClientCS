@@ -26,7 +26,7 @@ namespace AL.SocketClient.Json.Converters
             if (obj == null)
                 return null;
 
-            var dic = new Dictionary<BankPack, IReadOnlyList<InventoryItem>>();
+            var dic = new Dictionary<BankPack, IReadOnlyList<InventoryItem?>>();
             var gold = 0L;
 
             foreach ((var key, var token) in obj)
@@ -39,7 +39,7 @@ namespace AL.SocketClient.Json.Converters
             return new BankInfo
             {
                 Gold = gold,
-                Items = new ReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem>>(dic)
+                Items = new ReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem?>>(dic)
             };
         }
 
