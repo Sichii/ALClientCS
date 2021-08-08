@@ -12,6 +12,7 @@ using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using H.Socket.IO;
 using H.Socket.IO.EventsArgs;
+using H.WebSockets.Args;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient
@@ -28,7 +29,10 @@ namespace AL.SocketClient
         private bool Disposed;
         private SocketIoClient Socket;
 
-        public bool Opened => Socket.EngineIoClient.IsOpened;
+        /// <summary>
+        ///     Whether or not this socket is currently connected.
+        /// </summary>
+        public bool Connected { get; private set; }
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -43,9 +47,9 @@ namespace AL.SocketClient
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">Socket is already open.</exception>
-        public Task ConnectAsync(Server server)
+        public async Task ConnectAsync(Server server)
         {
-            if (Opened)
+            if (Connected)
                 throw new InvalidOperationException("Socket is already open.");
 
             if (Disposed)
@@ -57,15 +61,20 @@ namespace AL.SocketClient
             var host = $"ws://{server.IPAddress}:{server.Port}";
 
             Socket.EventReceived += EventHandler;
+            Socket.Disconnected += OnDisconnected;
 
             Logger.Info($"Connecting to {host}");
-            return Socket.ConnectAsync(new Uri(host));
+            await Socket.ConnectAsync(new Uri(host));
+            Connected = true;
         }
-
 
         public async Task DisconnectAsync()
         {
+            if (!Connected)
+                return;
+
             Logger.Warn("Disconnecting");
+            Connected = false;
 
             foreach ((_, var subList) in Subscriptions)
                 foreach (var sub in await subList.ToArrayAsync())
@@ -85,21 +94,15 @@ namespace AL.SocketClient
             }
         }
 
-        public async ValueTask DisposeAsync()
-        {
-            GC.SuppressFinalize(this);
-            await DisconnectAsync();
-        }
+        public async ValueTask DisposeAsync() => await DisconnectAsync();
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
         public Task Emit<T>(ALSocketEmitType socketEmitType, T data)
         {
-            #if DEBUG
             Logger.Trace($"{socketEmitType}, {data}");
-            #endif
 
-            if ((Socket == null) || !Opened)
+            if ((Socket == null) || !Connected)
                 throw new InvalidOperationException("Socket is null or closed.");
 
             return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);
@@ -109,11 +112,9 @@ namespace AL.SocketClient
         /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
         public Task Emit(ALSocketEmitType socketEmitType)
         {
-            #if DEBUG
             Logger.Trace($"{socketEmitType}");
-            #endif
 
-            if ((Socket == null) || !Opened)
+            if ((Socket == null) || !Connected)
                 throw new InvalidOperationException("Socket is null or closed.");
 
             return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant());
@@ -170,7 +171,6 @@ RAW JSON:
         {
             async ValueTask InnerInvokeAsync(List<ALSocketSubscription> subscriptions)
             {
-                //TODO: Remove this when not capturing stuff
                 Logger.Trace(raw);
 
                 var dataObject = JsonSerializer.Deserialize(reader, invocationList.Type);
@@ -204,6 +204,8 @@ RAW JSON:
 
             return AlSocketSubscription<T>.Create(invocationList, callback);
         }
+
+        private void OnDisconnected(object? sender, WebSocketCloseEventArgs e) => DisconnectAsync().GetAwaiter().GetResult();
 
 
         public async ValueTask Unsub<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)

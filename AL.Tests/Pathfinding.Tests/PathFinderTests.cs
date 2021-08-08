@@ -186,7 +186,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             timer.Stop();
             Logger.Debug($"Route found from main to winter_cave in {timer.ElapsedMilliseconds}");
-            Logger.Trace(string.Join(Environment.NewLine, route.Select(connector => connector.End.Accessor)));
+            Logger.Debug(string.Join(Environment.NewLine, route.Select(connector => connector.End.Accessor)));
 
             Assert.IsTrue(route.Any());
         }
@@ -212,7 +212,7 @@ namespace AL.Tests.Pathfinding.Tests
                 startingPoint = path.Last().End;
 
                 var closestExit = exits.OrderBy(exit => exit.Distance(startingPoint)).First();
-                Logger.Info($"Distance from exit: {closestExit.Distance(startingPoint)}");
+                Logger.Trace($"Distance from exit: {closestExit.Distance(startingPoint)}");
                 startingPoint = closestExit.Center.GetPoint();
             }
         }

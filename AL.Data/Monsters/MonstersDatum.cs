@@ -5,135 +5,138 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Monsters
 {
-    /// <summary>
-    ///     <inheritdoc />
-    /// </summary>
-    /// <seealso cref="DatumBase{T}" />
-    [JsonObject(ItemConverterType = typeof(AttributedObjectConverter<GMonster>))]
+       /// <summary>
+       ///     <inheritdoc />
+       /// </summary>
+       /// <seealso cref="DatumBase{T}" />
+       [JsonObject(ItemConverterType = typeof(AttributedObjectConverter<GMonster>))]
     public class MonstersDatum : DatumBase<GMonster>
     {
-        public GMonster A1 { get; set; } = null!;
-        public GMonster A2 { get; set; } = null!;
-        public GMonster A3 { get; set; } = null!;
-        public GMonster A4 { get; set; } = null!;
-        public GMonster A5 { get; set; } = null!;
-        public GMonster A6 { get; set; } = null!;
-        public GMonster A7 { get; set; } = null!;
-        public GMonster A8 { get; set; } = null!;
-        public GMonster ArcticBee { get; set; } = null!;
-        public GMonster Armadillo { get; set; } = null!;
-        public GMonster Bat { get; set; } = null!;
-        public GMonster Bbpompom { get; set; } = null!;
-        public GMonster Bee { get; set; } = null!;
-        public GMonster BigBird { get; set; } = null!;
-        public GMonster BlueFairy { get; set; } = null!;
-        public GMonster Boar { get; set; } = null!;
-        public GMonster Booboo { get; set; } = null!;
-        public GMonster BScorpion { get; set; } = null!;
-        public GMonster Cgoo { get; set; } = null!;
-        public GMonster Crab { get; set; } = null!;
-        public GMonster CrabX { get; set; } = null!;
-        public GMonster Croc { get; set; } = null!;
-        public GMonster CuteBee { get; set; } = null!;
-        public GMonster DKnight2 { get; set; } = null!;
-        public GMonster Dragold { get; set; } = null!;
+        public GMonster A1 { get; init; } = null!;
+        public GMonster A2 { get; init; } = null!;
+        public GMonster A3 { get; init; } = null!;
+        public GMonster A4 { get; init; } = null!;
+        public GMonster A5 { get; init; } = null!;
+        public GMonster A6 { get; init; } = null!;
+        public GMonster A7 { get; init; } = null!;
+        public GMonster A8 { get; init; } = null!;
+        public GMonster Arcticbee { get; init; } = null!;
+        public GMonster Armadillo { get; init; } = null!;
+        public GMonster Bat { get; init; } = null!;
+        public GMonster Bbpompom { get; init; } = null!;
+        public GMonster Bee { get; init; } = null!;
+        public GMonster Bigbird { get; init; } = null!;
+        public GMonster Bluefairy { get; init; } = null!;
+        public GMonster Boar { get; init; } = null!;
+        public GMonster Booboo { get; init; } = null!;
+        public GMonster Bscorpion { get; init; } = null!;
+        public GMonster Cgoo { get; init; } = null!;
+        public GMonster Chestm { get; init; } = null!;
+        public GMonster Crab { get; init; } = null!;
+        public GMonster Crabx { get; init; } = null!;
+        public GMonster Croc { get; init; } = null!;
+        public GMonster Cutebee { get; init; } = null!;
+        public GMonster Dknight2 { get; init; } = null!;
+        public GMonster Dragold { get; init; } = null!;
         [JsonProperty("d_wiz")]
-        public GMonster DWiz { get; set; } = null!;
-        public GMonster EElemental { get; set; } = null!;
-        public GMonster Ent { get; set; } = null!;
-        public GMonster FElemental { get; set; } = null!;
-        public GMonster FieldGen0 { get; set; } = null!;
-        public GMonster FireRoamer { get; set; } = null!;
-        public GMonster Franky { get; set; } = null!;
-        public GMonster Frog { get; set; } = null!;
-        public GMonster FVampire { get; set; } = null!;
-        public GMonster GBluePro { get; set; } = null!;
-        public GMonster GGreenPro { get; set; } = null!;
-        public GMonster Ghost { get; set; } = null!;
-        public GMonster Goblin { get; set; } = null!;
-        public GMonster GoldenBat { get; set; } = null!;
-        public GMonster Goo { get; set; } = null!;
-        public GMonster GPurplePro { get; set; } = null!;
-        public GMonster GRedPro { get; set; } = null!;
-        public GMonster GreenFairy { get; set; } = null!;
-        public GMonster GreenJr { get; set; } = null!;
-        public GMonster Grinch { get; set; } = null!;
-        public GMonster GScorpion { get; set; } = null!;
-        public GMonster Hen { get; set; } = null!;
-        public GMonster IceGolem { get; set; } = null!;
-        public GMonster IceRoamer { get; set; } = null!;
-        public GMonster Jr { get; set; } = null!;
-        public GMonster Kitty1 { get; set; } = null!;
-        public GMonster Kitty2 { get; set; } = null!;
-        public GMonster Kitty3 { get; set; } = null!;
-        public GMonster Kitty4 { get; set; } = null!;
-        public GMonster LigerX { get; set; } = null!;
-        public GMonster MechaGnome { get; set; } = null!;
-        public GMonster MiniMush { get; set; } = null!;
-        public GMonster Mole { get; set; } = null!;
-        public GMonster MrGreen { get; set; } = null!;
-        public GMonster MrPumpkin { get; set; } = null!;
-        public GMonster Mummy { get; set; } = null!;
-        public GMonster MVampire { get; set; } = null!;
-        public GMonster NElemental { get; set; } = null!;
-        public GMonster OneEye { get; set; } = null!;
-        public GMonster OSnake { get; set; } = null!;
-        public GMonster Phoenix { get; set; } = null!;
-        public GMonster PinkGoblin { get; set; } = null!;
-        public GMonster PinkGoo { get; set; } = null!;
-        public GMonster Plantoid { get; set; } = null!;
-        public GMonster Poisio { get; set; } = null!;
-        public GMonster Porcupine { get; set; } = null!;
-        public GMonster Pppompom { get; set; } = null!;
-        public GMonster Prat { get; set; } = null!;
-        public GMonster Puppy1 { get; set; } = null!;
-        public GMonster Puppy2 { get; set; } = null!;
-        public GMonster Puppy3 { get; set; } = null!;
-        public GMonster Puppy4 { get; set; } = null!;
-        public GMonster Rat { get; set; } = null!;
-        public GMonster RedFairy { get; set; } = null!;
-        public GMonster Rooster { get; set; } = null!;
-        public GMonster Rudolph { get; set; } = null!;
-        public GMonster Scorpion { get; set; } = null!;
-        public GMonster Skeletor { get; set; } = null!;
-        public GMonster Snake { get; set; } = null!;
-        public GMonster SnowMan { get; set; } = null!;
-        public GMonster Spider { get; set; } = null!;
-        public GMonster Squig { get; set; } = null!;
-        public GMonster SquigToad { get; set; } = null!;
-        public GMonster Stompy { get; set; } = null!;
-        public GMonster StoneWorm { get; set; } = null!;
-        public GMonster Target { get; set; } = null!;
+        public GMonster DWiz { get; init; } = null!;
+        public GMonster Eelemental { get; init; } = null!;
+        public GMonster Ent { get; init; } = null!;
+        public GMonster Felemental { get; init; } = null!;
+        public GMonster Fieldgen0 { get; init; } = null!;
+        public GMonster Fireroamer { get; init; } = null!;
+        public GMonster Franky { get; init; } = null!;
+        public GMonster Frog { get; init; } = null!;
+        public GMonster Fvampire { get; init; } = null!;
+        public GMonster Gbluepro { get; init; } = null!;
+        public GMonster Ggreenpro { get; init; } = null!;
+        public GMonster Ghost { get; init; } = null!;
+        public GMonster Goblin { get; init; } = null!;
+        public GMonster Goldenbat { get; init; } = null!;
+        public GMonster Goo { get; init; } = null!;
+        public GMonster Gpurplepro { get; init; } = null!;
+        public GMonster Gredpro { get; init; } = null!;
+        public GMonster Greenfairy { get; init; } = null!;
+        public GMonster Greenjr { get; init; } = null!;
+        public GMonster Grinch { get; init; } = null!;
+        public GMonster Gscorpion { get; init; } = null!;
+        public GMonster Hen { get; init; } = null!;
+        public GMonster Icegolem { get; init; } = null!;
+        public GMonster Iceroamer { get; init; } = null!;
+        public GMonster Jr { get; init; } = null!;
+        public GMonster Jrat { get; init; } = null!;
+        public GMonster Kitty1 { get; init; } = null!;
+        public GMonster Kitty2 { get; init; } = null!;
+        public GMonster Kitty3 { get; init; } = null!;
+        public GMonster Kitty4 { get; init; } = null!;
+        public GMonster Ligerx { get; init; } = null!;
+        public GMonster Mechagnome { get; init; } = null!;
+        public GMonster Minimush { get; init; } = null!;
+        public GMonster Mole { get; init; } = null!;
+        public GMonster Mrgreen { get; init; } = null!;
+        public GMonster Mrpumpkin { get; init; } = null!;
+        public GMonster Mummy { get; init; } = null!;
+        public GMonster Mvampire { get; init; } = null!;
+        public GMonster Nelemental { get; init; } = null!;
+        public GMonster Nerfedmummy { get; init; } = null!;
+        public GMonster Oneeye { get; init; } = null!;
+        public GMonster Osnake { get; init; } = null!;
+        public GMonster Phoenix { get; init; } = null!;
+        public GMonster Pinkgoblin { get; init; } = null!;
+        public GMonster Pinkgoo { get; init; } = null!;
+        public GMonster Plantoid { get; init; } = null!;
+        public GMonster Poisio { get; init; } = null!;
+        public GMonster Porcupine { get; init; } = null!;
+        public GMonster Pppompom { get; init; } = null!;
+        public GMonster Prat { get; init; } = null!;
+        public GMonster Puppy1 { get; init; } = null!;
+        public GMonster Puppy2 { get; init; } = null!;
+        public GMonster Puppy3 { get; init; } = null!;
+        public GMonster Puppy4 { get; init; } = null!;
+        public GMonster Rat { get; init; } = null!;
+        public GMonster Redfairy { get; init; } = null!;
+        public GMonster Rooster { get; init; } = null!;
+        public GMonster Rudolph { get; init; } = null!;
+        public GMonster Scorpion { get; init; } = null!;
+        public GMonster Skeletor { get; init; } = null!;
+        public GMonster Snake { get; init; } = null!;
+        public GMonster Snowman { get; init; } = null!;
+        public GMonster Spider { get; init; } = null!;
+        public GMonster Squig { get; init; } = null!;
+        public GMonster Squigtoad { get; init; } = null!;
+        public GMonster Stompy { get; init; } = null!;
+        public GMonster Stoneworm { get; init; } = null!;
+        public GMonster Target { get; init; } = null!;
         [JsonProperty("target_a500")]
-        public GMonster TargetA500 { get; set; } = null!;
+        public GMonster TargetA500 { get; init; } = null!;
         [JsonProperty("target_a750")]
-        public GMonster TargetA750 { get; set; } = null!;
+        public GMonster TargetA750 { get; init; } = null!;
         [JsonProperty("target_ar500red")]
-        public GMonster TargetAr500Red { get; set; } = null!;
+        public GMonster TargetAr500Red { get; init; } = null!;
         [JsonProperty("target_ar900")]
-        public GMonster TargetAr900 { get; set; } = null!;
+        public GMonster TargetAr900 { get; init; } = null!;
         [JsonProperty("target_r500")]
-        public GMonster TargetR500 { get; set; } = null!;
+        public GMonster TargetR500 { get; init; } = null!;
         [JsonProperty("target_r750")]
-        public GMonster TargetR750 { get; set; } = null!;
+        public GMonster TargetR750 { get; init; } = null!;
+        public GMonster Tinyp { get; init; } = null!;
+        public GMonster Tortoise { get; init; } = null!;
+        public GMonster Vbat { get; init; } = null!;
+        public GMonster Wabbit { get; init; } = null!;
+        public GMonster Welemental { get; init; } = null!;
+        public GMonster Wolf { get; init; } = null!;
+        public GMonster Wolfie { get; init; } = null!;
+        public GMonster Xmagefi { get; init; } = null!;
+        public GMonster Xmagefz { get; init; } = null!;
+        public GMonster Xmagen { get; init; } = null!;
+        public GMonster Xmagex { get; init; } = null!;
+        public GMonster Xscorpion { get; init; } = null!;
+        public GMonster Zapper0 { get; init; } = null!;
 
-        public GMonster TinyP { get; set; } = null!;
-        public GMonster Tortoise { get; set; } = null!;
-        public GMonster VBat { get; set; } = null!;
-        public GMonster Wabbit { get; set; } = null!;
-        public GMonster WElemental { get; set; } = null!;
-        public GMonster Wolf { get; set; } = null!;
-        public GMonster Wolfie { get; set; } = null!;
-        public GMonster XMageFI { get; set; } = null!;
-        public GMonster XMageFZ { get; set; } = null!;
-        public GMonster XMageN { get; set; } = null!;
-        public GMonster XMageX { get; set; } = null!;
-        public GMonster XScorpion { get; set; } = null!;
-        public GMonster Zapper0 { get; set; } = null!;
 
-        internal override void ConstructCache()
+        internal override void BuildLookupTable()
         {
-            base.ConstructCache();
+            base.BuildLookupTable();
 
             //map accessors are populated based on the string from the server, not the local copy.
             foreach ((var accessor, var monster) in this.Reverse().DistinctBy(kvp => kvp.Value))

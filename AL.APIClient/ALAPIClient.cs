@@ -56,12 +56,14 @@ namespace AL.APIClient
         /// </returns>
         public static async Task<string> GetGameDataAsync()
         {
-            Logger.Info("Retreiving game data...");
+            Logger.Info("Fetching game data...");
 
             var request = new RestRequest("data.js", Method.GET);
             var response = await CLIENT.ExecuteGetAsync(request);
+            var startBracketIndex = response.Content.IndexOf('{');
+            var endBrackedIndex = response.Content.LastIndexOf('}');
 
-            return response.Content.Substring(6, response.Content.Length - 8);
+            return response.Content.Substring(startBracketIndex, endBrackedIndex - startBracketIndex + 1);
         }
 
         public async IAsyncEnumerable<Mail> GetMailAsync()
@@ -83,7 +85,6 @@ namespace AL.APIClient
                 more = result.More;
             }
         }
-
 
         public async IAsyncEnumerable<Merchant> GetMerchantsAsync()
         {
@@ -154,14 +155,13 @@ namespace AL.APIClient
                 password,
                 only_login = true
             });
-
-            Logger.Info(request);
+            
             var response = await CLIENT.ExecutePostAsync(request); //.WithTimeout(60000);
             var setCookieHeader = response.Headers.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
             var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content);
 
-            Logger.Debug($"Message: {data?.Message}");
-            Logger.Debug($"Set-Cookie: {setCookieHeader?.Value}");
+            Logger.Debug($"Login: Message: {data?.Message}");
+            Logger.Debug($"Login: Set-Cookie: {setCookieHeader?.Value}");
 
             if (data == null)
                 throw new InvalidOperationException("Failed to log in. No response from server.");

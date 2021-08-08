@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AL.APIClient;
@@ -458,7 +460,7 @@ namespace AL.Client
         /// <exception cref="InvalidOperationException">Server {region} {identifier} not found."</exception>
         public async Task ConnectAsync(ServerRegion region, ServerId identifier)
         {
-            if (Socket.Opened)
+            if (Socket.Connected)
                 throw new InvalidOperationException("There is already an open socket in use. Try disposing it and reconnecting.");
 
             var serversAndCharacters = await API.GetServersAndCharactersAsync();
@@ -504,7 +506,7 @@ namespace AL.Client
                 await using var startCallback = Socket.On<StartData>(ALSocketMessageType.Start, data =>
                 {
                     source.TrySetResult(data);
-                    return CachedTask.FALSE;
+                    return TaskCache.FALSE;
                 });
 
                 await Socket.ConnectAsync(Server);
@@ -593,7 +595,7 @@ namespace AL.Client
             await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, _ =>
             {
                 source.TrySetResult(Expectation.Success);
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Magiport, new { name = from });
@@ -623,7 +625,7 @@ namespace AL.Client
                 if (data.MemberNames.ContainsI(from))
                     source.TrySetResult(Expectation.Success);
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
@@ -670,7 +672,7 @@ namespace AL.Client
                 if (data.MemberNames.ContainsI(from))
                     source.TrySetResult(Expectation.Success);
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
@@ -717,7 +719,7 @@ namespace AL.Client
                 if (data.Id.EqualsI(targetId))
                     source.TrySetResult($"Attack on {targetId} failed. (target died)");
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
@@ -890,7 +892,7 @@ namespace AL.Client
                 if (newTotal - existingTotal == quantity)
                     source.TrySetResult(data.Inventory.AsIndexed().Except(inventorySnapshot).First());
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.TradeBuy, new { slot, id = playerName, rid = item.Id, q = quantity.ToString() });
@@ -956,7 +958,7 @@ namespace AL.Client
                 if (newCount - existingCount == item.Quantity)
                     source.TrySetResult(data.Inventory.AsIndexed().Except(existingItems).First());
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.SecondHandsBuy, new { rid = item.Id });
@@ -1118,7 +1120,7 @@ namespace AL.Client
                 if (didChange)
                     source.TrySetResult(Expectation.Success);
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Bank, new { amount, operation = "deposit" });
@@ -1168,7 +1170,7 @@ namespace AL.Client
                 if (data.ResponseType == GameResponseType.Invalid)
                     source.TrySetResult($"Failed to deposit item {item.Name}. (invalid)");
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
@@ -1181,7 +1183,7 @@ namespace AL.Client
                         source.TrySetResult(new IndexedBankItem { BankPack = bankPack.Value, Index = bankSlot.Value, Item = bankedItem });
                 }
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Swap,
@@ -1258,7 +1260,7 @@ namespace AL.Client
                         itemsSnapshot = Character.Inventory;
                 }
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Exchange, new
@@ -1295,7 +1297,7 @@ namespace AL.Client
             await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, _ =>
             {
                 source.TrySetResult(Expectation.Success);
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.LeaveMap);
@@ -1314,7 +1316,7 @@ namespace AL.Client
             await using var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, _ =>
             {
                 source.TrySetResult();
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Party, new { @event = "leave" });
@@ -1394,7 +1396,7 @@ namespace AL.Client
                                     || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
                         correctionAttempted = true;
                         await Socket.Emit(ALSocketEmitType.Property, new { typing = true });
-                        Logger.Trace("Correction attempted...");
+                        Logger.Debug("Move: Correction attempted...");
                         break;
                 }
 
@@ -1412,7 +1414,7 @@ namespace AL.Client
                     source.TrySetResult(
                         $"Sent to jail trying to move from {ILocation.ToString(startLoc)} to {ILocation.ToString(goingLoc)}. IsWall = {PathFinder.IsWall(goingLoc)}");
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Move, new
@@ -1467,12 +1469,7 @@ namespace AL.Client
 
             await Socket.Emit(ALSocketEmitType.Ping, new { id = pingCount.ToString() });
 
-            #if DEBUG
-            return await source.Task.WithTimeout(60000);
-
-            #else
-                return await source.Task.WithNetworkTimeout();
-            #endif
+            return await source.Task.WithNetworkTimeout();
         }
 
         /// <summary>
@@ -1489,7 +1486,7 @@ namespace AL.Client
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
             {
                 source.TrySetResult(data);
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Property, new { typing = true });
@@ -1702,7 +1699,7 @@ namespace AL.Client
                 if (data.Map.EqualsI(map))
                     source.TrySetResult(data);
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Transport, new { to = map, s = spawnIndex });
@@ -1836,7 +1833,7 @@ namespace AL.Client
                 else if (warpBegin && (data.Channeling?.ContainsKey("town") != true))
                     source.TrySetResult("Failed to town. (canceled)");
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
@@ -1844,7 +1841,7 @@ namespace AL.Client
                 if (warpBegin && (data.Effect == DisappearEffect.Town))
                     source.TrySetResult(Expectation.Success);
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.ReturnToTown);
@@ -1882,7 +1879,7 @@ namespace AL.Client
                 if (didChange)
                     source.TrySetResult(Expectation.Success);
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Bank, new { amount, operation = "withdraw" });
@@ -1923,7 +1920,7 @@ namespace AL.Client
                 if (data.ResponseType == GameResponseType.Invalid)
                     source.TrySetResult($"Failed to withdraw item {item.Name}. (invalid)");
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
@@ -1936,7 +1933,7 @@ namespace AL.Client
                 if (inventoryItem != null)
                     source.TrySetResult(new IndexedInventoryItem { Index = inventorySlot, Item = inventoryItem });
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             await Socket.Emit(ALSocketEmitType.Bank, new { inv = inventorySlot, operation = "swap", pack = bankPack, str = bankSlot });
@@ -2011,7 +2008,7 @@ namespace AL.Client
         {
             Character.CorrectAndCompensate(data.Data, PingManager.Offset);
 
-            return CachedTask.FALSE;
+            return TaskCache.FALSE;
         }
 
         protected async Task<bool> OnDeathAsync(DeathData data)
@@ -2055,12 +2052,27 @@ namespace AL.Client
         }
 
         //TODO: figure out how to handle eval
-        protected Task<bool> OnEvalAsync(EvalData data) => CachedTask.FALSE;
+        protected async Task<bool> OnEvalAsync(EvalData data)
+        {
+            Match match;
+            if ((match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success)
+            {
+                var skillName = match.Groups[1].Value;
+                var cooldownStr = match.Groups[2].Value;
+
+                if (float.TryParse(cooldownStr, out var cooldownMS))
+                    await SetCooldownAsync(skillName, cooldownMS);
+                else
+                    await SetCooldownAsync(skillName);
+            }
+
+            return false;
+        }
 
         protected Task<bool> OnGameErrorAsync(GameErrorData data)
         {
             Logger.Warn($"GAME ERROR: {data.Message}");
-            return CachedTask.FALSE;
+            return TaskCache.FALSE;
         }
 
         protected async Task<bool> OnGameResponseAsync(GameResponseData data)
@@ -2073,9 +2085,8 @@ namespace AL.Client
             {
                 case GameResponseType.Cooldown:
                 {
-                    var cooldown = new CooldownInfo(data.CooldownMS);
-                    cooldown.CompensateOnce(PingManager.Offset);
-                    await Cooldowns.AddOrUpdateAsync(data.SkillName!, cooldown);
+                    await SetCooldownAsync(data.SkillName!, data.CooldownMS);
+
                     break;
                 }
                 case GameResponseType.ConditionExpired:
@@ -2088,15 +2099,8 @@ namespace AL.Client
 
                 case GameResponseType.SkillSuccess:
                 {
-                    var skillData = GameData.Skills[data.Name!];
-                    var cooldownMS = 0;
+                    await SetCooldownAsync(data.SkillName!);
 
-                    if ((skillData != null) && (skillData.CooldownMS != 0))
-                        cooldownMS = skillData.CooldownMS;
-
-                    var cooldown = new CooldownInfo(cooldownMS);
-                    cooldown.CompensateOnce(PingManager.Offset);
-                    await Cooldowns.AddOrUpdateAsync(data.Name!, cooldown);
                     break;
                 }
             }
@@ -2152,7 +2156,7 @@ namespace AL.Client
         protected Task<bool> OnPartyUpdateAsync(PartyUpdateData data)
         {
             Party = data;
-            return CachedTask.FALSE;
+            return TaskCache.FALSE;
         }
 
         protected Task<bool> OnQueuedActionAsync(QueuedActionData data)
@@ -2160,7 +2164,7 @@ namespace AL.Client
             if (data.QueuedActionInfo != null)
                 Character.Update(data.QueuedActionInfo);
 
-            return CachedTask.FALSE;
+            return TaskCache.FALSE;
         }
 
         protected Task<bool> OnServerInfo(EventAndBossData data)
@@ -2179,7 +2183,7 @@ namespace AL.Client
                     bossInfo.Mutate(new Mutation(ALAttribute.Hp, mData.HP));
                 }
 
-            return CachedTask.FALSE;
+            return TaskCache.FALSE;
         }
 
         protected async Task<bool> OnStartAsync(StartData data)
@@ -2212,7 +2216,7 @@ namespace AL.Client
                         throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int)data.QueuedActionType}.");
                 }
 
-            return CachedTask.FALSE;
+            return TaskCache.FALSE;
         }
 
         protected async Task<bool> OnWelcomeAsync(WelcomeData data)
@@ -2237,7 +2241,7 @@ namespace AL.Client
         #endregion
 
         #region Helpers
-
+        
         protected async ValueTask<bool> DestroyEntity(string id)
         {
             var result = await Monsters.RemoveAsync(id) || await Players.RemoveAsync(id);
@@ -2251,6 +2255,110 @@ namespace AL.Client
         protected async ValueTask<EntityBase?> GetEntity(string id) =>
             await Players.TryGetValueAsync(id, out var playerTask)   ? await playerTask :
             await Monsters.TryGetValueAsync(id, out var monsterTask) ? await monsterTask : null;
+
+                protected (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
+            IIndexedItem<IInventoryItem> indexedInventoryItem,
+            BankPack? bankPack = null,
+            int? bankSlot = null)
+        {
+            //if both indexes are specified, just check that they are valid.
+            if (bankPack.HasValue && bankSlot.HasValue)
+                if (!Bank!.TryGetValue(bankPack.Value, out var bankedItems) || (bankedItems[bankSlot.Value] != null))
+                    return null;
+                else
+                    return (bankPack.Value, bankSlot.Value);
+
+            var item = indexedInventoryItem.Item;
+            var itemData = item.GetData();
+            var stackSize = itemData?.StackSize ?? 1;
+            //an enumerable of acceptable bankpacks or the bankPack the user wants to use
+            var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : Bank!.GetAvailableBankPacks(Character.Map);
+
+            foreach (var bankPackIndex in availableBanks)
+            {
+                //check if they have access to the bankPack
+                if (!Bank!.TryGetValue(bankPackIndex, out var bankItems))
+                    continue;
+
+                //for each item in this bank pack
+                var itemSlotIndex = 0;
+                foreach (var bankedItem in bankItems)
+                {
+                    //if the slot is empty
+                    if (bankedItem == null)
+                    {
+                        //if this item is not stackable, this is the first empty slot to place the item in so just break
+                        //if this item IS stackable, continue looking for a slot we can stack the item into
+                        if (stackSize == 1)
+                            return (bankPackIndex, itemSlotIndex);
+
+                    }
+                    //check if the item can stack onto this banked item
+                    else if ((stackSize > 1) && item.Name.EqualsI(bankedItem.Name) && (item.Quantity + bankedItem.Quantity <= stackSize))
+                    {
+                        //-1 allows the item to automatically stack
+                        return (bankPackIndex, -1);
+                    }
+
+                    itemSlotIndex++;
+                }
+            }
+
+            if (!bankPack.HasValue || !bankSlot.HasValue)
+                return null;
+
+            return (bankPack.Value, bankSlot.Value);
+        }
+        
+        public async Task InitializeAsync()
+        {
+            Logger.Info("Initializing backing data for client");
+            var tasks = new List<Task>
+            {
+                Task.Run(() => RuntimeHelpers.RunClassConstructor(typeof(RegexCache).TypeHandle)),
+                Task.Run(() => RuntimeHelpers.RunClassConstructor(typeof(TaskCache).TypeHandle)),
+                Task.Run(async () =>
+                {
+                    var jData = await ALAPIClient.GetGameDataAsync();
+                    GameData.Populate(jData);
+                })
+            };
+
+            await Task.WhenAll(tasks);
+            await PathFinder.InitializeAsync();
+        }
+
+        protected async ValueTask SetCooldownAsync(string skillName, float? cooldownMS = null)
+        {
+            while (true)
+            {
+                var data = GameData.Skills[skillName];
+
+                if (data == null)
+                    return;
+
+                if (!string.IsNullOrEmpty(data.SharedCooldown))
+                {
+                    skillName = data.SharedCooldown;
+                    continue;
+                }
+
+                if ((data.CooldownMS > 0) || skillName.EqualsI("attack"))
+                {
+                    if (skillName.EqualsI("attack"))
+                        cooldownMS ??= 1000f / Character.Frequency;
+                    else
+                        cooldownMS ??= data.CooldownMS;
+                    
+                    var cooldownInfo = new CooldownInfo(cooldownMS.Value);
+                    cooldownInfo.CompensateOnce(PingManager.Offset);
+
+                    await Cooldowns.AddOrUpdateAsync(skillName, cooldownInfo);
+                }
+                
+                break;
+            }
+        }
 
         protected ValueTask UpdateMonsters(IEnumerable<Monster> monsters, bool full = false)
         {
@@ -2307,7 +2415,7 @@ namespace AL.Client
                 if ((data.Bank != null) || (Bank != null))
                     source.TrySetResult();
 
-                return CachedTask.FALSE;
+                return TaskCache.FALSE;
             });
 
             //check for bank data again (it could have been set while executing the previous statement
@@ -2317,61 +2425,7 @@ namespace AL.Client
             //wait for it to be populated
             await source.Task.WithNetworkTimeout();
         }
-
-        protected (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
-            IIndexedItem<IInventoryItem> indexedInventoryItem,
-            BankPack? bankPack = null,
-            int? bankSlot = null)
-        {
-            //if both indexes are specified, just check that they are valid.
-            if (bankPack.HasValue && bankSlot.HasValue)
-                if (!Bank!.TryGetValue(bankPack.Value, out var bankedItems) || (bankedItems[bankSlot.Value] != null))
-                    return null;
-                else
-                    return (bankPack.Value, bankSlot.Value);
-
-            var item = indexedInventoryItem.Item;
-            var itemData = item.GetData();
-            var stackSize = itemData?.StackSize ?? 1;
-            //an enumerable of acceptable bankpacks or the bankPack the user wants to use
-            var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : Bank!.GetAvailableBankPacks(Character.Map);
-
-            foreach (var bankPackIndex in availableBanks)
-            {
-                //check if they have access to the bankPack
-                if (!Bank!.TryGetValue(bankPackIndex, out var bankItems))
-                    continue;
-
-                //for each item in this bank pack
-                var itemSlotIndex = 0;
-                foreach (var bankedItem in bankItems)
-                {
-                    //if the slot is empty
-                    if (bankedItem == null)
-                    {
-                        //if this item is not stackable, this is the first empty slot to place the item in so just break
-                        //if this item IS stackable, continue looking for a slot we can stack the item into
-                        if (stackSize == 1)
-                            return (bankPackIndex, itemSlotIndex);
-
-                    }
-                    //check if the item can stack onto this banked item
-                    else if ((stackSize > 1) && item.Name.EqualsI(bankedItem.Name) && (item.Quantity + bankedItem.Quantity <= stackSize))
-                    {
-                        //-1 allows the item to automatically stack
-                        return (bankPackIndex, -1);
-                    }
-
-                    itemSlotIndex++;
-                }
-            }
-
-            if (!bankPack.HasValue || !bankSlot.HasValue)
-                return null;
-
-            return (bankPack.Value, bankSlot.Value);
-        }
-
+        
         #endregion
     }
 }

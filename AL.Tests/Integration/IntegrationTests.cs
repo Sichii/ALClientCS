@@ -35,8 +35,6 @@ namespace AL.Tests.Integration
             await client.SmartMoveAsync(location1);
             await client.SmartMoveAsync(location2);
 
-            await client.DisconnectAsync();
-
             //we made it yay
             Assert.IsTrue(true);
         }

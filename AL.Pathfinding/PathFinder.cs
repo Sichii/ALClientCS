@@ -67,7 +67,8 @@ namespace AL.Pathfinding
                     else
                     {
                         var mapName = maps.FirstOrDefault(kvp => kvp.Value == map).Key;
-                        Logger.Warn($"{mapName} has an exit that points to an invalid map.{Environment.NewLine}{exit}");
+                        Logger.Warn(
+                            $"{mapName} has an exit that points to an invalid map.{Environment.NewLine}{exit}{Environment.NewLine}");
                     }
                 }
 
@@ -293,7 +294,7 @@ namespace AL.Pathfinding
         {
             var navMeshes = new AwaitableDictionary<GMap, NavMesh>();
 
-            var maps = GameData.Maps.DistinctBy(kvp => kvp.Value.Key)
+            var maps = GameData.Maps.DistinctBy(kvp => kvp.Value.Accessor)
                 .Where(kvp => kvp.Value.Ignore == false)
                 .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
@@ -320,7 +321,7 @@ namespace AL.Pathfinding
                 NavMeshes.Add(map.Key, value);
 
             BuildWorldMesh(maps);
-            Logger.Trace("Prepared worldmesh");
+            Logger.Debug("Prepared worldmesh");
 
             timer.Stop();
             Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
@@ -349,15 +350,15 @@ namespace AL.Pathfinding
         {
             var geometry = GameData.Geometry[name];
 
-            if ((geometry == null) || (geometry.XLines.Count == 0) || (geometry.YLines.Count == 0))
+            if ((geometry == null) || (geometry.VerticalLines.Count == 0) || (geometry.HorizontalLines.Count == 0))
             {
-                Logger.Trace($"Ignored {name}");
+                Logger.Debug($"Ignored {name}");
                 return null;
             }
 
             var generator = new NavMeshBuilder(map, geometry);
             var navMesh = generator.Build();
-            Logger.Trace($"Prepared {name}");
+            Logger.Debug($"Prepared {name}");
             return navMesh;
         }
     }

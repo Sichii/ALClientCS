@@ -18,31 +18,48 @@ namespace AL.Core.Geometry
         ///     The X or Y coordinate the line ends on.
         /// </summary>
         [JsonProperty, JsonArrayIndex(2)]
-        private int End;
+        public int End { get; init; }
+        /// <summary>
+        ///     Whether or not this line is a vertical line.
+        ///     Whether or not this line exists on a single X coordinate. <br />
+        ///     Whether or not this line is an "X Line"
+        /// </summary>
+        /// <value><c>true</c> if <see cref="On" /> represents an X coordinate; otherwise, <c>false</c>.</value>
+        [JsonIgnore]
+        public bool IsVertical { get; init; }
         /// <summary>
         ///     The X or Y coordinate the line exists on.
         /// </summary>
         [JsonProperty, JsonArrayIndex(0)]
-        private int On;
+        public int On { get; init; }
         /// <summary>
         ///     The X or Y coordinate the line starts on.
         /// </summary>
         [JsonProperty, JsonArrayIndex(1)]
-        private int Start;
-        /// <summary>
-        ///     Whether or not this line exists on a single X coordinate.
-        /// </summary>
-        /// <value><c>true</c> if <see cref="On" /> represents an X coordinate; otherwise, <c>false</c>.</value>
-        [JsonIgnore]
-        internal bool IsX { get; init; }
+        public int Start { get; init; }
 
         /// <summary>
         ///     <inheritdoc />
         /// </summary>
         public float Length => Math.Abs(Start - End);
 
-        public IPoint Point1 => IsX ? new Point(On, Start) : new Point(Start, On);
-        public IPoint Point2 => IsX ? new Point(On, End) : new Point(End, On);
+        public IPoint Point1 => IsVertical ? new Point(On, Start) : new Point(Start, On);
+        public IPoint Point2 => IsVertical ? new Point(On, End) : new Point(End, On);
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="StraightLine" /> class.
+        /// </summary>
+        /// <param name="on">The X or Y value the line starts on. denoted by "isX"</param>
+        /// <param name="start">The starting X or Y value of the line.</param>
+        /// <param name="end">The ending X or Y value of the line.</param>
+        /// <param name="isVertical">Whether or not the line starts "on" an X value.</param>
+        public StraightLine(int on, int start, int end, bool isVertical)
+        {
+            On = on;
+            Start = start;
+            End = end;
+            IsVertical = isVertical;
+        }
 
         /// <summary>
         ///     Calculates the farthest distance between this straight line and another.
@@ -81,18 +98,12 @@ namespace AL.Core.Geometry
             if (On != other.On)
                 throw new ArgumentException($"{nameof(On)} and {nameof(other)}.{nameof(On)} must be equal.");
 
-            if (IsX != other.IsX)
-                throw new ArgumentException($"{nameof(IsX)} and {nameof(other)}.{nameof(IsX)} must be equal.");
+            if (IsVertical != other.IsVertical)
+                throw new ArgumentException($"{nameof(IsVertical)} and {nameof(other)}.{nameof(IsVertical)} must be equal.");
 
             var edges = new[] { Start, End, other.Start, other.End };
 
-            return new StraightLine
-            {
-                On = On,
-                Start = edges.Min(),
-                End = edges.Max(),
-                IsX = IsX
-            };
+            return new StraightLine(On, edges.Min(), edges.Max(), IsVertical);
         }
 
         /// <summary>
@@ -107,8 +118,8 @@ namespace AL.Core.Geometry
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            if (IsX != other.IsX)
-                throw new ArgumentException($"{nameof(IsX)} and {nameof(other)}.{nameof(IsX)} must be equal.");
+            if (IsVertical != other.IsVertical)
+                throw new ArgumentException($"{nameof(IsVertical)} and {nameof(other)}.{nameof(IsVertical)} must be equal.");
 
             return (On == other.On) && (MaxDistance(other) < Length + other.Length);
         }
@@ -128,8 +139,8 @@ namespace AL.Core.Geometry
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            if (IsX == other.IsX)
-                throw new ArgumentException($"{nameof(IsX)} and {nameof(other)}.{nameof(IsX)} must NOT be equal.");
+            if (IsVertical == other.IsVertical)
+                throw new ArgumentException($"{nameof(IsVertical)} and {nameof(other)}.{nameof(IsVertical)} must NOT be equal.");
 
             return (other.Start <= On) && (On <= other.End) && (Start <= other.On) && (other.On <= End);
         }

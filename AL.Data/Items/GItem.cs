@@ -20,7 +20,7 @@ namespace AL.Data.Items
     public record GItem : AttributedRecordBase
     {
         /// <summary>
-        ///     The accessor for this item.
+        ///     The unique accessor for this item.
         /// </summary>
         public string Accessor { get; internal set; } = null!;
 
@@ -41,7 +41,7 @@ namespace AL.Data.Items
         ///     If populated, this item can be exchanged at this NPC.
         /// </summary>
         /// <remarks>Enriched property</remarks>
-        public GNPC? ExchangeAtNPC { get; internal set; }
+        public Gnpc? ExchangeAtNPC { get; internal set; }
 
         /// <summary>
         ///     If populated, this item can be exchanged. <br />
@@ -84,7 +84,7 @@ namespace AL.Data.Items
         ///     Check <see cref="ObtainType" /> for the method of obtaining.
         /// </summary>
         /// <remarks>Enriched property</remarks>
-        public GNPC? ObtainableFromNPC { get; internal set; }
+        public Gnpc? ObtainableFromNPC { get; internal set; }
 
         /// <summary>
         /// </summary>

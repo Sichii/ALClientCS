@@ -63,8 +63,8 @@ namespace AL.Client
 
             config.AddTarget(fileTarget);
             config.AddTarget(consoleTarget);
-            config.AddRule(LogLevel.Trace, LogLevel.Fatal, "ALClientCSFileTarget", "AL.*");
-            config.AddRule(LogLevel.Debug, LogLevel.Fatal, "ALClientCSConsoleTarget", "AL.*");
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, "ALClientCSFileTarget", "AL.*");
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, "ALClientCSConsoleTarget", "AL.*");
 
             LogManager.Configuration = config;
         }

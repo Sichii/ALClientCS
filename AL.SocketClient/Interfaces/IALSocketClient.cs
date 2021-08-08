@@ -13,7 +13,7 @@ namespace AL.SocketClient.Interfaces
         /// <summary>
         ///     Whether or not the socket is currently open.
         /// </summary>
-        bool Opened { get; }
+        bool Connected { get; }
 
         /// <summary>
         ///     Asynchronously connects to an Adventure Land server.

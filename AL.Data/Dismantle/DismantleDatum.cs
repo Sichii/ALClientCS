@@ -6,24 +6,24 @@
     /// <seealso cref="DatumBase{T}" />
     public class DismantleDatum : DatumBase<Recipe>
     {
-        public Recipe BowOfTheDead { get; set; } = null!;
-        public Recipe BronzeIngot { get; set; } = null!;
-        public Recipe DaggerOfTheDead { get; set; } = null!;
-        public Recipe EssenceOfFire { get; set; } = null!;
-        public Recipe EssenceOfFrost { get; set; } = null!;
-        public Recipe EssenceOfLife { get; set; } = null!;
-        public Recipe EssenceOfNature { get; set; } = null!;
-        public Recipe FireBlade { get; set; } = null!;
-        public Recipe FireStaff { get; set; } = null!;
-        public Recipe FireStars { get; set; } = null!;
-        public Recipe GoldenEgg { get; set; } = null!;
-        public Recipe GoldIngot { get; set; } = null!;
-        public Recipe LostEarring { get; set; } = null!;
-        public Recipe MaceOfTheDead { get; set; } = null!;
-        public Recipe MolesTeeth { get; set; } = null!;
-        public Recipe PlatinumIngot { get; set; } = null!;
-        public Recipe SpearOfTheDead { get; set; } = null!;
-        public Recipe StaffOfTheDead { get; set; } = null!;
-        public Recipe SwordOfTheDead { get; set; } = null!;
+        public Recipe Bowofthedead { get; init; } = null!;
+        public Recipe Bronzeingot { get; init; } = null!;
+        public Recipe Daggerofthedead { get; init; } = null!;
+        public Recipe Essenceoffire { get; init; } = null!;
+        public Recipe Essenceoffrost { get; init; } = null!;
+        public Recipe Essenceoflife { get; init; } = null!;
+        public Recipe Essenceofnature { get; init; } = null!;
+        public Recipe Fireblade { get; init; } = null!;
+        public Recipe Firestaff { get; init; } = null!;
+        public Recipe Firestars { get; init; } = null!;
+        public Recipe Goldenegg { get; init; } = null!;
+        public Recipe Goldingot { get; init; } = null!;
+        public Recipe Lostearring { get; init; } = null!;
+        public Recipe Maceofthedead { get; init; } = null!;
+        public Recipe Molesteeth { get; init; } = null!;
+        public Recipe Platinumingot { get; init; } = null!;
+        public Recipe Spearofthedead { get; init; } = null!;
+        public Recipe Staffofthedead { get; init; } = null!;
+        public Recipe Swordofthedead { get; init; } = null!;
     }
 }

@@ -12,12 +12,14 @@ namespace AL.Data.Maps
     /// </summary>
     public record GMapMonster
     {
+        #pragma warning disable 0649
         [JsonProperty("boundaries", ItemConverterType = typeof(BoundaryConverter))]
         private IReadOnlyList<Boundary>? _boundaries;
 
         [JsonProperty("boundary"), JsonConverter(typeof(BoundaryConverter))]
         private Boundary? _boundary;
-
+        #pragma warning restore 0649
+        
         //polygon
         /// <summary>
         ///     The number of this monster that spawns on this map.

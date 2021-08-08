@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AL.Pathfinding", "AL.Pathfi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AL.Visualizer", "AL.Visualizer\AL.Visualizer.csproj", "{AF4187FC-2FEA-40E3-B925-ACD2F94D4FF9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AL.MemberGenerator", "AL.MemberGenerator\AL.MemberGenerator.csproj", "{ADD1FB19-16E2-4211-8EAA-04E363C18069}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{BE1186E8-D465-4E04-B9F1-C2CB1368DF3D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,11 +61,18 @@ Global
 		{AF4187FC-2FEA-40E3-B925-ACD2F94D4FF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF4187FC-2FEA-40E3-B925-ACD2F94D4FF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF4187FC-2FEA-40E3-B925-ACD2F94D4FF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADD1FB19-16E2-4211-8EAA-04E363C18069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADD1FB19-16E2-4211-8EAA-04E363C18069}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADD1FB19-16E2-4211-8EAA-04E363C18069}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADD1FB19-16E2-4211-8EAA-04E363C18069}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {91A6C15D-386D-46AE-B6AC-104714A4D18D}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{ADD1FB19-16E2-4211-8EAA-04E363C18069} = {BE1186E8-D465-4E04-B9F1-C2CB1368DF3D}
 	EndGlobalSection
 EndGlobal

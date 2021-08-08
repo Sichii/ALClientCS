@@ -11,13 +11,14 @@ namespace AL.Data.Maps
     /// </summary>
     public record GMapNPC
     {
+        #pragma warning disable 0649
         [JsonProperty("name")]
         private string? _name;
         [JsonProperty("position"), JsonConverter(typeof(ArrayToObjectConverter<Orientation>))]
         private Orientation? _position;
-
         [JsonProperty("positions", ItemConverterType = typeof(ArrayToObjectConverter<Orientation>))]
         private IReadOnlyList<Orientation>? _positions;
+        #pragma warning restore 0649
 
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, this is the area in which this NPC roams.
@@ -30,7 +31,7 @@ namespace AL.Data.Maps
         /// </summary>
         /// <remarks>Enriched property</remarks>
         [JsonIgnore]
-        public GNPC? Data { get; internal set; }
+        public Gnpc? Data { get; internal set; }
 
         /// <summary>
         ///     The id/accessor of this NPC.

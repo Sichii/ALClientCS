@@ -29,7 +29,7 @@ namespace AL.Data
         ///     The NPC this item is crafted or dismantled at.
         /// </summary>
         /// <remarks>Enriched property</remarks>
-        public GNPC NPC { get; internal set; } = null!;
+        public Gnpc NPC { get; internal set; } = null!;
 
         /// <summary>
         ///     If populated, this is the tag of the NPC this recipe is related to. <br />

@@ -36,7 +36,7 @@ namespace AL.Pathfinding.Model
             XOffset = Math.Abs(Geometry.MinX);
             YOffset = Math.Abs(Geometry.MinY);
             NodeDic = new Dictionary<Point, GraphNode<Point>>();
-            PointMap = new PointType[Width, Height];
+            PointMap = new PointType[Width + 1, Height + 1];
             Triangles = new Dictionary<Point, DelaunayTriangle>();
         }
 
@@ -154,8 +154,8 @@ namespace AL.Pathfinding.Model
             //for any walls that are almost touching
             //fill in the space between with wall points
             //this is to avoid problems where 2 different polygons' vertices/inline points are touching
-            for (var x = 0; x < Width; x++)
-                for (var y = 0; y < Height; y++)
+            for (var x = 0; x <= Width; x++)
+                for (var y = 0; y <= Height; y++)
                     if ((y <= Height - 4)
                         && (PointMap[x, y] == PointType.Wall)
                         && (PointMap[x, y + 1] == PointType.None)
@@ -166,8 +166,8 @@ namespace AL.Pathfinding.Model
                         PointMap[x, y + 2] = PointType.Wall;
                     }
 
-            for (var y = 0; y < Height; y++)
-                for (var x = 0; x < Width; x++)
+            for (var y = 0; y <= Height; y++)
+                for (var x = 0; x <= Width; x++)
                     if ((x <= Width - 4)
                         && (PointMap[x, y] == PointType.Wall)
                         && (PointMap[x + 1, y] == PointType.None)
@@ -185,34 +185,34 @@ namespace AL.Pathfinding.Model
 
             //for each line, pad based on half of the character bounding base
             //yield a rectangle after padding each line
-            foreach (var line in Geometry.XLines)
+            foreach (var line in Geometry.VerticalLines)
             {
                 var x = line.Point1.X + XOffset;
                 var startY = line.Point1.Y + YOffset;
                 var endY = line.Point2.Y + YOffset;
 
-                if ((0 > x) || (x >= Width) || (0 > startY) || (startY >= Height) || (0 > endY) || (endY >= Height))
+                if ((0 > x) || (x > Width) || (0 > startY) || (startY > Height) || (0 > endY) || (endY > Height))
                     continue;
 
                 //pad sides with half of the width of the bounding base
                 //pad the top with the bottom part of the bounding base (characters will walk DOWN into the top of the wall)
                 //pad the bottom with the top part of the bounding base (characters will walk UP into the bottom of the wall)
                 var tl = new Point(Math.Max(x - halfWidth, 0), Math.Max(startY - verticalNotNorth, 0));
-                var br = new Point(Math.Min(x + halfWidth, Width - 1), Math.Min(endY + verticalNorth, Height - 1));
+                var br = new Point(Math.Min(x + halfWidth, Width), Math.Min(endY + verticalNorth, Height));
                 yield return new Rectangle(tl, br);
             }
 
-            foreach (var line in Geometry.YLines)
+            foreach (var line in Geometry.HorizontalLines)
             {
                 var y = line.Point1.Y + YOffset;
                 var startX = line.Point1.X + XOffset;
                 var endX = line.Point2.X + XOffset;
 
-                if ((0 > y) || (y >= Height) || (0 > startX) || (startX >= Width) || (0 > endX) || (endX >= Width))
+                if ((0 > y) || (y > Height) || (0 > startX) || (startX > Width) || (0 > endX) || (endX > Width))
                     continue;
 
                 var tl = new Point(Math.Max(startX - halfWidth, 0), Math.Max(y - verticalNotNorth, 0));
-                var br = new Point(Math.Min(endX + halfWidth, Width - 1), Math.Min(y + verticalNorth, Height - 1));
+                var br = new Point(Math.Min(endX + halfWidth, Width), Math.Min(y + verticalNorth, Height));
                 yield return new Rectangle(tl, br);
             }
         }
@@ -266,10 +266,10 @@ namespace AL.Pathfinding.Model
             var x = Convert.ToInt32(start.X + XOffset);
             var y = Convert.ToInt32(start.Y + YOffset);
 
-            if ((x < 0) || (x >= Width))
+            if ((x < 0) || (x > Width))
                 yield break;
 
-            if ((y < 0) || (y >= Height))
+            if ((y < 0) || (y > Height))
                 yield break;
 
             if (PointMap[x, y] != PointType.None)
@@ -328,27 +328,27 @@ namespace AL.Pathfinding.Model
 
             // Top Right
             ix += 1;
-            if ((ix < Width) && (iy >= 0))
+            if ((ix <= Width) && (iy >= 0))
                 FillIndex(ix, iy, ref signature);
 
             // Right
             iy += 1;
-            if (ix < Width)
+            if (ix <= Width)
                 FillIndex(ix, iy, ref signature);
 
             // Bottom Right
             iy += 1;
-            if ((iy < Height) && (ix < Width))
+            if ((iy <= Height) && (ix <= Width))
                 FillIndex(ix, iy, ref signature);
 
             // Bottom
             ix -= 1;
-            if (iy < Height)
+            if (iy <= Height)
                 FillIndex(ix, iy, ref signature);
 
             // Bottom Left
             ix -= 1;
-            if ((ix >= 0) && (iy < Height))
+            if ((ix >= 0) && (iy <= Height))
                 FillIndex(ix, iy, ref signature);
 
             return signature;
@@ -435,13 +435,13 @@ namespace AL.Pathfinding.Model
                 // Right
                 cx = ix + 1;
                 cy = iy;
-                if ((cx < Width) && TryDiscoverVertex(cx, cy, out vertex))
+                if ((cx <= Width) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Bot
                 cx = ix;
                 cy = iy + 1;
-                if ((cy < Height) && TryDiscoverVertex(cx, cy, out vertex))
+                if ((cy <= Height) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
             }
         }

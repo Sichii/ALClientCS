@@ -55,7 +55,7 @@ namespace AL.Data
         public static DismantleDatum Dismantle { get; private set; }
 
         [JsonProperty]
-        public static ALEventsDatum Events { get; private set; }
+        public static EventsDatum Events { get; private set; }
 
         [JsonProperty]
         public static GamesDatum Games { get; private set; }
@@ -85,7 +85,7 @@ namespace AL.Data
         public static ProjectilesDatum Projectiles { get; private set; }
 
         [JsonIgnore]
-        public static IReadOnlyDictionary<Quest, GNPC> Quests { get; private set; }
+        public static IReadOnlyDictionary<Quest, Gnpc> Quests { get; private set; }
 
         [JsonProperty("shells_to_gold")]
         public static int ShellsToGold { get; private set; }
@@ -114,14 +114,40 @@ namespace AL.Data
         [JsonProperty]
         public static int Version { get; private set; }
 
+        private static void AddBorderWalls()
+        {
+            foreach (var mapGeometry in Geometry.Values.DistinctBy(mapGeometry => mapGeometry.Accessor))
+            {
+                var top = new StraightLine(Convert.ToInt32(mapGeometry.Top), Convert.ToInt32(mapGeometry.Left),
+                    Convert.ToInt32(mapGeometry.Right), false);
+
+                var right = new StraightLine(Convert.ToInt32(mapGeometry.Right), Convert.ToInt32(mapGeometry.Top),
+                    Convert.ToInt32(mapGeometry.Bottom), true);
+
+                var bottom = new StraightLine(Convert.ToInt32(mapGeometry.Bottom), Convert.ToInt32(mapGeometry.Left),
+                    Convert.ToInt32(mapGeometry.Right), false);
+
+                var left = new StraightLine(Convert.ToInt32(mapGeometry.Left), Convert.ToInt32(mapGeometry.Top),
+                    Convert.ToInt32(mapGeometry.Bottom), true);
+
+                var horizontalLines = (List<StraightLine>)mapGeometry.HorizontalLines;
+                var verticalLines = (List<StraightLine>)mapGeometry.VerticalLines;
+
+                horizontalLines.Add(top);
+                horizontalLines.Add(bottom);
+                verticalLines.Add(left);
+                verticalLines.Add(right);
+            }
+        }
+
         public static void BuildBoundingBases()
         {
-            Log.Info("Building monster bounding bases");
+            Log.Debug("Building monster bounding bases");
             foreach ((var accessor, var monster) in Monsters.DistinctBy(kvp => kvp.Value.Accessor))
             {
                 var dimensions = Dimensions[accessor] ?? Array.Empty<float>();
-                float h = 8;
-                float v = 7;
+                float h;
+                float v;
                 const float VN = 2;
 
                 if ((dimensions.Count > 0) && (dimensions.ElementAtOrDefault(3) != 0))
@@ -130,24 +156,26 @@ namespace AL.Data
                     v = Math.Min(9.9f, dimensions.ElementAtOrDefault(4));
                 } else
                 {
-                    //TODO: Unsure if this is correct, the source's way of getting this data is complex (get_width)
-                    h = Math.Min(12, dimensions.ElementAtOrDefault(0) * 0.8f);
+                    //TODO: Unsure if this is correct, the source's way of getting this data potentially includes UI data (get_width)
+                    h = Math.Min(12f, dimensions.ElementAtOrDefault(0) * 0.8f);
 
                     if (h == 0)
                     {
                         h = 8;
                         v = 7;
                     } else
-                        //TODO: Unsure if this is correct, the source's way of getting this data is complex (get_height)
-                        v = (float)Math.Min(9.9, dimensions.ElementAtOrDefault(1) / 4f);
+                        //TODO: Unsure if this is correct, the source's way of getting this data potentially includes UI data (get_height)
+                        v = Math.Min(9.9f, dimensions.ElementAtOrDefault(1) / 4f);
                 }
 
                 monster.BoundingBase = new BoundingBase(h, v, VN);
             }
         }
 
-        private static void ConnectItems()
+        private static void EnrichItems()
         {
+            Log.Debug("Enriching item metadata");
+
             //--CONNECT ITEM DATA--
             //connect item recipes
             foreach ((var itemName, var recipe) in Craft)
@@ -225,8 +253,10 @@ namespace AL.Data
                 }
         }
 
-        private static void ConnectMaps()
+        private static void EnrichMaps()
         {
+            Log.Debug("Enriching map metadata");
+
             //--CONNECT MAP DATA--
             foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
             {
@@ -289,8 +319,22 @@ namespace AL.Data
             }
         }
 
-        private static void ConnectRecipes()
+        private static void EnrichQuests()
         {
+            Log.Debug("Enrishing quest metadata");
+
+            var quests = new Dictionary<Quest, Gnpc>();
+
+            foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
+                if (npc.Quest != Quest.None)
+                    quests[npc.Quest] = npc;
+
+            Quests = quests;
+        }
+
+        private static void EnrichRecipes()
+        {
+            Log.Debug("Enriching recipe metadata");
             var craftsman = NPCs["craftsman"]!;
 
             //--CONNECT RECIPE DATA--
@@ -308,11 +352,11 @@ namespace AL.Data
 
         private static void FixLines()
         {
-            Log.Info("Merging overlapped lines");
-            foreach (var mapGeometry in Geometry.Values)
+            Log.Debug("Merging overlapped lines");
+            foreach (var mapGeometry in Geometry.Values.DistinctBy(mapGeometry => mapGeometry.Accessor))
             {
-                mapGeometry.XLines = LineHelper.FixLines(mapGeometry.XLines, true);
-                mapGeometry.YLines = LineHelper.FixLines(mapGeometry.YLines, false);
+                mapGeometry.VerticalLines = LineHelper.FixLines(mapGeometry.VerticalLines, true);
+                mapGeometry.HorizontalLines = LineHelper.FixLines(mapGeometry.HorizontalLines, false);
             }
         }
 
@@ -323,48 +367,39 @@ namespace AL.Data
             Log.Info("Deserializing game data");
             JsonConvert.DeserializeObject<GameData>(json);
 
-            Log.Info("Constructing caches");
-            Achievements.ConstructCache();
-            Classes.ConstructCache();
-            Conditions.ConstructCache();
-            Craft.ConstructCache();
-            Dimensions.ConstructCache();
-            Dismantle.ConstructCache();
-            Events.ConstructCache();
-            Geometry.ConstructCache();
-            Items.ConstructCache();
-            Maps.ConstructCache();
-            Monsters.ConstructCache();
-            NPCs.ConstructCache();
-            Projectiles.ConstructCache();
-            Skills.ConstructCache();
-            Titles.ConstructCache();
-            Tokens.ConstructCache();
+            Log.Info("Constructing data lookups");
+            Achievements.BuildLookupTable();
+            Classes.BuildLookupTable();
+            Conditions.BuildLookupTable();
+            Craft.BuildLookupTable();
+            Dimensions.BuildLookupTable();
+            Dismantle.BuildLookupTable();
+            Events.BuildLookupTable();
+            Geometry.BuildLookupTable();
+            Items.BuildLookupTable();
+            Maps.BuildLookupTable();
+            Monsters.BuildLookupTable();
+            NPCs.BuildLookupTable();
+            Projectiles.BuildLookupTable();
+            Skills.BuildLookupTable();
+            Titles.BuildLookupTable();
+            Tokens.BuildLookupTable();
+
+            //fix line data (merge lines, set isX for x lines)
+            AddBorderWalls();
+            FixLines();
 
             Log.Info("Enriching data");
             //populate quest dictionary with npcs
-            PopulateQuests();
-            //fix line data (merge lines, set isX for x lines)
-            FixLines();
+            EnrichQuests();
             //connect various data points
-            ConnectRecipes();
-            ConnectMaps();
-            ConnectItems();
+            EnrichRecipes();
+            EnrichMaps();
+            EnrichItems();
             BuildBoundingBases();
 
             stopwatch.Stop();
-            Log.Info($"Populated data in {stopwatch.ElapsedMilliseconds}ms");
-        }
-
-        private static void PopulateQuests()
-        {
-            var quests = new Dictionary<Quest, GNPC>();
-
-            foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
-                if (npc.Quest != Quest.None)
-                    quests[npc.Quest] = npc;
-
-            Quests = quests;
+            Log.Info($"Serialized data in {stopwatch.ElapsedMilliseconds}ms");
         }
     }
 }

@@ -55,6 +55,6 @@ namespace AL.Data
 
         public virtual bool Equals(ICircle? other) => ICircle.Comparer.Equals(this, other);
 
-        public override string ToString() => $"{ILocation.ToString(this)} to {ILocation.ToString(ToLocation)}";
+        public override string ToString() => $"{ILocation.ToString(this)} => {ILocation.ToString(ToLocation)}";
     }
 }

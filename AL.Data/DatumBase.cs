@@ -45,7 +45,7 @@ namespace AL.Data
 
         private IReadOnlyDictionary<string, T> LookupCache { get; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
-        internal virtual void ConstructCache()
+        internal virtual void BuildLookupTable()
         {
             var cache = (Dictionary<string, T>)LookupCache;
 

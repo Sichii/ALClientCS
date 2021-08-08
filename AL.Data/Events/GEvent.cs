@@ -1,6 +1,6 @@
 ﻿namespace AL.Data.Events
 {
-    public record ALEvent
+    public record GEvent
     {
         public int Duration { get; init; }
     }

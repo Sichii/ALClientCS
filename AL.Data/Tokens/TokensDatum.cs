@@ -8,8 +8,8 @@ namespace AL.Data.Tokens
     /// <seealso cref="DatumBase{T}" />
     public class TokensDatum : DatumBase<IReadOnlyDictionary<string, float>>
     {
-        public IReadOnlyDictionary<string, float> FunToken { get; set; } = new Dictionary<string, float>();
-        public IReadOnlyDictionary<string, float> MonsterToken { get; set; } = new Dictionary<string, float>();
-        public IReadOnlyDictionary<string, float> PvPToken { get; set; } = new Dictionary<string, float>();
+        public IReadOnlyDictionary<string, float> Funtoken { get; init; } = null!;
+        public IReadOnlyDictionary<string, float> Monstertoken { get; init; } = null!;
+        public IReadOnlyDictionary<string, float> Pvptoken { get; init; } = null!;
     }
 }

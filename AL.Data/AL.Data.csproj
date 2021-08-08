@@ -18,6 +18,7 @@
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
         <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
+        <NoWarn>1701;1702;649</NoWarn>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -26,7 +27,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Core\AL.Core.csproj"/>
+        <ProjectReference Include="..\AL.Core\AL.Core.csproj" />
     </ItemGroup>
 
 </Project>

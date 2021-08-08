@@ -15,6 +15,17 @@ namespace AL.Data.Geometry
     public record GGeometry : IRectangle
     {
         /// <summary>
+        ///     The unique accessor for this geometry object.
+        /// </summary>
+        public string Accessor { get; internal set; } = null!;
+
+        /// <summary>
+        ///     A list of horizontal lines that should be considered as walls.
+        /// </summary>
+        [JsonProperty("y_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
+        public IReadOnlyList<StraightLine> HorizontalLines { get; internal set; } = new List<StraightLine>();
+
+        /// <summary>
         ///     Maximum X coordinate on the map.
         /// </summary>
         [JsonProperty("max_x")]
@@ -48,13 +59,7 @@ namespace AL.Data.Geometry
         ///     A list of vertical lines that should be considered as walls.
         /// </summary>
         [JsonProperty("x_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
-        public IReadOnlyList<StraightLine> XLines { get; internal set; } = new List<StraightLine>();
-
-        /// <summary>
-        ///     A list of horizontal lines that should be considered as walls.
-        /// </summary>
-        [JsonProperty("y_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
-        public IReadOnlyList<StraightLine> YLines { get; internal set; } = new List<StraightLine>();
+        public IReadOnlyList<StraightLine> VerticalLines { get; internal set; } = new List<StraightLine>();
 
         public float Bottom => MaxY;
 
@@ -68,10 +73,10 @@ namespace AL.Data.Geometry
 
         public IReadOnlyList<IPoint> Vertices => new IPoint[]
         {
-            new Point(((IRectangle)this).Left, ((IRectangle)this).Top),
-            new Point(((IRectangle)this).Right, ((IRectangle)this).Top),
-            new Point(((IRectangle)this).Right, ((IRectangle)this).Bottom),
-            new Point(((IRectangle)this).Left, ((IRectangle)this).Bottom)
+            new Point(Left, Top),
+            new Point(Right, Top),
+            new Point(Right, Bottom),
+            new Point(Left, Bottom)
         };
 
         public float Width => MaxX - MinX;

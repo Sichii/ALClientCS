@@ -5,7 +5,7 @@ namespace AL.Core.Helpers
     /// <summary>
     ///     Provides cached instances of commonly used result tasks.
     /// </summary>
-    public static class CachedTask
+    public static class TaskCache
     {
         /// <summary>
         ///     Equivalent to <c>Task.CompletedTask</c>

@@ -22,7 +22,7 @@ namespace AL.Tests
                 Directory.CreateDirectory("images");
 
             ALClientSettings.UseDefaultLoggingConfiguration();
-            ALClientSettings.SetLogLevel(LogLevel.Trace);
+            ALClientSettings.SetLogLevel(LogLevel.Debug);
 
             var lines = await File.ReadAllLinesAsync("TestCredentials.txt");
 

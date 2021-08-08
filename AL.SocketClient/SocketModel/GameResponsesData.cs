@@ -22,10 +22,10 @@ namespace AL.SocketClient.SocketModel
         public bool ContainsData { get; init; }
 
         /// <summary>
-        ///     The cooldown of the skill used.
+        ///     If populated, contains the cooldown of the skill used.
         /// </summary>
         [JsonProperty("ms")]
-        public float CooldownMS { get; init; }
+        public float? CooldownMS { get; init; }
 
         /// <summary>
         ///     The cost of the item bought.

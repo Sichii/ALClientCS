@@ -27,10 +27,10 @@ namespace AL.Data.Monsters
         public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } = new Dictionary<string, GMonsterAbility>();
 
         /// <summary>
-        ///     This monster's accessor in the data.
+        ///     This unique accessor for this monster.
         /// </summary>
         /// <remarks>Enriched property</remarks>
-        public string Accessor { get; set; } = null!;
+        public string Accessor { get; internal set; } = null!;
 
         /// <summary>
         ///     A list of the achievements associated with this monster.

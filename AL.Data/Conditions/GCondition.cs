@@ -11,8 +11,10 @@ namespace AL.Data.Conditions
     /// <seealso cref="AttributedRecordBase" />
     public record GCondition : AttributedRecordBase
     {
+        #pragma warning disable 0649
         [JsonProperty("can_move")]
         private bool _canMove;
+        #pragma warning restore 0649
 
         /// <summary>
         ///     Whether or not this condition is associated with an aura.

@@ -17,10 +17,10 @@ namespace AL.Core.Helpers
         ///     A helper method for fixing overlapping lines.
         /// </summary>
         /// <param name="lines">The lines to fix.</param>
-        /// <param name="isX">Whether or not the lines are X lines or not.</param>
+        /// <param name="isVertical">Whether or not the lines are X lines or not. (X lines are vertical lines)</param>
         /// <returns><see cref="Array" /> of <see cref="StraightLine" /></returns>
         /// <exception cref="System.ArgumentNullException">lines</exception>
-        public static StraightLine[] FixLines(IReadOnlyList<StraightLine> lines, bool isX)
+        public static StraightLine[] FixLines(IReadOnlyList<StraightLine> lines, bool isVertical)
         {
             if (lines == null)
                 throw new ArgumentNullException(nameof(lines));
@@ -32,11 +32,11 @@ namespace AL.Core.Helpers
 
             for (var i = 0; i < lines.Count; i++)
             {
-                var line1 = lines[i] with { IsX = isX };
+                var line1 = lines[i] with { IsVertical = isVertical };
 
                 for (var i2 = 0; i2 < lines.Count; i2++)
                 {
-                    var line2 = lines[i2] with { IsX = isX };
+                    var line2 = lines[i2] with { IsVertical = isVertical };
                     if ((i != i2) && line1.Overlaps(line2))
                     {
                         Logger.Trace($@"Merging lines
