@@ -42,5 +42,10 @@ namespace AL.APIClient.Model
 
         public float X { get; init; }
         public float Y { get; init; }
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
+
+        public override string ToString() => ILocation.ToString(this);
     }
 }

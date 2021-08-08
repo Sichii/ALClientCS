@@ -28,7 +28,7 @@ namespace AL.SocketClient.Json.Converters
                 return null;
 
             var eventAndBossData = new EventAndBossData();
-            var bossInfoDic = (Dictionary<string, BossInfo>) eventAndBossData!.BossInfo;
+            var bossInfoDic = (Dictionary<string, BossInfo>)eventAndBossData.BossInfo;
             serializer.Populate(obj.CreateReader(), eventAndBossData);
 
             foreach ((var key, var token) in obj)

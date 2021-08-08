@@ -1,32 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using AL.Core.Definitions;
-using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
+using AL.SocketClient.Interfaces;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
 {
     /// <summary>
-    ///     Represents a player. (yourself or others)
+    ///     Represents a player. (ymyself or others)
     /// </summary>
     /// <seealso cref="EntityBase" />
-    /// <seealso cref="IMutable{TMutator}" />
-    /// <remarks>Mutated by <see cref="Player" />, <see cref="QueuedActionInfo" /></remarks>
+    /// <seealso cref="ISimplePlayer" />
     [JsonConverter(typeof(AttributedObjectConverter<Player>))]
-    public record Player : EntityBase, IMutable<Player>, IMutable<QueuedActionInfo>
+    public class Player : EntityBase, ISimplePlayer, IEquatable<Player>
     {
-        /// <summary>
-        ///     Whether or not the player is AFK. "CODE" results in <c>true</c> here.
-        /// </summary>
         [JsonProperty, JsonConverter(typeof(AfkConverter))]
         public bool AFK { get; protected set; }
 
-        /// <summary>
-        ///     The age of the character in days.
-        /// </summary>
+
         [JsonProperty]
-        public float Age { get; protected set; }
+        public int Age { get; protected set; }
 
         /// <summary>
         ///     <b>NULLABLE.</b> If populated, you are channeling. <br />
@@ -39,7 +33,7 @@ namespace AL.SocketClient.Model
         ///     The class of the player.
         /// </summary>
         [JsonProperty("ctype")]
-        public ALClass Class { get; init; }
+        public ALClass Class { get; protected set; }
 
         /// <summary>
         ///     Whether or not the player is running code.
@@ -52,7 +46,7 @@ namespace AL.SocketClient.Model
         ///     This is the name of the character who's iframe is hosting this character.
         /// </summary>
         [JsonProperty]
-        public string? Controller { get; init; }
+        public string? Controller { get; protected set; }
 
         /// <summary>
         ///     Appearanc information about the character.
@@ -65,7 +59,7 @@ namespace AL.SocketClient.Model
         ///     This is the player's name they are targeting.
         /// </summary>
         [JsonProperty]
-        public string? Focus { get; init; }
+        public string? Focus { get; protected set; }
 
         [JsonProperty("max_mp")]
         public float MaxMP { get; protected set; }
@@ -75,7 +69,7 @@ namespace AL.SocketClient.Model
         ///     You can also check <see cref="IsNPC" />.
         /// </summary>
         [JsonProperty("npc")]
-        public string? NPCName { get; init; }
+        public string? NPCName { get; protected set; }
 
         /// <summary>
         ///     If populated, this player is an actual person. <br />
@@ -83,14 +77,9 @@ namespace AL.SocketClient.Model
         ///     This
         /// </summary>
         [JsonProperty]
-        public string? Owner { get; init; }
+        public string? Owner { get; protected set; }
 
-        /// <summary>
-        ///     If populated, this player is in a party. <br />
-        ///     This is the name of the player who created the party.
-        /// </summary>
-        [JsonProperty("party")]
-        public string? PartyLeader { get; init; }
+        public string? PartyLeader { get; protected set; }
 
         /// <summary>
         ///     This is a value indicating the overall contribution a player is making towards his party. (higher is better)
@@ -135,7 +124,7 @@ namespace AL.SocketClient.Model
         ///     Whether or not this player is currently teleporting.
         /// </summary>
         [JsonProperty("tp")]
-        public bool Teleporting { get; init; }
+        public bool Teleporting { get; protected set; }
 
         /// <summary>
         ///     Checks if this player is actually an NPC.
@@ -149,17 +138,19 @@ namespace AL.SocketClient.Model
         [JsonIgnore]
         public string Name => Id;
 
-        public virtual bool Equals(Player? other) => (ContinuousId == other?.ContinuousId) && base.Equals(other);
+        public virtual bool Equals(Player? other) =>
+            other is not null && (ContinuousId == other.ContinuousId) && base.Equals(other);
+
+        public override bool Equals(object? obj) => Equals(obj as Player);
 
         public override int GetHashCode() => HashCode.Combine(ContinuousId.GetHashCode(), base.GetHashCode());
 
-        public void Mutate(QueuedActionInfo mutator) => QueuedActions = mutator;
+        public void Update(QueuedActionInfo queuedActionInfo) => QueuedActions = queuedActionInfo;
 
-        public void Mutate(Player other)
+        public void UpdatePosition(Player other)
         {
             if (Id != other.Id)
-                throw new InvalidOperationException(
-                    $"Attempting to update player with ID: {Id}, with data for entity with ID: {other.Id}");
+                throw new InvalidOperationException($"Attempting to update player with ID: {Id}, with data for entity with ID: {other.Id}");
 
             Channeling = other.Channeling;
             Cosmetics = other.Cosmetics;
@@ -178,7 +169,7 @@ namespace AL.SocketClient.Model
                 Stand = other.Stand;
             }
 
-            base.Mutate(other);
+            base.Update(other);
         }
     }
 }

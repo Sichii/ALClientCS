@@ -37,8 +37,7 @@ namespace AL.Core.Json.Converters
             serializer.Populate(obj.CreateReader(), value);
 
             foreach ((var key, var jToken) in obj)
-                if (jToken is { Type: JTokenType.Integer or JTokenType.Float }
-                    && EnumHelper.TryParse<ALAttribute>(key, out var attribute))
+                if (jToken is { Type: JTokenType.Integer or JTokenType.Float } && EnumHelper.TryParse<ALAttribute>(key, out var attribute))
                     attribs[attribute] = jToken.Value<float>();
 
             return value;

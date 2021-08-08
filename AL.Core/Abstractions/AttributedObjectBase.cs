@@ -10,95 +10,95 @@ namespace AL.Core.Abstractions
     /// <seealso cref="AL.Core.Interfaces.IAttributed" />
     public abstract class AttributedObjectBase : IAttributed
     {
-        public float APiercing { get; init; }
-        public float Armor { get; init; }
+        public float APiercing { get; protected set; }
+        public float Armor { get; protected set; }
 
-        public float Attack { get; init; }
+        public float Attack { get; protected set; }
 
         //TODO: Should i keep this?
         public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
-        public float Awesomeness { get; init; }
+        public float Awesomeness { get; protected set; }
 
-        public float Blast { get; init; }
+        public float Blast { get; protected set; }
 
-        public float Bling { get; init; }
+        public float Bling { get; protected set; }
 
-        public float Charisma { get; init; }
+        public float Charisma { get; protected set; }
 
-        public float Crit { get; init; }
+        public float Crit { get; protected set; }
 
-        public float CritDamage { get; init; }
+        public float CritDamage { get; protected set; }
 
-        public float Cuteness { get; init; }
+        public float Cuteness { get; protected set; }
 
-        public float Dex { get; init; }
+        public float Dex { get; protected set; }
 
-        public float DReturn { get; init; }
+        public float DReturn { get; protected set; }
 
-        public float Evasion { get; init; }
+        public float Evasion { get; protected set; }
 
-        public float Explosion { get; init; }
+        public float Explosion { get; protected set; }
 
-        public float FireResistance { get; init; }
+        public float FireResistance { get; protected set; }
 
-        public float For { get; init; }
+        public float For { get; protected set; }
 
-        public float FreezeResistance { get; init; }
+        public float FreezeResistance { get; protected set; }
 
-        public float Frequency { get; init; }
+        public float Frequency { get; protected set; }
 
-        public float FrequencyMod { get; init; }
+        public float FrequencyMod { get; protected set; }
 
-        public float Gold { get; init; }
+        public float Gold { get; protected set; }
 
-        public float GoldSteal { get; init; }
+        public float GoldSteal { get; protected set; }
 
-        public float HealMod { get; init; }
+        public float HealMod { get; protected set; }
 
-        public float HP { get; init; }
+        public float HP { get; protected set; }
 
-        public float Int { get; init; }
+        public float Int { get; protected set; }
 
-        public float Lifesteal { get; init; }
+        public float Lifesteal { get; protected set; }
 
-        public float Luck { get; init; }
+        public float Luck { get; protected set; }
 
-        public float ManaSteal { get; init; }
+        public float ManaSteal { get; protected set; }
 
-        public float Miss { get; init; }
+        public float Miss { get; protected set; }
 
-        public float MP { get; init; }
+        public float MP { get; protected set; }
 
-        public float MpCost { get; init; }
-        public float MPCost { get; init; }
+        public float MpCost { get; protected set; }
+        public float MPCost { get; protected set; }
 
-        public float MPReduction { get; init; }
+        public float MPReduction { get; protected set; }
 
-        public float Output { get; init; }
+        public float Output { get; protected set; }
 
-        public float PoisonResistance { get; init; }
+        public float PoisonResistance { get; protected set; }
 
-        public float PotionsMod { get; init; }
+        public float PotionsMod { get; protected set; }
 
-        public float Range { get; init; }
+        public float Range { get; protected set; }
 
-        public float Reflection { get; init; }
+        public float Reflection { get; protected set; }
 
-        public float Resistance { get; init; }
+        public float Resistance { get; protected set; }
 
-        public float RPiercing { get; init; }
+        public float RPiercing { get; protected set; }
 
-        public float Speed { get; init; }
+        public float Speed { get; protected set; }
 
-        public float Stat { get; init; }
+        public float Stat { get; protected set; }
 
-        public float Str { get; init; }
+        public float Str { get; protected set; }
 
-        public float StunChance { get; init; }
+        public float StunChance { get; protected set; }
 
-        public float Vit { get; init; }
+        public float Vit { get; protected set; }
 
-        public float XP { get; init; }
+        public float XP { get; protected set; }
     }
 }

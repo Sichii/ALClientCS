@@ -1,6 +1,5 @@
 ﻿using System;
 using AL.Core.Interfaces;
-using Chaos.Core.Extensions;
 
 namespace AL.Core.Geometry
 {
@@ -38,12 +37,14 @@ namespace AL.Core.Geometry
             y = Y;
         }
 
-        public bool Equals(Point other) => X.NearlyEquals(other.X, 0.1f) && Y.NearlyEquals(other.Y, 0.1f);
-
         public override bool Equals(object? obj) => obj is Point other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(X, Y);
+        public bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
 
-        public override string ToString() => $"({X:N0}, {Y:N0})";
+        public bool Equals(Point other) => IPoint.Comparer.Equals(this, other);
+
+        public override int GetHashCode() => IPoint.Comparer.GetHashCode(this);
+
+        public override string ToString() => IPoint.ToString(this);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AL.Client.Abstractions;
@@ -8,29 +9,34 @@ namespace AL.Client.Managers
 {
     internal sealed class PingManager : AsyncDeltaLoop
     {
-        private readonly CyclicBuffer<int> Pings;
-        private int _offset;
+        private readonly CyclicBuffer<int?> Pings;
         public long PingCount;
 
-        internal int Offset => Pings.Count < 10 ? 0 : _offset;
+        /// <summary>
+        ///     The minimum offset value based on ping times.
+        /// </summary>
+        internal int Offset { get; private set; }
+
+        // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
+        protected override float PollingRate { get; } = 1f / 4f;
 
         internal PingManager(ALClient client)
             : base(client) =>
-            Pings = new CyclicBuffer<int>(50);
+            Pings = new CyclicBuffer<int?>(50);
 
         protected override async Task DoWorkAsync()
         {
             var delta = DeltaTime.Value;
             await Client.PingAsync(PingCount++);
-            var jitter = (int) (DeltaTime.Value - delta) / 2;
+            var jitter = Convert.ToInt32((DeltaTime.Value - delta) / 2);
 
-            if (jitter > _offset)
-                _offset = jitter;
+            if (jitter < Offset)
+                Offset = jitter;
 
             var old = Pings.Add(jitter);
 
-            if (old == _offset)
-                _offset = Pings.Max();
+            if (old == Offset)
+                Offset = Pings.Where(ping => ping.HasValue).Min(ping => ping!.Value);
         }
     }
 }

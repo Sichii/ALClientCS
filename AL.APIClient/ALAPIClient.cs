@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AL.APIClient.Definitions;
-using AL.APIClient.Extensions;
+using AL.APIClient.Interfaces;
 using AL.APIClient.Model;
 using AL.APIClient.Request;
 using AL.APIClient.Response;
@@ -19,41 +20,31 @@ namespace AL.APIClient
     /// <summary>
     ///     Provides easy access to the Adventure.Land API. (not the socket server)
     /// </summary>
-    public class ALAPIClient
+    public class ALAPIClient : IALAPIClient
     {
-        private static readonly RestClient CLIENT;
+        private static readonly IRestClient CLIENT;
         private static readonly ILog Logger;
+        private readonly SemaphoreSlim Sync;
 
-        /// <summary>
-        ///     Authorization data for the logged in user.
-        /// </summary>
-        public AuthUser AuthUser;
+        private DateTime LastUpdate;
 
-        /// <summary>
-        ///     If populated, this is a list of characters belonging to the user. <br />
-        ///     Use <see cref="UpdateServersAndCharactersAsync" /> to populated this.
-        /// </summary>
-        public IReadOnlyList<Character>? Characters { get; internal set; }
+        private ServersAndCharactersResponse? ServersAndCharacters;
 
-        /// <summary>
-        ///     Whether or not the user has mail.
-        /// </summary>
-        public bool HasMail { get; internal set; }
-
-        /// <summary>
-        ///     If populated, this is a list of servers the user can log characters onto. <br />
-        ///     Use <see cref="UpdateServersAndCharactersAsync" /> to populated this.
-        /// </summary>
-        public IReadOnlyList<Server>? Servers { get; internal set; }
+        public AuthUser Auth { get; private set; }
+        private bool ShouldUpdate => DateTime.UtcNow.Subtract(LastUpdate).TotalMinutes > 1;
 
         static ALAPIClient()
         {
             Logger = LogManager.GetLogger<ALAPIClient>();
-            CLIENT = new RestClient("http://adventure.land/").UseJson();
-            CLIENT.UseNewtonsoftJson();
+            CLIENT = new RestClient("http://adventure.land").UseJson().UseNewtonsoftJson();
         }
 
-        private ALAPIClient(AuthUser authUser) => AuthUser = authUser;
+        private ALAPIClient(AuthUser auth)
+        {
+            LastUpdate = DateTime.MinValue;
+            Auth = auth;
+            Sync = new SemaphoreSlim(1, 1);
+        }
 
         /// <summary>
         ///     Asynchronously fetches the "G" data json. <br />
@@ -73,13 +64,6 @@ namespace AL.APIClient
             return response.Content.Substring(6, response.Content.Length - 8);
         }
 
-        /// <summary>
-        ///     Asynchronously fetches mail from the server.
-        /// </summary>
-        /// <returns>
-        ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="Mail" /> <br />
-        ///     Mail is returned paged, if you reach the end of a page, this will automatically request the next page.
-        /// </returns>
         public async IAsyncEnumerable<Mail> GetMailAsync()
         {
             MailResponse? result = null;
@@ -89,7 +73,7 @@ namespace AL.APIClient
             while (more)
             {
                 var arguments = result == null ? null : new { result.Cursor };
-                var request = new APIRequest(Method.POST, APIMethod.PullMail, arguments, AuthUser);
+                var request = new APIRequest(Method.POST, APIMethod.PullMail, arguments, Auth);
                 var response = await CLIENT.ExecutePostAsync(request);
                 result = JsonConvert.DeserializeObject<MailResponse[]>(response.Content)![0];
 
@@ -100,20 +84,40 @@ namespace AL.APIClient
             }
         }
 
-        /// <summary>
-        ///     Asynchronously fetches merchants from the server.
-        /// </summary>
-        /// <returns><see cref="IAsyncEnumerable{T}" /> of <see cref="Merchant" /></returns>
+
         public async IAsyncEnumerable<Merchant> GetMerchantsAsync()
         {
             Logger.Info("Fetching merchants");
-            var request = new APIRequest(Method.POST, APIMethod.PullMerchants, null, AuthUser);
+            var request = new APIRequest(Method.POST, APIMethod.PullMerchants, null, Auth);
             var response = await CLIENT.ExecutePostAsync(request);
             (var merchantList, _) = JsonConvert.DeserializeObject<(MerchantList, string)>(response.Content,
                 new ArrayToTupleConverter<MerchantList, string>());
 
             foreach (var merchant in merchantList.Merchants)
                 yield return merchant;
+        }
+
+        public async Task<ServersAndCharactersResponse> GetServersAndCharactersAsync()
+        {
+            await Sync.WaitAsync();
+
+            try
+            {
+                if (!ShouldUpdate && (ServersAndCharacters != null))
+                    return ServersAndCharacters;
+
+                Logger.Info("Fetching servers and characters");
+                var request = new APIRequest(Method.POST, APIMethod.ServersAndCharacters, null, Auth);
+                var response = await CLIENT.ExecutePostAsync(request);
+
+                ServersAndCharacters = JsonConvert.DeserializeObject<ServersAndCharactersResponse[]>(response.Content)![0];
+
+                LastUpdate = DateTime.UtcNow;
+                return ServersAndCharacters;
+            } finally
+            {
+                Sync.Release();
+            }
         }
 
         /// <summary>
@@ -137,15 +141,22 @@ namespace AL.APIClient
             if (string.IsNullOrWhiteSpace(password))
                 throw new ArgumentNullException(nameof(password));
 
-            var arguments = new LoginInfo
+            var loginInfo = new LoginInfo
             {
                 Email = email,
                 Password = password
             };
 
             Logger.Info($"Logging in as {email}:{password}");
-            var request = new APIRequest(Method.POST, APIMethod.SignupOrLogin, arguments);
-            var response = await CLIENT.ExecutePostAsync(request).WithTimeout(2000);
+            var request = new APIRequest(Method.POST, APIMethod.SignupOrLogin, new
+            {
+                email,
+                password,
+                only_login = true
+            });
+
+            Logger.Info(request);
+            var response = await CLIENT.ExecutePostAsync(request); //.WithTimeout(60000);
             var setCookieHeader = response.Headers.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
             var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content);
 
@@ -156,15 +167,12 @@ namespace AL.APIClient
                 throw new InvalidOperationException("Failed to log in. No response from server.");
 
             if ((setCookieHeader?.Value != null) && data.Message.EqualsI("Logged In!"))
-                return new ALAPIClient(new AuthUser(arguments, setCookieHeader.Value.ToString() ?? string.Empty));
+                return new ALAPIClient(new AuthUser(loginInfo, setCookieHeader.Value.ToString() ?? string.Empty));
 
             throw new InvalidOperationException($@"Failed to log in. {data.Message ?? "Unknown"}");
         }
 
-        /// <summary>
-        ///     Asynchronously marks a mail as having been read.
-        /// </summary>
-        /// <param name="mail">The mail to mark.</param>
+        /// <inheritdoc />
         /// <exception cref="ArgumentNullException">mail</exception>
         public async Task ReadMailAsync(Mail mail)
         {
@@ -172,36 +180,16 @@ namespace AL.APIClient
                 throw new ArgumentNullException(nameof(mail));
 
             Logger.Info($"Marking mail {mail.Id} as read");
-            var request = new APIRequest(Method.POST, APIMethod.ReadMail, new { mail = mail.Id }, AuthUser);
+            var request = new APIRequest(Method.POST, APIMethod.ReadMail, new { mail = mail.Id }, Auth);
             await CLIENT.ExecutePostAsync(request);
         }
 
-        /// <summary>
-        ///     Asynchronously re-logs in and replaces the <see cref="AuthUser" />.
-        /// </summary>
-        /// <remarks>Use this if you're nearing the expiry date for this client's <see cref="AuthUser" />.</remarks>
+
         public async Task RenewAuth()
         {
             Logger.Info("Renewing auth");
-            var apiClient = await LoginAsync(AuthUser.LoginInfo.Email, AuthUser.LoginInfo.Password);
-            AuthUser = apiClient.AuthUser;
-        }
-
-        /// <summary>
-        ///     Asynchronously fetches servers and characters from the API, and populates <see cref="Servers" /> and
-        ///     <see cref="Characters" />.
-        /// </summary>
-        public async Task UpdateServersAndCharactersAsync()
-        {
-            Logger.Info("Fetching servers and characters");
-            var request = new APIRequest(Method.POST, APIMethod.ServersAndCharacters, null, AuthUser);
-            var response = await CLIENT.ExecutePostAsync(request);
-
-            var result = JsonConvert.DeserializeObject<ServersAndCharactersResponse[]>(response.Content)![0];
-
-            Servers = result.Servers;
-            Characters = result.Characters;
-            HasMail = result.Mail != 0;
+            var apiClient = await LoginAsync(Auth.LoginInfo.Email, Auth.LoginInfo.Password);
+            Auth = apiClient.Auth;
         }
     }
 }

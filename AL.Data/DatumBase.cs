@@ -43,12 +43,11 @@ namespace AL.Data
         [JsonIgnore]
         public IEnumerable<T> Values => LookupCache.Values;
 
-        private IReadOnlyDictionary<string, T> LookupCache { get; } =
-            new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
+        private IReadOnlyDictionary<string, T> LookupCache { get; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
         internal virtual void ConstructCache()
         {
-            var cache = (Dictionary<string, T>) LookupCache;
+            var cache = (Dictionary<string, T>)LookupCache;
 
             foreach (var propertyInfo in GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
@@ -60,7 +59,7 @@ namespace AL.Data
                 if (jsonIgnoreInfo != null)
                     continue;
 
-                var value = (T?) propertyInfo.GetValue(this);
+                var value = (T?)propertyInfo.GetValue(this);
 
                 if (value == null)
                     continue;

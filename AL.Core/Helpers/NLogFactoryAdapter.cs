@@ -20,7 +20,7 @@ namespace AL.Core.Helpers
 
         /// <inheritdoc />
         protected override ILog CreateLogger(string name) =>
-            (ILog) typeof(NLogLogger).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
-                new[] { typeof(Logger) }, null) !.Invoke(new object[] { NLog.LogManager.GetLogger(name) });
+            (ILog)typeof(NLogLogger).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(Logger) }, null) !
+                .Invoke(new object[] { NLog.LogManager.GetLogger(name) });
     }
 }

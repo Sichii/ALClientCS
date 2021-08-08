@@ -32,10 +32,7 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return (rect.Bottom >= other.Bottom)
-                   && (rect.Left >= other.Left)
-                   && (rect.Right <= other.Right)
-                   && (rect.Top <= other.Top);
+            return (rect.Bottom >= other.Bottom) && (rect.Left >= other.Left) && (rect.Right <= other.Right) && (rect.Top <= other.Top);
         }
 
         /// <summary>
@@ -81,9 +78,7 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return rect.Intersects(other)
-                ? 0f
-                : rect.Vertices.SelectMany(point => other.Vertices.Select(point.Distance)).Min();
+            return rect.Intersects(other) ? 0f : rect.Vertices.SelectMany(point => other.Vertices.Select(point.Distance)).Min();
         }
 
         /// <summary>
@@ -105,10 +100,7 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return !((rect.Bottom > other.Top)
-                     || (rect.Left > other.Right)
-                     || (rect.Right < other.Left)
-                     || (rect.Top < other.Bottom));
+            return !((rect.Bottom > other.Top) || (rect.Left > other.Right) || (rect.Right < other.Left) || (rect.Top < other.Bottom));
         }
 
         /// <summary>
@@ -130,10 +122,7 @@ namespace AL.Core.Extensions
         ///     An enumeration of points generates from top left to bottom right.
         /// </returns>
         /// <exception cref="ArgumentNullException">rect</exception>
-        public static IEnumerable<Point> Points(
-            this IRectangle rect,
-            float widthStepNum = -1f,
-            float heightStepNum = -1f)
+        public static IEnumerable<Point> Points(this IRectangle rect, float widthStepNum = -1f, float heightStepNum = -1f)
         {
             if (rect == null)
                 throw new ArgumentNullException(nameof(rect));

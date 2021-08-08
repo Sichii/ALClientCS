@@ -1,7 +1,7 @@
 namespace AL.SocketClient.SocketModel
 {
     /// <summary>
-    ///     Represents data received when getting a response to our ping.
+    ///     Represents data received when getting a response to a ping.
     /// </summary>
     public record PingAckData
     {

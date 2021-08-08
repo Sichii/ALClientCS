@@ -11,10 +11,11 @@ namespace AL.APIClient.Request
         internal APIRequest(Method method, APIMethod apiMethod, object? arguments, AuthUser? authUser = null)
             : base($"api/{EnumHelper.ToString(apiMethod)}", method)
         {
-            AddParameter("method", EnumHelper.ToString(apiMethod), ParameterType.GetOrPost);
+            //AddHeader("Content-Type", "application/x-www-form-urlencoded");
+            AddParameter("method", EnumHelper.ToString(apiMethod));
 
             if (arguments != null)
-                AddParameter("arguments", JsonConvert.SerializeObject(arguments).ToLower(), ParameterType.GetOrPost);
+                AddParameter("arguments", JsonConvert.SerializeObject(arguments));
 
             if (authUser != null)
                 AddCookie("auth", authUser.ToString());

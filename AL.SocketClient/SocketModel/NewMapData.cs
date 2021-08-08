@@ -37,9 +37,12 @@ namespace AL.SocketClient.SocketModel
         ///     The map change count value for this map change.
         /// </summary>
         [JsonProperty("m")]
-        public int MapChangeCount { get; init; }
+        public ulong MapChangeCount { get; init; }
 
         public float X { get; init; }
         public float Y { get; init; }
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
     }
 }

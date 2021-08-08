@@ -1,40 +1,37 @@
 using System.Threading.Tasks;
 using AL.Client.Abstractions;
 using AL.Core.Helpers;
+using CORE_CONSTANTS = AL.Core.Definitions.CONSTANTS;
 
 namespace AL.Client.Managers
 {
     internal sealed class PositionManager : AsyncDeltaLoop
     {
+        protected override float PollingRate => ALClientSettings.PositionPollingRate;
+
         internal PositionManager(ALClient client)
             : base(client) { }
 
         protected override async Task DoWorkAsync()
         {
-            await UpdatePlayerPositions();
-            await UpdateMonsterPositions();
+            var deltaTime = DeltaTime.Value;
 
-            var delta = DeltaTime.Value;
-            var character = Client.Character;
-            character.Update(delta - character.Delta);
+            await UpdatePlayerPositions(deltaTime);
+            await UpdateMonsterPositions(deltaTime);
+
+            Client.Character.Update(deltaTime);
         }
 
-        private ValueTask UpdateMonsterPositions() => Client.Monsters.AssertAsync(dic =>
+        private ValueTask UpdateMonsterPositions(long deltaTime) => Client.Monsters.AssertAsync(dic =>
         {
             foreach (var monster in dic.Values)
-            {
-                var delta = DeltaTime.Value;
-                monster.Update(delta - monster.Delta);
-            }
+                monster.Update(deltaTime);
         });
 
-        private ValueTask UpdatePlayerPositions() => Client.Players.AssertAsync(dic =>
+        private ValueTask UpdatePlayerPositions(long deltaTime) => Client.Players.AssertAsync(dic =>
         {
             foreach (var player in dic.Values)
-            {
-                var delta = DeltaTime.Value;
-                player.Update(delta - player.Delta);
-            }
+                player.Update(deltaTime);
         });
     }
 }

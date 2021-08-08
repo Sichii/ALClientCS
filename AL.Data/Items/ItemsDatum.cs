@@ -518,7 +518,7 @@ namespace AL.Data.Items
         {
             base.ConstructCache();
 
-            //map accessors are populated based on the string from the server, not our local copy.
+            //map accessors are populated based on the string from the server, not the local copy.
             foreach ((var accessor, var item) in this.Reverse().DistinctBy(kvp => kvp.Value.Name))
                 item.Accessor = accessor;
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AL.Pathfinding.Comparers;
 
 namespace AL.Pathfinding.Interfaces
 {
@@ -9,7 +10,7 @@ namespace AL.Pathfinding.Interfaces
     /// <typeparam name="TEdge">The type of the underlying edge.</typeparam>
     /// <seealso cref="IEquatable{T}" />
     /// <seealso cref="IComparable{T}" />
-    public interface IGraphNode<TEdge> : IEquatable<IGraphNode<TEdge>>, IComparable<IGraphNode<TEdge>>
+    public interface IGraphNode<TEdge> : IEquatable<IGraphNode<TEdge>>, IComparable<IGraphNode<TEdge>> where TEdge: IEquatable<TEdge>
     {
         /// <summary>
         ///     If true, the node and it's neighbors have been searched.
@@ -20,6 +21,7 @@ namespace AL.Pathfinding.Interfaces
         ///     The index of the parent of this node.
         /// </summary>
         int? Parent { get; set; }
+        static IEqualityComparer<IGraphNode<TEdge>> Comparer { get; } = new GraphNodeComparer<TEdge>();
 
         /// <summary>
         ///     The underlying edge data.

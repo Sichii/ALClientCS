@@ -1,6 +1,8 @@
-﻿using AL.APIClient.Definitions;
+﻿using System;
 using AL.Core.Abstractions;
+using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
+using AL.SocketClient.Interfaces;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
@@ -10,7 +12,7 @@ namespace AL.SocketClient.Model
     /// </summary>
     /// <seealso cref="AttributedObjectBase" />
     [JsonConverter(typeof(AttributedObjectConverter<Condition>))]
-    public class Condition : AttributedObjectBase
+    public record Condition : AttributedRecordBase, IPingCompensated
     {
         /// <summary>
         ///     TODO: something related to monsterhunt
@@ -19,10 +21,12 @@ namespace AL.SocketClient.Model
         public bool DL { get; init; }
 
         /// <summary>
-        ///     If populated, this is the id of the monster you need to kill for
-        ///     <see cref="AL.Core.Definitions.Condition.MonsterHunt" />. <br />
+        ///     If populated, <br />
+        ///     this could be the name of the monster you need to kill for
+        ///     <see cref="AL.Core.Definitions.Condition.MonsterHunt" />
+        ///     <b>OR</b> the ID of a coop boss this player is fighting.
         /// </summary>
-        [JsonProperty]
+        [JsonProperty("id")]
         public string? Id { get; init; }
 
         /// <summary>
@@ -30,11 +34,19 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty]
         public float Intensity { get; init; }
+        public bool IsCompensated { get; private set; }
         /// <summary>
         ///     Whether or not this condition is from a monster ability.
         /// </summary>
         [JsonProperty("ability")]
         public bool IsMonsterAbility { get; init; }
+
+        /// <summary>
+        ///     If populated, this is the proportion of contribution this character has made towards a coop boss. <br />
+        ///     See <see cref="Id" /> for the ID of the boss.
+        /// </summary>
+        [JsonProperty("p")]
+        public float? Proportion { get; init; }
 
         /// <summary>
         ///     The remaining number of monsters you need to kill to complete the
@@ -47,13 +59,13 @@ namespace AL.SocketClient.Model
         ///     How long before this condition expires in milliseconds.
         /// </summary>
         [JsonProperty("ms")]
-        public float RemainingMS { get; init; }
+        public float RemainingMS { get; private set; }
 
         /// <summary>
-        ///     The id of the server for this <see cref="AL.Core.Definitions.Condition.MonsterHunt" />.
+        ///     If populated, the id of the server for this <see cref="AL.Core.Definitions.Condition.MonsterHunt" />.
         /// </summary>
         [JsonProperty("sn")]
-        public ServerId ServerIdentifier { get; init; }
+        public string? ServerKey { get; init; }
 
         /// <summary>
         ///     If populated, the Id of the merchant who cast this <see cref="AL.Core.Definitions.Condition.MLuck" />.
@@ -67,5 +79,16 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty]
         public bool Strong { get; init; }
+
+        string IMutable.Id => string.Empty;
+
+        public void CompensateOnce(int minimumOffsetMS)
+        {
+            if (IsCompensated)
+                throw new InvalidOperationException("Object already compensated.");
+
+            IsCompensated = true;
+            RemainingMS -= minimumOffsetMS;
+        }
     }
 }

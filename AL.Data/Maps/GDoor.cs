@@ -61,11 +61,12 @@ namespace AL.Data.Maps
         public float Top => Y - Height / 2;
         public IReadOnlyList<IPoint> Vertices => new IPoint[]
         {
-            new Point(((IRectangle) this).Top, ((IRectangle) this).Left),
-            new Point(((IRectangle) this).Top, ((IRectangle) this).Right),
-            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Left),
-            new Point(((IRectangle) this).Bottom, ((IRectangle) this).Right)
+            new Point(((IRectangle)this).Top, ((IRectangle)this).Left),
+            new Point(((IRectangle)this).Top, ((IRectangle)this).Right),
+            new Point(((IRectangle)this).Bottom, ((IRectangle)this).Left),
+            new Point(((IRectangle)this).Bottom, ((IRectangle)this).Right)
         };
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

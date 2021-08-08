@@ -68,10 +68,10 @@ namespace AL.Data.Geometry
 
         public IReadOnlyList<IPoint> Vertices => new IPoint[]
         {
-            new Point(((IRectangle) this).Left, ((IRectangle) this).Top),
-            new Point(((IRectangle) this).Right, ((IRectangle) this).Top),
-            new Point(((IRectangle) this).Right, ((IRectangle) this).Bottom),
-            new Point(((IRectangle) this).Left, ((IRectangle) this).Bottom)
+            new Point(((IRectangle)this).Left, ((IRectangle)this).Top),
+            new Point(((IRectangle)this).Right, ((IRectangle)this).Top),
+            new Point(((IRectangle)this).Right, ((IRectangle)this).Bottom),
+            new Point(((IRectangle)this).Left, ((IRectangle)this).Bottom)
         };
 
         public float Width => MaxX - MinX;
@@ -84,6 +84,7 @@ namespace AL.Data.Geometry
         public float X => (MaxX + Width) / 2;
 
         public float Y => (MaxY + Height) / 2;
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

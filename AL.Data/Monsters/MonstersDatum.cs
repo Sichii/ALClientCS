@@ -1,4 +1,6 @@
-﻿using AL.Core.Json.Converters;
+﻿using System.Linq;
+using AL.Core.Json.Converters;
+using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
 namespace AL.Data.Monsters
@@ -128,5 +130,14 @@ namespace AL.Data.Monsters
         public GMonster XMageX { get; set; } = null!;
         public GMonster XScorpion { get; set; } = null!;
         public GMonster Zapper0 { get; set; } = null!;
+
+        internal override void ConstructCache()
+        {
+            base.ConstructCache();
+
+            //map accessors are populated based on the string from the server, not the local copy.
+            foreach ((var accessor, var monster) in this.Reverse().DistinctBy(kvp => kvp.Value))
+                monster.Accessor = accessor;
+        }
     }
 }

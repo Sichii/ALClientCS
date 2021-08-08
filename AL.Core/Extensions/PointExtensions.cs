@@ -30,8 +30,8 @@ namespace AL.Core.Extensions
                 throw new ArgumentNullException(nameof(point));
 
             var theta = angle * Math.PI / 180;
-            var x = (float) Math.Cos(theta) * distance;
-            var y = (float) Math.Sin(theta) * distance;
+            var x = (float)Math.Cos(theta) * distance;
+            var y = (float)Math.Sin(theta) * distance;
 
             return new Point(point.X + x, point.Y + y);
         }
@@ -59,7 +59,7 @@ namespace AL.Core.Extensions
             var deltaX = point.X - other.X;
             var deltaY = point.Y - other.Y;
 
-            return (float) (Math.Atan2(deltaY, deltaX) * (180 / Math.PI));
+            return (float)(Math.Atan2(deltaY, deltaX) * (180 / Math.PI));
         }
 
         /// <summary>
@@ -183,7 +183,7 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return (float) (Math.Pow(other.X - point.X, 2) + Math.Pow(other.Y - point.Y, 2));
+            return (float)(Math.Pow(other.X - point.X, 2) + Math.Pow(other.Y - point.Y, 2));
         }
 
         /// <summary>
@@ -196,13 +196,13 @@ namespace AL.Core.Extensions
         ///     A new point.
         /// </returns>
         /// <exception cref="ArgumentNullException">point</exception>
-        public static Point GetPoint(this IPoint point)
-        {
-            if (point == null)
-                throw new ArgumentNullException(nameof(point));
-
-            return new Point(point.X, point.Y);
-        }
+        public static Point GetPoint(this IPoint point) =>
+            point switch
+            {
+                null     => throw new ArgumentNullException(nameof(point)),
+                Point pt => pt,
+                _        => new Point(point.X, point.Y)
+            };
 
         /// <summary>
         ///     Calculates the midpoint between two points.
@@ -253,8 +253,8 @@ namespace AL.Core.Extensions
             var y1 = other.Y;
             var dx = Math.Abs(x1 - x0);
             var dy = Math.Abs(y1 - y0);
-            var x = (int) Math.Floor(x0);
-            var y = (int) Math.Floor(y0);
+            var x = (int)Math.Floor(x0);
+            var y = (int)Math.Floor(y0);
             var n = 1;
             int xOffset;
             int yOffset;
@@ -267,13 +267,13 @@ namespace AL.Core.Extensions
             } else if (x1 > x0)
             {
                 xOffset = 1;
-                n += (int) Math.Floor(x1) - x;
-                error = (float) (Math.Floor(x0) + 1 - x0) * dy;
+                n += (int)Math.Floor(x1) - x;
+                error = (float)(Math.Floor(x0) + 1 - x0) * dy;
             } else
             {
                 xOffset = -1;
-                n += x - (int) Math.Floor(x1);
-                error = (float) (x0 - Math.Floor(x0)) * dy;
+                n += x - (int)Math.Floor(x1);
+                error = (float)(x0 - Math.Floor(x0)) * dy;
             }
 
             if (dy == 0)
@@ -283,13 +283,13 @@ namespace AL.Core.Extensions
             } else if (y1 > y0)
             {
                 yOffset = 1;
-                n += (int) Math.Floor(y1) - y;
-                error -= (float) (Math.Floor(y0) + 1 - y0) * dx;
+                n += (int)Math.Floor(y1) - y;
+                error -= (float)(Math.Floor(y0) + 1 - y0) * dx;
             } else
             {
                 yOffset = -1;
-                n += y - (int) Math.Floor(y1);
-                error -= (float) (y0 - Math.Floor(y0)) * dx;
+                n += y - (int)Math.Floor(y1);
+                error -= (float)(y0 - Math.Floor(y0)) * dx;
             }
 
             for (; n > 0; --n)

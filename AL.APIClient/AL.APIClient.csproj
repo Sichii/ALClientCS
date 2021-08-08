@@ -3,14 +3,34 @@
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>AL.APIClient</Title>
+        <Authors>Sichi</Authors>
+        <Description>API wrapper client for the ALClientCS project. An api wrapper client for the Adventure.Land web api.</Description>
+        <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <DebugType>portable</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <DebugType>portable</DebugType>
+        <DocumentationFile>bin\Release\AL.APIClient.xml</DocumentationFile>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\AL.Core\AL.Core.csproj" />
+        <ProjectReference Include="..\AL.Core\AL.Core.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7" />
+        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7"/>
     </ItemGroup>
 
 </Project>

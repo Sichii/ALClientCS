@@ -63,6 +63,10 @@ namespace AL.SocketClient.Model
         [JsonProperty]
         public float Y { get; init; }
 
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
+
         public void Mutate(Mutation mutator)
         {
             if (mutator.Attribute == ALAttribute.Hp)

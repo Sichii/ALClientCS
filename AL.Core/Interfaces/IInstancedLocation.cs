@@ -11,5 +11,8 @@ namespace AL.Core.Interfaces
         ///     If it's a dungeon, it's a unique ID, otherwise it's the <see cref="ILocation.Map" />.
         /// </summary>
         string In { get; }
+
+        static string ToString(IInstancedLocation instancedLocation) =>
+            $"{instancedLocation.In}-{ILocation.ToString(instancedLocation)}";
     }
 }

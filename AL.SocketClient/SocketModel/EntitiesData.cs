@@ -21,13 +21,13 @@ namespace AL.SocketClient.SocketModel
         public string Map { get; init; } = null!;
 
         /// <summary>
-        ///     The monsters we can see.
+        ///     The monsters you can see.
         /// </summary>
         [JsonProperty]
         public IReadOnlyList<Monster> Monsters { get; init; } = new List<Monster>();
 
         /// <summary>
-        ///     The players we can see
+        ///     The players you can see
         /// </summary>
         [JsonProperty]
         public IReadOnlyList<Player> Players { get; init; } = new List<Player>();

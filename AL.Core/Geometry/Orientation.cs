@@ -23,5 +23,7 @@ namespace AL.Core.Geometry
         ///     This represents an invalid value since the default value of a point <c>(0, 0)</c> is a used value.
         /// </summary>
         public static readonly Orientation None = new(float.MaxValue, float.MaxValue, Direction.Invalid);
+
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
     }
 }

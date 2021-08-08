@@ -33,18 +33,18 @@ namespace AL.Core.Json.Converters
                         var strEnumConverter = new StringEnumConverter();
                         var value = strEnumConverter.ReadJson(reader, objectType, existingValue, serializer);
 
-                        return (T?) value;
+                        return (T?)value;
                     } else
-                        return (T?) serializer.Deserialize(reader, typeof(string));
+                        return (T?)serializer.Deserialize(reader, typeof(string));
                 case JsonToken.Integer:
                     if (objectType.IsEnum)
                     {
                         var num = serializer.Deserialize<int>(reader);
-                        return (T?) Enum.ToObject(typeof(T?), num);
+                        return (T?)Enum.ToObject(typeof(T?), num);
                     } else
-                        return (T?) serializer.Deserialize(reader, typeof(int));
+                        return (T?)serializer.Deserialize(reader, typeof(int));
                 case JsonToken.Float:
-                    return (T?) serializer.Deserialize(reader, typeof(double));
+                    return (T?)serializer.Deserialize(reader, typeof(double));
                 default:
                 {
                     var instance = Activator.CreateInstance<T?>();

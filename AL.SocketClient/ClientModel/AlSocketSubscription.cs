@@ -25,18 +25,18 @@ namespace AL.SocketClient.ClientModel
             : base(invocationList) =>
             Callback = callback;
 
-        internal static ALSocketSubscription Create(
-            AwaitableList<ALSocketSubscription> invocationList,
-            Func<T, Task<bool>> callback)
+        internal static ALSocketSubscription Create(AwaitableList<ALSocketSubscription> invocationList, Func<T, Task<bool>> callback)
         {
             var subscription = new AlSocketSubscription<T>(invocationList, callback);
-            //we dont need to await this because all we care about is that invocationList is synchronized
+            //dont need to await this because all we care about is that invocationList is synchronized
             // ReSharper disable once CA2012
+ #pragma warning disable CA2012
             _ = invocationList.AddAsync(subscription);
+ #pragma warning restore CA2012
             return subscription;
         }
 
         internal override Task<bool> InvokeAsync(object dataObject) =>
-            ((Func<T, Task<bool>>) Callback)((T) dataObject);
+            ((Func<T, Task<bool>>)Callback)((T)dataObject);
     }
 }

@@ -28,11 +28,9 @@ namespace AL.Core.Extensions
                 var jVertex = polygon.Vertices[j];
 
                 //long form version of pnpoly, allowing for fast fails
-                if ((((iVertex.Y < point.Y) && (jVertex.Y >= point.Y))
-                     || ((jVertex.Y < point.Y) && (iVertex.Y >= point.Y)))
+                if ((((iVertex.Y < point.Y) && (jVertex.Y >= point.Y)) || ((jVertex.Y < point.Y) && (iVertex.Y >= point.Y)))
                     && ((iVertex.X <= point.X) || (jVertex.X <= point.X)))
-                    inside ^= iVertex.X + (point.Y - iVertex.Y) / (jVertex.Y - iVertex.Y) * (jVertex.X - iVertex.X)
-                              < point.X;
+                    inside ^= iVertex.X + (point.Y - iVertex.Y) / (jVertex.Y - iVertex.Y) * (jVertex.X - iVertex.X) < point.X;
             }
 
             return inside;

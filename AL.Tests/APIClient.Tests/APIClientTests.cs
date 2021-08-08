@@ -8,7 +8,7 @@ namespace AL.Tests.APIClient.Tests
     [TestClass]
     public class APIClientTests
     {
-        private static ALAPIClient APIClient;
+        private static ALAPIClient APIClient = null!;
 
         [TestMethod]
         public async Task GetMailTest()
@@ -33,12 +33,12 @@ namespace AL.Tests.APIClient.Tests
         [TestMethod]
         public async Task UpdateServersAndCharactersTest()
         {
-            await APIClient.UpdateServersAndCharactersAsync();
+            var serversAndCharacters = await APIClient.GetServersAndCharactersAsync();
 
-            Assert.IsNotNull(APIClient.Servers);
-            Assert.IsNotNull(APIClient.Characters);
-            Assert.IsTrue(APIClient.Servers.Any());
-            Assert.IsTrue(APIClient.Characters.Any());
+            Assert.IsNotNull(serversAndCharacters.Servers);
+            Assert.IsNotNull(serversAndCharacters.Characters);
+            Assert.IsTrue(serversAndCharacters.Servers.Any());
+            Assert.IsTrue(serversAndCharacters.Characters.Any());
         }
     }
 }

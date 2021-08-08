@@ -6,6 +6,7 @@ using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
 using AL.Core.Model;
+using AL.SocketClient.Interfaces;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Chaos.Core.Extensions;
 using Newtonsoft.Json;
@@ -17,10 +18,12 @@ namespace AL.SocketClient.Model
     /// </summary>
     /// <seealso cref="AttributedRecordBase" />
     /// <seealso cref="ILocation" />
+    /// <seealso cref="IDeltaUpdateable" />
+    /// <seealso cref="IPingCompensated" />
     /// <seealso cref="IMutable{TMutator}" />
-    /// <remarks>Mutated by <see cref="EntityBase" />, <see cref="Mutation" /></remarks>
-    public abstract record EntityBase : AttributedRecordBase, ILocation, IMutable<EntityBase>, IMutable<Mutation>,
-        IDeltaUpdateable
+    /// <seealso cref="IEquatable{T}" />
+    public abstract class EntityBase : AttributedObjectBase, IInstancedLocation, IDeltaUpdateable, IPingCompensated, IMutable<Mutation>,
+        IEquatable<EntityBase>
     {
         /// <summary>
         ///     TODO: what's this?
@@ -46,7 +49,6 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty("cid")]
         public int ContinuousId { get; init; }
-        public long Delta { get; set; } = DeltaTime.Value;
 
         /// <summary>
         ///     If this entity is moving, this is the X coordinate they are moving to.
@@ -65,9 +67,13 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty]
         public string Id { get; init; } = null!;
+        public string In { get; protected set; } = null!;
+
+        public bool IsCompensated { get; private set; }
+        public long LastDeltaTime { get; protected set; } = DeltaTime.Value;
 
         [JsonProperty]
-        public int? Level { get; protected set; }
+        public int Level { get; protected set; }
 
         [JsonProperty("map")]
         public string Map { get; protected set; } = null!;
@@ -89,7 +95,7 @@ namespace AL.SocketClient.Model
         ///     If populated, the <see cref="Id" /> of this entity's target.
         /// </summary>
         [JsonProperty]
-        public string? Target { get; init; }
+        public string? Target { get; protected set; }
 
         [JsonProperty]
         public float X { get; protected set; }
@@ -97,59 +103,80 @@ namespace AL.SocketClient.Model
         [JsonProperty]
         public float Y { get; protected set; }
 
-        public virtual bool Equals(EntityBase? other) => Id.Equals(other?.Id);
+        public void CompensateOnce(int minimumOffsetMS)
+        {
+            if (IsCompensated)
+                throw new InvalidOperationException("Object already compensated.");
+
+            IsCompensated = true;
+            LastDeltaTime -= minimumOffsetMS;
+            Update(DeltaTime.Value);
+        }
+
+        public void CorrectAndCompensate(IPoint point, int minimumOffsetMS)
+        {
+            IsCompensated = false;
+            UpdateLocation(point);
+            CompensateOnce(minimumOffsetMS);
+        }
+
+        public virtual bool Equals(EntityBase? other) => other is not null && Id.Equals(other.Id);
+
+        public bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+        public bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
+
+        public override bool Equals(object? obj) => Equals(obj as EntityBase);
 
         public override int GetHashCode() => Id.GetHashCode();
-
-        public virtual void Mutate(EntityBase mutator)
-        {
-            if (Id != mutator.Id)
-                throw new InvalidOperationException(
-                    $"Attempting to update entity with ID: {Id}, with data for entity with ID: {mutator.Id}");
-
-            ABS = mutator.ABS;
-            Angle = mutator.Angle;
-            Armor = mutator.Armor;
-            GoingX = mutator.GoingX;
-            GoingY = mutator.GoingY;
-            HP = mutator.HP;
-            MaxHP = mutator.MaxHP;
-            Level = mutator.Level;
-            MoveNum = mutator.MoveNum;
-            Moving = mutator.Moving;
-            Conditions = mutator.Conditions;
-            Speed = mutator.Speed;
-            X = mutator.X;
-            Y = mutator.Y;
-            XP = mutator.XP;
-            Attack = mutator.Attack;
-            Frequency = mutator.Frequency;
-            MP = mutator.MP;
-            Resistance = mutator.Resistance;
-        }
 
         public void Mutate(Mutation mutator)
         {
             if (mutator.Attribute == ALAttribute.Hp)
-                HP += (int) mutator.Mutator;
+                HP += Convert.ToInt32(mutator.Mutator);
         }
 
-        public void Update(long delta)
+        public void Update(EntityBase @new)
         {
-            Delta += delta;
+            if (Id != @new.Id)
+                throw new InvalidOperationException($"Attempting to update entity with ID: {Id}, with data for entity with ID: {@new.Id}");
 
-            //if not moving, or less than 1ms has passed, or we're already where we need to be, then dont update
-            if (!Moving
-                || (delta == 0)
-                || (X.NearlyEquals(GoingX, CONSTANTS.EPSILON) && Y.NearlyEquals(GoingY, CONSTANTS.EPSILON)))
+            ABS = @new.ABS;
+            Angle = @new.Angle;
+            Armor = @new.Armor;
+            GoingX = @new.GoingX;
+            GoingY = @new.GoingY;
+            HP = @new.HP;
+            MaxHP = @new.MaxHP;
+            Level = @new.Level;
+            MoveNum = @new.MoveNum;
+            Moving = @new.Moving;
+            Conditions = @new.Conditions;
+            Speed = @new.Speed;
+            X = @new.X;
+            Y = @new.Y;
+            XP = @new.XP;
+            Attack = @new.Attack;
+            Frequency = @new.Frequency;
+            MP = @new.MP;
+            Resistance = @new.Resistance;
+        }
+
+        public void Update(long deltaTime)
+        {
+            var delta = deltaTime - LastDeltaTime;
+            LastDeltaTime = deltaTime;
+
+            //if not moving, or less than 1ms has passed, or already at destination, then dont update
+            if (!Moving || (delta == 0) || (X.NearlyEquals(GoingX, CONSTANTS.EPSILON) && Y.NearlyEquals(GoingY, CONSTANTS.EPSILON)))
                 return;
 
             var going = new Point(GoingX, GoingY);
-            var speed = Speed / 1000 * delta;
+            var distanceDelta = Speed / 1000 * delta;
             var distance = this.Distance(going);
 
-            if (distance > speed)
-                distance = speed;
+            if (distance > distanceDelta)
+                distance = distanceDelta;
             else
             {
                 Moving = false;
@@ -162,6 +189,67 @@ namespace AL.SocketClient.Model
             (var newX, var newY) = this.AngularOffset(Angle, distance);
             X = newX;
             Y = newY;
+        }
+
+        /// <summary>
+        ///     Updates the instanced location of this entity.
+        /// </summary>
+        /// <param name="location">An instanced location.</param>
+        /// <exception cref="ArgumentException">Invalid argument.</exception>
+        public void UpdateLocation(IInstancedLocation location)
+        {
+            if (location.Equals(default))
+                throw new ArgumentException("Invalid argument.", nameof(location));
+
+            In = location.In;
+            UpdateLocation((ILocation)location);
+        }
+
+        /// <summary>
+        ///     Updates the location of this entity.
+        /// </summary>
+        /// <param name="location">A location.</param>
+        /// <exception cref="ArgumentException">Invalid argument.</exception>
+        public void UpdateLocation(ILocation location)
+        {
+            if (location.Equals(default))
+                throw new ArgumentException("Invalid argument.", nameof(location));
+
+            Map = location.Map;
+            UpdateLocation((IPoint)location);
+        }
+
+        /// <summary>
+        ///     Updates the point of this entity.
+        /// </summary>
+        /// <param name="point">A coordinate point.</param>
+        /// <exception cref="ArgumentException">Invalid argument.</exception>
+        public void UpdateLocation(IPoint point)
+        {
+            if (point.Equals(default))
+                throw new ArgumentException("Invalid argument.", nameof(point));
+
+            X = point.X;
+            Y = point.Y;
+        }
+
+        /// <summary>
+        ///     Updates this entity's instance and map.
+        /// </summary>
+        /// <param name="in">The map or instance this entity is in.</param>
+        /// <param name="map">The map this entity is in.</param>
+        /// <exception cref="ArgumentNullException">in</exception>
+        /// <exception cref="ArgumentNullException">map</exception>
+        public void UpdateMap(string @in, string map)
+        {
+            if (string.IsNullOrEmpty(@in))
+                throw new ArgumentNullException(nameof(@in));
+
+            if (string.IsNullOrEmpty(map))
+                throw new ArgumentNullException(nameof(map));
+
+            In = @in;
+            Map = map;
         }
     }
 }

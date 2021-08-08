@@ -21,6 +21,7 @@ namespace AL.Core.Geometry
         [JsonIgnore]
         public float Length => Point1.Distance(Point2);
 
+        /*
         /// <summary>
         ///     Initializes a new instance of the <see cref="Line" /> class.
         /// </summary>
@@ -28,7 +29,7 @@ namespace AL.Core.Geometry
         {
             Point1 = Point.None;
             Point2 = Point.None;
-        }
+        }*/
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="Line" /> class.

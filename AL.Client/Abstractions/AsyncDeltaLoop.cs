@@ -12,7 +12,7 @@ namespace AL.Client.Abstractions
     public abstract class AsyncDeltaLoop
     {
         /// <summary>
-        ///     A lot of the data in <see cref="AL.Client.ALClient" /> is immutable, so we need an instance of the client instead
+        ///     A lot of the data in <see cref="AL.Client.ALClient" /> is immutable, an instance of the client is needed instead
         ///     of passing a data object.
         /// </summary>
         protected readonly ALClient Client;
@@ -28,6 +28,8 @@ namespace AL.Client.Abstractions
         ///     Whether or not the loop is currently running.
         /// </summary>
         protected bool Running;
+
+        protected abstract float PollingRate { get; }
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="AsyncDeltaLoop" /> class.
@@ -49,8 +51,7 @@ namespace AL.Client.Abstractions
         /// <summary>
         ///     Starts the loop.
         /// </summary>
-        /// <param name="loopsPerSecond">The number of times per second to run the loop.</param>
-        public async void Start(float loopsPerSecond)
+        public async void Start()
         {
             lock (Sync)
             {
@@ -59,8 +60,6 @@ namespace AL.Client.Abstractions
 
                 Running = true;
             }
-
-            var timePerLoop = 1000 / loopsPerSecond;
 
             while (!Canceller.IsCancellationRequested)
             {
@@ -71,11 +70,11 @@ namespace AL.Client.Abstractions
                     await DoWorkAsync();
                 } catch (Exception ex)
                 {
-                    Client.Error(ex);
+                    Client.Logger.Error(ex);
                 } finally
                 {
                     var executionTime = DeltaTime.Value - delta;
-                    var timeTillNextLoop = (int) (timePerLoop - executionTime);
+                    var timeTillNextLoop = Convert.ToInt32(1000 / PollingRate - executionTime);
 
                     if (timeTillNextLoop > 0)
                         await Task.Delay(timeTillNextLoop);

@@ -38,5 +38,8 @@ namespace AL.SocketClient.SocketModel
         public float X { get; init; }
 
         public float Y { get; init; }
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
     }
 }

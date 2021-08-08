@@ -19,8 +19,8 @@ namespace AL.Pathfinding.Model
         /// </summary>
         public ConnectorType Type
         {
-            get => ((IConnector) this).Type;
-            init => ((IConnector) this).Type = value;
+            get => ((IConnector)this).Type;
+            init => ((IConnector)this).Type = value;
         }
 
         ConnectorType IConnector.Type { get; set; }

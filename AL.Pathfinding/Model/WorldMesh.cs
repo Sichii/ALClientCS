@@ -25,8 +25,7 @@ namespace AL.Pathfinding.Model
         /// </summary>
         /// <param name="nodes">A collection of nodes, organized by map.</param>
         public WorldMesh(Dictionary<GMap, GraphNode<GMap>> nodes)
-            : base(nodes.Values.ToList(), (_, _) => 1,
-                (node, _) => node.Edge.Irregular ? ConnectorType.Leave : ConnectorType.Transport)
+            : base(nodes.Values.ToList(), (_, _) => 1, (node, _) => node.Edge.Irregular ? ConnectorType.Leave : ConnectorType.Transport)
         {
             NodeLookup = nodes;
             Logger = LogManager.GetLogger<WorldMesh>();

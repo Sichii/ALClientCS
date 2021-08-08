@@ -74,5 +74,6 @@ namespace AL.SocketClient.SocketModel
 
         [JsonProperty]
         public float Y { get; init; }
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
     }
 }

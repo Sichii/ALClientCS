@@ -35,5 +35,8 @@ namespace AL.SocketClient.SocketModel
         public bool Party { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
     }
 }

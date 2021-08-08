@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
+using AL.Core.Definitions;
 using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 
@@ -18,18 +19,18 @@ namespace AL.Client.Extensions
         /// </summary>
         /// <param name="bank">The client's <see cref="BankInfo" />.</param>
         /// <returns>
-        ///     <see cref="IEnumerable{T}" /> of <see cref="BankedItem" /> <br />
+        ///     <see cref="IEnumerable{T}" /> of <see cref="IndexedBankItem" /> <br />
         ///     A lazy enumeration of banked items.
         /// </returns>
         /// <exception cref="ArgumentNullException">bank</exception>
-        public static IEnumerable<BankedItem> AsIndexed(this BankInfo bank)
+        public static IEnumerable<IndexedBankItem> AsIndexed(this BankInfo bank)
         {
             if (bank == null)
                 throw new ArgumentNullException(nameof(bank));
 
-            return bank.Items.SelectMany(kvp => kvp.Value.Select((item, index) => item == null
+            return bank.SelectMany(kvp => kvp.Value.Select((item, index) => item == null
                     ? null
-                    : new BankedItem
+                    : new IndexedBankItem
                     {
                         BankPack = kvp.Key,
                         Index = index,
@@ -57,7 +58,7 @@ namespace AL.Client.Extensions
             if (string.IsNullOrWhiteSpace(itemName))
                 throw new ArgumentNullException(nameof(itemName));
 
-            return bank.Items.Values.Any(items => items.Any(item => (item != null) && item.Name.EqualsI(itemName)));
+            return bank.Values.Any(items => items.Any(item => (item != null) && item.Name.EqualsI(itemName)));
         }
 
         /// <summary>
@@ -79,7 +80,7 @@ namespace AL.Client.Extensions
             if (string.IsNullOrEmpty(itemName))
                 throw new ArgumentNullException(nameof(itemName));
 
-            return bank.Items.Values.SelectMany(items => items)
+            return bank.Values.SelectMany(items => items)
                 .Where(item => (item != null) && item.Name.EqualsI(itemName))
                 .Sum(item => item!.Quantity);
         }
@@ -96,11 +97,11 @@ namespace AL.Client.Extensions
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
         /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
         /// <returns>
-        ///     <see cref="BankedItem" /> <br />
+        ///     <see cref="IndexedBankItem" /> <br />
         ///     The item, and information about what bank and slot it is in, or <c>null</c> if no item was found.
         /// </returns>
         /// <exception cref="ArgumentNullException">bank</exception>
-        public static BankedItem? FindItem(
+        public static IndexedBankItem? FindItem(
             this BankInfo bank,
             string? itemName = null,
             int? level = null,
@@ -125,7 +126,7 @@ namespace AL.Client.Extensions
                 quantityMax = quantity.Value;
             }
 
-            foreach ((var bankPack, var items) in bank.Items)
+            foreach ((var bankPack, var items) in bank)
             {
                 var index = items.FindIndex(item =>
                     (item != null)
@@ -138,7 +139,7 @@ namespace AL.Client.Extensions
                 if (index == -1)
                     continue;
 
-                return new BankedItem
+                return new IndexedBankItem
                 {
                     BankPack = bankPack,
                     Index = index,
@@ -147,6 +148,30 @@ namespace AL.Client.Extensions
             }
 
             return null;
+        }
+
+        /// <summary>
+        ///     Gets the BankPacks that available on a given bank map.
+        /// </summary>
+        /// <param name="bankInfo">The object used to access this method.</param>
+        /// <param name="mapAccessor">The bank's map accessor.</param>
+        /// <returns>
+        ///     <see cref="IEnumerable{T}" /> of <see cref="BankPack" /> <br />
+        ///     A lazy enumeration of the bankpacks available on the given map.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">mapAccessor</exception>
+        public static IEnumerable<BankPack> GetAvailableBankPacks(this BankInfo? bankInfo, string mapAccessor)
+        {
+            if (string.IsNullOrEmpty(mapAccessor))
+                throw new ArgumentNullException(nameof(mapAccessor));
+
+            return (mapAccessor switch
+            {
+                "bank"   => Enumerable.Range(1, 7),
+                "bank_b" => Enumerable.Range(9, 15),
+                "bank_u" => Enumerable.Range(25, 23),
+                _        => throw new InvalidOperationException("Not in a bank")
+            }).Select(index => (BankPack)index);
         }
     }
 }

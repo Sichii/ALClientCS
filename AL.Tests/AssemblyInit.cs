@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AL.APIClient;
 using AL.Client;
 using AL.Data;
+using AL.Pathfinding;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NLog;
 
@@ -12,7 +13,7 @@ namespace AL.Tests
     [TestClass]
     public class AssemblyInit
     {
-        public static ALAPIClient APIClient { get; set; }
+        public static ALAPIClient APIClient { get; set; } = null!;
 
         [AssemblyInitialize]
         public static async Task Init(TestContext context)
@@ -36,7 +37,8 @@ namespace AL.Tests
 
             APIClient = await ALAPIClient.LoginAsync(email, pw);
 
-            GameData.PopulateAsync(await ALAPIClient.GetGameDataAsync());
+            GameData.Populate(await ALAPIClient.GetGameDataAsync());
+            await PathFinder.InitializeAsync();
         }
     }
 }

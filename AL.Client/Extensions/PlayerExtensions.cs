@@ -1,12 +1,13 @@
 using System;
 using AL.Data;
 using AL.Data.Classes;
-using AL.SocketClient.Model;
+using AL.SocketClient.Interfaces;
 
 namespace AL.Client.Extensions
 {
     /// <summary>
-    ///     Provides a set of extensions for <see cref="AL.SocketClient.Model.Player" />s.
+    ///     Provides a set of extensions for <see cref="AL.SocketClient.Interfaces.ISimplePlayer" />s and
+    ///     <see cref="AL.SocketClient.Model.Player" />s.
     /// </summary>
     public static class PlayerExtensions
     {
@@ -19,7 +20,7 @@ namespace AL.Client.Extensions
         ///     The "G" data for this player's class from <see cref="GameData" />.
         /// </returns>
         /// <exception cref="ArgumentNullException">player</exception>
-        public static GClass? GetData(this Player player)
+        public static GClass? GetData(this ISimplePlayer player)
         {
             if (player == null)
                 throw new ArgumentNullException(nameof(player));

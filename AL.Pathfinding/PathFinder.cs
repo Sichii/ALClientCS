@@ -9,7 +9,6 @@ using AL.Core.Interfaces;
 using AL.Data;
 using AL.Data.Maps;
 using AL.Pathfinding.Definitions;
-using AL.Pathfinding.Extensions;
 using AL.Pathfinding.Interfaces;
 using AL.Pathfinding.Model;
 using Chaos.Core.Collections.Synchronized.Awaitable;
@@ -45,6 +44,9 @@ namespace AL.Pathfinding
             foreach ((_, var map) in maps)
                 nodeDic.Add(map, new GraphNode<GMap>(map, index++));
 
+            var main = GameData.Maps["main"];
+            var mainNode = nodeDic[main!];
+
             foreach ((var map, var node) in nodeDic)
             {
                 foreach (var exit in map.Exits)
@@ -70,8 +72,11 @@ namespace AL.Pathfinding
                 }
 
                 node.Neighbors = node.Neighbors.DistinctBy(neighbor => neighbor.Edge.Key)
-                    .Where(neighbor => !Equals(node, neighbor))
+                    .Where(neighbor => !node.Equals(neighbor))
                     .ToList();
+
+                if (map.Irregular)
+                    node.Neighbors.Add(mainNode);
             }
 
             WorldMesh = new WorldMesh(nodeDic);
@@ -96,7 +101,8 @@ namespace AL.Pathfinding
             if (map == null)
                 throw new InvalidOperationException($"No map was found for the accessor \"{mapAccessor}\".");
 
-            return !NavMeshes.TryGetValue(map.Key, out var navMesh) || navMesh.CanMove(start, end);
+            return !NavMeshes.TryGetValue(map.Key, out var navMesh)
+                   || navMesh.CanMove(navMesh.ApplyOffset(start), navMesh.ApplyOffset(end));
         }
 
         /// <summary>
@@ -123,8 +129,7 @@ namespace AL.Pathfinding
                 string mapAccessor,
                 // ReSharper disable InvalidXmlDocComment
                 IPoint start,
-                IEnumerable<IPoint> ends,
-                float distance = 0f,
+                IEnumerable<ICircle> ends,
                 bool smoothPath = true,
                 bool useTownIfOptimal = true)
             // ReSharper restore InvalidXmlDocComment
@@ -140,64 +145,77 @@ namespace AL.Pathfinding
 
             var endPoints = ends.ToArray();
 
-            //if end or start location is null, or any of the end nodes are equal to the start node... we dont need to move
-            if ((endPoints.Length == 0) || endPoints.Any(end => end == start))
+            //if any of the end nodes are equal to the start node... dont need to move
+            if ((endPoints.Length == 0) || endPoints.Any(end => end.Equals(start)))
                 yield break;
 
             var map = GameData.Maps[mapAccessor];
 
-            //if we failed to get map data
+            //failed to get map data
             if (map == null)
                 throw new InvalidOperationException($"No map was found for the accessor \"{mapAccessor}\".");
 
-            //if we fail to find a mesh (map is boundless)
+            //failed to find a mesh (map is boundless?)
             if (!NavMeshes.TryGetValue(map.Key, out var navMesh))
             {
                 //find the closest end from the start
-                var currDist = float.MaxValue;
-                var closestLocation = endPoints.Aggregate((closest, next) =>
+                var bestDistance = float.MaxValue;
+                ICircle closestEnd = default!;
+                foreach (var endPoint in endPoints)
                 {
-                    var nextDist = next.Distance(start);
+                    var currentDistance = start.Distance(endPoint) - endPoint.Radius;
 
-                    if (nextDist < currDist)
+                    //if a distance was specified and we're already standing within that distance... yield break
+                    if (currentDistance < 0)
+                        yield break;
+
+                    if (currentDistance < bestDistance)
                     {
-                        currDist = nextDist;
-                        return next;
+                        bestDistance = currentDistance;
+                        closestEnd = endPoint;
                     }
+                }
 
-                    return closest;
-                });
-
-                //if a distance was specified and we're already standing within that distance... yield break
-                if ((distance > 0) && (currDist < distance))
-                    yield break;
-
-                //create a connector from the start to the closest end (we're guaranteed to be able to walk on a boundless map)
-                var connector = new EdgeConnector<Point>
+                //if a distance was specified
+                if (closestEnd.Radius > 0)
                 {
-                    Type = ConnectorType.Walk,
-                    Start = start.GetPoint(),
-                    End = closestLocation.GetPoint(),
-                    Heuristic = currDist
-                };
+                    //intersect a circle to get the best walkable point
+                    var circle = new Circle(closestEnd, closestEnd.Radius);
+                    var currentLine = new Line(start, closestEnd);
+                    var newEnd = circle.CalculateIntersectionEntryPoint(currentLine)!;
 
-                //if a distance was specified (and we arent close enough)
-                if (distance > 0)
-                {
-                    //intersect a circle to get the best point we can walk to
-                    var circle = new Circle(closestLocation, distance);
-                    var newEnd = circle.Intersects(connector.ToLine())!.Value;
-
-                    yield return connector with { End = newEnd, Heuristic = newEnd.Distance(start) };
+                    yield return new EdgeConnector<Point>
+                    {
+                        Type = ConnectorType.Walk,
+                        Start = start.GetPoint(),
+                        End = newEnd.GetPoint(),
+                        Heuristic = bestDistance
+                    };
                 } else
-                    yield return connector;
-            } else //if we find a navmesh
+                    //create a connector from the start to the closest end (we're guaranteed to be able to walk on a boundless map)
+                    yield return new EdgeConnector<Point>
+                    {
+                        Type = ConnectorType.Walk,
+                        Start = start.GetPoint(),
+                        End = closestEnd.GetPoint(),
+                        Heuristic = bestDistance
+                    };
+            } else //navmesh found
             {
                 //generate a path with the options specified and yield it
-                var path = navMesh.FindPath(start, endPoints, distance, smoothPath, useTownIfOptimal);
+                var path = navMesh.FindPath(start, endPoints, smoothPath, useTownIfOptimal);
 
                 await foreach (var connector in path)
-                    yield return connector;
+                {
+                    var edgeConnector = (EdgeConnector<Point>)connector;
+                    var unOffset = edgeConnector with
+                    {
+                        Start = navMesh.RemoveOffset(edgeConnector.Start),
+                        End = navMesh.RemoveOffset(edgeConnector.End)
+                    };
+
+                    yield return unOffset;
+                }
             }
         }
 
@@ -215,9 +233,7 @@ namespace AL.Pathfinding
         /// <exception cref="ArgumentNullException">endMapAccessors</exception>
         /// <exception cref="InvalidOperationException">No map was found for the accessor "{fromMapAccessor}"</exception>
         /// <exception cref="InvalidOperationException">No map was found for the accessors {string.Join(", ", endAccessors)}</exception>
-        public static async IAsyncEnumerable<IConnector<GMap>> FindRoute(
-            string fromMapAccessor,
-            IEnumerable<string> endMapAccessors)
+        public static async IAsyncEnumerable<IConnector<GMap>> FindRoute(string fromMapAccessor, params string[] endMapAccessors)
         {
             if (string.IsNullOrEmpty(fromMapAccessor))
                 throw new ArgumentNullException(nameof(fromMapAccessor));
@@ -239,8 +255,7 @@ namespace AL.Pathfinding
                 throw new InvalidOperationException($"No map was found for the accessor \"{fromMapAccessor}\".");
 
             if (!endMaps.Any())
-                throw new InvalidOperationException(
-                    $"No map was found for the accessors {string.Join(", ", endAccessors)}");
+                throw new InvalidOperationException($"No map was found for the accessors {string.Join(", ", endAccessors)}");
 
             var route = WorldMesh.FindRoute(startMap, endMaps!);
 
@@ -288,7 +303,7 @@ namespace AL.Pathfinding
 
             await Task.WhenAll(maps.AsParallel(new ParallelLinqOptions
                 {
-                    MaxDegreeOfParallelism = (int) (Environment.ProcessorCount * 1.5),
+                    MaxDegreeOfParallelism = Convert.ToInt32(Environment.ProcessorCount * 1.5),
                     ExecutionMode = ParallelExecutionMode.ForceParallelism,
                     MergeOptions = ParallelMergeOptions.NotBuffered
                 })
@@ -309,6 +324,25 @@ namespace AL.Pathfinding
 
             timer.Stop();
             Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
+        }
+
+        /// <summary>
+        ///     Checks if a given location is a wall.
+        /// </summary>
+        /// <param name="location">The location to check.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the given location is part of a wall, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">No map was found for the accessor "{location.Map}".</exception>
+        public static bool IsWall(ILocation location)
+        {
+            var map = GameData.Maps[location.Map];
+
+            if (map == null)
+                throw new InvalidOperationException($"No map was found for the accessor \"{location.Map}\".");
+
+            return NavMeshes.TryGetValue(map.Key, out var navMesh) && navMesh.IsWall(navMesh.ApplyOffset(location));
         }
 
         private static NavMesh? TryBuildNavMesh(string name, GMap map)

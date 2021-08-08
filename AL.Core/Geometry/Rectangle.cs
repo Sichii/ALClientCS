@@ -44,8 +44,7 @@ namespace AL.Core.Geometry
             Right = x + width / 2;
             Bottom = y + height / 2;
 
-            Vertices = new IPoint[]
-                { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
+            Vertices = new IPoint[] { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
         }
 
         /// <summary>
@@ -70,6 +69,8 @@ namespace AL.Core.Geometry
                 Math.Abs((pt1?.Y ?? throw new ArgumentNullException(nameof(pt1)))
                          - (pt2?.Y ?? throw new ArgumentNullException(nameof(pt2)))), Math.Abs(pt1.X - pt2.X),
                 new Point((pt1.X + pt2.X) / 2, (pt1.Y + pt2.Y) / 2)) { }
+
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
 
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
 

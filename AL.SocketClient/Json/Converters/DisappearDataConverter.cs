@@ -1,5 +1,6 @@
 using System;
 using AL.Core.Geometry;
+using AL.Core.Json.Converters;
 using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -28,8 +29,17 @@ namespace AL.SocketClient.Json.Converters
 
             if (obj.TryGetValue("s", out var token))
             {
-                spawn = token.Type == JTokenType.Array ? token.ToObject<Orientation>(serializer) : default;
-                spawnId = spawn == default ? obj.Value<int?>("s") : null;
+                if (token.Type == JTokenType.Array)
+                {
+                    var converter = ArrayToObjectConverter<Orientation>.Singleton;
+                    var tokenReader = token.CreateReader();
+
+                    if (tokenReader.TokenType == JsonToken.None)
+                        tokenReader.Read();
+
+                    spawn = (Orientation?)converter.ReadJson(tokenReader, typeof(Orientation), null, serializer);
+                } else
+                    spawnId = spawn == default ? obj.Value<int?>("s") : null;
             }
 
             var result = new DisappearData();

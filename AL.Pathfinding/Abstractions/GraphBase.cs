@@ -26,8 +26,8 @@ namespace AL.Pathfinding.Abstractions
     ///     <see cref="AL.Core.Interfaces.IPoint" />.
     /// </typeparam>
     /// <seealso cref="IEnumerable{T}" />
-    public abstract class GraphBase<TNode, TEdge> : IEnumerable<TNode>
-        where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+    public abstract class GraphBase<TNode, TEdge> : IEnumerable<TNode> where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+                                                                       where TEdge: IEquatable<TEdge>
     {
         private readonly Func<TNode, TNode, float> HeuristicFunc;
         private readonly FastPriorityQueue<TNode> Opened;
@@ -60,10 +60,7 @@ namespace AL.Pathfinding.Abstractions
         /// <exception cref="ArgumentNullException">nodes</exception>
         /// <exception cref="ArgumentNullException">heuristicFunc</exception>
         /// <exception cref="ArgumentNullException">typeFunc</exception>
-        protected GraphBase(
-            List<TNode> nodes,
-            Func<TNode, TNode, float> heuristicFunc,
-            Func<TNode, TNode, ConnectorType> typeFunc)
+        protected GraphBase(List<TNode> nodes, Func<TNode, TNode, float> heuristicFunc, Func<TNode, TNode, ConnectorType> typeFunc)
         {
 
             Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
@@ -75,7 +72,7 @@ namespace AL.Pathfinding.Abstractions
 
             foreach (var node in Nodes)
                 foreach (var neighbor in node.Neighbors)
-                    Connect(node, (TNode) neighbor, typeFunc(node, (TNode) neighbor));
+                    Connect(node, (TNode)neighbor, typeFunc(node, (TNode)neighbor));
         }
 
         /// <summary>
@@ -103,7 +100,7 @@ namespace AL.Pathfinding.Abstractions
             {
                 Start = start.Edge,
                 End = end.Edge,
-                Heuristic = finalType == ConnectorType.Town ? CONSTANTS.TOWN_AGGREGATE : HeuristicFunc(start, end),
+                Heuristic = finalType == ConnectorType.Town ? CONSTANTS.TOWN_HEURISTIC : HeuristicFunc(start, end),
                 Type = finalType
             };
         }
@@ -213,8 +210,7 @@ namespace AL.Pathfinding.Abstractions
                         if (neighbor.Closed)
                             continue;
 
-                        if (OpenNode((TNode) neighbor,
-                            current.Priority + Connectors[current.Index, neighbor.Index]!.Heuristic))
+                        if (OpenNode((TNode)neighbor, current.Priority + Connectors[current.Index, neighbor.Index]!.Heuristic))
                             neighbor.Parent = current.Index;
                     }
 

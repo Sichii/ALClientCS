@@ -21,21 +21,15 @@ namespace AL.Core.Json.Converters
 
         public override bool CanConvert(Type objectType) => objectType == typeof(T);
 
-        public override object? ReadJson(
-            JsonReader reader,
-            Type objectType,
-            object? existingValue,
-            JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType != JsonToken.StartArray)
                 return default;
 
             var array = JArray.Load(reader);
 
-            var propsByIndex = typeof(T)
-                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Concat<MemberInfo>(
-                    typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            var propsByIndex = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
                 .Select(p => new
                 {
                     p,
@@ -44,8 +38,7 @@ namespace AL.Core.Json.Converters
                 .Where(set => set.Index.HasValue)
                 .ToDictionary(set => set.Index!.Value, set => set.p);
 
-            var obj = new JObject(array
-                .Select((jt, i) => propsByIndex.TryGetValue(i, out var prop) ? new JProperty(prop.Name, jt) : null)
+            var obj = new JObject(array.Select((jt, i) => propsByIndex.TryGetValue(i, out var prop) ? new JProperty(prop.Name, jt) : null)
                 .Where(jp => jp != null));
 
             return obj.ToObject<T>();
@@ -53,10 +46,8 @@ namespace AL.Core.Json.Converters
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            var propsByIndex = typeof(T)
-                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Concat<MemberInfo>(
-                    typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            var propsByIndex = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
                 .Select(p => new
                 {
                     p,

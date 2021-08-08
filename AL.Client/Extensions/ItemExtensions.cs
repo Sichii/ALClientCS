@@ -44,7 +44,7 @@ namespace AL.Client.Extensions
 
             var data = item.GetData();
 
-            if ((data == null) || (data.Grades == null))
+            if (data?.Grades == null)
                 return Grade.None;
 
             var grade = 0;
@@ -55,7 +55,7 @@ namespace AL.Client.Extensions
                 else
                     grade++;
 
-            return (Grade) grade;
+            return (Grade)grade;
         }
 
         /// <summary>

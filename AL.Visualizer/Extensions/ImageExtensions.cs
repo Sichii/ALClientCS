@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Extensions;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Pathfinding.Interfaces;
 using AL.Pathfinding.Model;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using Point = AL.Core.Geometry.Point;
 
 namespace AL.Visualizer.Extensions
 {
@@ -60,11 +60,8 @@ namespace AL.Visualizer.Extensions
         /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">line</exception>
-        public static Image<Rgba32> DrawLine<TLine>(
-            this Image<Rgba32> image,
-            TLine line,
-            Color color = default,
-            Color ptColor = default) where TLine: ILine
+        public static Image<Rgba32> DrawLine<TLine>(this Image<Rgba32> image, TLine line, Color color = default, Color ptColor = default)
+            where TLine: ILine
         {
             if (image == null)
                 throw new ArgumentNullException(nameof(image));
@@ -112,11 +109,14 @@ namespace AL.Visualizer.Extensions
             if (ptColor == default)
                 ptColor = Color.Magenta;
 
-            image.Mutate(context =>
-                context.DrawLines(color, 1, new PointF(start.X, start.Y), new PointF(end.X, end.Y)));
+            foreach ((var x, var y) in new Line(start, end).Points())
+                image[Convert.ToInt32(x), Convert.ToInt32(y)] = color;
 
-            image[(int) start.X, (int) start.Y] = ptColor;
-            image[(int) end.X, (int) end.Y] = ptColor;
+            //image.Mutate(context =>
+            //    context.DrawLines(color, 1, new PointF(start.X, start.Y), new PointF(end.X, end.Y)));
+
+            image[Convert.ToInt32(start.X), Convert.ToInt32(start.Y)] = ptColor;
+            image[Convert.ToInt32(end.X), Convert.ToInt32(end.Y)] = ptColor;
 
             return image;
         }
@@ -125,6 +125,7 @@ namespace AL.Visualizer.Extensions
         ///     Draws a path along a number of path connectors on an image.
         /// </summary>
         /// <param name="image">The image to draw on.</param>
+        /// <param name="navMesh">The navmesh this path is for.</param>
         /// <param name="pathConnectors">The connectors to draw.</param>
         /// <param name="color">The color to draw the path.</param>
         /// <returns>
@@ -133,10 +134,11 @@ namespace AL.Visualizer.Extensions
         /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">pathConnectors</exception>
-        public static Image<Rgba32> DrawPath<TConnector, TPoint>(
+        public static Image<Rgba32> DrawPath<TConnector>(
             this Image<Rgba32> image,
+            NavMesh navMesh,
             IEnumerable<TConnector?> pathConnectors,
-            Color color = default) where TPoint: IPoint where TConnector: IConnector<TPoint>
+            Color color = default) where TConnector: IConnector<Point>
         {
             if (image == null)
                 throw new ArgumentNullException(nameof(image));
@@ -144,13 +146,13 @@ namespace AL.Visualizer.Extensions
             if (pathConnectors == null)
                 throw new ArgumentNullException(nameof(pathConnectors));
 
-            static IEnumerable<TPoint> SelectPoints(IEnumerable<TConnector?> connectors)
+            IEnumerable<Point> SelectPoints(IEnumerable<TConnector?> connectors)
             {
                 foreach (var connector in connectors)
                     if (connector != null)
                     {
-                        yield return connector.Start;
-                        yield return connector.End;
+                        yield return navMesh.ApplyOffset(connector.Start);
+                        yield return navMesh.ApplyOffset(connector.End);
                     }
             }
 
@@ -169,10 +171,8 @@ namespace AL.Visualizer.Extensions
         /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">points</exception>
-        public static Image<Rgba32> DrawPath<TPoint>(
-            this Image<Rgba32> image,
-            IEnumerable<TPoint> points,
-            Color color = default) where TPoint: IPoint
+        public static Image<Rgba32> DrawPath<TPoint>(this Image<Rgba32> image, IEnumerable<TPoint> points, Color color = default)
+            where TPoint: IPoint
         {
             if (image == null)
                 throw new ArgumentNullException(nameof(image));

@@ -31,7 +31,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? float.MaxValue : ((ILocation) l1).AngularRelationTo(l2);
+            return !l1.In.EqualsI(l2.In) ? float.MaxValue : ((ILocation)l1).AngularRelationTo(l2);
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? Direction.Invalid : ((ILocation) l1).DirectionalRelationTo(l2);
+            return !l1.In.EqualsI(l2.In) ? Direction.Invalid : ((ILocation)l1).DirectionalRelationTo(l2);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? float.MaxValue : ((ILocation) l1).Distance(l2);
+            return !l1.In.EqualsI(l2.In) ? float.MaxValue : ((ILocation)l1).Distance(l2);
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? Point.None : ((ILocation) l1).MidPoint(l2);
+            return !l1.In.EqualsI(l2.In) ? Point.None : ((ILocation)l1).MidPoint(l2);
         }
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? Point.None : ((ILocation) l1).Translate(l2, maxDistance);
+            return !l1.In.EqualsI(l2.In) ? Point.None : ((ILocation)l1).Translate(l2, maxDistance);
         }
     }
 }

@@ -6,7 +6,7 @@ using Priority_Queue;
 namespace AL.Pathfinding.Model
 {
     /// <inheritdoc cref="IGraphNode{TEdge}" />
-    public class GraphNode<T> : FastPriorityQueueNode, IGraphNode<T>
+    public class GraphNode<T> : FastPriorityQueueNode, IGraphNode<T> where T: IEquatable<T>
     {
         public bool Closed { get; set; }
         public List<IGraphNode<T>> Neighbors { get; internal set; }
@@ -38,21 +38,9 @@ namespace AL.Pathfinding.Model
             return ReferenceEquals(null, other) ? 1 : Priority.CompareTo(other.Priority);
         }
 
-        public bool Equals(IGraphNode<T>? other) => (other != null) && Equals(Edge, other.Edge);
+        public bool Equals(IGraphNode<T>? other) => IGraphNode<T>.Comparer.Equals(this, other);
 
-        public override bool Equals(object? obj)
-        {
-            if (ReferenceEquals(null, obj))
-                return false;
-
-            if (ReferenceEquals(this, obj))
-                return true;
-
-            return (obj.GetType() == GetType()) && Equals((IGraphNode<T>) obj);
-
-        }
-
-        public override int GetHashCode() => Edge!.GetHashCode();
+        public override int GetHashCode() => IGraphNode<T>.Comparer.GetHashCode(this);
 
         public void Reset()
         {

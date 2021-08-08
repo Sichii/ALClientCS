@@ -103,7 +103,7 @@ namespace AL.Data.Maps
         {
             base.ConstructCache();
 
-            //map accessors are populated based on the string from the server, not our local copy.
+            //map accessors are populated based on the string from the server, not the local copy.
             foreach ((var accessor, var map) in this.Reverse().DistinctBy(kvp => kvp.Value.Key))
                 map.Accessor = accessor;
         }

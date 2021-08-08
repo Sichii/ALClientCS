@@ -10,6 +10,20 @@ namespace AL.Tests.SocketClient.Tests
     public class JsonConverterTests
     {
         [TestMethod]
+        public void DeserializeAchievementProgressDataTest()
+        {
+            const string ACHIEVEMENT_PROGRESS_DATA = @"{
+   ""name"":""firehazard"",
+   ""count"":""25"",
+   ""needed"":""19975""
+}";
+
+            var obj = JsonConvert.DeserializeObject<AchievementProgressData>(ACHIEVEMENT_PROGRESS_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
         public void DeserializeActionDataTest()
         {
             const string ACTION_DATA = @"{
@@ -27,6 +41,264 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<ActionData>(ACTION_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeCharacterDataTest()
+        {
+            const string CHARACTER_DATA = @"{
+   ""hp"":7826,
+   ""max_hp"":7826,
+   ""mp"":2020,
+   ""max_mp"":2060,
+   ""xp"":10375841,
+   ""attack"":310,
+   ""frequency"":0.670161149825784,
+   ""speed"":75,
+   ""range"":32,
+   ""armor"":141,
+   ""resistance"":221,
+   ""level"":54,
+   ""rip"":false,
+   ""afk"":false,
+   ""s"":{
+      ""mluck"":{
+         ""ms"":1484195,
+         ""f"":""Dinger""
+      }
+   },
+   ""c"":{
+      
+   },
+   ""q"":{
+      
+   },
+   ""age"":69,
+   ""pdps"":0,
+   ""id"":""sichi"",
+   ""x"":40.40316655490353,
+   ""y"":541.1426134776386,
+   ""cid"":2,
+   ""stand"":false,
+   ""skin"":""sarmor2c"",
+   ""cx"":{
+      ""hat"":""hat322""
+   },
+   ""slots"":{
+      ""ring1"":{
+         ""name"":""vitring"",
+         ""level"":3
+      },
+      ""ring2"":{
+         ""name"":""ringsj"",
+         ""level"":3
+      },
+      ""earring1"":{
+         ""level"":0,
+         ""name"":""vitearring""
+      },
+      ""earring2"":{
+         ""name"":""vitearring"",
+         ""level"":1
+      },
+      ""belt"":{
+         ""level"":0,
+         ""m"":""Chonk003"",
+         ""name"":""hpbelt""
+      },
+      ""mainhand"":{
+         ""name"":""carrotsword"",
+         ""level"":7
+      },
+      ""offhand"":null,
+      ""helmet"":{
+         ""stat_type"":""vit"",
+         ""name"":""eears"",
+         ""level"":7
+      },
+      ""chest"":{
+         ""level"":7,
+         ""stat_type"":""vit"",
+         ""name"":""epyjamas""
+      },
+      ""pants"":{
+         ""level"":3,
+         ""stat_type"":""vit"",
+         ""name"":""wbreeches""
+      },
+      ""shoes"":{
+         ""level"":8,
+         ""stat_type"":""vit"",
+         ""name"":""eslippers""
+      },
+      ""gloves"":{
+         ""level"":7,
+         ""stat_type"":""vit"",
+         ""name"":""wgloves""
+      },
+      ""amulet"":{
+         ""level"":6,
+         ""name"":""warmscarf""
+      },
+      ""orb"":{
+         ""level"":0,
+         ""name"":""test_orb""
+      },
+      ""elixir"":null,
+      ""cape"":{
+         ""level"":5,
+         ""stat_type"":""vit"",
+         ""name"":""angelwings""
+      },
+      ""trade1"":null,
+      ""trade2"":null,
+      ""trade3"":null,
+      ""trade4"":{
+         ""name"":""staff"",
+         ""price"":40000000,
+         ""rid"":""TfCh"",
+         ""level"":9
+      }
+   },
+   ""ctype"":""merchant"",
+   ""owner"":""6000633860063232"",
+   ""int"":90,
+   ""str"":19,
+   ""dex"":52,
+   ""vit"":89,
+   ""for"":3,
+   ""mp_cost"":65,
+   ""mp_reduction"":20,
+   ""max_xp"":13000000,
+   ""goldm"":1.01,
+   ""xpm"":1.01,
+   ""luckm"":1.17,
+   ""map"":""main"",
+   ""in"":""main"",
+   ""isize"":42,
+   ""esize"":26,
+   ""gold"":37500000,
+   ""cash"":427,
+   ""targets"":0,
+   ""m"":0,
+   ""evasion"":4.45,
+   ""miss"":0,
+   ""reflection"":0,
+   ""lifesteal"":0,
+   ""manasteal"":0,
+   ""rpiercing"":13,
+   ""apiercing"":13,
+   ""crit"":0,
+   ""critdamage"":0,
+   ""dreturn"":0,
+   ""tax"":0.03,
+   ""xrange"":25,
+   ""pnresistance"":0,
+   ""firesistance"":20,
+   ""fzresistance"":20,
+   ""stun"":0,
+   ""blast"":0,
+   ""explosion"":0,
+   ""courage"":1,
+   ""mcourage"":0,
+   ""pcourage"":0,
+   ""fear"":0,
+   ""items"":[
+      {
+         ""name"":""stand0""
+      },
+      {
+         ""name"":""blade"",
+         ""level"":0
+      },
+      {
+         ""q"":42,
+         ""name"":""gemfragment""
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+         ""q"":50,
+         ""name"":""cscroll0""
+      },
+      {
+         ""q"":26,
+         ""name"":""cscroll1""
+      },
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+         ""q"":50,
+         ""name"":""scroll0""
+      },
+      {
+         ""q"":25,
+         ""name"":""scroll1""
+      },
+      {
+         ""q"":16,
+         ""name"":""scroll2""
+      },
+      {
+         ""name"":""tracker""
+      },
+      null,
+      null,
+      null,
+      {
+         ""q"":151,
+         ""name"":""intscroll""
+      },
+      {
+         ""q"":50,
+         ""name"":""dexscroll""
+      },
+      {
+         ""q"":62,
+         ""name"":""strscroll""
+      },
+      {
+         ""q"":9000,
+         ""name"":""mpot0""
+      },
+      {
+         ""q"":9000,
+         ""name"":""hpot0""
+      },
+      {
+         ""q"":9000,
+         ""name"":""hpot1""
+      },
+      {
+         ""q"":9000,
+         ""name"":""mpot1""
+      }
+   ],
+   ""cc"":1
+}";
+
+            var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -59,6 +331,19 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
+        public void DeserializeCorrectionDataTest()
+        {
+            const string CORRECTION_DATA = @"{
+   ""x"":64.123,
+   ""y"":792.456,
+}";
+
+            var obj = JsonConvert.DeserializeObject<CorrectionData>(CORRECTION_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
         public void DeserializeDeathDataTest()
         {
             const string DEATH_DATA = @"{
@@ -79,9 +364,17 @@ namespace AL.Tests.SocketClient.Tests
    ""s"":1
 }";
 
+            const string DISAPPEAR_DATA2 = @"{
+   ""id"":""CeeNote"",
+   ""reason"":""transport"",
+   ""s"":[5, 10, 1]
+}";
+
             var obj = JsonConvert.DeserializeObject<DisappearData>(DISAPPEAR_DATA);
+            var obj2 = JsonConvert.DeserializeObject<DisappearData>(DISAPPEAR_DATA2);
 
             Assert.IsNotNull(obj);
+            Assert.IsNotNull(obj2);
         }
 
         [TestMethod]
@@ -239,6 +532,41 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<EvalData>(EVAL_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeEventAndBossDataTest()
+        {
+            const string EVENT_AND_BOSS_DATA = @"{
+   ""icegolem"":{
+      ""live"":true,
+      ""map"":""winterland"",
+      ""hp"":16000000,
+      ""max_hp"":16000000,
+      ""x"":808.9124940370274,
+      ""y"":407.6040564394661
+   },
+   ""snowman"":{
+      ""live"":true,
+      ""map"":""winterland"",
+      ""hp"":1200,
+      ""max_hp"":1200,
+      ""x"":1111.7317564125299,
+      ""y"":-785.8382420118533
+   },
+   ""franky"":{
+      ""live"":true,
+      ""map"":""level2w"",
+      ""hp"":120000000,
+      ""max_hp"":120000000,
+      ""x"":-278.0075274742135,
+      ""y"":187.81118535586882
+   }
+}";
+
+            var obj = JsonConvert.DeserializeObject<EventAndBossData>(EVENT_AND_BOSS_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -565,6 +893,18 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
+        public void DeserializeNotThereDataTest()
+        {
+            const string NOT_THERE_DATA = @"{
+   ""place"":""attack""
+}";
+
+            var obj = JsonConvert.DeserializeObject<NotThereData>(NOT_THERE_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
         public void DeserializePartyUpdateDataTest()
         {
             const string PARTY_UPDATE_DATA = @"{
@@ -676,6 +1016,19 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<QueuedActionData>(QUEUED_ACTION_DATA);
+
+            Assert.IsNotNull(obj);
+        }
+
+        [TestMethod]
+        public void DeserializeQueuedActionResultDataTest()
+        {
+            const string QUEUED_ACTION_RESULT_DATA = @"{
+   ""type"":""compound"",
+   ""success"":1
+}";
+
+            var obj = JsonConvert.DeserializeObject<QueuedActionResultData>(QUEUED_ACTION_RESULT_DATA);
 
             Assert.IsNotNull(obj);
         }
@@ -1623,41 +1976,6 @@ namespace AL.Tests.SocketClient.Tests
 
             Assert.IsNotNull(obj);
             Assert.IsTrue(obj.Any());
-        }
-
-        [TestMethod]
-        public void DeserializeServerInfoDataTest()
-        {
-            const string SERVER_INFO_DATA = @"{
-   ""icegolem"":{
-      ""live"":true,
-      ""map"":""winterland"",
-      ""hp"":16000000,
-      ""max_hp"":16000000,
-      ""x"":808.9124940370274,
-      ""y"":407.6040564394661
-   },
-   ""snowman"":{
-      ""live"":true,
-      ""map"":""winterland"",
-      ""hp"":1200,
-      ""max_hp"":1200,
-      ""x"":1111.7317564125299,
-      ""y"":-785.8382420118533
-   },
-   ""franky"":{
-      ""live"":true,
-      ""map"":""level2w"",
-      ""hp"":120000000,
-      ""max_hp"":120000000,
-      ""x"":-278.0075274742135,
-      ""y"":187.81118535586882
-   }
-}";
-
-            var obj = JsonConvert.DeserializeObject<EventAndBossData>(SERVER_INFO_DATA);
-
-            Assert.IsNotNull(obj);
         }
 
         [TestMethod]
@@ -2948,19 +3266,6 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [TestMethod]
-        public void DeserializeUpgradeDataTest()
-        {
-            const string UPGRADE_DATA = @"{
-   ""type"":""compound"",
-   ""success"":1
-}";
-
-            var obj = JsonConvert.DeserializeObject<QueuedActionResultData>(UPGRADE_DATA);
-
-            Assert.IsNotNull(obj);
-        }
-
-        [TestMethod]
         public void DeserializeWelcomeDataTest()
         {
             const string WELCOME_DATA = @"{
@@ -2978,264 +3283,6 @@ namespace AL.Tests.SocketClient.Tests
 }";
 
             var obj = JsonConvert.DeserializeObject<WelcomeData>(WELCOME_DATA);
-
-            Assert.IsNotNull(obj);
-        }
-
-        [TestMethod]
-        public void DesieralizeCharacterDataTest()
-        {
-            const string CHARACTER_DATA = @"{
-   ""hp"":7826,
-   ""max_hp"":7826,
-   ""mp"":2020,
-   ""max_mp"":2060,
-   ""xp"":10375841,
-   ""attack"":310,
-   ""frequency"":0.670161149825784,
-   ""speed"":75,
-   ""range"":32,
-   ""armor"":141,
-   ""resistance"":221,
-   ""level"":54,
-   ""rip"":false,
-   ""afk"":false,
-   ""s"":{
-      ""mluck"":{
-         ""ms"":1484195,
-         ""f"":""Dinger""
-      }
-   },
-   ""c"":{
-      
-   },
-   ""q"":{
-      
-   },
-   ""age"":69,
-   ""pdps"":0,
-   ""id"":""sichi"",
-   ""x"":40.40316655490353,
-   ""y"":541.1426134776386,
-   ""cid"":2,
-   ""stand"":false,
-   ""skin"":""sarmor2c"",
-   ""cx"":{
-      ""hat"":""hat322""
-   },
-   ""slots"":{
-      ""ring1"":{
-         ""name"":""vitring"",
-         ""level"":3
-      },
-      ""ring2"":{
-         ""name"":""ringsj"",
-         ""level"":3
-      },
-      ""earring1"":{
-         ""level"":0,
-         ""name"":""vitearring""
-      },
-      ""earring2"":{
-         ""name"":""vitearring"",
-         ""level"":1
-      },
-      ""belt"":{
-         ""level"":0,
-         ""m"":""Chonk003"",
-         ""name"":""hpbelt""
-      },
-      ""mainhand"":{
-         ""name"":""carrotsword"",
-         ""level"":7
-      },
-      ""offhand"":null,
-      ""helmet"":{
-         ""stat_type"":""vit"",
-         ""name"":""eears"",
-         ""level"":7
-      },
-      ""chest"":{
-         ""level"":7,
-         ""stat_type"":""vit"",
-         ""name"":""epyjamas""
-      },
-      ""pants"":{
-         ""level"":3,
-         ""stat_type"":""vit"",
-         ""name"":""wbreeches""
-      },
-      ""shoes"":{
-         ""level"":8,
-         ""stat_type"":""vit"",
-         ""name"":""eslippers""
-      },
-      ""gloves"":{
-         ""level"":7,
-         ""stat_type"":""vit"",
-         ""name"":""wgloves""
-      },
-      ""amulet"":{
-         ""level"":6,
-         ""name"":""warmscarf""
-      },
-      ""orb"":{
-         ""level"":0,
-         ""name"":""test_orb""
-      },
-      ""elixir"":null,
-      ""cape"":{
-         ""level"":5,
-         ""stat_type"":""vit"",
-         ""name"":""angelwings""
-      },
-      ""trade1"":null,
-      ""trade2"":null,
-      ""trade3"":null,
-      ""trade4"":{
-         ""name"":""staff"",
-         ""price"":40000000,
-         ""rid"":""TfCh"",
-         ""level"":9
-      }
-   },
-   ""ctype"":""merchant"",
-   ""owner"":""6000633860063232"",
-   ""int"":90,
-   ""str"":19,
-   ""dex"":52,
-   ""vit"":89,
-   ""for"":3,
-   ""mp_cost"":65,
-   ""mp_reduction"":20,
-   ""max_xp"":13000000,
-   ""goldm"":1.01,
-   ""xpm"":1.01,
-   ""luckm"":1.17,
-   ""map"":""main"",
-   ""in"":""main"",
-   ""isize"":42,
-   ""esize"":26,
-   ""gold"":37500000,
-   ""cash"":427,
-   ""targets"":0,
-   ""m"":0,
-   ""evasion"":4.45,
-   ""miss"":0,
-   ""reflection"":0,
-   ""lifesteal"":0,
-   ""manasteal"":0,
-   ""rpiercing"":13,
-   ""apiercing"":13,
-   ""crit"":0,
-   ""critdamage"":0,
-   ""dreturn"":0,
-   ""tax"":0.03,
-   ""xrange"":25,
-   ""pnresistance"":0,
-   ""firesistance"":20,
-   ""fzresistance"":20,
-   ""stun"":0,
-   ""blast"":0,
-   ""explosion"":0,
-   ""courage"":1,
-   ""mcourage"":0,
-   ""pcourage"":0,
-   ""fear"":0,
-   ""items"":[
-      {
-         ""name"":""stand0""
-      },
-      {
-         ""name"":""blade"",
-         ""level"":0
-      },
-      {
-         ""q"":42,
-         ""name"":""gemfragment""
-      },
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      {
-         ""q"":50,
-         ""name"":""cscroll0""
-      },
-      {
-         ""q"":26,
-         ""name"":""cscroll1""
-      },
-      null,
-      null,
-      null,
-      null,
-      null,
-      {
-         ""q"":50,
-         ""name"":""scroll0""
-      },
-      {
-         ""q"":25,
-         ""name"":""scroll1""
-      },
-      {
-         ""q"":16,
-         ""name"":""scroll2""
-      },
-      {
-         ""name"":""tracker""
-      },
-      null,
-      null,
-      null,
-      {
-         ""q"":151,
-         ""name"":""intscroll""
-      },
-      {
-         ""q"":50,
-         ""name"":""dexscroll""
-      },
-      {
-         ""q"":62,
-         ""name"":""strscroll""
-      },
-      {
-         ""q"":9000,
-         ""name"":""mpot0""
-      },
-      {
-         ""q"":9000,
-         ""name"":""hpot0""
-      },
-      {
-         ""q"":9000,
-         ""name"":""hpot1""
-      },
-      {
-         ""q"":9000,
-         ""name"":""mpot1""
-      }
-   ],
-   ""cc"":1
-}";
-
-            var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
 
             Assert.IsNotNull(obj);
         }

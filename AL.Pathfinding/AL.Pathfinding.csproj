@@ -3,15 +3,35 @@
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <Title>AL.Pathfinding</Title>
+        <Authors>Sichi</Authors>
+        <Description>Pathfinding library for the ALClientCS project. Contains a dijkstra implementation with one-way nodes, and node interconnect metadata.</Description>
+        <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <DebugType>portable</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <DebugType>portable</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <DocumentationFile>bin\Release\AL.Pathfinding.xml</DocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
+        <ProjectReference Include="..\AL.Data\AL.Data.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="OptimizedPriorityQueue" Version="5.1.0" />
-      <PackageReference Include="Poly2Tri.NetStandard2" Version="1.0.0" />
+        <PackageReference Include="OptimizedPriorityQueue" Version="5.1.0"/>
+        <PackageReference Include="Poly2Tri.NetStandard2" Version="1.0.0"/>
     </ItemGroup>
 
 </Project>

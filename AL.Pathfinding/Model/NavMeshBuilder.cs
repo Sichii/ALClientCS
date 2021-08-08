@@ -127,7 +127,14 @@ namespace AL.Pathfinding.Model
                 return null;
 
             foreach (var vertex in townTriangle.Points)
-                node.Neighbors.Add(NodeDic[vertex.ToPoint()]);
+            {
+                var point = vertex.ToPoint();
+
+                if (spawnPoint.Equals(point))
+                    continue;
+
+                node.Neighbors.Add(NodeDic[point]);
+            }
 
             NodeDic.Add(node.Edge, node);
             return node;
@@ -142,7 +149,7 @@ namespace AL.Pathfinding.Model
             //for each point in each wall rect, set that point to a wall in the grid
             foreach (var rect in PadWalls(CONSTANTS.DEFAULT_BOUNDING_BASE))
                 foreach ((var x, var y) in rect.Points())
-                    PointMap[(int) x, (int) y] = PointType.Wall;
+                    PointMap[Convert.ToInt32(x), Convert.ToInt32(y)] = PointType.Wall;
 
             //for any walls that are almost touching
             //fill in the space between with wall points
@@ -214,7 +221,6 @@ namespace AL.Pathfinding.Model
         {
             var polygons = new List<Polygon>();
 
-            //while we still have vertices
             while (vertices.Count > 0)
             {
                 //get a polygon via floodfill
@@ -225,13 +231,13 @@ namespace AL.Pathfinding.Model
                 //for each existing polygon
                 foreach (var existing in polygons.ToArray())
                     //check if the new polygon is inside of the existing polygon
-                    if (existing.ContainsPoint((float) polyLine[0].X, (float) polyLine[0].Y))
+                    if (existing.ContainsPoint((float)polyLine[0].X, (float)polyLine[0].Y))
                     {
                         existing.AddHole(polygon);
                         isHole = true;
                         break;
                         //check if any existing polygons are inside of the new polygon    
-                    } else if (polygon.ContainsPoint((float) existing.Points[0].X, (float) existing.Points[0].Y))
+                    } else if (polygon.ContainsPoint((float)existing.Points[0].X, (float)existing.Points[0].Y))
                     {
                         polygons.Remove(existing);
                         polygon.AddHole(existing);
@@ -257,8 +263,8 @@ namespace AL.Pathfinding.Model
 
         private IEnumerable<Point> FloodFindVertices(IPoint start)
         {
-            var x = (int) start.X + XOffset;
-            var y = (int) start.Y + YOffset;
+            var x = Convert.ToInt32(start.X + XOffset);
+            var y = Convert.ToInt32(start.Y + YOffset);
 
             if ((x < 0) || (x >= Width))
                 yield break;
@@ -274,111 +280,103 @@ namespace AL.Pathfinding.Model
             PointMap[x, y] = PointType.Walkable;
             stack.Push(new Point(x, y));
 
-            void FillIndex(int cx, int cy, ref int signature)
+            while (stack.Count > 0)
             {
-                var val = PointMap[cx, cy];
+                var curr = stack.Pop();
+                (var fx, var fy) = curr;
 
-                switch (val)
+                var ix = Convert.ToInt32(fx);
+                var iy = Convert.ToInt32(fy);
+                var signature = OctagonalFill(ix, iy, stack);
+
+                if (MinesweeperLogic(ix, iy, signature))
+                    yield return curr;
+            }
+        }
+
+        private int OctagonalFill(int ix, int iy, Stack<Point> stack)
+        {
+            void FillIndex(int x, int y, ref int signature)
+            {
+                var val = PointMap[x, y];
+
+                // ReSharper disable once ConvertIfStatementToSwitchStatement
+                if (val == PointType.Wall)
+                    signature <<= 1;
+                else if (val == PointType.None)
                 {
-                    case PointType.Wall:
-                        signature <<= 1;
-                        break;
-                    case PointType.None:
-                        PointMap[cx, cy] = PointType.Walkable;
-                        stack.Push(new Point(cx, cy));
-                        break;
-                    case PointType.Walkable:
-                        break;
-                    case PointType.Inline:
-                        break;
-                    case PointType.Vertex:
-                        break;
-                    case PointType.Discovered:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException($"Unknown point type {(int) val}");
+                    PointMap[x, y] = PointType.Walkable;
+                    stack.Push(new Point(x, y));
                 }
             }
 
-            while (stack.Count > 0)
+            var signature = 1;
+            // Left
+            ix--;
+            if (ix >= 0)
+                FillIndex(ix, iy, ref signature);
+
+            // Top Left
+            iy -= 1;
+            if ((ix >= 0) && (iy >= 0))
+                FillIndex(ix, iy, ref signature);
+
+            // Top
+            ix += 1;
+            if (iy >= 0)
+                FillIndex(ix, iy, ref signature);
+
+            // Top Right
+            ix += 1;
+            if ((ix < Width) && (iy >= 0))
+                FillIndex(ix, iy, ref signature);
+
+            // Right
+            iy += 1;
+            if (ix < Width)
+                FillIndex(ix, iy, ref signature);
+
+            // Bottom Right
+            iy += 1;
+            if ((iy < Height) && (ix < Width))
+                FillIndex(ix, iy, ref signature);
+
+            // Bottom
+            ix -= 1;
+            if (iy < Height)
+                FillIndex(ix, iy, ref signature);
+
+            // Bottom Left
+            ix -= 1;
+            if ((ix >= 0) && (iy < Height))
+                FillIndex(ix, iy, ref signature);
+
+            return signature;
+        }
+
+        private bool MinesweeperLogic(int cx, int cy, int signature)
+        {
+            switch (signature)
             {
-                var signature = 1;
-                var curr = stack.Pop();
-                (var ix, var iy) = curr;
-
-                // Left
-                var cx = (int) ix - 1;
-                var cy = (int) iy;
-                if (cx >= 0)
-                    FillIndex(cx, cy, ref signature);
-
-                // Top Left
-                cy -= 1;
-                if ((cx >= 0) && (cy >= 0))
-                    FillIndex(cx, cy, ref signature);
-
-                // Top
-                cx += 1;
-                if (cy >= 0)
-                    FillIndex(cx, cy, ref signature);
-
-                // Top Right
-                cx += 1;
-                if ((cx < Width) && (cy >= 0))
-                    FillIndex(cx, cy, ref signature);
-
-                // Right
-                cy += 1;
-                if (cx < Width)
-                    FillIndex(cx, cy, ref signature);
-
-                // Bottom Right
-                cy += 1;
-                if ((cy < Height) && (cx < Width))
-                    FillIndex(cx, cy, ref signature);
-
-                // Bottom
-                cx -= 1;
-                if (cy < Height)
-                    FillIndex(cx, cy, ref signature);
-
-                // Bottom Left
-                cx -= 1;
-                if ((cx >= 0) && (cy < Height))
-                    FillIndex(cx, cy, ref signature);
-
-                cx = (int) ix;
-                cy = (int) iy;
-
-                //minesweeper logic
-                switch (signature)
-                {
-                    case 1:
-                        break;
-                    case 1 << 1: //1 wall next to it
-                        PointMap[cx, cy] = PointType.Vertex;
-                        yield return curr;
-
-                        break;
-                    case 1 << 2: //2 walls next to it
-                        PointMap[cx, cy] = PointType.Inline;
-                        break;
-                    case 1 << 3: //3 walls next to it
-                        PointMap[cx, cy] = PointType.Inline;
-                        break;
-                    case 1 << 4: //4 walls next to it
-                        PointMap[cx, cy] = PointType.Vertex;
-                        yield return curr;
-
-                        break;
-                    case 1 << 5: //5 walls next to it
-                        PointMap[cx, cy] = PointType.Vertex;
-                        yield return curr;
-
-                        break;
-                    default:
-                        throw new Exception("Found a point with an unexpected number of walls around it.");
-                }
+                case 1:
+                    return false;
+                case 1 << 1: //1 wall next to it
+                    PointMap[cx, cy] = PointType.Vertex;
+                    return true;
+                case 1 << 2: //2 walls next to it
+                    PointMap[cx, cy] = PointType.Inline;
+                    return false;
+                case 1 << 3: //3 walls next to it
+                    PointMap[cx, cy] = PointType.Inline;
+                    return false;
+                case 1 << 4: //4 walls next to it
+                    PointMap[cx, cy] = PointType.Vertex;
+                    return true;
+                case 1 << 5: //5 walls next to it
+                    PointMap[cx, cy] = PointType.Vertex;
+                    return true;
+                default:
+                    throw new Exception("Found a point with an unexpected number of walls around it.");
             }
         }
 
@@ -413,34 +411,36 @@ namespace AL.Pathfinding.Model
             }
 
             (var sx, var sy) = vertices.First();
-            if (TryDiscoverVertex((int) sx, (int) sy, out var vertex))
+            if (TryDiscoverVertex(Convert.ToInt32(sx), Convert.ToInt32(sy), out var vertex))
                 yield return vertex;
 
             while (stack.Count > 0)
             {
-                (var ix, var iy) = stack.Pop();
+                (var fx, var fy) = stack.Pop();
+                var ix = Convert.ToInt32(fx);
+                var iy = Convert.ToInt32(fy);
 
                 // Left
-                var cx = (int) ix - 1;
-                var cy = (int) iy;
+                var cx = ix - 1;
+                var cy = iy;
                 if ((cx >= 0) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Top
-                cx = (int) ix;
-                cy = (int) iy - 1;
+                cx = ix;
+                cy = iy - 1;
                 if ((cy >= 0) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Right
-                cx = (int) ix + 1;
-                cy = (int) iy;
+                cx = ix + 1;
+                cy = iy;
                 if ((cx < Width) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Bot
-                cx = (int) ix;
-                cy = (int) iy + 1;
+                cx = ix;
+                cy = iy + 1;
                 if ((cy < Height) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
             }

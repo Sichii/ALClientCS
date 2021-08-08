@@ -3,14 +3,34 @@
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>AL.SocketClient</Title>
+        <Authors>Sichi</Authors>
+        <Description>SocketClient library for the ALClientCS project. Builds off an existing socket.io implementation with fully asynchronous socket handling. Maps out socket calls sent and received to the Adventure.Land socket server.</Description>
+        <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <DebugType>portable</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <DebugType>portable</DebugType>
+        <DocumentationFile>bin\Release\AL.SocketClient.xml</DocumentationFile>
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj" />
+        <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="H.Socket.IO" Version="1.1.7.1" />
+        <PackageReference Include="H.Socket.IO" Version="1.1.7.1"/>
     </ItemGroup>
 
 </Project>

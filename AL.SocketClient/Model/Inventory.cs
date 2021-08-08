@@ -30,7 +30,7 @@ namespace AL.SocketClient.Model
 
         internal void SetCapacity(int capacity)
         {
-            var items = (List<InventoryItem?>) Items;
+            var items = (List<InventoryItem?>)Items;
 
             if (items.Count < capacity)
                 items.Capacity = capacity;

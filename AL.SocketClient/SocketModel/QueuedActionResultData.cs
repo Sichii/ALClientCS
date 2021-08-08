@@ -11,7 +11,7 @@ namespace AL.SocketClient.SocketModel
         /// <summary>
         ///     The type of the queued action this is the result for.
         /// </summary>
-        [JsonProperty("upgradetype")]
+        [JsonProperty("type")]
         public QueuedActionType QueuedActionType { get; init; }
         /// <summary>
         ///     Whether or not the upgrade succeeded.

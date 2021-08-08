@@ -62,7 +62,7 @@ namespace AL.Visualizer
                     if (type.HasFlag(PointType.Inline))
                         return Color.Yellow;
 
-                    throw new ArgumentOutOfRangeException($"Unknown point type {(int) type}");
+                    throw new ArgumentOutOfRangeException($"Unknown point type {(int)type}");
             }
         }
     }

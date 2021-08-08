@@ -1,7 +1,9 @@
 using System.Threading.Tasks;
+using AL.Core.Helpers;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.SocketModel;
+using Common.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.SocketClient.Tests
@@ -9,15 +11,16 @@ namespace AL.Tests.SocketClient.Tests
     [TestClass]
     public class MessageHandlerTests
     {
-        public static ALSocketClient Socket { get; set; }
+        public static ALSocketClient Socket { get; set; } = null!;
 
         [TestMethod]
         public async Task HandleMessageTest()
         {
-            var source = new TaskCompletionSource<bool>();
+            var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var subscription = Socket.On<ActionData>(ALSocketMessageType.Action, obj =>
             {
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                 var result = obj != null;
                 source.TrySetResult(result);
                 return source.Task;
@@ -44,6 +47,7 @@ namespace AL.Tests.SocketClient.Tests
         }
 
         [ClassInitialize]
-        public static void Init(TestContext context) => Socket = new ALSocketClient("test");
+        public static void Init(TestContext context) => Socket =
+            new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
     }
 }

@@ -5,9 +5,9 @@ namespace AL.Pathfinding.Definitions
     public static class CONSTANTS
     {
         /// <summary>
-        ///     The heuristic value of a town node, as calculated by euclidean distance.
+        ///     The heuristic value of a town node connection, as calculated by euclidean distance.
         /// </summary>
-        public const float TOWN_AGGREGATE = 500;
+        public const float TOWN_HEURISTIC = 400;
 
         /// <summary>
         ///     The default values of a player bounding base.

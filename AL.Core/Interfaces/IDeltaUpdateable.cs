@@ -13,12 +13,12 @@ namespace AL.Core.Interfaces
         ///     Historical delta information.
         /// </summary>
         [JsonIgnore]
-        long Delta { get; set; }
+        long LastDeltaTime { get; }
 
         /// <summary>
         ///     An update method that gets called with a differential delta.
         /// </summary>
-        /// <param name="delta">A differential delta value.</param>
-        void Update(long delta);
+        /// <param name="deltaTime">A differential delta value.</param>
+        void Update(long deltaTime);
     }
 }

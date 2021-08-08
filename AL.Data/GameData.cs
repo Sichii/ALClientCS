@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using AL.Core.Definitions;
@@ -8,6 +9,7 @@ using AL.Data.Achievements;
 using AL.Data.Classes;
 using AL.Data.Conditions;
 using AL.Data.Craft;
+using AL.Data.Dimensions;
 using AL.Data.Dismantle;
 using AL.Data.Events;
 using AL.Data.Games;
@@ -45,6 +47,9 @@ namespace AL.Data
 
         [JsonProperty]
         public static CraftDatum Craft { get; private set; }
+
+        [JsonProperty]
+        public static DimensionsDatum Dimensions { get; private set; }
 
         [JsonProperty]
         public static DismantleDatum Dismantle { get; private set; }
@@ -109,6 +114,38 @@ namespace AL.Data
         [JsonProperty]
         public static int Version { get; private set; }
 
+        public static void BuildBoundingBases()
+        {
+            Log.Info("Building monster bounding bases");
+            foreach ((var accessor, var monster) in Monsters.DistinctBy(kvp => kvp.Value.Accessor))
+            {
+                var dimensions = Dimensions[accessor] ?? Array.Empty<float>();
+                float h = 8;
+                float v = 7;
+                const float VN = 2;
+
+                if ((dimensions.Count > 0) && (dimensions.ElementAtOrDefault(3) != 0))
+                {
+                    h = dimensions.ElementAtOrDefault(3);
+                    v = Math.Min(9.9f, dimensions.ElementAtOrDefault(4));
+                } else
+                {
+                    //TODO: Unsure if this is correct, the source's way of getting this data is complex (get_width)
+                    h = Math.Min(12, dimensions.ElementAtOrDefault(0) * 0.8f);
+
+                    if (h == 0)
+                    {
+                        h = 8;
+                        v = 7;
+                    } else
+                        //TODO: Unsure if this is correct, the source's way of getting this data is complex (get_height)
+                        v = (float)Math.Min(9.9, dimensions.ElementAtOrDefault(1) / 4f);
+                }
+
+                monster.BoundingBase = new BoundingBase(h, v, VN);
+            }
+        }
+
         private static void ConnectItems()
         {
             //--CONNECT ITEM DATA--
@@ -132,7 +169,7 @@ namespace AL.Data
 
                         var item = Items[itemName];
 
-                        if ((item != null) && (item.ObtainableFromNPC == null))
+                        if (item is { ObtainableFromNPC: null })
                         {
                             item.ObtainableFromNPC = npc;
                             item.ObtainType = ObtainType.Buy;
@@ -144,7 +181,7 @@ namespace AL.Data
                     var item = Items[npc.Token];
 
                     //exchange at (token)
-                    if ((item != null) && (item.ExchangeAtNPC == null))
+                    if (item is { ExchangeAtNPC: null })
                         item.ExchangeAtNPC = npc;
                 }
             }
@@ -161,7 +198,7 @@ namespace AL.Data
                             //(monstertoken)
                             item.ObtainType = ObtainType.Quest;
                         }
-                    } else if ((item.Recipe != null) && (item.Recipe.NPC != null))
+                    } else if (item.Recipe?.NPC != null)
                     {
                         item.ObtainableFromNPC = item.Recipe.NPC;
                         item.ObtainType = ObtainType.Craft;
@@ -177,7 +214,7 @@ namespace AL.Data
                 {
                     var item = Items[itemName];
 
-                    if ((item != null) && (item.ObtainableFromNPC == null))
+                    if (item is { ObtainableFromNPC: null })
                         foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
                             if (npc.Token.ToString().EqualsI(tokenName))
                             {
@@ -197,7 +234,7 @@ namespace AL.Data
                     continue;
 
                 var geometry = Geometry[map.Accessor];
-                var exits = (List<Exit>) map.Exits;
+                var exits = (List<Exit>)map.Exits;
 
                 //connect npc data
                 foreach (var npc in map.NPCs)
@@ -208,8 +245,7 @@ namespace AL.Data
                     {
                         //TODO: refactor this maybe
                         //connect npcs to their potential locations
-                        var locations = (List<Location>) npc.Data.Locations;
-                        locations.AddRange(npc.Positions.Select(position => new Location(map.Accessor, position)));
+                        var locations = npc.Positions.Select(position => new Location(map.Accessor, position)).ToArray();
 
                         //populate exits with transport npc data
                         if ((npc.Data.Places != null) && (npc.Data.Role == NPCRole.Transport))
@@ -218,13 +254,13 @@ namespace AL.Data
                                 {
                                     var toMapData = Maps[mapAccessor];
 
-                                    if (toMapData == null)
+                                    if ((toMapData == null) || toMapData.Accessor.EqualsI(map.Accessor))
                                         continue;
 
                                     var spawn = toMapData.Spawns[spawnId];
 
-                                    exits.Add(new Exit(map.Accessor, location, new Location(mapAccessor, spawn),
-                                        ExitType.NPC));
+                                    exits.Add(new Exit(map.Accessor, location, new Location(mapAccessor, spawn), spawnId,
+                                        ExitType.Transporter));
                                 }
                     }
                 }
@@ -247,7 +283,8 @@ namespace AL.Data
 
                     var spawn = toMapData.Spawns[door.DestinationSpawnId];
 
-                    exits.Add(new Exit(map.Accessor, door, new Location(door.DestinationMap, spawn), ExitType.Door));
+                    exits.Add(new Exit(map.Accessor, door, new Location(door.DestinationMap, spawn),
+                        door.DestinationSpawnId, ExitType.Door));
                 }
             }
         }
@@ -279,7 +316,7 @@ namespace AL.Data
             }
         }
 
-        public static void PopulateAsync(string json)
+        public static void Populate(string json)
         {
             var stopwatch = Stopwatch.StartNew();
 
@@ -291,6 +328,7 @@ namespace AL.Data
             Classes.ConstructCache();
             Conditions.ConstructCache();
             Craft.ConstructCache();
+            Dimensions.ConstructCache();
             Dismantle.ConstructCache();
             Events.ConstructCache();
             Geometry.ConstructCache();
@@ -312,6 +350,7 @@ namespace AL.Data
             ConnectRecipes();
             ConnectMaps();
             ConnectItems();
+            BuildBoundingBases();
 
             stopwatch.Stop();
             Log.Info($"Populated data in {stopwatch.ElapsedMilliseconds}ms");

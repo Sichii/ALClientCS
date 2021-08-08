@@ -68,7 +68,7 @@ namespace AL.Core.Helpers
                     continue;
 
                 var final = member.GetValue(null);
-                result = (T?) final ?? default;
+                result = (T?)final ?? default;
                 return true;
             }
 

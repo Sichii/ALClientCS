@@ -14,7 +14,7 @@ namespace AL.Core.Extensions
         /// <returns>
         ///     <see cref="EquipmentSlot" />
         /// </returns>
-        public static EquipmentSlot ToEquipmentSlot(this Slot slot) => (EquipmentSlot) (int) slot;
+        public static EquipmentSlot ToEquipmentSlot(this Slot slot) => (EquipmentSlot)(int)slot;
 
         /// <summary>
         ///     Converts an <see cref="EquipmentSlot" /> to a <see cref="Slot" />.
@@ -23,7 +23,7 @@ namespace AL.Core.Extensions
         /// <returns>
         ///     <see cref="Slot" />
         /// </returns>
-        public static Slot ToSlot(this EquipmentSlot equipmentSlot) => (Slot) (int) equipmentSlot;
+        public static Slot ToSlot(this EquipmentSlot equipmentSlot) => (Slot)(int)equipmentSlot;
 
         /// <summary>
         ///     Converts an <see cref="TradeSlot" /> to a <see cref="Slot" />.
@@ -32,7 +32,7 @@ namespace AL.Core.Extensions
         /// <returns>
         ///     <see cref="Slot" />
         /// </returns>
-        public static Slot ToSlot(this TradeSlot tradeSlot) => (Slot) (int) tradeSlot;
+        public static Slot ToSlot(this TradeSlot tradeSlot) => (Slot)(int)tradeSlot;
 
         /// <summary>
         ///     Converts a <see cref="Slot" /> to an <see cref="TradeSlot" />.
@@ -41,6 +41,6 @@ namespace AL.Core.Extensions
         /// <returns>
         ///     <see cref="TradeSlot" />
         /// </returns>
-        public static TradeSlot ToTradeSlot(this Slot slot) => (TradeSlot) (int) slot;
+        public static TradeSlot ToTradeSlot(this Slot slot) => (TradeSlot)(int)slot;
     }
 }

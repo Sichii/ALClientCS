@@ -244,6 +244,7 @@ namespace AL.Core.Definitions
         Charging,
         Charmed,
         Citizen0Aura,
+        CoOp,
         Cursed,
         Dampened,
         DarkBlessing,
@@ -273,6 +274,8 @@ namespace AL.Core.Definitions
         MShield,
         MTangle,
         NotVerified,
+        [EnumMember(Value = "penalty_cd")]
+        PenaltyCooldown,
         PhasedOut,
         Poisoned,
         Poisonous,
@@ -280,6 +283,8 @@ namespace AL.Core.Definitions
         Reflection,
         RSpeed,
         Sanguine,
+        [EnumMember(Value = "self_healing")]
+        SelfHealing,
         Shocked,
         Slowness,
 
@@ -293,14 +298,12 @@ namespace AL.Core.Definitions
         Typing,
         WarCry,
         Weakness,
+        [EnumMember(Value = "weakness_aura")]
+        WeaknessAura,
         Withdrawal,
         XPower,
         XShotted,
-        Young,
-
-        //MONSTER ABILITIES
-        [EnumMember(Value = "self_healing")]
-        SelfHealing
+        Young
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -704,7 +707,7 @@ namespace AL.Core.Definitions
     {
         None,
         Door,
-        NPC
+        Transporter
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

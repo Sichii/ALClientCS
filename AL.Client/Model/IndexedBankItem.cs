@@ -8,7 +8,7 @@ namespace AL.Client.Model
     ///     Represents an item within a specific bank, and a specific index within that bank.
     /// </summary>
     /// <seealso cref="IIndexedItem{T}" />
-    public record BankedItem : IIndexedItem<InventoryItem>
+    public record IndexedBankItem : IIndexedItem<InventoryItem>
     {
         /// <summary>
         ///     The bank this item is located in.

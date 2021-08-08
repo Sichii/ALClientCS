@@ -10,7 +10,7 @@ namespace AL.SocketClient.SocketModel
     /// </summary>
     /// <seealso cref="CharacterData" />
     [JsonConverter(typeof(CharacterConverter<StartData>))]
-    public record StartData : CharacterData
+    public class StartData : CharacterData
     {
         /// <summary>
         ///     A collection of values indicating base gold rewards for killing a monster on a specific map. <br />

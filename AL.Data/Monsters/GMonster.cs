@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
+using AL.Core.Geometry;
 using AL.Core.Json.Converters;
 using Newtonsoft.Json;
 
@@ -23,8 +24,13 @@ namespace AL.Data.Monsters
         ///     The abilities this monster has, indexed by the name of the ability.
         /// </summary>
         [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<GMonsterAbility>))]
-        public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } =
-            new Dictionary<string, GMonsterAbility>();
+        public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } = new Dictionary<string, GMonsterAbility>();
+
+        /// <summary>
+        ///     This monster's accessor in the data.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        public string Accessor { get; set; } = null!;
 
         /// <summary>
         ///     A list of the achievements associated with this monster.
@@ -38,6 +44,13 @@ namespace AL.Data.Monsters
         ///     TODO: Figure out what 10, 100 mean
         /// </summary>
         public float Aggro { get; init; }
+
+        /// <summary>
+        ///     The bounding base of this monster. (h, v, vn)
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        [JsonIgnore]
+        public BoundingBase BoundingBase { get; set; } = null!;
 
         /// <summary>
         ///     If this monster <see cref="Rage">rages</see> onto you, it will move at this speed.

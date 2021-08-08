@@ -11,16 +11,19 @@ namespace AL.Core.Geometry
     ///     <inheritdoc cref="IRectangle" /> <br />
     ///     The rectangle is defined by the measurements of a <see cref="BoundingBase" /> and an <see cref="IPoint" />.
     /// </summary>
-    /// <seealso cref="AL.Core.Geometry.BoundingBase" />
+    /// <seealso cref="BoundingBase" />
     /// <seealso cref="AL.Core.Interfaces.IRectangle" />
     /// <seealso cref="AL.Core.Interfaces.IPoint" />
-    public record BoundingRectangle : BoundingBase, IRectangle
+    public record BoundingRectangle : IBounding, IRectangle
     {
         public float Bottom { get; }
+        public float HalfWidth { get; }
         public float Height { get; }
         public float Left { get; }
         public float Right { get; }
         public float Top { get; }
+        public float VerticalNorth { get; }
+        public float VerticalNotNorth { get; }
         public IReadOnlyList<IPoint> Vertices { get; }
         public float Width { get; }
         public float X { get; }
@@ -37,11 +40,13 @@ namespace AL.Core.Geometry
         public BoundingRectangle(
             float x,
             float y,
-            int halfWidth,
-            int verticalNorth,
-            int verticalNotNorth)
-            : base(halfWidth, verticalNorth, verticalNotNorth)
+            float halfWidth,
+            float verticalNorth,
+            float verticalNotNorth)
         {
+            HalfWidth = halfWidth;
+            VerticalNorth = verticalNorth;
+            VerticalNotNorth = verticalNotNorth;
             X = x;
             Y = y;
             Width = halfWidth * 2;
@@ -52,8 +57,7 @@ namespace AL.Core.Geometry
             Right = x + halfWidth;
             Bottom = y + verticalNotNorth;
 
-            Vertices = new IPoint[]
-                { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
+            Vertices = new IPoint[] { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
         }
 
         // ReSharper disable once UseDeconstructionOnParameter        
@@ -70,6 +74,8 @@ namespace AL.Core.Geometry
                 boundingBase?.HalfWidth ?? throw new ArgumentNullException(nameof(boundingBase)),
                 boundingBase?.VerticalNorth ?? throw new ArgumentNullException(nameof(boundingBase)),
                 boundingBase?.VerticalNotNorth ?? throw new ArgumentNullException(nameof(boundingBase))) { }
+
+        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
 
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
 

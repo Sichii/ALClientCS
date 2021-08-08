@@ -136,7 +136,10 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "item_placeholder")]
         ItemPlaceholder,
         [EnumMember(Value = "item_received")]
-        ItemReceived
+        ItemReceived,
+        [EnumMember(Value = "transport_cant_reach")]
+        TransportCantReach,
+        Invalid
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -147,6 +150,7 @@ namespace AL.SocketClient.Definitions
         Welcome,
         [EnumMember(Value = "player")]
         Character,
+        Correction,
         Players,
         [EnumMember(Value = "server_info")]
         ServerInfo,
@@ -154,6 +158,8 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "ping_ack")]
         PingAck,
         Action,
+        [EnumMember(Value = "chat_log")]
+        ChatLog,
         Hit,
         SecondHands,
         Disappear,
@@ -191,49 +197,51 @@ namespace AL.SocketClient.Definitions
         Unknown,
         Attack,
         Auth,
-        Property,
-        [EnumMember(Value = "send_updates")]
-        SendUpdates,
-        Magiport,
-        Party,
-        Buy,
-        Sell,
-        [EnumMember(Value = "trade_buy")]
-        TradeBuy,
-        SecondHands,
-        [EnumMember(Value = "sbuy")]
-        SecondHandsBuy,
-        Compound,
-        Upgrade,
-        Craft,
         Bank,
+        Booster,
+        Buy,
+        [EnumMember(Value = "cm")]
+        Command,
+        Compound,
+        Craft,
         Emotion,
         Equip,
-        Unequip,
-        Use,
-        Send,
         Exchange,
-        MonsterHunt,
-        Tracker,
         [EnumMember(Value = "leave")]
         LeaveMap,
+        Loaded,
+        Magiport,
+        MonsterHunt,
         Move,
         [EnumMember(Value = "open_chest")]
         OpenChest,
-        Skill,
-        [EnumMember(Value = "cm")]
-        Command,
-        Respawn,
-        Booster,
-        [EnumMember(Value = "stop")]
-        Stop,
-        [EnumMember(Value = "mail_take_item")]
-        TakeMailItem,
-        Transport,
+        Party,
+        [EnumMember(Value = "ping_trig")]
+        Ping,
+        Players,
+        Property,
         [EnumMember(Value = "town")]
         ReturnToTown,
-        Loaded,
-        [EnumMember(Value = "ping_trig")]
-        Ping
+        Respawn,
+        SecondHands,
+        [EnumMember(Value = "sbuy")]
+        SecondHandsBuy,
+        Sell,
+        Send,
+        [EnumMember(Value = "send_updates")]
+        SendUpdates,
+        Skill,
+        [EnumMember(Value = "stop")]
+        Stop,
+        Swap,
+        [EnumMember(Value = "mail_take_item")]
+        TakeMailItem,
+        Tracker,
+        [EnumMember(Value = "trade_buy")]
+        TradeBuy,
+        Transport,
+        Unequip,
+        Upgrade,
+        Use
     }
 }
