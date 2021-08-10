@@ -14,7 +14,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-        <DocumentationFile>bin\Release\AL.Data.xml</DocumentationFile>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
         <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
