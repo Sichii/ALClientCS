@@ -47,7 +47,7 @@ namespace AL.Client
     ///     Provides the ability to interact with the Adventure.Land socket server.
     /// </summary>
     /// <seealso cref="IAsyncDisposable" />
-    public class ALClient : IAsyncDisposable
+    public abstract class ALClient : IAsyncDisposable
     {
         private readonly PingManager PingManager;
         private readonly PositionManager PositionManager;
@@ -151,7 +151,7 @@ namespace AL.Client
         /// <exception cref="ArgumentNullException">name</exception>
         /// <exception cref="ArgumentNullException">apiClient</exception>
         /// <exception cref="ArgumentNullException">socketClient</exception>
-        public ALClient(string characterName, IALAPIClient apiClient, IALSocketClient socketClient)
+        protected ALClient(string characterName, IALAPIClient apiClient, IALSocketClient socketClient)
         {
             if (string.IsNullOrEmpty(characterName))
                 throw new ArgumentNullException(nameof(characterName));
@@ -520,39 +520,6 @@ namespace AL.Client
             {
                 Sync.Release();
             }
-        }
-
-        /// <summary>
-        ///     This is just a shorthand for creating an <see cref="ALClient" /> and calling <see cref="ConnectAsync" />.
-        /// </summary>
-        /// <param name="characterName">The name of the character to log in as.</param>
-        /// <param name="region">The region to log into.</param>
-        /// <param name="identifier">The identifier suffic for the region.</param>
-        /// <param name="apiClient">An <see cref="ALAPIClient" /> with your authorization credentials.</param>
-        /// <returns>
-        ///     <see cref="ALClient" />
-        /// </returns>
-        /// <exception cref="ArgumentNullException">characterName</exception>
-        /// <exception cref="ArgumentNullException">apiClient</exception>
-        public static async Task<ALClient> StartCharacterAsync(
-            string characterName,
-            ServerRegion region,
-            ServerId identifier,
-            ALAPIClient apiClient)
-        {
-            if (string.IsNullOrEmpty(characterName))
-                throw new ArgumentNullException(nameof(characterName));
-
-            if (apiClient == null)
-                throw new ArgumentNullException(nameof(apiClient));
-
-            var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
-            var socketClient = new ALSocketClient(logger);
-
-            var client = new ALClient(characterName, apiClient, socketClient);
-            await client.ConnectAsync(region, identifier);
-
-            return client;
         }
 
         /// <summary>
@@ -2241,7 +2208,7 @@ namespace AL.Client
         #endregion
 
         #region Helpers
-        
+
         protected async ValueTask<bool> DestroyEntity(string id)
         {
             var result = await Monsters.RemoveAsync(id) || await Players.RemoveAsync(id);
@@ -2256,7 +2223,7 @@ namespace AL.Client
             await Players.TryGetValueAsync(id, out var playerTask)   ? await playerTask :
             await Monsters.TryGetValueAsync(id, out var monsterTask) ? await monsterTask : null;
 
-                protected (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
+        protected (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
             IIndexedItem<IInventoryItem> indexedInventoryItem,
             BankPack? bankPack = null,
             int? bankSlot = null)
@@ -2309,10 +2276,9 @@ namespace AL.Client
 
             return (bankPack.Value, bankSlot.Value);
         }
-        
-        public async Task InitializeAsync()
+
+        public static async Task InitializeAsync()
         {
-            Logger.Info("Initializing backing data for client");
             var tasks = new List<Task>
             {
                 Task.Run(() => RuntimeHelpers.RunClassConstructor(typeof(RegexCache).TypeHandle)),
@@ -2349,13 +2315,13 @@ namespace AL.Client
                         cooldownMS ??= 1000f / Character.Frequency;
                     else
                         cooldownMS ??= data.CooldownMS;
-                    
+
                     var cooldownInfo = new CooldownInfo(cooldownMS.Value);
                     cooldownInfo.CompensateOnce(PingManager.Offset);
 
                     await Cooldowns.AddOrUpdateAsync(skillName, cooldownInfo);
                 }
-                
+
                 break;
             }
         }
@@ -2425,7 +2391,7 @@ namespace AL.Client
             //wait for it to be populated
             await source.Task.WithNetworkTimeout();
         }
-        
+
         #endregion
     }
 }

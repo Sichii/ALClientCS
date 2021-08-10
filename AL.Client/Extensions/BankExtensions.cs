@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using AL.Client.Model;
 using AL.Core.Definitions;
 using AL.SocketClient.Model;
@@ -85,6 +86,43 @@ namespace AL.Client.Extensions
                 .Sum(item => item!.Quantity);
         }
 
+        /// <summary>
+        ///     Finds the first item in the bank that is not null, and meets the predicate conditions.
+        /// </summary>
+        /// <param name="bank">The client's <see cref="BankInfo"/>.</param>
+        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem"/>.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">bank</exception>
+        /// <exception cref="ArgumentNullException">predicate</exception>
+        public static IndexedBankItem? FindItem(this BankInfo bank, Func<InventoryItem, bool> predicate)
+        {
+            if (bank == null)
+                throw new ArgumentNullException(nameof(bank));
+
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+            
+            foreach ((var bankPack, var items) in bank)
+            {
+                var index = items.FindIndex(item => (item != null) && predicate(item));
+
+                if (index == -1)
+                    continue;
+
+                return new IndexedBankItem
+                {
+                    BankPack = bankPack,
+                    Index = index,
+                    Item = items[index]!
+                };
+            }
+
+            return null;
+        }
+        
         /// <summary>
         ///     Finds the first item in the bank that meets the conditions.
         /// </summary>

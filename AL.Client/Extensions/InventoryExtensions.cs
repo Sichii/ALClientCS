@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
+using AL.Core.Definitions;
 using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 
@@ -80,6 +81,37 @@ namespace AL.Client.Extensions
         }
 
         /// <summary>
+        ///     Finds the first item in the inventory that is not null, and meets the predicate conditions.
+        /// </summary>
+        /// <param name="inventory">The character's <see cref="Inventory"/>.</param>
+        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem"/>.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">inventory</exception>
+        /// <exception cref="ArgumentNullException">predicate</exception>
+        public static IndexedInventoryItem? FindItem(this Inventory inventory, Func<InventoryItem, bool> predicate)
+        {
+            if (inventory == null)
+                throw new ArgumentNullException(nameof(inventory));
+            
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+            
+            var index = inventory.FindIndex(item => (item != null) && predicate(item));
+
+            if (index == -1)
+                return null;
+
+            return new IndexedInventoryItem
+            {
+                Index = index,
+                Item = inventory[index]!
+            };
+        }
+
+        /// <summary>
         ///     Finds the first item in the inventory that meets the conditions.
         /// </summary>
         /// <param name="inventory">The character's <see cref="Inventory" />.</param>
@@ -90,6 +122,7 @@ namespace AL.Client.Extensions
         /// <param name="levelMax">The item must have at most this level.</param>
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
         /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
+        /// <param name="itemType">The item must be of this type.</param>
         /// <returns>
         ///     <see cref="IndexedInventoryItem" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.

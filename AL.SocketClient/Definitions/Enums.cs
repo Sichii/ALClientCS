@@ -139,7 +139,9 @@ namespace AL.SocketClient.Definitions
         ItemReceived,
         [EnumMember(Value = "transport_cant_reach")]
         TransportCantReach,
-        Invalid
+        Invalid,
+        [EnumMember(Value = "non_friendly_target")]
+        NonFriendlyTarget
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -242,6 +244,7 @@ namespace AL.SocketClient.Definitions
         Transport,
         Unequip,
         Upgrade,
-        Use
+        Use,
+        Merchant
     }
 }
