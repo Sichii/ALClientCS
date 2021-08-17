@@ -7,7 +7,7 @@ namespace AL.APIClient.Model
     ///     Represents a character this user owns.
     /// </summary>
     /// <seealso cref="IInstancedLocation" />
-    public record Character : IInstancedLocation
+    public record CharacterInfo : IInstancedLocation
     {
         /// <summary>
         ///     The id of the character. (this is not the name)

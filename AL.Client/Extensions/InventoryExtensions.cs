@@ -122,7 +122,6 @@ namespace AL.Client.Extensions
         /// <param name="levelMax">The item must have at most this level.</param>
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
         /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
-        /// <param name="itemType">The item must be of this type.</param>
         /// <returns>
         ///     <see cref="IndexedInventoryItem" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.

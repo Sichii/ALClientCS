@@ -182,7 +182,7 @@ namespace AL.Pathfinding.Abstractions
                 yield break;
 
             var current = startNode;
-            await Sync.WaitAsync();
+            await Sync.WaitAsync().ConfigureAwait(false);
 
             try
             {

@@ -20,8 +20,8 @@ namespace AL.APIClient.Extensions
         /// <exception cref="TimeoutException">Operation timed out after {timeoutMS}ms</exception>
         public static async Task<T> WithTimeout<T>(this Task<T> task, int timeoutMS)
         {
-            if (task == await Task.WhenAny(task, Task.Delay(timeoutMS)))
-                return await task;
+            if (task == await Task.WhenAny(task, Task.Delay(timeoutMS)).ConfigureAwait(false))
+                return await task.ConfigureAwait(false);
 
             throw new TimeoutException($"Operation timed out after {timeoutMS}ms");
         }
@@ -35,7 +35,7 @@ namespace AL.APIClient.Extensions
         /// <exception cref="TimeoutException">Operation timed out after {timeoutMS}ms</exception>
         public static async Task WithTimeout(this Task task, int timeoutMS)
         {
-            if (task != await Task.WhenAny(task, Task.Delay(timeoutMS)))
+            if (task != await Task.WhenAny(task, Task.Delay(timeoutMS)).ConfigureAwait(false))
                 throw new TimeoutException($"Operation timed out after {timeoutMS}ms");
         }
     }

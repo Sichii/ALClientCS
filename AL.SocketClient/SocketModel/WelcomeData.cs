@@ -13,7 +13,7 @@ namespace AL.SocketClient.SocketModel
         /// <summary>
         ///     If populated, you logged into a character and this is it's data.
         /// </summary>
-        public Character? Character { get; init; }
+        public CharacterData? Character { get; init; }
 
         /// <summary>
         ///     The type of server.

@@ -16,8 +16,8 @@ namespace AL.Client.Managers
         {
             var deltaTime = DeltaTime.Value;
 
-            await UpdatePlayerPositions(deltaTime);
-            await UpdateMonsterPositions(deltaTime);
+            await UpdatePlayerPositions(deltaTime).ConfigureAwait(false);
+            await UpdateMonsterPositions(deltaTime).ConfigureAwait(false);
 
             Client.Character.Update(deltaTime);
         }

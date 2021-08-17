@@ -1,4 +1,6 @@
 using System;
+using AL.Client.Helpers;
+using AL.Core.Geometry;
 using AL.Data;
 using AL.Data.Monsters;
 using AL.SocketClient.Model;
@@ -19,12 +21,12 @@ namespace AL.Client.Extensions
         ///     The "G" data for this monster from <see cref="GameData" />.
         /// </returns>
         /// <exception cref="ArgumentNullException">monster</exception>
-        public static GMonster? GetData(this Monster monster)
+        public static GMonster GetData(this Monster monster)
         {
             if (monster == null)
                 throw new ArgumentNullException(nameof(monster));
 
-            return GameData.Monsters[monster.Name];
+            return GameData.Monsters[monster.Name]!;
         }
     }
 }

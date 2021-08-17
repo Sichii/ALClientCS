@@ -85,6 +85,8 @@ namespace AL.SocketClient.Definitions
         ResolveSkill,
         [EnumMember(Value = "send_no_space")]
         SendNoSpace,
+        [EnumMember(Value = "send_no_item")]
+        SendNoItem,
         [EnumMember(Value = "skill_cant_incapacitated")]
         SkillCantIncapacitated,
         [EnumMember(Value = "skill_cant_wtype")]
@@ -141,7 +143,9 @@ namespace AL.SocketClient.Definitions
         TransportCantReach,
         Invalid,
         [EnumMember(Value = "non_friendly_target")]
-        NonFriendlyTarget
+        NonFriendlyTarget,
+        [EnumMember(Value = "op_unavailable")]
+        OperationUnavailable,
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

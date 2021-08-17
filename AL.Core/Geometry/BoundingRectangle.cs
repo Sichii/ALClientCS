@@ -16,19 +16,21 @@ namespace AL.Core.Geometry
     /// <seealso cref="AL.Core.Interfaces.IPoint" />
     public record BoundingRectangle : IBounding, IRectangle
     {
-        public float Bottom { get; }
+        private readonly IPoint Center;
+        public float Bottom => Y + VerticalNotNorth;
         public float HalfWidth { get; }
-        public float Height { get; }
-        public float Left { get; }
-        public float Right { get; }
-        public float Top { get; }
+        public float Height => VerticalNorth + VerticalNotNorth;
+        public float Left => X - HalfWidth;
+        public float Right => X + HalfWidth;
+        public float Top => Y - VerticalNorth;
         public float VerticalNorth { get; }
         public float VerticalNotNorth { get; }
-        public IReadOnlyList<IPoint> Vertices { get; }
-        public float Width { get; }
-        public float X { get; }
-        public float Y { get; }
-
+        public IReadOnlyList<IPoint> Vertices => new IPoint[]
+            { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
+        public float Width => HalfWidth * 2;
+        public float X => Center.X;
+        public float Y => Center.Y;
+        
         /// <summary>
         ///     Initializes a new instance of the <see cref="BoundingRectangle" /> class.
         /// </summary>
@@ -43,23 +45,8 @@ namespace AL.Core.Geometry
             float halfWidth,
             float verticalNorth,
             float verticalNotNorth)
-        {
-            HalfWidth = halfWidth;
-            VerticalNorth = verticalNorth;
-            VerticalNotNorth = verticalNotNorth;
-            X = x;
-            Y = y;
-            Width = halfWidth * 2;
-            Height = verticalNorth + verticalNotNorth;
-
-            Top = y - verticalNorth;
-            Left = x - halfWidth;
-            Right = x + halfWidth;
-            Bottom = y + verticalNotNorth;
-
-            Vertices = new IPoint[] { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
-        }
-
+            : this(new Point(x, y), new BoundingBase(halfWidth, verticalNorth, verticalNotNorth)) { }
+        
         // ReSharper disable once UseDeconstructionOnParameter        
         /// <summary>
         ///     Initializes a new instance of the <see cref="BoundingRectangle" /> class.
@@ -69,11 +56,16 @@ namespace AL.Core.Geometry
         /// <exception cref="System.ArgumentNullException">center</exception>
         /// <exception cref="System.ArgumentNullException">boundingBase</exception>
         public BoundingRectangle(IPoint center, BoundingBase boundingBase)
-            : this(center?.X ?? throw new ArgumentNullException(nameof(center)),
-                center?.Y ?? throw new ArgumentNullException(nameof(center)),
-                boundingBase?.HalfWidth ?? throw new ArgumentNullException(nameof(boundingBase)),
-                boundingBase?.VerticalNorth ?? throw new ArgumentNullException(nameof(boundingBase)),
-                boundingBase?.VerticalNotNorth ?? throw new ArgumentNullException(nameof(boundingBase))) { }
+        {
+            Center = center ?? throw new ArgumentNullException(nameof(center));
+
+            if (boundingBase == null)
+                throw new ArgumentNullException(nameof(boundingBase));
+
+            HalfWidth = boundingBase.HalfWidth;
+            VerticalNorth = boundingBase.VerticalNorth;
+            VerticalNotNorth = boundingBase.VerticalNotNorth;
+        }
 
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
 

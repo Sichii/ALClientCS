@@ -67,7 +67,7 @@ namespace AL.Client.Abstractions
 
                 try
                 {
-                    await DoWorkAsync();
+                    await DoWorkAsync().ConfigureAwait(false);
                 } catch (Exception ex)
                 {
                     Client.Logger.Error(ex);
@@ -77,7 +77,7 @@ namespace AL.Client.Abstractions
                     var timeTillNextLoop = Convert.ToInt32(1000 / PollingRate - executionTime);
 
                     if (timeTillNextLoop > 0)
-                        await Task.Delay(timeTillNextLoop);
+                        await Task.Delay(timeTillNextLoop).ConfigureAwait(false);
                 }
             }
         }

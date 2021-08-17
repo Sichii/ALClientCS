@@ -12,6 +12,6 @@ namespace AL.APIClient.Model
         ///     A list of merchants with a stand open in any server.
         /// </summary>
         [JsonProperty("chars")]
-        public IReadOnlyList<Merchant> Merchants { get; init; } = new List<Merchant>();
+        public IReadOnlyList<MerchantInfo> Merchants { get; init; } = new List<MerchantInfo>();
     }
 }

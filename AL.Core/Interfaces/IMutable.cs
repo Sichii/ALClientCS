@@ -15,7 +15,7 @@ namespace AL.Core.Interfaces
     }
 
     /// <summary>
-    ///     An object that is mutated by <see cref="TMutator" />. <br />
+    ///     An object that is mutated by <typeparamref name="TMutator"/>. <br />
     ///     This exists to create a self-documenting pattern of interactions between objects. <br />
     ///     <b>Anything that inherits from this should implement <see cref="IEquatable{T}" /></b>.
     /// </summary>

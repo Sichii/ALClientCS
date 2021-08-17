@@ -49,7 +49,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -70,7 +70,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
             {
                 Match match;
 
@@ -82,9 +84,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId });
+            await using var __ = evalCallback.ConfigureAwait(false);
 
-            var expectation = await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
 
@@ -107,7 +111,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<ActionData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -126,7 +130,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
             {
                 if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
                     return Task.FromResult(source.TrySetResult(data));
@@ -134,9 +140,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId });
+            await using var __ = actionCallback.ConfigureAwait(false);
 
-            return await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+
+            return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -149,7 +157,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -164,7 +172,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
             {
                 Match match;
 
@@ -176,9 +186,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME });
+            await using var __ = evalCallback.ConfigureAwait(false);
 
-            var expectation = await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
 
@@ -201,7 +213,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<ActionData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -220,7 +232,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
             {
                 if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
                     return Task.FromResult(source.TrySetResult(data));
@@ -228,9 +242,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId });
+            await using var __ = actionCallback.ConfigureAwait(false);
 
-            return await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+
+            return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -243,7 +259,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -258,7 +274,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
             {
                 Match match;
 
@@ -270,9 +288,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME });
+            await using var __ = evalCallback.ConfigureAwait(false);
 
-            var expectation = await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
 
@@ -291,7 +311,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -306,7 +326,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
             {
                 Match match;
 
@@ -318,9 +340,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME });
+            await using var __ = evalCallback.ConfigureAwait(false);
 
-            var expectation = await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
 
@@ -344,7 +368,7 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
             {
                 var result = data.ResponseType switch
                 {
@@ -363,7 +387,9 @@ namespace AL.Client
                 return Task.FromResult(result);
             });
 
-            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+            await using var _ = gameResponseCallback.ConfigureAwait(false);
+
+            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
             {
                 Match match;
 
@@ -375,9 +401,11 @@ namespace AL.Client
                 return TaskCache.FALSE;
             });
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId });
+            await using var __ = evalCallback.ConfigureAwait(false);
 
-            var expectation = await source.Task.WithNetworkTimeout();
+            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
 
@@ -405,7 +433,7 @@ namespace AL.Client
             var socketClient = new ALSocketClient(logger);
 
             var client = new Priest(characterName, apiClient, socketClient);
-            await client.ConnectAsync(region, identifier);
+            await client.ConnectAsync(region, identifier).ConfigureAwait(false);
 
             return client;
         }

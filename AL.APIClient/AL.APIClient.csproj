@@ -23,14 +23,19 @@
         <DebugType>portable</DebugType>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <DebugSymbols>true</DebugSymbols>
+        <NoWarn>1701;1702;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Core\AL.Core.csproj"/>
+        <ProjectReference Include="..\AL.Core\AL.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7"/>
+        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7" />
     </ItemGroup>
 
 </Project>

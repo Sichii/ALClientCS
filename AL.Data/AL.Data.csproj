@@ -18,7 +18,7 @@
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
         <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
-        <NoWarn>1701;1702;649</NoWarn>
+        <NoWarn>1701;1702;1591</NoWarn>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -28,6 +28,13 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AL.Core\AL.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
 
 </Project>

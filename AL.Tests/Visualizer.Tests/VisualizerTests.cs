@@ -26,7 +26,7 @@ namespace AL.Tests.Visualizer.Tests
                     continue;
 
                 var image = NavVisualizer.CreateGridImage(navMesh).DrawConnections(navMesh);
-                await image.SaveAsync($@"images\{map.Accessor}.png");
+                await image.SaveAsync($@"images\{map.Accessor}.png").ConfigureAwait(false);
             }
         }
 
@@ -36,13 +36,13 @@ namespace AL.Tests.Visualizer.Tests
             var startPoint = new Point(0, 0);
             var endPoints = new[] { new Point(0, 0) };
 
-            var path = await PathFinder.FindPath("main", startPoint, endPoints.Select(end => new Circle(end, 0))).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", startPoint, endPoints.Select(end => new Circle(end, 0))).ToArrayAsync().ConfigureAwait(false);
 
             var navMesh = PathFinder.GetNavMesh("main")!;
 
             var image = NavVisualizer.CreateGridImage(navMesh).DrawConnections(navMesh).DrawPath(navMesh, path);
 
-            await image.SaveAsync(@"images\singlePath.png");
+            await image.SaveAsync(@"images\singlePath.png").ConfigureAwait(false);
         }
     }
 }

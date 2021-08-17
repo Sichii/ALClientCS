@@ -59,7 +59,7 @@ namespace AL.APIClient
             Logger.Info("Fetching game data...");
 
             var request = new RestRequest("data.js", Method.GET);
-            var response = await CLIENT.ExecuteGetAsync(request);
+            var response = await CLIENT.ExecuteGetAsync(request).ConfigureAwait(false);
             var startBracketIndex = response.Content.IndexOf('{');
             var endBrackedIndex = response.Content.LastIndexOf('}');
 
@@ -76,7 +76,7 @@ namespace AL.APIClient
             {
                 var arguments = result == null ? null : new { result.Cursor };
                 var request = new APIRequest(Method.POST, APIMethod.PullMail, arguments, Auth);
-                var response = await CLIENT.ExecutePostAsync(request);
+                var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
                 result = JsonConvert.DeserializeObject<MailResponse[]>(response.Content)![0];
 
                 foreach (var mail in result.Mail)
@@ -86,11 +86,11 @@ namespace AL.APIClient
             }
         }
 
-        public async IAsyncEnumerable<Merchant> GetMerchantsAsync()
+        public async IAsyncEnumerable<MerchantInfo> GetMerchantsAsync()
         {
             Logger.Info("Fetching merchants");
             var request = new APIRequest(Method.POST, APIMethod.PullMerchants, null, Auth);
-            var response = await CLIENT.ExecutePostAsync(request);
+            var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
             (var merchantList, _) = JsonConvert.DeserializeObject<(MerchantList, string)>(response.Content,
                 new ArrayToTupleConverter<MerchantList, string>());
 
@@ -100,7 +100,7 @@ namespace AL.APIClient
 
         public async Task<ServersAndCharactersResponse> GetServersAndCharactersAsync()
         {
-            await Sync.WaitAsync();
+            await Sync.WaitAsync().ConfigureAwait(false);
 
             try
             {
@@ -109,7 +109,7 @@ namespace AL.APIClient
 
                 Logger.Info("Fetching servers and characters");
                 var request = new APIRequest(Method.POST, APIMethod.ServersAndCharacters, null, Auth);
-                var response = await CLIENT.ExecutePostAsync(request);
+                var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
 
                 ServersAndCharacters = JsonConvert.DeserializeObject<ServersAndCharactersResponse[]>(response.Content)![0];
 
@@ -156,7 +156,7 @@ namespace AL.APIClient
                 only_login = true
             });
             
-            var response = await CLIENT.ExecutePostAsync(request); //.WithTimeout(60000);
+            var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false); //.WithTimeout(60000);
             var setCookieHeader = response.Headers.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
             var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content);
 
@@ -181,14 +181,14 @@ namespace AL.APIClient
 
             Logger.Info($"Marking mail {mail.Id} as read");
             var request = new APIRequest(Method.POST, APIMethod.ReadMail, new { mail = mail.Id }, Auth);
-            await CLIENT.ExecutePostAsync(request);
+            await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
         }
 
 
         public async Task RenewAuth()
         {
             Logger.Info("Renewing auth");
-            var apiClient = await LoginAsync(Auth.LoginInfo.Email, Auth.LoginInfo.Password);
+            var apiClient = await LoginAsync(Auth.LoginInfo.Email, Auth.LoginInfo.Password).ConfigureAwait(false);
             Auth = apiClient.Auth;
         }
     }

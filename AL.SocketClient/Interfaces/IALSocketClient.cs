@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.SocketClient.Definitions;
+using H.WebSockets.Args;
 
 namespace AL.SocketClient.Interfaces
 {
@@ -10,6 +11,11 @@ namespace AL.SocketClient.Interfaces
     /// </summary>
     public interface IALSocketClient : IAsyncDisposable
     {
+        /// <summary>
+        /// Occurs when the underlying socket disconnects. 
+        /// </summary>
+        event EventHandler<WebSocketCloseEventArgs>? Disconnected;
+        
         /// <summary>
         ///     Whether or not the socket is currently open.
         /// </summary>

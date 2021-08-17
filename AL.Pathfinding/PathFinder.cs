@@ -206,7 +206,7 @@ namespace AL.Pathfinding
                 //generate a path with the options specified and yield it
                 var path = navMesh.FindPath(start, endPoints, smoothPath, useTownIfOptimal);
 
-                await foreach (var connector in path)
+                await foreach (var connector in path.ConfigureAwait(false))
                 {
                     var edgeConnector = (EdgeConnector<Point>)connector;
                     var unOffset = edgeConnector with
@@ -260,7 +260,7 @@ namespace AL.Pathfinding
 
             var route = WorldMesh.FindRoute(startMap, endMaps!);
 
-            await foreach (var routeConnector in route)
+            await foreach (var routeConnector in route.ConfigureAwait(false))
                 yield return routeConnector;
         }
 
@@ -314,10 +314,10 @@ namespace AL.Pathfinding
                     var navMesh = TryBuildNavMesh(name, map);
 
                     if (navMesh != null)
-                        await navMeshes.AddAsync(map, navMesh);
-                }));
+                        await navMeshes.AddAsync(map, navMesh).ConfigureAwait(false);
+                })).ConfigureAwait(false);
 
-            await foreach ((var map, var value) in navMeshes)
+            await foreach ((var map, var value) in navMeshes.ConfigureAwait(false))
                 NavMeshes.Add(map.Key, value);
 
             BuildWorldMesh(maps);

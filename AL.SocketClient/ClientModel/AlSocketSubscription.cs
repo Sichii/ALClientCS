@@ -12,7 +12,7 @@ namespace AL.SocketClient.ClientModel
         protected ALSocketSubscription(AwaitableList<ALSocketSubscription> invocationList) =>
             InvocationList = invocationList;
 
-        public async ValueTask DisposeAsync() => await InvocationList.RemoveAsync(this);
+        public async ValueTask DisposeAsync() => await InvocationList.RemoveAsync(this).ConfigureAwait(false);
 
         internal abstract Task<bool> InvokeAsync(object dataObject);
     }

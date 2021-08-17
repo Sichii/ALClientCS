@@ -23,14 +23,19 @@
         <DebugType>portable</DebugType>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <DebugSymbols>true</DebugSymbols>
+        <NoWarn>1701;1702;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj"/>
+        <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="H.Socket.IO" Version="1.1.7.1"/>
+        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="H.Socket.IO" Version="1.1.7.1" />
     </ItemGroup>
 
 </Project>

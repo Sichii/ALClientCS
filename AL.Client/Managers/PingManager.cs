@@ -27,7 +27,7 @@ namespace AL.Client.Managers
         protected override async Task DoWorkAsync()
         {
             var delta = DeltaTime.Value;
-            await Client.PingAsync(PingCount++);
+            await Client.PingAsync(PingCount++).ConfigureAwait(false);
             var jitter = Convert.ToInt32((DeltaTime.Value - delta) / 2);
 
             if (jitter < Offset)

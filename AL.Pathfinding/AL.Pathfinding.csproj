@@ -23,15 +23,20 @@
         <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>1701;1702;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Data\AL.Data.csproj"/>
+        <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OptimizedPriorityQueue" Version="5.1.0"/>
-        <PackageReference Include="Poly2Tri.NetStandard2" Version="1.0.0"/>
+        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="OptimizedPriorityQueue" Version="5.1.0" />
+        <PackageReference Include="Poly2Tri.NetStandard2" Version="1.0.0" />
     </ItemGroup>
 
 </Project>

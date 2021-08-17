@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Extensions;
@@ -22,9 +24,22 @@ namespace AL.SocketClient.Model
     /// <seealso cref="IPingCompensated" />
     /// <seealso cref="IMutable{TMutator}" />
     /// <seealso cref="IEquatable{T}" />
-    public abstract class EntityBase : AttributedObjectBase, IInstancedLocation, IDeltaUpdateable, IPingCompensated, IMutable<Mutation>,
+    public abstract class EntityBase : AttributedObjectBase, IBounding, IRectangle, IInstancedLocation, IDeltaUpdateable, IPingCompensated, IMutable<Mutation>,
         IEquatable<EntityBase>
     {
+        protected BoundingBase BoundingBase = null!;
+        public float Bottom => Y + VerticalNotNorth;
+        public float HalfWidth => BoundingBase.HalfWidth;
+        public float Height => VerticalNorth + VerticalNotNorth;
+        public float Left => X - HalfWidth;
+        public float Right => X + HalfWidth;
+        public float Top => Y - VerticalNorth;
+        public float VerticalNorth => BoundingBase.VerticalNorth;
+        public float VerticalNotNorth => BoundingBase.VerticalNotNorth;
+        public IReadOnlyList<IPoint> Vertices => new IPoint[]
+            { new Point(Left, Top), new Point(Right, Top), new Point(Right, Bottom), new Point(Left, Bottom) };
+        public float Width => HalfWidth * 2;
+
         /// <summary>
         ///     TODO: what's this?
         /// </summary>
@@ -126,9 +141,12 @@ namespace AL.SocketClient.Model
 
         public bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
 
+        public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
+
         public override bool Equals(object? obj) => Equals(obj as EntityBase);
 
         public override int GetHashCode() => Id.GetHashCode();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public void Mutate(Mutation mutator)
         {
@@ -251,5 +269,11 @@ namespace AL.SocketClient.Model
             In = @in;
             Map = map;
         }
+        
+        /// <summary>
+        ///     Sets the bounding base of the entity.
+        /// </summary>
+        /// <param name="boundingBase">The entitie's bounding base.</param>
+        public void SetBoundingBase(BoundingBase boundingBase) => BoundingBase = boundingBase;
     }
 }

@@ -8,7 +8,7 @@ namespace AL.Client.Helpers
     ///     Represents a delay that lasts a varying amount of time. Can be more OR less.
     /// </summary>
     /// <seealso cref="IDisposable" />
-    public class DynamicDelay : IDisposable
+    internal class DynamicDelay : IDisposable
     {
         private readonly SemaphoreSlim Sync;
         private CancellationTokenSource? Canceller;
@@ -17,12 +17,12 @@ namespace AL.Client.Helpers
         /// <summary>
         ///     Initializes a new instance of the <see cref="DynamicDelay" /> class.
         /// </summary>
-        public DynamicDelay() => Sync = new SemaphoreSlim(1, 1);
+        internal DynamicDelay() => Sync = new SemaphoreSlim(1, 1);
 
         /// <summary>
         ///     Another way of cancelling the delay.
         /// </summary>
-        public void Cancel()
+        internal void Cancel()
         {
             try
             {
@@ -48,11 +48,11 @@ namespace AL.Client.Helpers
         ///     Asynchronously sets a new delay by cancelling the previous delay and setting a new one.
         /// </summary>
         /// <param name="delay"></param>
-        public async Task SetDelayAsync(int delay)
+        internal async Task SetDelayAsync(int delay)
         {
             var syncTask = Sync.WaitAsync();
             Cancel();
-            await syncTask;
+            await syncTask.ConfigureAwait(false);
 
             try
             {
@@ -71,14 +71,14 @@ namespace AL.Client.Helpers
         /// </summary>
         /// <param name="initialDelay">The initial delay to wait for.</param>
         /// <param name="token">A token to cancel the delay.</param>
-        public async Task WaitAsync(int initialDelay, CancellationToken? token = null)
+        internal async Task WaitAsync(int initialDelay, CancellationToken? token = null)
         {
             Delay = initialDelay;
             token?.Register(Cancel);
 
             while (true)
             {
-                await Sync.WaitAsync();
+                await Sync.WaitAsync().ConfigureAwait(false);
 
                 try
                 {
@@ -89,7 +89,7 @@ namespace AL.Client.Helpers
 
                     try
                     {
-                        await Task.Delay(Delay.Value, Canceller.Token);
+                        await Task.Delay(Delay.Value, Canceller.Token).ConfigureAwait(false);
                     } catch (TaskCanceledException)
                     {
                         //ignored

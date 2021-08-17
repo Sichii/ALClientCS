@@ -40,7 +40,7 @@ namespace AL.Tests.Pathfinding.Tests
                 .SelectMany(_ => PathFinder.FindPath("main", EndPoints.First(), possibleEnds.Select(end => new Circle(end, 0))));
 
             var i = 0;
-            await foreach (var _ in pathGenerator)
+            await foreach (var _ in pathGenerator.ConfigureAwait(false))
                 i++;
 
             timer.Stop();
@@ -58,7 +58,7 @@ namespace AL.Tests.Pathfinding.Tests
 
             timer.Start();
 
-            var path = await PathFinder.FindPath("main", EndPoints.First(), possibleEnds.Select(end => new Circle(end, 0))).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", EndPoints.First(), possibleEnds.Select(end => new Circle(end, 0))).ToArrayAsync().ConfigureAwait(false);
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -79,7 +79,7 @@ namespace AL.Tests.Pathfinding.Tests
                 .SelectMany(_ => PathFinder.FindPath("main", EndPoints.First(), possibleEnds.Select(end => new Circle(end, 200))));
 
             var i = 0;
-            await foreach (var _ in pathGenerator)
+            await foreach (var _ in pathGenerator.ConfigureAwait(false))
                 i++;
 
             timer.Stop();
@@ -98,7 +98,7 @@ namespace AL.Tests.Pathfinding.Tests
             timer.Start();
 
             var path = await PathFinder.FindPath("main", EndPoints.First(), possibleEnds.Select(end => new Circle(end, 200)))
-                .ToArrayAsync();
+                .ToArrayAsync().ConfigureAwait(false);
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -117,7 +117,7 @@ namespace AL.Tests.Pathfinding.Tests
                 .SelectMany(_ => PathFinder.FindPath("main", StartPoint, EndPoints.Select(end => new Circle(end, 0))));
 
             var i = 0;
-            await foreach (var _ in pathGenerator)
+            await foreach (var _ in pathGenerator.ConfigureAwait(false))
                 i++;
 
             timer.Stop();
@@ -133,7 +133,7 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var path = await PathFinder.FindPath("main", StartPoint, EndPoints.Select(end => new Circle(end, 0))).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", StartPoint, EndPoints.Select(end => new Circle(end, 0))).ToArrayAsync().ConfigureAwait(false);
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -152,7 +152,7 @@ namespace AL.Tests.Pathfinding.Tests
                 .SelectMany(_ => PathFinder.FindPath("main", StartPoint, EndPoints.Select(end => new Circle(end, 200))));
 
             var i = 0;
-            await foreach (var _ in pathGenerator)
+            await foreach (var _ in pathGenerator.ConfigureAwait(false))
                 i++;
 
             timer.Stop();
@@ -168,7 +168,7 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var path = await PathFinder.FindPath("main", StartPoint, EndPoints.Select(end => new Circle(end, 200))).ToArrayAsync();
+            var path = await PathFinder.FindPath("main", StartPoint, EndPoints.Select(end => new Circle(end, 200))).ToArrayAsync().ConfigureAwait(false);
 
             timer.Stop();
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
@@ -182,7 +182,7 @@ namespace AL.Tests.Pathfinding.Tests
             var timer = new Stopwatch();
             timer.Start();
 
-            var route = await PathFinder.FindRoute("jail", "winter_cave").ToArrayAsync();
+            var route = await PathFinder.FindRoute("jail", "winter_cave").ToArrayAsync().ConfigureAwait(false);
 
             timer.Stop();
             Logger.Debug($"Route found from main to winter_cave in {timer.ElapsedMilliseconds}");
@@ -198,16 +198,16 @@ namespace AL.Tests.Pathfinding.Tests
             var startingPoint = new Point(-950, 52);
             var index = 0;
 
-            await foreach (var map in route)
+            await foreach (var map in route.ConfigureAwait(false))
             {
                 var navMesh = PathFinder.GetNavMesh(map.Start.Accessor);
                 var exits = map.Start.Exits.Where(exit => exit.ToLocation.Map.EqualsI(map.End.Accessor)).ToArray();
-                var path = await PathFinder.FindPath(map.Start.Accessor, startingPoint, exits).ToArrayAsync();
+                var path = await PathFinder.FindPath(map.Start.Accessor, startingPoint, exits).ToArrayAsync().ConfigureAwait(false);
 
                 await NavVisualizer.CreateGridImage(navMesh!)
                     .DrawConnections(navMesh!)
                     .DrawPath(navMesh!, path)
-                    .SaveAsync($@"images\sMoveTest{index++}.png");
+                    .SaveAsync($@"images\sMoveTest{index++}.png").ConfigureAwait(false);
 
                 startingPoint = path.Last().End;
 

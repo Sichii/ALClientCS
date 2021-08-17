@@ -24,7 +24,7 @@ namespace AL.Tests
             ALClientSettings.UseDefaultLoggingConfiguration();
             ALClientSettings.SetLogLevel(LogLevel.Debug);
 
-            var lines = await File.ReadAllLinesAsync("TestCredentials.txt");
+            var lines = await File.ReadAllLinesAsync("TestCredentials.txt").ConfigureAwait(false);
 
             if (lines.Length < 2)
                 throw new Exception("Put login info in TestCredentials.txt to perform tests.");
@@ -35,10 +35,10 @@ namespace AL.Tests
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pw))
                 throw new Exception("Put in login info to perform tests");
 
-            APIClient = await ALAPIClient.LoginAsync(email, pw);
+            APIClient = await ALAPIClient.LoginAsync(email, pw).ConfigureAwait(false);
 
-            GameData.Populate(await ALAPIClient.GetGameDataAsync());
-            await PathFinder.InitializeAsync();
+            GameData.Populate(await ALAPIClient.GetGameDataAsync().ConfigureAwait(false));
+            await PathFinder.InitializeAsync().ConfigureAwait(false);
         }
     }
 }

@@ -28,6 +28,7 @@ namespace AL.SocketClient
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private bool Disposed;
         private SocketIoClient Socket;
+        public event EventHandler<WebSocketCloseEventArgs>? Disconnected; 
 
         /// <summary>
         ///     Whether or not this socket is currently connected.
@@ -64,7 +65,7 @@ namespace AL.SocketClient
             Socket.Disconnected += OnDisconnected;
 
             Logger.Info($"Connecting to {host}");
-            await Socket.ConnectAsync(new Uri(host));
+            await Socket.ConnectAsync(new Uri(host)).ConfigureAwait(false);
             Connected = true;
         }
 
@@ -77,16 +78,16 @@ namespace AL.SocketClient
             Connected = false;
 
             foreach ((_, var subList) in Subscriptions)
-                foreach (var sub in await subList.ToArrayAsync())
-                    await sub.DisposeAsync();
+                foreach (var sub in await subList.ToArrayAsync().ConfigureAwait(false))
+                    await sub.DisposeAsync().ConfigureAwait(false);
 
             Subscriptions.Clear();
 
-            await Socket.DisconnectAsync();
+            await Socket.DisconnectAsync().ConfigureAwait(false);
 
             try
             {
-                await Socket.DisposeAsync();
+                await Socket.DisposeAsync().ConfigureAwait(false);
                 Disposed = true;
             } catch
             {
@@ -94,7 +95,7 @@ namespace AL.SocketClient
             }
         }
 
-        public async ValueTask DisposeAsync() => await DisconnectAsync();
+        public async ValueTask DisposeAsync() => await DisconnectAsync().ConfigureAwait(false);
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
@@ -120,7 +121,7 @@ namespace AL.SocketClient
             return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant());
         }
 
-        private async void EventHandler(object? sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value);
+        private async void EventHandler(object? sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value).ConfigureAwait(false);
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">
@@ -154,7 +155,7 @@ RAW JSON:
             try
             {
                 if (Subscriptions.TryGetValue(message.MessageType, out var subscriptionList))
-                    await InvokeAsync(subscriptionList, rawJson, message.Data.CreateReader());
+                    await InvokeAsync(subscriptionList, rawJson, message.Data.CreateReader()).ConfigureAwait(false);
             } catch (Exception ex)
             {
                 var wrapper = new Exception($@"Uncaught exception in handler. See inner exception.
@@ -183,7 +184,7 @@ RAW JSON:
 
                 foreach (var subscription in subscriptions)
                 {
-                    var handled = await subscription.InvokeAsync(dataObject);
+                    var handled = await subscription.InvokeAsync(dataObject).ConfigureAwait(false);
 
                     if (handled)
                         return;
@@ -205,13 +206,25 @@ RAW JSON:
             return AlSocketSubscription<T>.Create(invocationList, callback);
         }
 
-        private void OnDisconnected(object? sender, WebSocketCloseEventArgs e) => DisconnectAsync().GetAwaiter().GetResult();
+        private void OnDisconnected(object? sender, WebSocketCloseEventArgs e)
+        {
+            try
+            {
+                if (Connected)
+                    Disconnected?.Invoke(sender, e);
+            } catch
+            {
+                //ignored
+            }
+            
+            DisconnectAsync().GetAwaiter().GetResult();
+        }
 
 
         public async ValueTask Unsub<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
         {
             if (Subscriptions.TryGetValue(socketMessageType, out var invocationList))
-                await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate)callback);
+                await invocationList.RemoveAllAsync(subscription => subscription.Callback == (Delegate)callback).ConfigureAwait(false);
         }
 
         #region Do Not ReOrder

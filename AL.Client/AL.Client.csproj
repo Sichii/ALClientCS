@@ -26,12 +26,20 @@
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
         <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
+        <NoWarn>1701;1702;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
         <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj" />
         <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
 
 </Project>

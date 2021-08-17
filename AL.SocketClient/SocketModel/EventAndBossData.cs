@@ -4,8 +4,8 @@ using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
 {
-    /// <seealso cref="EventAndBossInfo" />
-    /// <inheritdoc cref="EventAndBossInfo" />
+    /// <inheritdoc cref="AL.SocketClient.Model.EventAndBossInfo" />
+    /// <seealso cref="AL.SocketClient.Model.EventAndBossInfo" />
     [JsonConverter(typeof(EventAndBossDataConverter))]
     public record EventAndBossData : EventAndBossInfo;
 }

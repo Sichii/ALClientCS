@@ -139,8 +139,8 @@ namespace AL.Data.Monsters
 
         /// <summary>
         ///     The chance of this monster to lock onto you. <br />
-        ///     This number is usually 0-1, but can sometimes be higher (10, 100) <br />
-        ///     TODO: Figure out what 10, 100 mean
+        ///     TODO:If Rage = 10: ??? <br/>
+        ///     If Rage = 100: monster will lock onto you when you enter it's spawn boundary <br />
         /// </summary>
         public float Rage { get; init; }
 

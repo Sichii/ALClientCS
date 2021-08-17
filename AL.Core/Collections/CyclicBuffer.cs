@@ -31,7 +31,7 @@ namespace AL.Core.Collections
         /// </summary>
         /// <param name="item">The item.</param>
         /// <returns>
-        ///     <see cref="T" /> <br />
+        ///     <typeparamref name="T"/> <br />
         ///     If an item was replaced, it returns that item.
         /// </returns>
         public T? Add(T? item)

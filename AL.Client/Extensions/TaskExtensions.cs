@@ -10,8 +10,8 @@ namespace AL.Client.Extensions
         {
             var timeoutMS = ALClientSettings.NetworkTimeoutMS;
 
-            if (task == await Task.WhenAny(task, Task.Delay(timeoutMS)))
-                return await task;
+            if (task == await Task.WhenAny(task, Task.Delay(timeoutMS)).ConfigureAwait(false))
+                return await task.ConfigureAwait(false);
 
             throw new TimeoutException($"Network operation timed out after {timeoutMS}ms. ({caller})");
         }
@@ -20,7 +20,7 @@ namespace AL.Client.Extensions
         {
             var timeoutMS = ALClientSettings.NetworkTimeoutMS;
 
-            if (task != await Task.WhenAny(task, Task.Delay(timeoutMS)))
+            if (task != await Task.WhenAny(task, Task.Delay(timeoutMS)).ConfigureAwait(false))
                 throw new TimeoutException($"Network operation timed out after {timeoutMS}ms. ({caller})");
         }
     }

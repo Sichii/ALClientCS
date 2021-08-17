@@ -9,7 +9,7 @@ namespace AL.APIClient.Model
     ///     Represents a merchant that has a stand open somewhere in the world.
     /// </summary>
     /// <seealso cref="ILocation" />
-    public record Merchant : ILocation
+    public record MerchantInfo : ILocation
     {
         /// <summary>
         ///     The level of the merchant.

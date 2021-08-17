@@ -15,7 +15,7 @@ namespace AL.Pathfinding.Model
         public TEdge Start { get; init; } = default!;
 
         /// <summary>
-        ///     <inheritdoc cref="IConnector{TEdge}.Type" />
+        ///     <inheritdoc cref="IConnector.Type" />
         /// </summary>
         public ConnectorType Type
         {

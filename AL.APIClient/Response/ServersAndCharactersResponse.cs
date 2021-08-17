@@ -11,7 +11,7 @@ namespace AL.APIClient.Response
         /// <summary>
         ///     A list of characters this user owns.
         /// </summary>
-        public IReadOnlyList<Character> Characters { get; init; } = new List<Character>();
+        public IReadOnlyList<CharacterInfo> Characters { get; init; } = new List<CharacterInfo>();
 
         /// <summary>
         ///     The amount of mail in this user's inbox.

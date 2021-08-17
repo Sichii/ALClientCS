@@ -168,7 +168,7 @@ namespace AL.Pathfinding.Model
             //get the path (prepend the real start of the path
             var path = await Navigate(startNode.Index, endPointLookup.Keys.Select(node => node.Index), setup, cleanup)
                 .Prepend(new EdgeConnector<Point> { Start = (Point)start, End = startNode.Edge })
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
 
             //add the real end of the path based on the last node found
             var last = path.Last().End;

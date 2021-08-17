@@ -139,11 +139,11 @@ namespace AL.SocketClient.Model
         public string Name => Id;
 
         public virtual bool Equals(Player? other) =>
-            other is not null && (ContinuousId == other.ContinuousId) && base.Equals(other);
+            other is not null && base.Equals(other);
 
         public override bool Equals(object? obj) => Equals(obj as Player);
 
-        public override int GetHashCode() => HashCode.Combine(ContinuousId.GetHashCode(), base.GetHashCode());
+        public override int GetHashCode() => base.GetHashCode();
 
         public void Update(QueuedActionInfo queuedActionInfo) => QueuedActions = queuedActionInfo;
 

@@ -52,7 +52,8 @@ namespace AL.SocketClient.SocketModel
         /// <summary>
         ///     The item you calculated chance for.
         /// </summary>
-        public ChanceItem? Item { get; init; } = null!;
+        [JsonConverter(typeof(StringOrObjectConverter<ResponseItem>), nameof(ResponseItem.Name))]
+        public ResponseItem? Item { get; init; } = null!;
 
         /// <summary>
         ///     The name of the monster that defeated the player.
@@ -61,7 +62,7 @@ namespace AL.SocketClient.SocketModel
         public string? MonsterName { get; set; }
         /// <summary>
         ///     The name of the character already in the bank. <br />
-        ///     The name of the item bought or crafted <br />
+        ///     The name of the item bought, crafted, or sent <br />
         ///     The name of the condition expiring <br />
         ///     The name of the person you sent gold or items to <br />
         ///     The name of the skill that succeeded or failed <br />

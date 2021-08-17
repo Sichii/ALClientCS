@@ -13,7 +13,7 @@ namespace AL.Tests.APIClient.Tests
         [TestMethod]
         public async Task GetMailTest()
         {
-            var result = await APIClient.GetMailAsync().ToListAsync();
+            var result = await APIClient.GetMailAsync().ToListAsync().ConfigureAwait(false);
 
             Assert.IsNotNull(result);
         }
@@ -21,7 +21,7 @@ namespace AL.Tests.APIClient.Tests
         [TestMethod]
         public async Task GetMerchantTest()
         {
-            var result = await APIClient.GetMerchantsAsync().ToListAsync();
+            var result = await APIClient.GetMerchantsAsync().ToListAsync().ConfigureAwait(false);
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Any());
@@ -33,7 +33,7 @@ namespace AL.Tests.APIClient.Tests
         [TestMethod]
         public async Task UpdateServersAndCharactersTest()
         {
-            var serversAndCharacters = await APIClient.GetServersAndCharactersAsync();
+            var serversAndCharacters = await APIClient.GetServersAndCharactersAsync().ConfigureAwait(false);
 
             Assert.IsNotNull(serversAndCharacters.Servers);
             Assert.IsNotNull(serversAndCharacters.Characters);

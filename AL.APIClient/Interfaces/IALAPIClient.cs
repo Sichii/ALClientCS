@@ -27,8 +27,8 @@ namespace AL.APIClient.Interfaces
         /// <summary>
         ///     Asynchronously fetches merchants from the server.
         /// </summary>
-        /// <returns><see cref="IAsyncEnumerable{T}" /> of <see cref="Merchant" /></returns>
-        IAsyncEnumerable<Merchant> GetMerchantsAsync();
+        /// <returns><see cref="IAsyncEnumerable{T}" /> of <see cref="MerchantInfo" /></returns>
+        IAsyncEnumerable<MerchantInfo> GetMerchantsAsync();
 
         /// <summary>
         ///     Asynchronously fetches servers and characters from the API.

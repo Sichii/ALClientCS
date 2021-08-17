@@ -77,7 +77,7 @@ namespace AL.MemberGenerator
         {
             Console.WriteLine("Generating data members");
             
-            var gameData = await ALAPIClient.GetGameDataAsync();
+            var gameData = await ALAPIClient.GetGameDataAsync().ConfigureAwait(false);
             var jObj = JObject.Parse(gameData);
             
             if (!Directory.Exists(FOLDER_NAME))
@@ -108,8 +108,8 @@ namespace AL.MemberGenerator
                         builder.AppendLine(GLOBAL_SUFFIX);
                     }
 
-                    await File.WriteAllTextAsync(fileName, builder.ToString().Trim());
-                });
+                    await File.WriteAllTextAsync(fileName, builder.ToString().Trim()).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
     }
 }
