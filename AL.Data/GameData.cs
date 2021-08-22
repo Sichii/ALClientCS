@@ -143,6 +143,7 @@ namespace AL.Data
         public static void BuildBoundingBases()
         {
             Log.Debug("Building monster bounding bases");
+
             foreach ((var accessor, var monster) in Monsters.DistinctBy(kvp => kvp.Value.Accessor))
             {
                 var dimensions = Dimensions[accessor] ?? Array.Empty<float>();
@@ -220,6 +221,7 @@ namespace AL.Data
                     if (!string.IsNullOrEmpty(item.NPC))
                     {
                         var npc = NPCs[item.NPC];
+
                         if (npc != null)
                         {
                             item.ObtainableFromNPC = NPCs[item.NPC];
@@ -248,6 +250,7 @@ namespace AL.Data
                             {
                                 item.ObtainableFromNPC = npc;
                                 item.ObtainType = ObtainType.Exchange;
+
                                 break;
                             }
                 }
@@ -344,7 +347,6 @@ namespace AL.Data
                 else
                     recipe.NPC = craftsman;
 
-
             foreach (var recipe in Dismantle.Values)
                 if (recipe.Quest.HasValue && (recipe.Quest.Value != Quest.None))
                     recipe.NPC = Quests[recipe.Quest.Value];
@@ -353,6 +355,7 @@ namespace AL.Data
         private static void FixLines()
         {
             Log.Debug("Merging overlapped lines");
+
             foreach (var mapGeometry in Geometry.Values.DistinctBy(mapGeometry => mapGeometry.Accessor))
             {
                 mapGeometry.VerticalLines = LineHelper.FixLines(mapGeometry.VerticalLines, true);

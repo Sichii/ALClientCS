@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using AL.APIClient.Model;
-using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
@@ -33,10 +31,10 @@ namespace AL.Tests.Client.Tests
             Assert.IsTrue(elapsed > 5000);
         }
 
-       [TestMethod]
-       public void ShallowMergeIntoTest()
-       {
-          const string CHARACTER_DATA = @"{
+        [TestMethod]
+        public void ShallowMergeIntoTest()
+        {
+            const string CHARACTER_DATA = @"{
    ""hp"":7826,
    ""max_hp"":7826,
    ""mp"":2020,
@@ -286,26 +284,26 @@ namespace AL.Tests.Client.Tests
    ""cc"":1
 }";
 
-          var emptyCharacters = Enumerable.Range(0, 100000).Select(_ => new Character()).ToArray();
-          var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
+            var emptyCharacters = Enumerable.Range(0, 100000).Select(_ => new Character()).ToArray();
+            var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
 
-          var timer = Stopwatch.StartNew();
-          var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;
+            var timer = Stopwatch.StartNew();
+            var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;
 
-          foreach (var emptyChar in emptyCharacters)
-          {
-             emptyChar.SetBoundingBase(defaultBase);
-             ShallowMerge<Character>.Merge(obj!, emptyChar);
-             Assert.AreEqual(obj, emptyChar);
-             Assert.AreEqual(emptyChar.HalfWidth, defaultBase.HalfWidth);
-             Assert.AreEqual(emptyChar.VerticalNorth, defaultBase.VerticalNorth);
-             Assert.AreEqual(emptyChar.VerticalNotNorth, defaultBase.VerticalNotNorth);
-          }
+            foreach (var emptyChar in emptyCharacters)
+            {
+                emptyChar.SetBoundingBase(defaultBase);
+                ShallowMerge<Character>.Merge(obj!, emptyChar);
+                Assert.AreEqual(obj, emptyChar);
+                Assert.AreEqual(emptyChar.HalfWidth, defaultBase.HalfWidth);
+                Assert.AreEqual(emptyChar.VerticalNorth, defaultBase.VerticalNorth);
+                Assert.AreEqual(emptyChar.VerticalNotNorth, defaultBase.VerticalNotNorth);
+            }
 
-          timer.Stop();
-          var elapsed = timer.ElapsedMilliseconds;
-          //this takes like 60ms on my machine. if this goes above 500 on any machine, there must be a problem.
-          Assert.IsTrue(elapsed < 500);
-       }
+            timer.Stop();
+            var elapsed = timer.ElapsedMilliseconds;
+            //this takes like 60ms on my machine. if this goes above 500 on any machine, there must be a problem.
+            Assert.IsTrue(elapsed < 500);
+        }
     }
 }

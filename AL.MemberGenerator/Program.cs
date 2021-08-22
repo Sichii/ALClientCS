@@ -26,9 +26,9 @@ namespace AL.MemberGenerator
 {
     internal class Program
     {
+        private const string FOLDER_NAME = "dataMembers";
         private const string GLOBAL_PREFIX = "public ";
         private const string GLOBAL_SUFFIX = " { get; init; } = null!;";
-        private const string FOLDER_NAME = "dataMembers";
         private static readonly Dictionary<string, string> Replacements = new(StringComparer.OrdinalIgnoreCase)
         {
             { "licenced", "licensed" },
@@ -76,10 +76,10 @@ namespace AL.MemberGenerator
         private static async Task Main()
         {
             Console.WriteLine("Generating data members");
-            
+
             var gameData = await ALAPIClient.GetGameDataAsync().ConfigureAwait(false);
             var jObj = JObject.Parse(gameData);
-            
+
             if (!Directory.Exists(FOLDER_NAME))
                 Directory.CreateDirectory(FOLDER_NAME);
 
@@ -88,6 +88,7 @@ namespace AL.MemberGenerator
                 {
                     var builder = new StringBuilder();
                     var fileName = $@"{FOLDER_NAME}\{gDataProperty.Name}.txt";
+
                     if (!TypeStrings.TryGetValue(gDataProperty.Name, out var typeString))
                         typeString = string.Empty;
 
@@ -109,7 +110,8 @@ namespace AL.MemberGenerator
                     }
 
                     await File.WriteAllTextAsync(fileName, builder.ToString().Trim()).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                })
+                .ConfigureAwait(false);
         }
     }
 }

@@ -28,12 +28,12 @@ namespace AL.SocketClient
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private bool Disposed;
         private SocketIoClient Socket;
-        public event EventHandler<WebSocketCloseEventArgs>? Disconnected; 
 
         /// <summary>
         ///     Whether or not this socket is currently connected.
         /// </summary>
         public bool Connected { get; private set; }
+        public event EventHandler<WebSocketCloseEventArgs>? Disconnected;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -179,6 +179,7 @@ RAW JSON:
                 if (dataObject == null)
                 {
                     Logger.Error($"Failed to deserialize message. {Environment.NewLine}{raw}");
+
                     return;
                 }
 
@@ -193,7 +194,6 @@ RAW JSON:
 
             return invocationList.AssertAsync(InnerInvokeAsync);
         }
-
 
         public IAsyncDisposable On<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
         {
@@ -216,10 +216,9 @@ RAW JSON:
             {
                 //ignored
             }
-            
+
             DisconnectAsync().GetAwaiter().GetResult();
         }
-
 
         public async ValueTask Unsub<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
         {
@@ -228,7 +227,6 @@ RAW JSON:
         }
 
         #region Do Not ReOrder
-
         /// <summary>
         ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing emits and deserializing messages.
         ///     <br />
@@ -244,7 +242,6 @@ RAW JSON:
         ///     Caching an instance of this helps with performance.
         /// </summary>
         public static JsonSerializer JsonSerializer { get; set; } = JsonSerializer.CreateDefault(JsonSerializerSettings);
-
         #endregion
     }
 }

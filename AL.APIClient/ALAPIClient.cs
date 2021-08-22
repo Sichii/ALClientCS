@@ -72,6 +72,7 @@ namespace AL.APIClient
             var more = true;
 
             Logger.Info("Fetching mail");
+
             while (more)
             {
                 var arguments = result == null ? null : new { result.Cursor };
@@ -91,6 +92,7 @@ namespace AL.APIClient
             Logger.Info("Fetching merchants");
             var request = new APIRequest(Method.POST, APIMethod.PullMerchants, null, Auth);
             var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
+
             (var merchantList, _) = JsonConvert.DeserializeObject<(MerchantList, string)>(response.Content,
                 new ArrayToTupleConverter<MerchantList, string>());
 
@@ -114,6 +116,7 @@ namespace AL.APIClient
                 ServersAndCharacters = JsonConvert.DeserializeObject<ServersAndCharactersResponse[]>(response.Content)![0];
 
                 LastUpdate = DateTime.UtcNow;
+
                 return ServersAndCharacters;
             } finally
             {
@@ -149,13 +152,14 @@ namespace AL.APIClient
             };
 
             Logger.Info($"Logging in as {email}:{password}");
+
             var request = new APIRequest(Method.POST, APIMethod.SignupOrLogin, new
             {
                 email,
                 password,
                 only_login = true
             });
-            
+
             var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false); //.WithTimeout(60000);
             var setCookieHeader = response.Headers.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
             var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content);
@@ -183,7 +187,6 @@ namespace AL.APIClient
             var request = new APIRequest(Method.POST, APIMethod.ReadMail, new { mail = mail.Id }, Auth);
             await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
         }
-
 
         public async Task RenewAuth()
         {

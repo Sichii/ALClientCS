@@ -146,6 +146,10 @@ namespace AL.SocketClient.Definitions
         NonFriendlyTarget,
         [EnumMember(Value = "op_unavailable")]
         OperationUnavailable,
+        [EnumMember(Value = "no_item")]
+        NoItem,
+        [EnumMember(Value = "log_gold_not_enough")]
+        NotEnoughGold
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

@@ -46,6 +46,7 @@ namespace AL.Client
             NLogFactoryAdapter.ConfigureLogging();
 
             var config = new LoggingConfiguration();
+
             var fileTarget = new FileTarget("ALClientCSFileTarget")
             {
                 Layout = new SimpleLayout(@"[${date:format=HH\:mm\:ss.fff}][${level:uppercase=true}][${logger:shortName=true}] ${message}"),

@@ -109,7 +109,6 @@ namespace AL.Pathfinding.Model
         }
 
         #region Utility
-
         private GraphNode<Point>? CreateTownNode()
         {
             var spawn = Map.Spawns.Count > 0 ? Map.Spawns[0] : default;
@@ -119,6 +118,7 @@ namespace AL.Pathfinding.Model
 
             var spawnPoint = new Point(spawn.X + XOffset, spawn.Y + YOffset);
             var node = new GraphNode<Point>(spawnPoint, Index++);
+
             var townTriangle = Triangles.OrderBy(kvp => kvp.Key.Distance(spawnPoint))
                 .Select(kvp => kvp.Value)
                 .FirstOrDefault(triangle => triangle.ContainsPoint(spawnPoint.X, spawnPoint.Y));
@@ -137,13 +137,12 @@ namespace AL.Pathfinding.Model
             }
 
             NodeDic.Add(node.Edge, node);
+
             return node;
         }
-
         #endregion
 
         #region Polygons
-
         private void FillWalls()
         {
             //for each point in each wall rect, set that point to a wall in the grid
@@ -199,6 +198,7 @@ namespace AL.Pathfinding.Model
                 //pad the bottom with the top part of the bounding base (characters will walk UP into the bottom of the wall)
                 var tl = new Point(Math.Max(x - halfWidth, 0), Math.Max(startY - verticalNotNorth, 0));
                 var br = new Point(Math.Min(x + halfWidth, Width), Math.Min(endY + verticalNorth, Height));
+
                 yield return new Rectangle(tl, br);
             }
 
@@ -213,6 +213,7 @@ namespace AL.Pathfinding.Model
 
                 var tl = new Point(Math.Max(startX - halfWidth, 0), Math.Max(y - verticalNotNorth, 0));
                 var br = new Point(Math.Min(endX + halfWidth, Width), Math.Min(y + verticalNorth, Height));
+
                 yield return new Rectangle(tl, br);
             }
         }
@@ -235,12 +236,14 @@ namespace AL.Pathfinding.Model
                     {
                         existing.AddHole(polygon);
                         isHole = true;
+
                         break;
                         //check if any existing polygons are inside of the new polygon    
                     } else if (polygon.ContainsPoint((float)existing.Points[0].X, (float)existing.Points[0].Y))
                     {
                         polygons.Remove(existing);
                         polygon.AddHole(existing);
+
                         break;
                     }
 
@@ -256,11 +259,9 @@ namespace AL.Pathfinding.Model
 
             return polySet;
         }
-
         #endregion
 
         #region Flood
-
         private IEnumerable<Point> FloodFindVertices(IPoint start)
         {
             var x = Convert.ToInt32(start.X + XOffset);
@@ -313,41 +314,49 @@ namespace AL.Pathfinding.Model
             var signature = 1;
             // Left
             ix--;
+
             if (ix >= 0)
                 FillIndex(ix, iy, ref signature);
 
             // Top Left
             iy -= 1;
+
             if ((ix >= 0) && (iy >= 0))
                 FillIndex(ix, iy, ref signature);
 
             // Top
             ix += 1;
+
             if (iy >= 0)
                 FillIndex(ix, iy, ref signature);
 
             // Top Right
             ix += 1;
+
             if ((ix <= Width) && (iy >= 0))
                 FillIndex(ix, iy, ref signature);
 
             // Right
             iy += 1;
+
             if (ix <= Width)
                 FillIndex(ix, iy, ref signature);
 
             // Bottom Right
             iy += 1;
+
             if ((iy <= Height) && (ix <= Width))
                 FillIndex(ix, iy, ref signature);
 
             // Bottom
             ix -= 1;
+
             if (iy <= Height)
                 FillIndex(ix, iy, ref signature);
 
             // Bottom Left
             ix -= 1;
+
             if ((ix >= 0) && (iy <= Height))
                 FillIndex(ix, iy, ref signature);
 
@@ -362,18 +371,23 @@ namespace AL.Pathfinding.Model
                     return false;
                 case 1 << 1: //1 wall next to it
                     PointMap[cx, cy] = PointType.Vertex;
+
                     return true;
                 case 1 << 2: //2 walls next to it
                     PointMap[cx, cy] = PointType.Inline;
+
                     return false;
                 case 1 << 3: //3 walls next to it
                     PointMap[cx, cy] = PointType.Inline;
+
                     return false;
                 case 1 << 4: //4 walls next to it
                     PointMap[cx, cy] = PointType.Vertex;
+
                     return true;
                 case 1 << 5: //5 walls next to it
                     PointMap[cx, cy] = PointType.Vertex;
+
                     return true;
                 default:
                     throw new Exception("Found a point with an unexpected number of walls around it.");
@@ -403,6 +417,7 @@ namespace AL.Pathfinding.Model
                     if (type.HasFlag(PointType.Vertex))
                     {
                         vertices.Remove(point);
+
                         return true;
                     }
                 }
@@ -411,6 +426,7 @@ namespace AL.Pathfinding.Model
             }
 
             (var sx, var sy) = vertices.First();
+
             if (TryDiscoverVertex(Convert.ToInt32(sx), Convert.ToInt32(sy), out var vertex))
                 yield return vertex;
 
@@ -423,29 +439,32 @@ namespace AL.Pathfinding.Model
                 // Left
                 var cx = ix - 1;
                 var cy = iy;
+
                 if ((cx >= 0) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Top
                 cx = ix;
                 cy = iy - 1;
+
                 if ((cy >= 0) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Right
                 cx = ix + 1;
                 cy = iy;
+
                 if ((cx <= Width) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
 
                 // Bot
                 cx = ix;
                 cy = iy + 1;
+
                 if ((cy <= Height) && TryDiscoverVertex(cx, cy, out vertex))
                     yield return vertex;
             }
         }
-
         #endregion
     }
 }

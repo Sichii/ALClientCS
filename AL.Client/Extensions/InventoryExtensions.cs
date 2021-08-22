@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
-using AL.Core.Definitions;
 using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 
@@ -83,8 +82,8 @@ namespace AL.Client.Extensions
         /// <summary>
         ///     Finds the first item in the inventory that is not null, and meets the predicate conditions.
         /// </summary>
-        /// <param name="inventory">The character's <see cref="Inventory"/>.</param>
-        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem"/>.</param>
+        /// <param name="inventory">The character's <see cref="Inventory" />.</param>
+        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem" />.</param>
         /// <returns>
         ///     <see cref="IndexedInventoryItem" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
@@ -95,10 +94,10 @@ namespace AL.Client.Extensions
         {
             if (inventory == null)
                 throw new ArgumentNullException(nameof(inventory));
-            
+
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
-            
+
             var index = inventory.FindIndex(item => (item != null) && predicate(item));
 
             if (index == -1)

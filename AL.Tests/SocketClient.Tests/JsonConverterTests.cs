@@ -585,6 +585,7 @@ namespace AL.Tests.SocketClient.Tests
         public void DeserializeGameResponseDataTest()
         {
             const string STRING_GAME_RESPONSE_DATA = @"""ex_condition""";
+
             const string GAME_RESPONSE_DATA = @"{
    ""response"":""ex_condition"",
    ""name"":""charging""

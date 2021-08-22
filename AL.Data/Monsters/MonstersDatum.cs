@@ -5,11 +5,11 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Monsters
 {
-       /// <summary>
-       ///     <inheritdoc />
-       /// </summary>
-       /// <seealso cref="DatumBase{T}" />
-       [JsonObject(ItemConverterType = typeof(AttributedObjectConverter<GMonster>))]
+    /// <summary>
+    ///     <inheritdoc />
+    /// </summary>
+    /// <seealso cref="DatumBase{T}" />
+    [JsonObject(ItemConverterType = typeof(AttributedObjectConverter<GMonster>))]
     public class MonstersDatum : DatumBase<GMonster>
     {
         public GMonster A1 { get; init; } = null!;
@@ -132,7 +132,6 @@ namespace AL.Data.Monsters
         public GMonster Xmagex { get; init; } = null!;
         public GMonster Xscorpion { get; init; } = null!;
         public GMonster Zapper0 { get; init; } = null!;
-
 
         internal override void BuildLookupTable()
         {

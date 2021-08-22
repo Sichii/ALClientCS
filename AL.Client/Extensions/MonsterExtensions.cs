@@ -1,6 +1,4 @@
 using System;
-using AL.Client.Helpers;
-using AL.Core.Geometry;
 using AL.Data;
 using AL.Data.Monsters;
 using AL.SocketClient.Model;

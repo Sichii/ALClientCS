@@ -56,6 +56,7 @@ namespace AL.Pathfinding
                     if (exitMap == null)
                     {
                         var mapName = maps.FirstOrDefault(kvp => kvp.Value == map).Key;
+
                         Logger.Warn(
                             $"{mapName} has an exit that points to an unknown map.{Environment.NewLine}{exit}{Environment.NewLine}");
 
@@ -67,6 +68,7 @@ namespace AL.Pathfinding
                     else
                     {
                         var mapName = maps.FirstOrDefault(kvp => kvp.Value == map).Key;
+
                         Logger.Warn(
                             $"{mapName} has an exit that points to an invalid map.{Environment.NewLine}{exit}{Environment.NewLine}");
                     }
@@ -162,6 +164,7 @@ namespace AL.Pathfinding
                 //find the closest end from the start
                 var bestDistance = float.MaxValue;
                 ICircle closestEnd = default!;
+
                 foreach (var endPoint in endPoints)
                 {
                     var currentDistance = start.Distance(endPoint) - endPoint.Radius;
@@ -209,6 +212,7 @@ namespace AL.Pathfinding
                 await foreach (var connector in path.ConfigureAwait(false))
                 {
                     var edgeConnector = (EdgeConnector<Point>)connector;
+
                     var unOffset = edgeConnector with
                     {
                         Start = navMesh.RemoveOffset(edgeConnector.Start),
@@ -303,19 +307,20 @@ namespace AL.Pathfinding
             Logger.Info("Preparing map navigation");
 
             await Task.WhenAll(maps.AsParallel(new ParallelLinqOptions
-                {
-                    MaxDegreeOfParallelism = Convert.ToInt32(Environment.ProcessorCount * 1.5),
-                    ExecutionMode = ParallelExecutionMode.ForceParallelism,
-                    MergeOptions = ParallelMergeOptions.NotBuffered
-                })
-                .Select(async kvp =>
-                {
-                    (var name, var map) = kvp;
-                    var navMesh = TryBuildNavMesh(name, map);
+                    {
+                        MaxDegreeOfParallelism = Convert.ToInt32(Environment.ProcessorCount * 1.5),
+                        ExecutionMode = ParallelExecutionMode.ForceParallelism,
+                        MergeOptions = ParallelMergeOptions.NotBuffered
+                    })
+                    .Select(async kvp =>
+                    {
+                        (var name, var map) = kvp;
+                        var navMesh = TryBuildNavMesh(name, map);
 
-                    if (navMesh != null)
-                        await navMeshes.AddAsync(map, navMesh).ConfigureAwait(false);
-                })).ConfigureAwait(false);
+                        if (navMesh != null)
+                            await navMeshes.AddAsync(map, navMesh).ConfigureAwait(false);
+                    }))
+                .ConfigureAwait(false);
 
             await foreach ((var map, var value) in navMeshes.ConfigureAwait(false))
                 NavMeshes.Add(map.Key, value);
@@ -353,12 +358,14 @@ namespace AL.Pathfinding
             if ((geometry == null) || (geometry.VerticalLines.Count == 0) || (geometry.HorizontalLines.Count == 0))
             {
                 Logger.Debug($"Ignored {name}");
+
                 return null;
             }
 
             var generator = new NavMeshBuilder(map, geometry);
             var navMesh = generator.Build();
             Logger.Debug($"Prepared {name}");
+
             return navMesh;
         }
     }

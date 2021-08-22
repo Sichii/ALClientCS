@@ -33,7 +33,6 @@ using AL.SocketClient.SocketModel;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Chaos.Core.Extensions;
 using Common.Logging;
-using Character = AL.SocketClient.Model.Character;
 using Condition = AL.Core.Definitions.Condition;
 using CONSTANTS = AL.Client.Definitions.CONSTANTS;
 using CORE_CONSTANTS = AL.Core.Definitions.CONSTANTS;
@@ -65,11 +64,6 @@ namespace AL.Client
         ///     { MonsterName : { MapAccessor: GoldValue } }
         /// </summary>
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
-
-        /// <summary>
-        ///     This will be populated upon connecting. The character this client is for.
-        /// </summary>
-        public Character Character { get; private set; }
 
         /// <summary>
         ///     This will be populated upon connecting. The bosses and events currently active on this <see cref="Server" />.
@@ -106,6 +100,11 @@ namespace AL.Client
         ///     The connection to the Adventure.Land API. Also contains information about the currently logged in user.
         /// </summary>
         public IALAPIClient API { get; }
+
+        /// <summary>
+        ///     This will be populated upon connecting. The character this client is for.
+        /// </summary>
+        public Character Character { get; }
 
         /// <summary>
         ///     When a chest drops or is opened, it will be populated or removed from this collection.
@@ -169,7 +168,7 @@ namespace AL.Client
             Chests = new AwaitableDictionary<string, DropData>();
             Socket = socketClient ?? throw new ArgumentNullException(nameof(socketClient));
             Server = null!;
-            
+
             Character = new Character();
             Character.SetBoundingBase(PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE);
 
@@ -180,7 +179,6 @@ namespace AL.Client
         public async ValueTask DisposeAsync() => await DisconnectAsync().ConfigureAwait(false);
 
         #region Checks
-
         /// <summary>
         ///     Determines if you should be able to buy an item.
         /// </summary>
@@ -370,6 +368,7 @@ namespace AL.Client
                 }
 
             bool isAttack;
+
             if ((isAttack = skillName.EqualsI("attack")) || skillName.EqualsI("heal"))
             {
                 if (Character.MP < Character.MPCost)
@@ -400,6 +399,7 @@ namespace AL.Client
             if (data.RequiredSlotItems != null)
             {
                 var equipped = false;
+
                 foreach ((var equipmentSlot, var itemName) in data.RequiredSlotItems)
                 {
                     var slotItem = Character.Slots[equipmentSlot.ToSlot()];
@@ -407,6 +407,7 @@ namespace AL.Client
                     if ((slotItem != null) && slotItem.Name.EqualsI(itemName))
                     {
                         equipped = true;
+
                         break;
                     }
                 }
@@ -445,13 +446,52 @@ namespace AL.Client
             if (!string.IsNullOrEmpty(data.SharedCooldown))
                 skillName = data.SharedCooldown;
 
-            return !await Cooldowns.TryGetValueAsync(skillName, out var cooldownTask).ConfigureAwait(false) || !(await cooldownTask.ConfigureAwait(false)).CanUse();
+            return !await Cooldowns.TryGetValueAsync(skillName, out var cooldownTask).ConfigureAwait(false)
+                   || !(await cooldownTask.ConfigureAwait(false)).CanUse();
         }
 
+        /// <summary>
+        ///     Checks if a target is within range of a skill.
+        /// </summary>
+        /// <param name="skillName">The name of the skill.</param>
+        /// <param name="target">A target able to have edge-to-edge distance calculated.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the target is within range of the skill, otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">skillName</exception>
+        /// <exception cref="ArgumentNullException">target</exception>
+        public bool WithinRangeOfSkill(string skillName, IRectangle target)
+        {
+            if (string.IsNullOrEmpty(skillName))
+                throw new ArgumentNullException(nameof(skillName));
+
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+
+            var data = GameData.Skills[skillName];
+
+            if (data == null)
+                return false;
+
+            if (data.AffectsParty)
+                return true;
+
+            var range = data.Range;
+
+            if (range == 0)
+                range = Character.Range;
+
+            if (data.RangeMultiplier.HasValue)
+                range *= data.RangeMultiplier.Value;
+
+            range += data.RangeBonus;
+
+            return Character.Distance(target) < range;
+        }
         #endregion
 
         #region Connection stuff
-
         /// <summary>
         ///     Asynchronously connects to an Adventure.Land socket server.
         /// </summary>
@@ -467,6 +507,7 @@ namespace AL.Client
 
             var serversAndCharacters = await API.GetServersAndCharactersAsync().ConfigureAwait(false);
             var charInfo = serversAndCharacters.Characters.FirstOrDefault(character => character.Name.EqualsI(Name));
+
             var serverInfo = serversAndCharacters.Servers.FirstOrDefault(server =>
                 (server.Region == region) && (server.Identifier == identifier));
 
@@ -484,38 +525,37 @@ namespace AL.Client
 
                 var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                var gameErrorCallback = Socket.On<GameErrorData>(ALSocketMessageType.GameError,
-                    data => Task.FromResult(source.TrySetResult(data.Message)));
+                await using var gameErrorCallback = Socket.On<GameErrorData>(ALSocketMessageType.GameError,
+                        data => Task.FromResult(source.TrySetResult(data.Message)))
+                    .ConfigureAwait(false);
 
-                await using var __ = gameErrorCallback.ConfigureAwait(false);
-
-                var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, async _ =>
-                {
-                    await Socket.Emit(ALSocketEmitType.Auth, new
+                await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, async _ =>
                     {
-                        auth = API.Auth.AuthKey,
-                        character = Identifier,
-                        height = 1080,
-                        no_graphics = "true",
-                        no_html = "1",
-                        passphrase = string.Empty,
-                        scale = 2,
-                        user = API.Auth.UserID.ToString(),
-                        width = 1920
-                    }).ConfigureAwait(false);
+                        await Socket.Emit(ALSocketEmitType.Auth, new
+                            {
+                                auth = API.Auth.AuthKey,
+                                character = Identifier,
+                                height = 1080,
+                                no_graphics = "true",
+                                no_html = "1",
+                                passphrase = string.Empty,
+                                scale = 2,
+                                user = API.Auth.UserID.ToString(),
+                                width = 1920
+                            })
+                            .ConfigureAwait(false);
 
-                    return false;
-                });
+                        return false;
+                    })
+                    .ConfigureAwait(false);
 
-                await using var ___ = welcomeCallback.ConfigureAwait(false);
+                await using var startCallback = Socket.On<StartData>(ALSocketMessageType.Start, data =>
+                    {
+                        source.TrySetResult(data);
 
-                var startCallback = Socket.On<StartData>(ALSocketMessageType.Start, data =>
-                {
-                    source.TrySetResult(data);
-                    return TaskCache.FALSE;
-                });
-
-                await using var ____ = startCallback.ConfigureAwait(false);
+                        return TaskCache.FALSE;
+                    })
+                    .ConfigureAwait(false);
 
                 await Socket.ConnectAsync(Server).ConfigureAwait(false);
 
@@ -546,11 +586,9 @@ namespace AL.Client
                 Sync.Release();
             }
         }
-
         #endregion
 
         #region Actions
-
         /// <summary>
         ///     Asynchronously accepts a magiport offer.
         /// </summary>
@@ -567,15 +605,15 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, _ =>
-            {
-                source.TrySetResult(Expectation.Success);
-                return TaskCache.FALSE;
-            });
+            await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, _ =>
+                {
+                    source.TrySetResult(Expectation.Success);
 
-            await using var __ = newMapCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Magiport, new { name = @from }).ConfigureAwait(false);
+            await Socket.Emit(ALSocketEmitType.Magiport, new { name = from }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -597,36 +635,34 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, data =>
-            {
-                if (data.MemberNames.ContainsI(from))
-                    source.TrySetResult(Expectation.Success);
+            await using var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, data =>
+                {
+                    if (data.MemberNames.ContainsI(from))
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            });
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = partyUpdateCallback.ConfigureAwait(false);
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+                {
+                    var result = false;
 
-            var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
-            {
-                var result = false;
-
-                if (data.EqualsI("invitation expired") || data.EqualsI($"{from} is not found"))
-                    result = source.TrySetResult($"Failed to accept party invite. ({data})");
-                else if (data.EqualsI("already partying"))
-                    if (Party.Members.Count == 0)
+                    if (data.EqualsI("invitation expired") || data.EqualsI($"{from} is not found"))
                         result = source.TrySetResult($"Failed to accept party invite. ({data})");
-                    else
-                        result = Party.MemberNames.ContainsI(from)
-                            ? source.TrySetResult(Expectation.Success)
-                            : source.TrySetResult($"Failed to accept party invite. ({data})");
+                    else if (data.EqualsI("already partying"))
+                        if (Party.Members.Count == 0)
+                            result = source.TrySetResult($"Failed to accept party invite. ({data})");
+                        else
+                            result = Party.MemberNames.ContainsI(from)
+                                ? source.TrySetResult(Expectation.Success)
+                                : source.TrySetResult($"Failed to accept party invite. ({data})");
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var __ = gameLogCallback.ConfigureAwait(false);
-
-            await Socket.Emit(ALSocketEmitType.Party, new { @event = "accept", name = @from }).ConfigureAwait(false);
+            await Socket.Emit(ALSocketEmitType.Party, new { @event = "accept", name = from }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -648,36 +684,34 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, data =>
-            {
-                if (data.MemberNames.ContainsI(from))
-                    source.TrySetResult(Expectation.Success);
+            await using var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, data =>
+                {
+                    if (data.MemberNames.ContainsI(from))
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            });
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = partyUpdateCallback.ConfigureAwait(false);
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+                {
+                    var result = false;
 
-            var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
-            {
-                var result = false;
+                    if (data.EqualsI("request expired") || data.EqualsI($"Failed to accept party request. ({data})"))
+                        result = source.TrySetResult(data);
+                    else if (data.EqualsI("already partying"))
+                        if (Party.Members.Count == 0)
+                            result = source.TrySetResult($"Failed to accept party request. ({data})");
+                        else
+                            result = Party.MemberNames.ContainsI(from)
+                                ? source.TrySetResult(Expectation.Success)
+                                : source.TrySetResult($"Failed to accept party request. ({data})");
 
-                if (data.EqualsI("request expired") || data.EqualsI($"Failed to accept party request. ({data})"))
-                    result = source.TrySetResult(data);
-                else if (data.EqualsI("already partying"))
-                    if (Party.Members.Count == 0)
-                        result = source.TrySetResult($"Failed to accept party request. ({data})");
-                    else
-                        result = Party.MemberNames.ContainsI(from)
-                            ? source.TrySetResult(Expectation.Success)
-                            : source.TrySetResult($"Failed to accept party request. ({data})");
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-                return Task.FromResult(result);
-            });
-
-            await using var __ = gameLogCallback.ConfigureAwait(false);
-
-            await Socket.Emit(ALSocketEmitType.Party, new { @event = "raccept", name = @from }).ConfigureAwait(false);
+            await Socket.Emit(ALSocketEmitType.Party, new { @event = "raccept", name = from }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -699,57 +733,54 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<ActionData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var deathCallback = Socket.On<DeathData>(ALSocketMessageType.Death, data =>
-            {
-                if (data.Id.EqualsI(targetId))
-                    source.TrySetResult($"Attack on {targetId} failed. (target died)");
-
-                return TaskCache.FALSE;
-            });
-
-            await using var _ = deathCallback.ConfigureAwait(false);
-
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var deathCallback = Socket.On<DeathData>(ALSocketMessageType.Death, data =>
                 {
-                    GameResponseType.Disabled when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                        $"Attack on {targetId} failed. (disabled)"),
-                    GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                        $"Attack on {targetId} failed. (attack failed)"),
-                    GameResponseType.TooFar when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                        $"Attack on {targetId} failed. (too far: {data.Distance})"),
-                    GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                        $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS}"),
-                    GameResponseType.NoMP when data.Place == "attack" => source.TrySetResult(
-                        $"Attack on {targetId} failed. (not enough mp)"),
-                    _ => false
-                };
+                    if (data.Id.EqualsI(targetId))
+                        source.TrySetResult($"Attack on {targetId} failed. (target died)");
 
-                return Task.FromResult(result);
-            });
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await using var __ = gameResponseCallback.ConfigureAwait(false);
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.Disabled when data.TargetID.EqualsI(targetId) => source.TrySetResult(
+                            $"Attack on {targetId} failed. (disabled)"),
+                        GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) => source.TrySetResult(
+                            $"Attack on {targetId} failed. (attack failed)"),
+                        GameResponseType.TooFar when data.TargetID.EqualsI(targetId) => source.TrySetResult(
+                            $"Attack on {targetId} failed. (too far: {data.Distance})"),
+                        GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) => source.TrySetResult(
+                            $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS}"),
+                        GameResponseType.NoMP when data.Place == "attack" => source.TrySetResult(
+                            $"Attack on {targetId} failed. (not enough mp)"),
+                        _ => false
+                    };
 
-            var notThereCallback = Socket.On<NotThereData>(ALSocketMessageType.NotThere,
-                data => Task.FromResult(data.Source.EqualsI("attack")
-                                        && source.TrySetResult($"Attack on {targetId} failed. (invalid target)")));
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var ___ = notThereCallback.ConfigureAwait(false);
+            await using var notThereCallback = Socket.On<NotThereData>(ALSocketMessageType.NotThere,
+                    data => Task.FromResult(data.Source.EqualsI("attack")
+                                            && source.TrySetResult($"Attack on {targetId} failed. (invalid target)")))
+                .ConfigureAwait(false);
 
-            var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
-            {
-                var result = false;
+            await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
+                {
+                    var result = false;
 
-                if (data.AttackerId.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && data.Type.EqualsI("attack"))
-                    result = source.TrySetResult(data);
+                    if (data.AttackerId.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && data.Type.EqualsI("attack"))
+                        result = source.TrySetResult(data);
 
-                return Task.FromResult(result);
-            });
-
-            await using var ____ = actionCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Attack, new { id = targetId }).ConfigureAwait(false);
+
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
 
@@ -775,30 +806,29 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<IndexedSimpleItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.BuySuccess => source.TrySetResult(new IndexedSimpleItem
+                    var result = data.ResponseType switch
                     {
-                        Index = data.SlotNum,
-                        Item = new SimpleItem
+                        GameResponseType.BuySuccess => source.TrySetResult(new IndexedSimpleItem
                         {
-                            Name = data.Name!,
-                            Quantity = data.Quantity
-                        }
-                    }),
-                    GameResponseType.BuyCantNPC   => source.TrySetResult($"Failed to buy {itemName}. (wrong npc)"),
-                    GameResponseType.BuyCantSpace => source.TrySetResult($"Failed to buy {itemName}. (not enough space)"),
-                    GameResponseType.BuyCost      => source.TrySetResult($"Failed to buy {itemName}. (not enough gold)"),
-                    GameResponseType.BuyGetCloser => source.TrySetResult($"Failed to buy {itemName}. (get closer: {data.Distance})"),
-                    _                             => false
-                };
+                            Index = data.SlotNum,
+                            Item = new SimpleItem
+                            {
+                                Name = data.Name!,
+                                Quantity = data.Quantity
+                            }
+                        }),
+                        GameResponseType.BuyCantNPC   => source.TrySetResult($"Failed to buy {itemName}. (wrong npc)"),
+                        GameResponseType.BuyCantSpace => source.TrySetResult($"Failed to buy {itemName}. (not enough space)"),
+                        GameResponseType.BuyCost      => source.TrySetResult($"Failed to buy {itemName}. (not enough gold)"),
+                        GameResponseType.BuyGetCloser => source.TrySetResult($"Failed to buy {itemName}. (get closer: {data.Distance})"),
+                        _                             => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             if (GameData.Items[itemName]?.StackSize > 1)
                 await Socket.Emit(ALSocketEmitType.Buy, new { name = itemName, quantity }).ConfigureAwait(false);
@@ -835,13 +865,16 @@ namespace AL.Client
                 throw new ArgumentNullException(nameof(item));
 
             Player player;
-            if (!await Players.TryGetValueAsync(playerName, out var playerTask).ConfigureAwait(false) || ((player = await playerTask.ConfigureAwait(false)) == null))
+
+            if (!await Players.TryGetValueAsync(playerName, out var playerTask).ConfigureAwait(false)
+                || ((player = await playerTask.ConfigureAwait(false)) == null))
                 throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (seller gone)");
 
             if (Character.Distance((ILocation)player) > CORE_CONSTANTS.NPC_RANGE)
                 throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (get closer)");
 
             var slotItem = player.Slots[slot.ToSlot()];
+
             if ((slotItem == null) || (slotItem.Id != item.Id))
                 throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (wrong id)");
 
@@ -850,55 +883,52 @@ namespace AL.Client
             var inventorySnapshot = Character.Inventory.AsIndexed();
             var existingTotal = Character.Inventory.CountOf(item.Name);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = false;
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = false;
 
-                if (data.ResponseType == GameResponseType.TradeGetCloser)
-                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (get closer)");
+                    if (data.ResponseType == GameResponseType.TradeGetCloser)
+                        result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (get closer)");
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+                {
+                    var result = false;
 
-            var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
-            {
-                var result = false;
+                    if (data.EqualsI("not enough gold") || data.EqualsI("you can't buy that many") || data.EqualsI("seller gone"))
+                        result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({data})");
 
-                if (data.EqualsI("not enough gold") || data.EqualsI("you can't buy that many") || data.EqualsI("seller gone"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({data})");
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-                return Task.FromResult(result);
-            });
+            await using var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
+                {
+                    var result = false;
 
-            await using var __ = gameLogCallback.ConfigureAwait(false);
+                    if (data.Message.EqualsI("no space"))
+                        result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (no space)");
 
-            var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
-            {
-                var result = false;
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-                if (data.Message.EqualsI("no space"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (no space)");
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var newTotal = data.Inventory.CountOf(item.Name);
 
-                return Task.FromResult(result);
-            });
+                    if (newTotal - existingTotal == quantity)
+                        source.TrySetResult(data.Inventory.AsIndexed().Except(inventorySnapshot).First());
 
-            await using var ___ = disappearingTextCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                var newTotal = data.Inventory.CountOf(item.Name);
-
-                if (newTotal - existingTotal == quantity)
-                    source.TrySetResult(data.Inventory.AsIndexed().Except(inventorySnapshot).First());
-
-                return TaskCache.FALSE;
-            });
-
-            await using var ____ = characterCallback.ConfigureAwait(false);
-
-            await Socket.Emit(ALSocketEmitType.TradeBuy, new { slot, id = playerName, rid = item.Id, q = quantity.ToString() }).ConfigureAwait(false);
+            await Socket.Emit(ALSocketEmitType.TradeBuy, new { slot, id = playerName, rid = item.Id, q = quantity.ToString() })
+                .ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -924,53 +954,49 @@ namespace AL.Client
             var existingCount = Character.Inventory.CountOf(item.Name);
             var existingItems = Character.Inventory.AsIndexed();
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = false;
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = false;
 
-                if (data.ResponseType == GameResponseType.BuyCost)
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. (not enough gold)");
+                    if (data.ResponseType == GameResponseType.BuyCost)
+                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. (not enough gold)");
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+                {
+                    var result = false;
 
-            var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
-            {
-                var result = false;
+                    if (data.EqualsI("item gone"))
+                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data})");
 
-                if (data.EqualsI("item gone"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data})");
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-                return Task.FromResult(result);
-            });
+            await using var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
+                {
+                    var result = false;
 
-            await using var __ = gameLogCallback.ConfigureAwait(false);
+                    if (data.Message.EqualsI("no space"))
+                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data.Message})");
 
-            var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
-            {
-                var result = false;
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-                if (data.Message.EqualsI("no space"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data.Message})");
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var newCount = data.Inventory.CountOf(item.Name);
 
-                return Task.FromResult(result);
-            });
+                    if (newCount - existingCount == item.Quantity)
+                        source.TrySetResult(data.Inventory.AsIndexed().Except(existingItems).First());
 
-            await using var ___ = disappearingTextCallback.ConfigureAwait(false);
-
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                var newCount = data.Inventory.CountOf(item.Name);
-
-                if (newCount - existingCount == item.Quantity)
-                    source.TrySetResult(data.Inventory.AsIndexed().Except(existingItems).First());
-
-                return TaskCache.FALSE;
-            });
-
-            await using var ____ = characterCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.SecondHandsBuy, new { rid = item.Id }).ConfigureAwait(false);
 
@@ -1000,40 +1026,41 @@ namespace AL.Client
             var item = Character.Inventory[itemIndex1];
             var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.MiscFail when data.Place.EqualsI("compound") => source.TrySetResult(
-                        "Failed to compound. (misc, more than 1 issue)"),
-                    //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
-                    GameResponseType.CompoundNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
-                    GameResponseType.CompoundInProgress         => source.TrySetResult("Failed to compound. (already compounding)"),
-                    GameResponseType.CompoundIncompatibleScroll => source.TrySetResult("Failed to compound. (wrong scroll)"),
-                    GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
-                    GameResponseType.CompoundCant               => source.TrySetResult("Failed to compound. (items not compoundable)"),
-                    GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
-                    GameResponseType.Exception when data.Place.EqualsI("compound") => source.TrySetResult(
-                        "Failed to compound. (exception, major issues)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to compound. (can't compound from bank)"),
-                    GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to compound. (get closer)"),
-                    GameResponseType.CompoundSuccess  => source.TrySetResult(true),
-                    GameResponseType.CompoundFail     => source.TrySetResult(false),
-                    _                                 => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.MiscFail when data.Place.EqualsI("compound") => source.TrySetResult(
+                            "Failed to compound. (misc, more than 1 issue)"),
+                        //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
+                        GameResponseType.CompoundNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
+                        GameResponseType.CompoundInProgress         => source.TrySetResult("Failed to compound. (already compounding)"),
+                        GameResponseType.CompoundIncompatibleScroll => source.TrySetResult("Failed to compound. (wrong scroll)"),
+                        GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
+                        GameResponseType.CompoundCant               => source.TrySetResult("Failed to compound. (items not compoundable)"),
+                        GameResponseType.CompoundInvalidOffering => source.TrySetResult(
+                            "Failed to compound. (offering is not an offering)"),
+                        GameResponseType.Exception when data.Place.EqualsI("compound") => source.TrySetResult(
+                            "Failed to compound. (exception, major issues)"),
+                        GameResponseType.BankRestrictions => source.TrySetResult("Failed to compound. (can't compound from bank)"),
+                        GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to compound. (get closer)"),
+                        GameResponseType.CompoundSuccess  => source.TrySetResult(true),
+                        GameResponseType.CompoundFail     => source.TrySetResult(false),
+                        _                                 => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Compound, new
-            {
-                items = new[] { itemIndex1, itemIndex2, itemIndex3 },
-                scroll_num = scrollIndex,
-                clevel = item?.Level ?? 0,
-                offering_num = offeringIndex
-            }).ConfigureAwait(false);
+                {
+                    items = new[] { itemIndex1, itemIndex2, itemIndex3 },
+                    scroll_num = scrollIndex,
+                    clevel = item?.Level ?? 0,
+                    offering_num = offeringIndex
+                })
+                .ConfigureAwait(false);
 
             return await source.Task.WithTimeout(60000).ConfigureAwait(false);
         }
@@ -1061,47 +1088,118 @@ namespace AL.Client
             var item = Character.Inventory[itemIndex1];
             var source = new TaskCompletionSource<Expectation<ResponseItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.MiscFail when data.Place.EqualsI("compound") => source.TrySetResult(
-                        "Failed to compound. (misc, more than 1 issue)"),
-                    //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
-                    GameResponseType.CompoundNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
-                    GameResponseType.CompoundInProgress         => source.TrySetResult("Failed to compound. (already compounding)"),
-                    GameResponseType.CompoundIncompatibleScroll => source.TrySetResult("Failed to compound. (wrong scroll)"),
-                    GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
-                    GameResponseType.CompoundCant               => source.TrySetResult("Failed to compound. (items not compoundable)"),
-                    GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
-                    GameResponseType.Exception when data.Place.EqualsI("compound") => source.TrySetResult(
-                        "Failed to compound. (exception, major issues)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to compound. (can't compound from bank)"),
-                    GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to compound. (get closer)"),
-                    GameResponseType.CompoundChance when data.Item?.Name.EqualsI(item?.Name) ?? false => source.TrySetResult(data.Item with
+                    var result = data.ResponseType switch
                     {
-                        Grace = data.Grace, Chance = data.Chance
-                    }),
-                    _ => false
-                };
+                        GameResponseType.MiscFail when data.Place.EqualsI("compound") => source.TrySetResult(
+                            "Failed to compound. (misc, more than 1 issue)"),
+                        //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
+                        GameResponseType.CompoundNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
+                        GameResponseType.CompoundInProgress         => source.TrySetResult("Failed to compound. (already compounding)"),
+                        GameResponseType.CompoundIncompatibleScroll => source.TrySetResult("Failed to compound. (wrong scroll)"),
+                        GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
+                        GameResponseType.CompoundCant               => source.TrySetResult("Failed to compound. (items not compoundable)"),
+                        GameResponseType.CompoundInvalidOffering => source.TrySetResult(
+                            "Failed to compound. (offering is not an offering)"),
+                        GameResponseType.Exception when data.Place.EqualsI("compound") => source.TrySetResult(
+                            "Failed to compound. (exception, major issues)"),
+                        GameResponseType.BankRestrictions => source.TrySetResult("Failed to compound. (can't compound from bank)"),
+                        GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to compound. (get closer)"),
+                        GameResponseType.CompoundChance when data.Item?.Name.EqualsI(item?.Name) ?? false => source.TrySetResult(
+                            data.Item with
+                            {
+                                Grace = data.Grace,
+                                Chance = data.Chance
+                            }),
+                        _ => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Compound, new
-            {
-                items = new[] { itemIndex1, itemIndex2, itemIndex3 },
-                scroll_num = scrollIndex,
-                clevel = item?.Level ?? 0,
-                offering_num = offeringIndex,
-                calculate = 1
-            }).ConfigureAwait(false);
+                {
+                    items = new[] { itemIndex1, itemIndex2, itemIndex3 },
+                    scroll_num = scrollIndex,
+                    clevel = item?.Level ?? 0,
+                    offering_num = offeringIndex,
+                    calculate = 1
+                })
+                .ConfigureAwait(false);
 
             return await source.Task.WithTimeout(60000).ConfigureAwait(false);
         }
 
+        /// <summary>
+        ///     Asynchronously crafts an item.
+        /// </summary>
+        /// <param name="itemName">The name of the item to craft.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     Information about the item that was crafted, and it's position in the inventory.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        /// <exception cref="InvalidOperationException">Failed to craft {itemName}. ({reason})</exception>
+        public async Task<IndexedInventoryItem> CraftAsync(string itemName)
+        {
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            var recipe = GameData.Craft[itemName];
+
+            if (recipe == null)
+                throw new InvalidOperationException($"Failed to craft {itemName}. (not craftable)");
+
+            if (recipe.Cost > Character.Gold)
+                throw new InvalidOperationException($"Failed to craft {itemName}. (not enough gold)");
+
+            var slots = new List<int>();
+
+            foreach ((var quantity, var name, var level) in recipe.Items)
+            {
+                var result = Character.Inventory.FindItem(name, level, quantity);
+
+                if (result == null)
+                    throw new InvalidOperationException($"Failed to craft {itemName}. (missing component)");
+
+                slots.Add(result.Index);
+            }
+
+            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var previousInventory = Character.Inventory.AsIndexed();
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.NoItem        => source.TrySetResult($"Failed to craft {itemName}. (missing component)"),
+                        GameResponseType.NotEnoughGold => source.TrySetResult($"Failed to craft {itemName}. (not enough gold"),
+                        _                              => false
+                    };
+
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var craftedItem = data.Inventory.AsIndexed()
+                        .Except(previousInventory)
+                        .FirstOrDefault(indexed => indexed.Item.Name.EqualsI(itemName));
+
+                    if (craftedItem != null)
+                        source.TrySetResult(craftedItem);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Craft, slots.Select((index, slot) => new[] { index, slot })).ConfigureAwait(false);
+
+            return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+        }
 
         /// <summary>
         ///     Asynchronously deposits gold in the bank.
@@ -1118,27 +1216,26 @@ namespace AL.Client
 
             var shouldChange = (amount > 0) && Character.Gold.SignificantlyGreaterThan(0, CORE_CONSTANTS.EPSILON);
 
-            if (!shouldChange || (amount > (long) Character.Gold))
+            if (!shouldChange || (amount > (long)Character.Gold))
                 throw new InvalidOperationException($"Failed to deposit {amount} gold. (invalid amount)");
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var previousGold = Character.Gold;
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                if (data.Bank == null)
-                    source.TrySetResult($"Failed to deposit {amount} gold. (not in bank)");
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if (data.Bank == null)
+                        source.TrySetResult($"Failed to deposit {amount} gold. (not in bank)");
 
-                var didChange = !previousGold.NearlyEquals(data.Gold, CORE_CONSTANTS.EPSILON);
+                    var didChange = !previousGold.NearlyEquals(data.Gold, CORE_CONSTANTS.EPSILON);
 
-                if (didChange)
-                    source.TrySetResult(Expectation.Success);
+                    if (didChange)
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            });
-
-            await using var _ = characterCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Bank, new { amount, operation = "deposit" }).ConfigureAwait(false);
 
@@ -1182,33 +1279,35 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<IndexedBankItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                if (data.ResponseType == GameResponseType.Invalid)
-                    source.TrySetResult($"Failed to deposit item {item.Name}. (invalid)");
-
-                return TaskCache.FALSE;
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
-
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                if ((data.Inventory[inventorySlot] == null) && Bank!.TryGetValue(bankPack!.Value, out var bankedItems))
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    var bankedItem = bankedItems[bankSlot!.Value];
+                    if (data.ResponseType == GameResponseType.Invalid)
+                        source.TrySetResult($"Failed to deposit item {item.Name}. (invalid)");
 
-                    if (bankedItem != null)
-                        source.TrySetResult(new IndexedBankItem { BankPack = bankPack.Value, Index = bankSlot.Value, Item = bankedItem });
-                }
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-                return TaskCache.FALSE;
-            });
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if ((data.Inventory[inventorySlot] == null) && Bank!.TryGetValue(bankPack!.Value, out var bankedItems))
+                    {
+                        var bankedItem = bankedItems[bankSlot!.Value];
 
-            await using var __ = characterCallback.ConfigureAwait(false);
+                        if (bankedItem != null)
+                            source.TrySetResult(
+                                new IndexedBankItem { BankPack = bankPack.Value, Index = bankSlot.Value, Item = bankedItem });
+                    }
 
-            await Socket.Emit(ALSocketEmitType.Swap,
-                new { inv = inventorySlot, operation = "swap", pack = optimalIndexes.Value.BankPack, str = optimalIndexes.Value.BankSlot }).ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Swap, new
+                {
+                    inv = inventorySlot, operation = "swap", pack = optimalIndexes.Value.BankPack, str = optimalIndexes.Value.BankSlot
+                })
+                .ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -1249,50 +1348,50 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.ExchangeNotEnough => source.TrySetResult(
-                        $"Failed to exchange. (youd to not have {itemData.ExchangeCount})"),
-                    GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to exchange. (get closer)"),
-                    GameResponseType.ExchangeExisting => source.TrySetResult("Failed to exchange. (already exchanging)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to exchange. (can't exchange from bank)"),
-                    _                                 => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.ExchangeNotEnough => source.TrySetResult(
+                            $"Failed to exchange. (youd to not have {itemData.ExchangeCount})"),
+                        GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to exchange. (get closer)"),
+                        GameResponseType.ExchangeExisting => source.TrySetResult("Failed to exchange. (already exchanging)"),
+                        GameResponseType.BankRestrictions => source.TrySetResult("Failed to exchange. (can't exchange from bank)"),
+                        _                                 => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             var exchangeStarted = false;
             Inventory? itemsSnapshot = null;
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                if (!exchangeStarted
-                    && (data.QueuedActions?.Exchange != null)
-                    && (data.QueuedActions.Exchange.CurrentMS == data.QueuedActions.Exchange.LengthMS))
-                    exchangeStarted = true;
 
-                if (exchangeStarted)
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
                 {
-                    if (data.QueuedActions?.Exchange == null)
-                        source.TrySetResult(Character.Inventory.AsIndexed().Except(itemsSnapshot!.AsIndexed()).First());
-                    else
-                        itemsSnapshot = Character.Inventory;
-                }
+                    if (!exchangeStarted
+                        && (data.QueuedActions?.Exchange != null)
+                        && (data.QueuedActions.Exchange.CurrentMS == data.QueuedActions.Exchange.LengthMS))
+                        exchangeStarted = true;
 
-                return TaskCache.FALSE;
-            });
+                    if (exchangeStarted)
+                    {
+                        if (data.QueuedActions?.Exchange == null)
+                            source.TrySetResult(Character.Inventory.AsIndexed().Except(itemsSnapshot!.AsIndexed()).First());
+                        else
+                            itemsSnapshot = Character.Inventory;
+                    }
 
-            await using var __ = characterCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Exchange, new
-            {
-                item_num = itemIndex,
-                q = itemData.ExchangeCount
-            }).ConfigureAwait(false);
+                {
+                    item_num = itemIndex,
+                    q = itemData.ExchangeCount
+                })
+                .ConfigureAwait(false);
 
             return await source.Task.WithTimeout(60000).ConfigureAwait(false);
         }
@@ -1308,26 +1407,25 @@ namespace AL.Client
         {
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.CantEscape => source.TrySetResult("Failed to leave map. (can't escape)"),
-                    _                           => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.CantEscape => source.TrySetResult("Failed to leave map. (can't escape)"),
+                        _                           => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var __ = gameResponseCallback.ConfigureAwait(false);
+            await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, _ =>
+                {
+                    source.TrySetResult(Expectation.Success);
 
-            var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, _ =>
-            {
-                source.TrySetResult(Expectation.Success);
-                return TaskCache.FALSE;
-            });
-
-            await using var ___ = newMapCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.LeaveMap).ConfigureAwait(false);
 
@@ -1342,13 +1440,13 @@ namespace AL.Client
         {
             var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, _ =>
-            {
-                source.TrySetResult();
-                return TaskCache.FALSE;
-            });
+            await using var partyUpdateCallback = Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, _ =>
+                {
+                    source.TrySetResult();
 
-            await using var __ = partyUpdateCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Party, new { @event = "leave" }).ConfigureAwait(false);
 
@@ -1375,20 +1473,19 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.ECUGetCloser        => source.TrySetResult("Failed to monsterhunt. (get closer)"),
-                    GameResponseType.MonsterHuntStarted  => source.TrySetResult(true),
-                    GameResponseType.MonsterHuntMerchant => source.TrySetResult("Failed to monsterhunt. (merchants can't monsterhunt)"),
-                    _                                    => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.ECUGetCloser        => source.TrySetResult("Failed to monsterhunt. (get closer)"),
+                        GameResponseType.MonsterHuntStarted  => source.TrySetResult(true),
+                        GameResponseType.MonsterHuntMerchant => source.TrySetResult("Failed to monsterhunt. (merchants can't monsterhunt)"),
+                        _                                    => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.MonsterHunt).ConfigureAwait(false);
 
@@ -1415,53 +1512,55 @@ namespace AL.Client
             var correctionAttempted = false;
 
             using var delay = new DynamicDelay();
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, async data =>
-            {
-                switch (correctionAttempted)
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, async data =>
                 {
-                    case true when !data.Moving
-                                   || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
-                                   || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
-                        source.TrySetResult($"Failed to move to {point.GetPoint()}. (desync/packetloss)");
-                        return false;
-                    case false when !data.Moving
-                                    || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
-                                    || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
-                        correctionAttempted = true;
-                        await Socket.Emit(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
-                        Logger.Debug("Move: Correction attempted...");
-                        break;
-                }
+                    switch (correctionAttempted)
+                    {
+                        case true when !data.Moving
+                                       || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
+                                       || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
+                            source.TrySetResult($"Failed to move to {point.GetPoint()}. (desync/packetloss)");
 
-                // ReSharper disable once AccessToDisposedClosure - this action is safe even if disposed
-                await delay.SetDelayAsync(Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000)).ConfigureAwait(false);
+                            return false;
+                        case false when !data.Moving
+                                        || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
+                                        || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
+                            correctionAttempted = true;
+                            await Socket.Emit(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
+                            Logger.Debug("Move: Correction attempted...");
 
-                return false;
-            });
+                            break;
+                    }
 
-            await using var _ = characterCallback.ConfigureAwait(false);
+                    // ReSharper disable once AccessToDisposedClosure - this action is safe even if disposed
+                    await delay.SetDelayAsync(Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000)).ConfigureAwait(false);
 
-            var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
-            {
-                var goingLoc = new Location(currentMap, point);
+                    return false;
+                })
+                .ConfigureAwait(false);
 
-                if (data.Map.EqualsI("jail"))
-                    source.TrySetResult(
-                        $"Sent to jail trying to move from {ILocation.ToString(startLoc)} to {ILocation.ToString(goingLoc)}. IsWall = {PathFinder.IsWall(goingLoc)}");
+            await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
+                {
+                    var goingLoc = new Location(currentMap, point);
 
-                return TaskCache.FALSE;
-            });
+                    if (data.Map.EqualsI("jail"))
+                        source.TrySetResult(
+                            $"Sent to jail trying to move from {ILocation.ToString(startLoc)} to {ILocation.ToString(goingLoc)}. IsWall = {PathFinder.IsWall(goingLoc)}");
 
-            await using var __ = newMapCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Move, new
-            {
-                x = Character.X,
-                y = Character.Y,
-                going_x = point.X,
-                going_y = point.Y,
-                m = Character.MapChangeCount
-            }).ConfigureAwait(false);
+                {
+                    x = Character.X,
+                    y = Character.Y,
+                    going_x = point.X,
+                    going_y = point.Y,
+                    m = Character.MapChangeCount
+                })
+                .ConfigureAwait(false);
 
             var initialDelay = Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000);
             Character.SetMoving(point);
@@ -1474,16 +1573,23 @@ namespace AL.Client
                 var finalDestination = Character.GetPoint();
                 Logger.Debug($"Move to {point.GetPoint()} canceled. Stopping at {finalDestination}");
                 await MoveAsync(finalDestination).ConfigureAwait(false);
+
                 return;
             }
 
-            //if the task that completed was the source task, throw if it was an error
-            if (completedTask != delayTask)
-                source.Task.Result.ThrowIfUnsuccessful();
-
+            //find out where we're going
             var going = new Point(Character.GoingX, Character.GoingY);
+
+            //if we're still going to the same place
             if (going.Equals(point))
             {
+                //if the task that completed was the source task, throw if it was an error
+                if (completedTask != delayTask)
+                {
+                    var expectation = await source.Task.ConfigureAwait(false);
+                    expectation.ThrowIfUnsuccessful();
+                }
+
                 Character.StopMoving();
                 Character.UpdateLocation(going);
             }
@@ -1501,10 +1607,9 @@ namespace AL.Client
         {
             var source = new TaskCompletionSource<Expectation<PingAckData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var pingAckCallback = Socket.On<PingAckData>(ALSocketMessageType.PingAck,
-                data => Task.FromResult(source.TrySetResult(data)));
-
-            await using var _ = pingAckCallback.ConfigureAwait(false);
+            await using var pingAckCallback = Socket
+                .On<PingAckData>(ALSocketMessageType.PingAck, data => Task.FromResult(source.TrySetResult(data)))
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Ping, new { id = pingCount.ToString() }).ConfigureAwait(false);
 
@@ -1522,15 +1627,16 @@ namespace AL.Client
         {
             var source = new TaskCompletionSource<Expectation<CharacterData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                source.TrySetResult(data);
-                return TaskCache.FALSE;
-            });
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    source.TrySetResult(data);
 
-            await using var _ = characterCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
+
             //return await source.Task.WithNetworkTimeout();
             return await source.Task.WithTimeout(5000).ConfigureAwait(false);
         }
@@ -1546,12 +1652,12 @@ namespace AL.Client
         {
             var source = new TaskCompletionSource<Expectation<EntitiesData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var entitiesCallback = Socket.On<EntitiesData>(ALSocketMessageType.Entities,
-                data => Task.FromResult(source.TrySetResult(data)));
-
-            await using var _ = entitiesCallback.ConfigureAwait(false);
+            await using var entitiesCallback = Socket.On<EntitiesData>(ALSocketMessageType.Entities,
+                    data => Task.FromResult(source.TrySetResult(data)))
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.SendUpdates, new object()).ConfigureAwait(false);
+
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
 
@@ -1567,10 +1673,9 @@ namespace AL.Client
             var source = new TaskCompletionSource<Expectation<IReadOnlyList<SimplePlayer>>>(TaskCreationOptions
                 .RunContinuationsAsynchronously);
 
-            var playersCallback = Socket.On<IReadOnlyList<SimplePlayer>>(ALSocketMessageType.Players,
-                data => Task.FromResult(source.TrySetResult(new Expectation<IReadOnlyList<SimplePlayer>>(data))));
-
-            await using var _ = playersCallback.ConfigureAwait(false);
+            await using var playersCallback = Socket.On<IReadOnlyList<SimplePlayer>>(ALSocketMessageType.Players,
+                    data => Task.FromResult(source.TrySetResult(new Expectation<IReadOnlyList<SimplePlayer>>(data))))
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Players).ConfigureAwait(false);
 
@@ -1589,18 +1694,17 @@ namespace AL.Client
             var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions
                 .RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.SecondHands, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.SecondHands, data =>
                 {
-                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to get ponty items. (get closer)"),
-                    _                             => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.ECUGetCloser => source.TrySetResult("Failed to get ponty items. (get closer)"),
+                        _                             => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.SecondHands).ConfigureAwait(false);
 
@@ -1608,7 +1712,7 @@ namespace AL.Client
         }
 
         /// <summary>
-        /// Asynchronously sends gold to a player.
+        ///     Asynchronously sends gold to a player.
         /// </summary>
         /// <param name="amount">The amount of gold to send.</param>
         /// <param name="toPlayerId">The id of the player to send gold to.</param>
@@ -1622,7 +1726,7 @@ namespace AL.Client
 
             var shouldChange = (amount > 0) && Character.Gold.SignificantlyGreaterThan(0, CORE_CONSTANTS.EPSILON);
 
-            if (!shouldChange || (amount > (long) Character.Gold))
+            if (!shouldChange || (amount > (long)Character.Gold))
                 throw new InvalidOperationException($"Failed to send {amount} gold to {toPlayerId}. (invalid amount)");
 
             if (distanceCheck)
@@ -1640,36 +1744,39 @@ namespace AL.Client
             var previousGold = Character.Gold;
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
                 {
-                    GameResponseType.OperationUnavailable => source.TrySetResult(
-                        $"Failed to send {amount} gold to {toPlayerId}. (target not online)"),
-                    GameResponseType.TradeGetCloser => source.TrySetResult($"Failed to send {amount} gold to {toPlayerId}. (get closer)"),
-                    _ => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.OperationUnavailable => source.TrySetResult(
+                            $"Failed to send {amount} gold to {toPlayerId}. (target not online)"),
+                        GameResponseType.TradeGetCloser => source.TrySetResult(
+                            $"Failed to send {amount} gold to {toPlayerId}. (get closer)"),
+                        _ => false
+                    };
 
-                return Task.FromResult(result);
-            }).ConfigureAwait(false);
-            
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                var didChange = !previousGold.NearlyEquals(data.Gold, CORE_CONSTANTS.EPSILON);
+                {
+                    var didChange = !previousGold.NearlyEquals(data.Gold, CORE_CONSTANTS.EPSILON);
 
-                if (shouldChange && didChange && data.Gold.SignificantlyLessThan(previousGold, CORE_CONSTANTS.EPSILON))
-                    source.TrySetResult(Expectation.Success);
+                    if (shouldChange && didChange && data.Gold.SignificantlyLessThan(previousGold, CORE_CONSTANTS.EPSILON))
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            }).ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Send, new { gold = amount, name = toPlayerId }).ConfigureAwait(false);
-            
+
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
 
         /// <summary>
-        /// Asynchronously sends an item to a player.
+        ///     Asynchronously sends an item to a player.
         /// </summary>
         /// <param name="inventorySlot">The slot of the item to send.</param>
         /// <param name="toPlayerId">The id of the player to send to.</param>
@@ -1677,7 +1784,10 @@ namespace AL.Client
         /// <param name="distanceCheck">Whether or not to perform a distance check.</param>
         /// <exception cref="ArgumentNullException">toPlayerId</exception>
         /// <exception cref="ArgumentOutOfRangeException">quantity</exception>
-        /// <exception cref="InvalidOperationException">Failed to send {quantity} of item {itemNameOrSlot} to {toPlayerId}. ({reason})</exception>
+        /// <exception cref="InvalidOperationException">
+        ///     Failed to send {quantity} of item {itemNameOrSlot} to {toPlayerId}.
+        ///     ({reason})
+        /// </exception>
         public async Task SendItemAsync(int inventorySlot, string toPlayerId, int quantity = 1, bool distanceCheck = true)
         {
             if (string.IsNullOrEmpty(toPlayerId))
@@ -1700,36 +1810,35 @@ namespace AL.Client
                     throw new InvalidOperationException($"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)");
 
                 var toPlayer = await toPlayerTask.ConfigureAwait(false);
-                
-                if(Character.Distance((ILocation)toPlayer) > CORE_CONSTANTS.NPC_RANGE)
+
+                if (Character.Distance((ILocation)toPlayer) > CORE_CONSTANTS.NPC_RANGE)
                     throw new InvalidOperationException($"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)");
             }
-            
+
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.SendNoItem => source.TrySetResult(
-                        $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (no item)"),
-                    GameResponseType.SendNoSpace => source.TrySetResult(
-                        $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (target no space)"),
-                    GameResponseType.TradeGetCloser => source.TrySetResult(
-                        $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)"),
-                    GameResponseType.OperationUnavailable => source.TrySetResult(
-                        $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (target not online)"),
-                    //this is ok because it happens after we receive new player data
-                    GameResponseType.ItemSent when data.Name.EqualsI(toPlayerId)
-                                                   && (data.Item?.Name.EqualsI(item.Name) == true)
-                                                   && (data.Quantity == quantity) => source.TrySetResult(Expectation.Success),
-                    _ => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.SendNoItem => source.TrySetResult(
+                            $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (no item)"),
+                        GameResponseType.SendNoSpace => source.TrySetResult(
+                            $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (target no space)"),
+                        GameResponseType.TradeGetCloser => source.TrySetResult(
+                            $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)"),
+                        GameResponseType.OperationUnavailable => source.TrySetResult(
+                            $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (target not online)"),
+                        //this is ok because it happens after we receive new player data
+                        GameResponseType.ItemSent when data.Name.EqualsI(toPlayerId)
+                                                       && (data.Item?.Name.EqualsI(item.Name) == true)
+                                                       && (data.Quantity == quantity) => source.TrySetResult(Expectation.Success),
+                        _ => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Send, new { name = toPlayerId, num = inventorySlot, q = quantity }).ConfigureAwait(false);
 
@@ -1823,12 +1932,14 @@ namespace AL.Client
                 if (routeConnector.Type == ConnectorType.Leave)
                 {
                     await LeaveMapAsync().ConfigureAwait(false);
+
                     continue;
                 }
 
                 var innerPath = PathFinder.FindPath(Character.Map, Character.GetPoint(), exits, useTownIfOptimal);
 
                 IPoint lastPoint = default!;
+
                 await foreach (var pathConnector in innerPath.ConfigureAwait(false))
                 {
                     await HandlePathConnectorAsync(pathConnector).ConfigureAwait(false);
@@ -1859,29 +1970,27 @@ namespace AL.Client
         {
             var source = new TaskCompletionSource<Expectation<NewMapData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.BankOperation when data.Reason.EqualsI("mounted") => source.TrySetResult(
-                        "Transport failed. (character already in bank)"),
-                    _ => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.BankOperation when data.Reason.EqualsI("mounted") => source.TrySetResult(
+                            "Transport failed. (character already in bank)"),
+                        _ => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
+                {
+                    if (data.Map.EqualsI(map))
+                        source.TrySetResult(data);
 
-            var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
-            {
-                if (data.Map.EqualsI(map))
-                    source.TrySetResult(data);
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = newMapCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Transport, new { to = map, s = spawnIndex }).ConfigureAwait(false);
             NewMapData newMap = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
@@ -1912,34 +2021,35 @@ namespace AL.Client
             var item = Character.Inventory[itemIndex];
             var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.UpgradeNoItem => source.TrySetResult("Failed to compound. (items not the same)"),
-                    GameResponseType.UpgradeInProgress => source.TrySetResult("Failed to upgrade. (already upgrading)"),
-                    GameResponseType.UpgradeIncompatibleScroll => source.TrySetResult("Failed to upgrade. (wrong scroll)"),
-                    GameResponseType.UpgradeNoScroll => source.TrySetResult("Failed to upgrade. (no scroll)"),
-                    GameResponseType.UpgradeMismatch => source.TrySetResult("Failed to upgrade. (unknown, this seems to be a catch-all)"),
-                    GameResponseType.UpgradeCant => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
-                    GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to upgrade. (offering is not an offering)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
-                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to upgrade. (get closer)"),
-                    GameResponseType.UpgradeSuccess => source.TrySetResult(true),
-                    GameResponseType.UpgradeFail => source.TrySetResult(false),
-                    _ => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.UpgradeNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
+                        GameResponseType.UpgradeInProgress         => source.TrySetResult("Failed to upgrade. (already upgrading)"),
+                        GameResponseType.UpgradeIncompatibleScroll => source.TrySetResult("Failed to upgrade. (wrong scroll)"),
+                        GameResponseType.UpgradeNoScroll           => source.TrySetResult("Failed to upgrade. (no scroll)"),
+                        GameResponseType.UpgradeMismatch => source.TrySetResult(
+                            "Failed to upgrade. (unknown, this seems to be a catch-all)"),
+                        GameResponseType.UpgradeCant            => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
+                        GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to upgrade. (offering is not an offering)"),
+                        GameResponseType.BankRestrictions       => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
+                        GameResponseType.ECUGetCloser           => source.TrySetResult("Failed to upgrade. (get closer)"),
+                        GameResponseType.UpgradeSuccess         => source.TrySetResult(true),
+                        GameResponseType.UpgradeFail            => source.TrySetResult(false),
+                        _                                       => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Upgrade, new
-            {
-                item_num = itemIndex, scroll_num = scrollIndex, offering_num = offeringIndex,
-                clevel = item?.Level ?? 0
-            }).ConfigureAwait(false);
+                {
+                    item_num = itemIndex, scroll_num = scrollIndex, offering_num = offeringIndex,
+                    clevel = item?.Level ?? 0
+                })
+                .ConfigureAwait(false);
 
             return await source.Task.WithTimeout(60000).ConfigureAwait(false);
         }
@@ -1960,38 +2070,41 @@ namespace AL.Client
             var item = Character.Inventory[itemIndex];
             var source = new TaskCompletionSource<Expectation<ResponseItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.UpgradeNoItem => source.TrySetResult("Failed to compound. (no item at index)"),
-                    GameResponseType.UpgradeInProgress => source.TrySetResult("Failed to upgrade. (already upgrading)"),
-                    GameResponseType.UpgradeIncompatibleScroll => source.TrySetResult("Failed to upgrade. (wrong scroll)"),
-                    GameResponseType.UpgradeNoScroll => source.TrySetResult("Failed to upgrade. (no scroll)"),
-                    GameResponseType.UpgradeMismatch => source.TrySetResult("Failed to upgrade. (unknown, this seems to be a catch-all)"),
-                    GameResponseType.UpgradeCant => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
-                    GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to upgrade. (offering is not an offering)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
-                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to upgrade. (get closer)"),
-                    GameResponseType.UpgradeChance when data.Item?.Name.EqualsI(item?.Name) ?? false => source.TrySetResult(data.Item with
+                    var result = data.ResponseType switch
                     {
-                        Grace = data.Grace, Chance = data.Chance
-                    }),
-                    _ => false
-                };
+                        GameResponseType.UpgradeNoItem             => source.TrySetResult("Failed to compound. (no item at index)"),
+                        GameResponseType.UpgradeInProgress         => source.TrySetResult("Failed to upgrade. (already upgrading)"),
+                        GameResponseType.UpgradeIncompatibleScroll => source.TrySetResult("Failed to upgrade. (wrong scroll)"),
+                        GameResponseType.UpgradeNoScroll           => source.TrySetResult("Failed to upgrade. (no scroll)"),
+                        GameResponseType.UpgradeMismatch => source.TrySetResult(
+                            "Failed to upgrade. (unknown, this seems to be a catch-all)"),
+                        GameResponseType.UpgradeCant            => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
+                        GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to upgrade. (offering is not an offering)"),
+                        GameResponseType.BankRestrictions       => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
+                        GameResponseType.ECUGetCloser           => source.TrySetResult("Failed to upgrade. (get closer)"),
+                        GameResponseType.UpgradeChance when data.Item?.Name.EqualsI(item?.Name) ?? false => source.TrySetResult(
+                            data.Item with
+                            {
+                                Grace = data.Grace,
+                                Chance = data.Chance
+                            }),
+                        _ => false
+                    };
 
-                return Task.FromResult(result);
-            });
-
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Upgrade, new
-            {
-                item_num = itemIndex,
-                scroll_num = scrollIndex,
-                offering_num = offeringIndex,
-                clevel = item?.Level ?? 0
-            }).ConfigureAwait(false);
+                {
+                    item_num = itemIndex,
+                    scroll_num = scrollIndex,
+                    offering_num = offeringIndex,
+                    clevel = item?.Level ?? 0
+                })
+                .ConfigureAwait(false);
 
             return await source.Task.WithTimeout(60000).ConfigureAwait(false);
         }
@@ -2010,28 +2123,26 @@ namespace AL.Client
 
             var warpBegin = false;
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                // ReSharper disable once ConvertIfStatementToSwitchStatement
-                if (!warpBegin && (data.Channeling != null) && data.Channeling.ContainsKey("town"))
-                    warpBegin = true;
-                else if (warpBegin && (data.Channeling?.ContainsKey("town") != true))
-                    source.TrySetResult("Failed to town. (canceled)");
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    // ReSharper disable once ConvertIfStatementToSwitchStatement
+                    if (!warpBegin && (data.Channeling != null) && data.Channeling.ContainsKey("town"))
+                        warpBegin = true;
+                    else if (warpBegin && (data.Channeling?.ContainsKey("town") != true))
+                        source.TrySetResult("Failed to town. (canceled)");
 
-                return TaskCache.FALSE;
-            });
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = characterCallback.ConfigureAwait(false);
+            await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
+                {
+                    if (warpBegin && (data.Effect == DisappearEffect.Town))
+                        source.TrySetResult(Expectation.Success);
 
-            var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
-            {
-                if (warpBegin && (data.Effect == DisappearEffect.Town))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = newMapCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.ReturnToTown).ConfigureAwait(false);
             token?.Register(() => Socket.Emit(ALSocketEmitType.Stop, new { action = "town" }));
@@ -2058,20 +2169,19 @@ namespace AL.Client
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
             var previousGold = Character.Gold;
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                if (data.Bank == null)
-                    source.TrySetResult($"Failed to withdraw {amount} gold. (not in bank)");
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if (data.Bank == null)
+                        source.TrySetResult($"Failed to withdraw {amount} gold. (not in bank)");
 
-                var didChange = !previousGold.NearlyEquals(data.Gold, CORE_CONSTANTS.EPSILON);
+                    var didChange = !previousGold.NearlyEquals(data.Gold, CORE_CONSTANTS.EPSILON);
 
-                if (shouldChange && didChange)
-                    source.TrySetResult(Expectation.Success);
+                    if (shouldChange && didChange)
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            });
-
-            await using var _ = characterCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Bank, new { amount, operation = "withdraw" }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
@@ -2094,7 +2204,7 @@ namespace AL.Client
             if (Character.Bank == null)
                 throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (not in bank)");
 
-            var availableBanks = Bank!.GetAvailableBankPacks(Character.Map);
+            var availableBanks = Utility.GetAvailableBankPacks(Character.Map);
 
             if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
                 throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
@@ -2106,40 +2216,37 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                if (data.ResponseType == GameResponseType.Invalid)
-                    source.TrySetResult($"Failed to withdraw item {item.Name}. (invalid)");
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    if (data.ResponseType == GameResponseType.Invalid)
+                        source.TrySetResult($"Failed to withdraw item {item.Name}. (invalid)");
 
-                return TaskCache.FALSE;
-            });
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if (data.Bank == null)
+                        source.TrySetResult($"Failed to withdraw item {bankPack}:{bankSlot}. (not in bank)");
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                if (data.Bank == null)
-                    source.TrySetResult($"Failed to withdraw item {bankPack}:{bankSlot}. (not in bank)");
+                    var inventoryItem = data.Inventory[inventorySlot];
 
-                var inventoryItem = data.Inventory[inventorySlot];
+                    if (inventoryItem != null)
+                        source.TrySetResult(new IndexedInventoryItem { Index = inventorySlot, Item = inventoryItem });
 
-                if (inventoryItem != null)
-                    source.TrySetResult(new IndexedInventoryItem { Index = inventorySlot, Item = inventoryItem });
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = characterCallback.ConfigureAwait(false);
-
-            await Socket.Emit(ALSocketEmitType.Bank, new { inv = inventorySlot, operation = "swap", pack = bankPack, str = bankSlot }).ConfigureAwait(false);
+            await Socket.Emit(ALSocketEmitType.Bank, new { inv = inventorySlot, operation = "swap", pack = bankPack, str = bankSlot })
+                .ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
-
         #endregion
 
         #region Events
-
         protected void AttachListeners()
         {
             if (Socket == null)
@@ -2169,6 +2276,7 @@ namespace AL.Client
         protected async Task<bool> OnAchievementProgressAsync(AchievementProgressData data)
         {
             await AchievementProgress.AddOrUpdateAsync(data.Name, data).ConfigureAwait(false);
+
             return false;
         }
 
@@ -2184,7 +2292,7 @@ namespace AL.Client
         {
             data.CompensateOnce(PingManager.Offset);
             ShallowMerge<Character>.Merge(data, Character);
-            
+
             //keep a copy of the bank data
             if (data.Bank != null)
                 Bank = data.Bank;
@@ -2209,18 +2317,21 @@ namespace AL.Client
         protected async Task<bool> OnDeathAsync(DeathData data)
         {
             await DestroyEntity(data.Id).ConfigureAwait(false);
+
             return false;
         }
 
         protected async Task<bool> OnDisappearAsync(DisappearData data)
         {
             await DestroyEntity(data.Id).ConfigureAwait(false);
+
             return false;
         }
 
         protected async Task<bool> OnDropAsync(DropData data)
         {
             await Chests.AddOrUpdateAsync(data.Id, data).ConfigureAwait(false);
+
             return false;
         }
 
@@ -2236,6 +2347,7 @@ namespace AL.Client
         protected async Task<bool> OnEvalAsync(EvalData data)
         {
             Match match;
+
             if ((match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success)
             {
                 var skillName = match.Groups[1].Value;
@@ -2253,6 +2365,7 @@ namespace AL.Client
         protected Task<bool> OnGameErrorAsync(GameErrorData data)
         {
             Logger.Warn($"GAME ERROR: {data.Message}");
+
             return TaskCache.FALSE;
         }
 
@@ -2291,7 +2404,8 @@ namespace AL.Client
 
         protected async Task<bool> OnHitAsync(HitData data)
         {
-            if (!string.IsNullOrEmpty(data.ProjectileId) && await Projectiles.TryGetValueAsync(data.ProjectileId, out var projectileTask).ConfigureAwait(false))
+            if (!string.IsNullOrEmpty(data.ProjectileId)
+                && await Projectiles.TryGetValueAsync(data.ProjectileId, out var projectileTask).ConfigureAwait(false))
             {
                 var projectile = await projectileTask.ConfigureAwait(false);
                 await Projectiles.RemoveAsync(data.ProjectileId).ConfigureAwait(false);
@@ -2337,6 +2451,7 @@ namespace AL.Client
         protected Task<bool> OnPartyUpdateAsync(PartyUpdateData data)
         {
             Party = data;
+
             return TaskCache.FALSE;
         }
 
@@ -2371,7 +2486,7 @@ namespace AL.Client
         {
             BaseGold = data.BaseGold;
             EventsAndBosses = data.EventAndBossInfo;
-            
+
             await OnCharacterAsync(data).ConfigureAwait(false);
             await OnEntitiesAsync(data.Entities).ConfigureAwait(false);
 
@@ -2386,12 +2501,15 @@ namespace AL.Client
                 {
                     case QueuedActionType.Compound:
                         Character.Update(Character.QueuedActions with { Compound = null });
+
                         break;
                     case QueuedActionType.Upgrade:
                         Character.Update(Character.QueuedActions with { Upgrade = null });
+
                         break;
                     case QueuedActionType.Exchange:
                         Character.Update(Character.QueuedActions with { Exchange = null });
+
                         break;
                     default:
                         throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int)data.QueuedActionType}.");
@@ -2407,23 +2525,22 @@ namespace AL.Client
                     $"Logged into wrong server. Expected: {Server.Region} {Server.Identifier}  Current: {data.Region} {data.Identifier}");
 
             await Socket.Emit(ALSocketEmitType.Loaded, new
-            {
-                height = 1080,
-                width = 1920,
-                scale = 2,
-                success = 1
-            }).ConfigureAwait(false);
+                {
+                    height = 1080,
+                    width = 1920,
+                    scale = 2,
+                    success = 1
+                })
+                .ConfigureAwait(false);
 
             if (data.Character != null)
                 await OnCharacterAsync(data.Character).ConfigureAwait(false);
 
             return false;
         }
-
         #endregion
 
         #region Helpers
-
         protected async ValueTask<bool> DestroyEntity(string id)
         {
             var result = await Monsters.RemoveAsync(id).ConfigureAwait(false) || await Players.RemoveAsync(id).ConfigureAwait(false);
@@ -2454,7 +2571,7 @@ namespace AL.Client
             var itemData = item.GetData();
             var stackSize = itemData?.StackSize ?? 1;
             //an enumerable of acceptable bankpacks or the bankPack the user wants to use
-            var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : Bank!.GetAvailableBankPacks(Character.Map);
+            var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : Utility.GetAvailableBankPacks(Character.Map);
 
             foreach (var bankPackIndex in availableBanks)
             {
@@ -2464,6 +2581,7 @@ namespace AL.Client
 
                 //for each item in this bank pack
                 var itemSlotIndex = 0;
+
                 foreach (var bankedItem in bankItems)
                 {
                     //if the slot is empty
@@ -2473,7 +2591,6 @@ namespace AL.Client
                         //if this item IS stackable, continue looking for a slot we can stack the item into
                         if (stackSize == 1)
                             return (bankPackIndex, itemSlotIndex);
-
                     }
                     //check if the item can stack onto this banked item
                     else if ((stackSize > 1) && item.Name.EqualsI(bankedItem.Name) && (item.Quantity + bankedItem.Quantity <= stackSize))
@@ -2504,40 +2621,38 @@ namespace AL.Client
                     GameData.Populate(jData);
                 })
             };
-            
+
             await Task.WhenAll(tasks).ConfigureAwait(false);
             await PathFinder.InitializeAsync().ConfigureAwait(false);
         }
 
         protected async ValueTask SetCooldownAsync(string skillName, float? cooldownMS = null)
         {
-            while (true)
+            var cooldownMultiplier = 1f;
+
+            var data = GameData.Skills[skillName];
+
+            if (data == null)
+                return;
+
+            if (!string.IsNullOrEmpty(data.SharedCooldown))
             {
-                var data = GameData.Skills[skillName];
+                skillName = data.SharedCooldown;
+                cooldownMultiplier = data.CooldownMultiplier ?? 1f;
+                data = GameData.Skills[skillName]!;
+            }
 
-                if (data == null)
-                    return;
+            if ((data.CooldownMS > 0) || skillName.EqualsI("attack"))
+            {
+                if (skillName.EqualsI("attack"))
+                    cooldownMS ??= 1000f / Character.Frequency;
+                else
+                    cooldownMS ??= data.CooldownMS;
 
-                if (!string.IsNullOrEmpty(data.SharedCooldown))
-                {
-                    skillName = data.SharedCooldown;
-                    continue;
-                }
+                var cooldownInfo = new CooldownInfo(cooldownMS.Value * cooldownMultiplier);
+                cooldownInfo.CompensateOnce(PingManager.Offset);
 
-                if ((data.CooldownMS > 0) || skillName.EqualsI("attack"))
-                {
-                    if (skillName.EqualsI("attack"))
-                        cooldownMS ??= 1000f / Character.Frequency;
-                    else
-                        cooldownMS ??= data.CooldownMS;
-
-                    var cooldownInfo = new CooldownInfo(cooldownMS.Value);
-                    cooldownInfo.CompensateOnce(PingManager.Offset);
-
-                    await Cooldowns.AddOrUpdateAsync(skillName, cooldownInfo).ConfigureAwait(false);
-                }
-
-                break;
+                await Cooldowns.AddOrUpdateAsync(skillName, cooldownInfo).ConfigureAwait(false);
             }
         }
 
@@ -2549,7 +2664,7 @@ namespace AL.Client
                     //remove extras
                     foreach (var monsterId in dic.Keys.Except(monsters.Select(monster => monster.Id)))
                         dic.Remove(monsterId);
-                    
+
                     //merge existing, add new
                     foreach (var monster in monsters)
                     {
@@ -2573,7 +2688,7 @@ namespace AL.Client
                 {
                     monster.UpdateMap(@in, map);
                     monster.CompensateOnce(PingManager.Offset);
-                    
+
                     if (dic.TryGetValue(monster.Id, out var monsterX))
                         monsterX.Update(monster);
                 }
@@ -2588,7 +2703,7 @@ namespace AL.Client
                     //remove extras
                     foreach (var playerId in dic.Keys.Except(players.Select(player => player.Id)))
                         dic.Remove(playerId);
-                    
+
                     //merge existing, add new
                     foreach (var player in players)
                     {
@@ -2613,7 +2728,7 @@ namespace AL.Client
                 {
                     player.UpdateMap(@in, map);
                     player.CompensateOnce(PingManager.Offset);
-                    
+
                     if (player.Equals(Character))
                         Character.UpdateLocation(player);
                     else if (dic.TryGetValue(player.Id, out var existing))
@@ -2631,15 +2746,14 @@ namespace AL.Client
             //if not, set up a callback to expect bank data
             var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                if ((data.Bank != null) || (Bank != null))
-                    source.TrySetResult();
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if ((data.Bank != null) || (Bank != null))
+                        source.TrySetResult();
 
-                return TaskCache.FALSE;
-            });
-
-            await using var _ = characterCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             //check for bank data again (it could have been set while executing the previous statement
             if (Bank != null)
@@ -2648,7 +2762,6 @@ namespace AL.Client
             //wait for it to be populated
             await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
-
         #endregion
     }
 }

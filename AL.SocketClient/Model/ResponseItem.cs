@@ -4,7 +4,7 @@ using AL.Core.Json.Interfaces;
 namespace AL.SocketClient.Model
 {
     /// <summary>
-    ///     Represents an item received via <see cref="AL.SocketClient.SocketModel.GameResponseData"/>.
+    ///     Represents an item received via <see cref="AL.SocketClient.SocketModel.GameResponseData" />.
     /// </summary>
     public record ResponseItem : ISimpleItem, IOptionalObject
     {
@@ -12,6 +12,8 @@ namespace AL.SocketClient.Model
         ///     The chance of upgrading/compounding the item.
         /// </summary>
         public float? Chance { get; init; }
+
+        public bool ContainsData { get; init; }
 
         /// <summary>
         ///     The current grace of the item.
@@ -26,7 +28,5 @@ namespace AL.SocketClient.Model
 
         // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
         public int Quantity { get; } = 1;
-        
-        public bool ContainsData { get; init; }
     }
 }

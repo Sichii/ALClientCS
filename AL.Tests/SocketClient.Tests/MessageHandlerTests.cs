@@ -18,15 +18,14 @@ namespace AL.Tests.SocketClient.Tests
         {
             var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var subscription = Socket.On<ActionData>(ALSocketMessageType.Action, obj =>
+            await using var subscription = Socket.On<ActionData>(ALSocketMessageType.Action, obj =>
             {
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                 var result = obj != null;
                 source.TrySetResult(result);
+
                 return source.Task;
             });
-
-            await using var _ = subscription.ConfigureAwait(false);
 
             await Socket.HandleEventAsync(@"[
    ""action"",
@@ -43,7 +42,8 @@ namespace AL.Tests.SocketClient.Tests
       ""projectile"":""stone"",
       ""damage"":25
    }
-]").ConfigureAwait(false);
+]")
+                .ConfigureAwait(false);
 
             Assert.IsTrue(await source.Task.ConfigureAwait(false));
         }

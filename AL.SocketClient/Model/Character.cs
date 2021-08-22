@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using AL.Core.Definitions;
-using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.SocketClient.Json.Converters;
 using AL.SocketClient.SocketModel;

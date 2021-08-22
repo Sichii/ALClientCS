@@ -12,12 +12,12 @@ namespace AL.SocketClient.Model
     /// </summary>
     /// <seealso cref="EntityBase" />
     /// <seealso cref="ISimplePlayer" />
+    /// <seealso cref="IEquatable{T}" />
     [JsonConverter(typeof(AttributedObjectConverter<Player>))]
     public class Player : EntityBase, ISimplePlayer, IEquatable<Player>
     {
         [JsonProperty, JsonConverter(typeof(AfkConverter))]
         public bool AFK { get; protected set; }
-
 
         [JsonProperty]
         public int Age { get; protected set; }

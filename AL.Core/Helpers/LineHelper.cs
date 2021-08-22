@@ -37,6 +37,7 @@ namespace AL.Core.Helpers
                 for (var i2 = 0; i2 < lines.Count; i2++)
                 {
                     var line2 = lines[i2] with { IsVertical = isVertical };
+
                     if ((i != i2) && line1.Overlaps(line2))
                     {
                         Logger.Trace($@"Merging lines
@@ -45,6 +46,7 @@ namespace AL.Core.Helpers
 ");
 
                         line1 = line1.Merge(line2);
+
                         break;
                     }
                 }

@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Maps
 {
-     /// <summary>
-     ///     <inheritdoc />
-     /// </summary>
-     /// <seealso cref="DatumBase{T}" />
-     public class MapsDatum : DatumBase<GMap>
+    /// <summary>
+    ///     <inheritdoc />
+    /// </summary>
+    /// <seealso cref="DatumBase{T}" />
+    public class MapsDatum : DatumBase<GMap>
     {
         public GMap Abtesting { get; init; } = null!;
         public GMap Arena { get; init; } = null!;
@@ -77,7 +77,6 @@ namespace AL.Data.Maps
         public GMap WinterInstance { get; init; } = null!;
         public GMap Winterland { get; init; } = null!;
         public GMap Woffice { get; init; } = null!;
-
 
         internal override void BuildLookupTable()
         {

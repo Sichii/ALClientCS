@@ -20,6 +20,7 @@ namespace AL.SocketClient.Json.Converters
                          ?? throw new InvalidOperationException("Failed to deserialize player.");
 
             var playerSlots = (Dictionary<Slot, SlotItem?>)player.Slots;
+
             foreach (var member in Enum.GetValues<Slot>())
                 if (!playerSlots.ContainsKey(member))
                     playerSlots[member] = null;

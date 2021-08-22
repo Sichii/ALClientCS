@@ -12,10 +12,11 @@ namespace AL.SocketClient.Interfaces
     public interface IALSocketClient : IAsyncDisposable
     {
         /// <summary>
-        /// Occurs when the underlying socket disconnects. 
+        ///     Occurs when the underlying socket disconnects.
         /// </summary>
+        // ReSharper disable once EventNeverSubscribedTo.Global
         event EventHandler<WebSocketCloseEventArgs>? Disconnected;
-        
+
         /// <summary>
         ///     Whether or not the socket is currently open.
         /// </summary>

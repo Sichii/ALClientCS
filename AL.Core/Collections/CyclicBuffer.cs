@@ -19,7 +19,6 @@ namespace AL.Core.Collections
         /// </summary>
         public int Count => Items.Length;
 
-
         /// <summary>
         ///     Initializes a new instance of the <see cref="CyclicBuffer{T}" /> class.
         /// </summary>
@@ -31,7 +30,7 @@ namespace AL.Core.Collections
         /// </summary>
         /// <param name="item">The item.</param>
         /// <returns>
-        ///     <typeparamref name="T"/> <br />
+        ///     <typeparamref name="T" /> <br />
         ///     If an item was replaced, it returns that item.
         /// </returns>
         public T? Add(T? item)

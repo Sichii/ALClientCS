@@ -75,6 +75,7 @@ namespace AL.Core.Geometry
                 throw new ArgumentNullException(nameof(other));
 
             var edges = new[] { Start, End, other.Start, other.End };
+
             return edges.Max() - edges.Min();
         }
 
@@ -159,6 +160,7 @@ namespace AL.Core.Geometry
             while (!Equals(current, last))
             {
                 current = current.DirectionalOffset(last.DirectionalRelationTo(current));
+
                 yield return current;
             }
         }

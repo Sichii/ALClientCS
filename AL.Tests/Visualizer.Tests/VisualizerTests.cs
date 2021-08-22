@@ -36,7 +36,9 @@ namespace AL.Tests.Visualizer.Tests
             var startPoint = new Point(0, 0);
             var endPoints = new[] { new Point(0, 0) };
 
-            var path = await PathFinder.FindPath("main", startPoint, endPoints.Select(end => new Circle(end, 0))).ToArrayAsync().ConfigureAwait(false);
+            var path = await PathFinder.FindPath("main", startPoint, endPoints.Select(end => new Circle(end, 0)))
+                .ToArrayAsync()
+                .ConfigureAwait(false);
 
             var navMesh = PathFinder.GetNavMesh("main")!;
 

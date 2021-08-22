@@ -40,6 +40,7 @@ namespace AL.Core.Json.Converters
                     if (objectType.IsEnum)
                     {
                         var num = serializer.Deserialize<int>(reader);
+
                         return (T?)Enum.ToObject(typeof(T?), num);
                     } else
                         return (T?)serializer.Deserialize(reader, typeof(int));
@@ -53,6 +54,7 @@ namespace AL.Core.Json.Converters
                         return Default;
 
                     serializer.Populate(reader, instance);
+
                     return instance;
                 }
             }

@@ -67,6 +67,7 @@ namespace AL.Pathfinding.Model
                 if (intersection != null)
                 {
                     connectors.RemoveRange(i, connectors.Count - i);
+
                     connectors.Add((EdgeConnector<Point>)connector with
                     {
                         End = intersection.Value, Heuristic = connector.Start.Distance(intersection.Value)
@@ -116,6 +117,7 @@ namespace AL.Pathfinding.Model
 
             //initialization / offset start and end points
             start = ApplyOffset(start);
+
             var endsArr = ends.Select(end =>
                 {
                     if (end is Exit exit)
@@ -143,6 +145,7 @@ namespace AL.Pathfinding.Model
             foreach (var end in endsArr)
             {
                 var orderedNodes = Nodes.OrderBy(node => end.FastDistance(node.Edge));
+
                 var endNode = end is Exit { Type: ExitType.Transporter or ExitType.Door }
                     ? orderedNodes.FirstOrDefault()
                     : orderedNodes.FirstOrDefault(node => CanMove(end, node.Edge));
@@ -168,7 +171,8 @@ namespace AL.Pathfinding.Model
             //get the path (prepend the real start of the path
             var path = await Navigate(startNode.Index, endPointLookup.Keys.Select(node => node.Index), setup, cleanup)
                 .Prepend(new EdgeConnector<Point> { Start = (Point)start, End = startNode.Edge })
-                .ToListAsync().ConfigureAwait(false);
+                .ToListAsync()
+                .ConfigureAwait(false);
 
             //add the real end of the path based on the last node found
             var last = path.Last().End;
@@ -206,6 +210,7 @@ namespace AL.Pathfinding.Model
                         if (next.Type == ConnectorType.Town)
                         {
                             i = e;
+
                             break;
                         }
 

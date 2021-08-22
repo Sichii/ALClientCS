@@ -14,8 +14,7 @@ namespace AL.Tests.Integration
         {
             var apiClient = AssemblyInit.APIClient;
 
-            var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient).ConfigureAwait(false);
-            await using var _ = client.ConfigureAwait(false);
+            await using var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient).ConfigureAwait(false);
 
             //stand still for 1minute
             await Task.Delay(1000 * 60).ConfigureAwait(false);
@@ -29,7 +28,6 @@ namespace AL.Tests.Integration
             var apiClient = AssemblyInit.APIClient;
 
             var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient).ConfigureAwait(false);
-            await using var _ = client.ConfigureAwait(false);
 
             var location1 = new Location("main", -917, 133);
             var location2 = new Location("winterland", 285, -115);

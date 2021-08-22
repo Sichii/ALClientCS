@@ -11,15 +11,6 @@ namespace AL.Data.Monsters
     /// <seealso cref="AttributedRecordBase" />
     public record GMonsterAbility : AttributedRecordBase
     {
-        #pragma warning disable 0649
-        [JsonProperty("amount")]
-        private float? _amount;
-        [JsonProperty("damage")]
-        private float? _damage;
-        [JsonProperty("heal")]
-        private float? _heal;
-        #pragma warning restore 0649
-
         /// <summary>
         ///     Whether or not this is an aura ability.
         /// </summary>
@@ -71,5 +62,13 @@ namespace AL.Data.Monsters
         ///     The amount of heal/damage/amount for this ability.
         /// </summary>
         public float Amount => _amount ?? _damage ?? _heal ?? 0f;
+        #pragma warning disable 0649
+        [JsonProperty("amount")]
+        private float? _amount;
+        [JsonProperty("damage")]
+        private float? _damage;
+        [JsonProperty("heal")]
+        private float? _heal;
+        #pragma warning restore 0649
     }
 }

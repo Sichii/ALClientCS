@@ -1,6 +1,5 @@
 ﻿using AL.APIClient.Definitions;
 using AL.Core.Interfaces;
-using AL.SocketClient.Model;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel

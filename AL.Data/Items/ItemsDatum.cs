@@ -513,7 +513,6 @@ namespace AL.Data.Items
         public GItem Xshot { get; init; } = null!;
         public GItem Zapper { get; init; } = null!;
 
-
         internal override void BuildLookupTable()
         {
             base.BuildLookupTable();

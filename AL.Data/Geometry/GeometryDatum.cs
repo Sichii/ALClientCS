@@ -4,11 +4,11 @@ using Newtonsoft.Json;
 
 namespace AL.Data.Geometry
 {
-       /// <summary>
-       ///     <inheritdoc />
-       /// </summary>
-       /// <seealso cref="DatumBase{T}" />
-       public class GeometryDatum : DatumBase<GGeometry>
+    /// <summary>
+    ///     <inheritdoc />
+    /// </summary>
+    /// <seealso cref="DatumBase{T}" />
+    public class GeometryDatum : DatumBase<GGeometry>
     {
         public GGeometry Abtesting { get; init; } = null!;
         public GGeometry Arena { get; init; } = null!;
@@ -69,7 +69,6 @@ namespace AL.Data.Geometry
         public GGeometry WinterInstance { get; init; } = null!;
         public GGeometry Winterland { get; init; } = null!;
         public GGeometry Woffice { get; init; } = null!;
-
 
         internal override void BuildLookupTable()
         {

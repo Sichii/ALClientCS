@@ -15,7 +15,6 @@ namespace AL.Pathfinding.Comparers
                 return false;
 
             return !ReferenceEquals(y, null) && x.Edge.Equals(y.Edge);
-
         }
 
         public int GetHashCode(IGraphNode<T> obj) => obj.Edge.GetHashCode();

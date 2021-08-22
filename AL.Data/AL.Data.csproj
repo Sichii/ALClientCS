@@ -27,14 +27,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Core\AL.Core.csproj" />
+        <ProjectReference Include="..\AL.Core\AL.Core.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
+        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
 </Project>

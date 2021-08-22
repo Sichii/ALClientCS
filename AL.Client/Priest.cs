@@ -49,42 +49,42 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
-                        source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
-                    GameResponseType.NonFriendlyTarget => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (not a friendly target)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
-                    _                     => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
+                            source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
+                        GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source
+                            .TrySetResult(
+                                $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
+                        GameResponseType.TooFar when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source
+                            .TrySetResult(
+                                $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
+                        GameResponseType.NonFriendlyTarget => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}' on {targetId}. (not a friendly target)"),
+                        GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                        _                     => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    Match match;
 
-            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
-            {
-                Match match;
+                    if (!string.IsNullOrEmpty(data.Code)
+                        && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
+                        && match.Groups[1].Value.EqualsI(SKILL_NAME))
+                        return Task.FromResult(source.TrySetResult(Expectation.Success));
 
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1].Value.EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = evalCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
 
@@ -111,36 +111,36 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<ActionData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
-                        source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
-                    _                     => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
+                            source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
+                        GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source
+                            .TrySetResult(
+                                $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
+                        GameResponseType.TooFar when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source
+                            .TrySetResult(
+                                $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
+                        GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                        _                     => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
+                {
+                    if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
+                        return Task.FromResult(source.TrySetResult(data));
 
-            var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
-            {
-                if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
-                    return Task.FromResult(source.TrySetResult(data));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = actionCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
 
@@ -157,36 +157,34 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _                        => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
+                        GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
+                        GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                        _                        => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    Match match;
 
-            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
-            {
-                Match match;
+                    if (!string.IsNullOrEmpty(data.Code)
+                        && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
+                        && match.Groups[1].Value.EqualsI(SKILL_NAME))
+                        return Task.FromResult(source.TrySetResult(Expectation.Success));
 
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1].Value.EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = evalCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
@@ -213,36 +211,34 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<ActionData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.AttackFailed when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
-                    _                     => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.AttackFailed when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
+                        GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
+                        GameResponseType.TooFar when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
+                        GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                        _                     => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
+                {
+                    if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
+                        return Task.FromResult(source.TrySetResult(data));
 
-            var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
-            {
-                if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
-                    return Task.FromResult(source.TrySetResult(data));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = actionCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
 
@@ -259,36 +255,34 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _                        => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
+                        GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
+                        GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                        _                        => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    Match match;
 
-            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
-            {
-                Match match;
+                    if (!string.IsNullOrEmpty(data.Code)
+                        && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
+                        && match.Groups[1].Value.EqualsI(SKILL_NAME))
+                        return Task.FromResult(source.TrySetResult(Expectation.Success));
 
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1].Value.EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = evalCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
@@ -311,36 +305,34 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _                        => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
+                        GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
+                        GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                        _                        => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    Match match;
 
-            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
-            {
-                Match match;
+                    if (!string.IsNullOrEmpty(data.Code)
+                        && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
+                        && match.Groups[1].Value.EqualsI(SKILL_NAME))
+                        return Task.FromResult(source.TrySetResult(Expectation.Success));
 
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1].Value.EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = evalCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
@@ -368,40 +360,40 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                var result = data.ResponseType switch
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
-                    GameResponseType.NonFriendlyTarget => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (not a friendly target)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
-                    _                     => false
-                };
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
+                        GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source
+                            .TrySetResult(
+                                $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
+                        GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
+                        GameResponseType.TooFar when data.TargetID.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source
+                            .TrySetResult(
+                                $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
+                        GameResponseType.NonFriendlyTarget => source.TrySetResult(
+                            $"Failed to use '{SKILL_NAME}' on {targetId}. (not a friendly target)"),
+                        GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                        _                     => false
+                    };
 
-                return Task.FromResult(result);
-            });
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
 
-            await using var _ = gameResponseCallback.ConfigureAwait(false);
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    Match match;
 
-            var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
-            {
-                Match match;
+                    if (!string.IsNullOrEmpty(data.Code)
+                        && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
+                        && match.Groups[1].Value.EqualsI(SKILL_NAME))
+                        return Task.FromResult(source.TrySetResult(Expectation.Success));
 
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1].Value.EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-            await using var __ = evalCallback.ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
 

@@ -46,7 +46,7 @@ namespace AL.Core.Helpers
         /// </summary>
         /// <typeparam name="T">An enum type.</typeparam>
         /// <param name="str">A string to parse.</param>
-        /// <param name="result"><see cref="Enum" /> value of type <typeparamref name="T"/></param>
+        /// <param name="result"><see cref="Enum" /> value of type <typeparamref name="T" /></param>
         /// <returns><c>true</c> if parsing was successful, <c>false</c> otherwise.</returns>
         public static bool TryParse<T>(string? str, out T result) where T: struct
         {
@@ -69,6 +69,7 @@ namespace AL.Core.Helpers
 
                 var final = member.GetValue(null);
                 result = (T?)final ?? default;
+
                 return true;
             }
 

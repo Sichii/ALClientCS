@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace AL.Client.Helpers
 {
-    internal class SimpleCache<TKey, TValue> : ConcurrentDictionary<TKey, TValue> where TKey : notnull
+    internal class SimpleCache<TKey, TValue> : ConcurrentDictionary<TKey, TValue> where TKey: notnull
     {
         private readonly ConcurrentDictionary<TKey, TValue> Cache;
         private readonly Func<TKey, TValue>? ValueFactoryFunc;
@@ -16,9 +16,9 @@ namespace AL.Client.Helpers
             if (valueFactoryFunc != null)
                 ValueFactoryFunc = valueFactoryFunc;
         }
-        
+
         internal TValue GetOrAdd(TKey key) => ValueFactoryFunc != null
             ? Cache.GetOrAdd(key, ValueFactoryFunc)
             : throw new InvalidOperationException("Configure valueFactory first.");
-    } 
+    }
 }

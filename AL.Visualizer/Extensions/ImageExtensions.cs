@@ -186,6 +186,7 @@ namespace AL.Visualizer.Extensions
             _ = points.Aggregate((prev, cur) =>
             {
                 image.DrawLine(prev, cur, color);
+
                 return cur;
             });
 

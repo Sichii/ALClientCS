@@ -62,7 +62,6 @@ namespace AL.Pathfinding.Abstractions
         /// <exception cref="ArgumentNullException">typeFunc</exception>
         protected GraphBase(List<TNode> nodes, Func<TNode, TNode, float> heuristicFunc, Func<TNode, TNode, ConnectorType> typeFunc)
         {
-
             Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
             Connectors = new IConnector<TEdge>[nodes.Count, nodes.Count];
             Opened = new FastPriorityQueue<TNode>(nodes.Count);
@@ -242,11 +241,13 @@ namespace AL.Pathfinding.Abstractions
                 if (node.Priority.SignificantlyGreaterThan(priority, Core.Definitions.CONSTANTS.EPSILON))
                 {
                     Opened.UpdatePriority(node, priority);
+
                     return true;
                 }
             } else
             {
                 Opened.Enqueue(node, priority);
+
                 return true;
             }
 

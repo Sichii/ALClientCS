@@ -37,6 +37,7 @@ namespace AL.Core.Extensions
             var dy = end.Y - start.Y;
             var sqr = dx * dx + dy * dy;
             var lne = 2 * (dx * (start.X - circle.X) + dy * (start.Y - circle.Y));
+
             var quad = (start.X - circle.X) * (start.X - circle.X)
                        + (start.Y - circle.Y) * (start.Y - circle.Y)
                        - circle.Radius * circle.Radius;

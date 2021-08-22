@@ -42,6 +42,7 @@ namespace AL.Core.Json.Converters
                     };
 
                     serializer.Populate(reader, result);
+
                     break;
                 }
                 default:

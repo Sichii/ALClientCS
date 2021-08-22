@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Client.Model;
-using AL.Core.Definitions;
 using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 
@@ -88,8 +87,8 @@ namespace AL.Client.Extensions
         /// <summary>
         ///     Finds the first item in the bank that is not null, and meets the predicate conditions.
         /// </summary>
-        /// <param name="bank">The client's <see cref="BankInfo"/>.</param>
-        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem"/>.</param>
+        /// <param name="bank">The client's <see cref="BankInfo" />.</param>
+        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem" />.</param>
         /// <returns>
         ///     <see cref="IndexedInventoryItem" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
@@ -103,7 +102,7 @@ namespace AL.Client.Extensions
 
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
-            
+
             foreach ((var bankPack, var items) in bank)
             {
                 var index = items.FindIndex(item => (item != null) && predicate(item));
@@ -121,7 +120,7 @@ namespace AL.Client.Extensions
 
             return null;
         }
-        
+
         /// <summary>
         ///     Finds the first item in the bank that meets the conditions.
         /// </summary>
@@ -185,30 +184,6 @@ namespace AL.Client.Extensions
             }
 
             return null;
-        }
-
-        /// <summary>
-        ///     Gets the BankPacks that available on a given bank map.
-        /// </summary>
-        /// <param name="bankInfo">The object used to access this method.</param>
-        /// <param name="mapAccessor">The bank's map accessor.</param>
-        /// <returns>
-        ///     <see cref="IEnumerable{T}" /> of <see cref="BankPack" /> <br />
-        ///     A lazy enumeration of the bankpacks available on the given map.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">mapAccessor</exception>
-        public static IEnumerable<BankPack> GetAvailableBankPacks(this BankInfo? bankInfo, string mapAccessor)
-        {
-            if (string.IsNullOrEmpty(mapAccessor))
-                throw new ArgumentNullException(nameof(mapAccessor));
-
-            return (mapAccessor switch
-            {
-                "bank"   => Enumerable.Range(1, 7),
-                "bank_b" => Enumerable.Range(9, 15),
-                "bank_u" => Enumerable.Range(25, 23),
-                _        => throw new InvalidOperationException("Not in a bank")
-            }).Select(index => (BankPack)index);
         }
     }
 }

@@ -30,7 +30,7 @@ namespace AL.Core.Geometry
         public float Width => HalfWidth * 2;
         public float X => Center.X;
         public float Y => Center.Y;
-        
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="BoundingRectangle" /> class.
         /// </summary>
@@ -46,7 +46,7 @@ namespace AL.Core.Geometry
             float verticalNorth,
             float verticalNotNorth)
             : this(new Point(x, y), new BoundingBase(halfWidth, verticalNorth, verticalNotNorth)) { }
-        
+
         // ReSharper disable once UseDeconstructionOnParameter        
         /// <summary>
         ///     Initializes a new instance of the <see cref="BoundingRectangle" /> class.
