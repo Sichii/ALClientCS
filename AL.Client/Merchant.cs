@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AL.APIClient;
@@ -6,8 +7,11 @@ using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
+using AL.Client.Model;
 using AL.Core.Definitions;
+using AL.Core.Extensions;
 using AL.Core.Helpers;
+using AL.Data;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
@@ -29,7 +33,7 @@ namespace AL.Client
         /// <param name="characterName">The name of the merchant.</param>
         /// <param name="apiClient">An API client implementation.</param>
         /// <param name="socketClient">A socket client implementation.</param>
-        /// <exception cref="ArgumentNullException">name</exception>
+        /// <exception cref="ArgumentNullException">characterName</exception>
         /// <exception cref="ArgumentNullException">apiClient</exception>
         /// <exception cref="ArgumentNullException">socketClient</exception>
         public Merchant(string characterName, IALAPIClient apiClient, IALSocketClient socketClient)
@@ -282,6 +286,143 @@ namespace AL.Client
         }
 
         /// <summary>
+        ///     Asynchronously posts a buy order for an item.
+        /// </summary>
+        /// <param name="itemName">The name of the item to post a buy order for.</param>
+        /// <param name="itemLevel">The level of the item to buy.</param>
+        /// <param name="tradeSlot">The slot to post the buy order.</param>
+        /// <param name="price">The price per item the buy order is for.</param>
+        /// <param name="quantity">The number of items to buy.</param>
+        /// <exception cref="ArgumentNullException">itemName</exception>
+        /// <exception cref="InvalidOperationException">Failed to post item {itemName} to buy. ({reason})</exception>
+        public async Task PostBuyOrderAsync(
+            string itemName,
+            int? itemLevel,
+            TradeSlot tradeSlot,
+            long price,
+            int quantity = 1)
+        {
+            if (string.IsNullOrEmpty(itemName))
+                throw new ArgumentNullException(nameof(itemName));
+
+            var itemData = GameData.Items[itemName];
+
+            if (itemData == null)
+                throw new InvalidOperationException($"Failed to post item {itemName} to buy. (not a valid name)");
+
+            if (price <= 0)
+                throw new InvalidOperationException($"Failed to post item {itemName} to buy. (invalid price)");
+
+            if (quantity <= 0)
+                throw new InvalidOperationException($"Failed to post item {itemName} to buy. (invalid quantity)");
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.SlotOccupied => source.TrySetResult($"Failed to post item {itemName} to buy. (slot occupied)"),
+                        _                             => false
+                    };
+
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var slotItem = data.Slots[tradeSlot.ToSlot()];
+
+                    if (slotItem is { Buying: true } && slotItem.Name.EqualsI(itemName))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.TradeWishlist, new
+                {
+                    q = quantity.ToString(),
+                    slot = tradeSlot,
+                    price = price.ToString(),
+                    level = itemLevel?.ToString() ?? "undefined",
+                    name = itemName
+                })
+                .ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
+        ///     Asynchronously lists an item for sale.
+        /// </summary>
+        /// <param name="inventorySlot">The slot in the inventory of the item to list.</param>
+        /// <param name="tradeSlot">The trade slot to list the item to.</param>
+        /// <param name="price">The list price of the item.</param>
+        /// <param name="quantity">The quantity of the item to sell.</param>
+        /// <exception cref="InvalidOperationException">Failed to list item {itemNameOrSlot} for sale. ({reason})</exception>
+        public async Task PostSaleItemAsync(int inventorySlot, TradeSlot tradeSlot, long price, int quantity = 1)
+        {
+            var item = Character.Inventory[inventorySlot];
+
+            if (item == null)
+                throw new InvalidOperationException($"Failed to post item {inventorySlot} for sale. (slot empty)");
+
+            if (price <= 0)
+                throw new InvalidOperationException($"Failed to post item {item.Name} for sale. (invalid price)");
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+                {
+                    var result = false;
+
+                    if (data.EqualsI("not enough"))
+                        result = source.TrySetResult($"Failed to post item {item.Name} for sale. (not enough)");
+
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.SlotOccupied =>
+                            source.TrySetResult($"Failed to list item {item.Name} for sale. (trade slot occupied)"),
+                        _ => false
+                    };
+
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var inventoryItem = data.Inventory[inventorySlot];
+
+                    if ((inventoryItem == null) || (inventoryItem.Quantity == item.Quantity - quantity))
+                    {
+                        var slotItem = data.Slots[tradeSlot.ToSlot()];
+
+                        if ((slotItem != null) && slotItem.Name.EqualsI(item.Name))
+                            source.TrySetResult(Expectation.Success);
+                    }
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Equip, new { num = inventorySlot, q = quantity, slot = tradeSlot, price })
+                .ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
         ///     Asynchronously creates a Merchant client and connects. <br />
         /// </summary>
         /// <param name="characterName">The name of the character to log in as.</param>
@@ -308,6 +449,62 @@ namespace AL.Client
             await client.ConnectAsync(region, identifier).ConfigureAwait(false);
 
             return client;
+        }
+
+        /// <summary>
+        ///     Asynchronously unposts a trade item.
+        /// </summary>
+        /// <param name="tradeSlot">The trade slot of the item to unpost.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     If the unposted item was an item for sale, this will return information about that item within the inventory.
+        ///     <br />
+        ///     Otherwise this will return null
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Failed to unpost trade item {itemNameOrSlot}. ({reason})</exception>
+        public async Task<IndexedInventoryItem?> UnpostItemAsync(TradeSlot tradeSlot)
+        {
+            var slot = tradeSlot.ToSlot();
+            var tradeItem = Character.Slots[slot];
+
+            if (tradeItem == null)
+                throw new InvalidOperationException($"Failed to unpost trade item {tradeSlot}. (slot empty)");
+
+            if (!tradeItem.Buying && (Character.EmptySlots == 0))
+                throw new InvalidOperationException($"Failed to unpost trade item {tradeItem.Name}. (no space)");
+
+            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem?>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var previousInventory = tradeItem.Buying ? null : Character.Inventory.AsIndexed();
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var slotItem = data.Slots[slot];
+
+                    if (slotItem == null)
+                    {
+                        if (tradeItem.Buying)
+                        {
+                            source.TrySetResult(default(IndexedInventoryItem?));
+
+                            return TaskCache.FALSE;
+                        }
+
+                        var inventoryItem = data.Inventory.AsIndexed()
+                            .Except(previousInventory!)
+                            .FirstOrDefault(indexed =>
+                                indexed.Item.Name.EqualsI(tradeItem.Name) && (indexed.Item.Level == tradeItem.Level));
+
+                        if (inventoryItem != null)
+                            source.TrySetResult(inventoryItem);
+                    }
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Unequip, new { slot }).ConfigureAwait(false);
+
+            return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
 
         //TODO: Throw Stuff... but i dont think anyone will ever use it so it's extremely low priority

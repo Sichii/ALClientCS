@@ -149,7 +149,9 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "no_item")]
         NoItem,
         [EnumMember(Value = "log_gold_not_enough")]
-        NotEnoughGold
+        NotEnoughGold,
+        [EnumMember(Value = "slot_occuppied")]
+        SlotOccupied
     }
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -249,6 +251,8 @@ namespace AL.SocketClient.Definitions
         Tracker,
         [EnumMember(Value = "trade_buy")]
         TradeBuy,
+        [EnumMember(Value = "trade_wishlist")]
+        TradeWishlist,
         Transport,
         Unequip,
         Upgrade,

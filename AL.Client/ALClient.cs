@@ -453,15 +453,15 @@ namespace AL.Client
         /// <summary>
         ///     Checks if a target is within range of a skill.
         /// </summary>
-        /// <param name="skillName">The name of the skill.</param>
         /// <param name="target">A target able to have edge-to-edge distance calculated.</param>
+        /// <param name="skillName">The name of the skill.</param>
         /// <returns>
         ///     <see cref="bool" /> <br />
         ///     <c>true</c> if the target is within range of the skill, otherwise <c>false</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException">skillName</exception>
         /// <exception cref="ArgumentNullException">target</exception>
-        public bool WithinRangeOfSkill(string skillName, IRectangle target)
+        public bool WithinSkillRange(IRectangle target, string skillName)
         {
             if (string.IsNullOrEmpty(skillName))
                 throw new ArgumentNullException(nameof(skillName));
@@ -852,10 +852,6 @@ namespace AL.Client
         /// <exception cref="ArgumentNullException">playerName</exception>
         /// <exception cref="ArgumentNullException">item</exception>
         /// <exception cref="InvalidOperationException">{reason}</exception>
-        /// <remarks>
-        ///     There are cases of wrong information where server will not indicate something went wrong.
-        ///     My solution is to handle those cases myself.
-        /// </remarks>
         public async Task<IndexedInventoryItem> BuyFromPlayerAsync(string playerName, TradeSlot slot, TradeItem item, int quantity = 1)
         {
             if (string.IsNullOrEmpty(playerName))
@@ -1313,6 +1309,47 @@ namespace AL.Client
         }
 
         /// <summary>
+        ///     Asynchronously equips an item in a slot.
+        /// </summary>
+        /// <param name="inventorySlot">The slot in the inventory of the item to equip.</param>
+        /// <param name="slot">The slot to equip the item into.</param>
+        /// <exception cref="InvalidOperationException">Failed to equip item {itemNameOrSlot}. ({reason})</exception>
+        public async Task EquipAsync(int inventorySlot, Slot slot)
+        {
+            var item = Character.Inventory[inventorySlot];
+
+            if (item == null)
+                throw new InvalidOperationException($"Failed to equip item {inventorySlot}. (slot is empty)");
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
+                {
+                    if (data.Id.EqualsI(Name) && data.Message.EqualsI("can't equip"))
+                        source.TrySetResult($"Failed to equip item {item.Name}. (wrong slot)");
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var slotItem = data.Slots[slot];
+
+                    if ((slotItem != null) && slotItem.Name.EqualsI(item.Name) && (slotItem.Level == item.Level))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Equip, new { num = inventorySlot, slot }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
         ///     Asynchronously attempts to exchange an item.
         /// </summary>
         /// <param name="itemIndex">The index of the item to exchange.</param>
@@ -1321,10 +1358,6 @@ namespace AL.Client
         ///     The item received from the exchange.
         /// </returns>
         /// <exception cref="InvalidOperationException"></exception>
-        /// <remarks>
-        ///     There are cases of wrong information where server will not indicate something went wrong.
-        ///     My solution is to handle those cases myself.
-        /// </remarks>
         public async Task<IndexedInventoryItem> ExchangeAsync(int itemIndex)
         {
             if (itemIndex >= Character.InventorySize)
@@ -1457,10 +1490,6 @@ namespace AL.Client
         ///     Asynchronously begins or completes a monsterhunt quest.
         /// </summary>
         /// <exception cref="InvalidOperationException">Failed to monsterhunt. ({reason})</exception>
-        /// <remarks>
-        ///     There are cases of wrong information where server will not indicate something went wrong.
-        ///     My solution is to handle those cases myself.
-        /// </remarks>
         public async Task MonsterHuntAsync()
         {
             if (await Character.Conditions.TryGetValueAsync(Condition.MonsterHunt, out var conditionTask).ConfigureAwait(false))
@@ -2003,6 +2032,51 @@ namespace AL.Client
 
             if (newMap.Map.ContainsI("bank") && newData.Mount)
                 await WaitForBankAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        ///     Asynchronously unequips an item from a slot.
+        /// </summary>
+        /// <param name="slot">The slot of the item to unequip.</param>
+        /// <returns>
+        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     Information about the item that was unequiped within the inventory.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">Failed to unequip item {itemNameOrSlot}. ({reason})</exception>
+        public async Task<IndexedInventoryItem> UnequipAsync(Slot slot)
+        {
+            var item = Character.Slots[slot];
+
+            if (item == null)
+                throw new InvalidOperationException($"Failed to unequip item {slot}. (no item in slot)");
+
+            if (Character.EmptySlots == 0)
+                throw new InvalidOperationException($"Failed to unequip item {item.Name}. (no space)");
+
+            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var previousInventory = Character.Inventory.AsIndexed();
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var slotItem = data.Slots[slot];
+
+                    if (slotItem == null)
+                    {
+                        var inventoryItem = Character.Inventory.AsIndexed()
+                            .Except(previousInventory)
+                            .FirstOrDefault(indexed => indexed.Item.Name.EqualsI(item.Name) && (indexed.Item.Level == item.Level));
+
+                        if (inventoryItem != null)
+                            source.TrySetResult(inventoryItem);
+                    }
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Unequip, new { slot }).ConfigureAwait(false);
+
+            return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
 
         /// <summary>
