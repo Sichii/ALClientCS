@@ -12,7 +12,7 @@ AL.Core─┤                                   ├─AL.Client
 # Logging
 This client uses `Common.Logging`, allowing users implement their own logging solution if so desired, or any number of factory adapters from nuget. <br/>
 <br/>
-Alternatively, the default logging configuration can enabled by adding `ALClientSettings.UseDefaultLoggingConfiguration();` somewhere near the beginning of the application. <br/>
+Alternatively, the default logging configuration can be enabled by adding `ALClientSettings.UseDefaultLoggingConfiguration();` somewhere near the beginning of the application. <br/>
 The default logging configuration utilizes an `NLog` factory adapter. The logging level can be changed in the settings. <br/>
 
 # Settings
