@@ -99,7 +99,7 @@ In this case, it is intentional to force the user to consider what type of dista
 ```
 
 ### Persistence
-1. Each time you entier the `Bank`, new bank information overwrites `Client.Bank`. <br/>
+1. Each time you enter the `Bank`, new bank information overwrites `Client.Bank`. <br/>
 2. The `Character` object for each client is fully persistent and mutable. <br/>
 	a. In other words, a reference to this object will be valid for the lifetime of the client. <br/>
 3. **All object properties of `Character` are non-persistent.**
