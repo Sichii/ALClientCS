@@ -88,7 +88,7 @@ In this case, it is intentional to force the user to consider what type of dista
 	SomeEntity.Distance((ILocation) otherEntity);
 	
 	//center to center distance, but include an instance AND map check
-	SomeEntity.Distance((IInstanceLocation) otherEntity);
+	SomeEntity.Distance((IInstancedLocation) otherEntity);
 	
 	//edge to edge distance
 	SomeEntity.Distance((IRectangle) otherEntity);
@@ -110,4 +110,4 @@ In this case, it is intentional to force the user to consider what type of dista
 	
 # Credits
 [Earthiverse](https://github.com/earthiverse/ALClient): typings, callbacks <br/>
-[SpadarFear](https://github.com/Spadar/AdventureLandService): mesh generation
+[Spadar](https://github.com/Spadar/AdventureLandService): mesh generation
