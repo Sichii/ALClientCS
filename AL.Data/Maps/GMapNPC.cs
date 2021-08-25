@@ -14,8 +14,8 @@ namespace AL.Data.Maps
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, this is the area in which this NPC roams.
         /// </summary>
-        [JsonConverter(typeof(BoundaryConverter))]
-        public Boundary? Boundary { get; init; }
+        [JsonConverter(typeof(MapRectangleConverter))]
+        public MapRectangle? Boundary { get; init; }
 
         /// <summary>
         ///     This NPC's data from <see cref="GameData.NPCs" />.
@@ -30,6 +30,14 @@ namespace AL.Data.Maps
         public string Id { get; init; } = null!;
 
         /// <summary>
+        ///     Lazy enumeration of the spots this NPC can be at. <br />
+        ///     If you're familiar with the original form of this data, it's _position(if present) + _positions(if present).
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        [JsonIgnore]
+        public IReadOnlyList<Location> Locations { get; init; } = new List<Location>();
+
+        /// <summary>
         ///     Whether or not this NPC walks in a loop between it's possible positions.
         /// </summary>
         public bool Loop { get; init; }
@@ -39,36 +47,17 @@ namespace AL.Data.Maps
         /// </summary>
         public string Name => _name ?? Id;
 
-        /// <summary>
-        ///     Lazy enumeration of the spots this NPC can be at. <br />
-        ///     If you're familiar with the original form of this data, it's _position(if present) + _positions(if present).
-        /// </summary>
-        /// <remarks>Aggregate property</remarks>
-        [JsonIgnore]
-        public IEnumerable<Orientation> Positions
-        {
-            get
-            {
-                IEnumerable<Orientation> GetPositions()
-                {
-                    if (_position != default)
-                        yield return _position;
-
-                    if (_positions != null)
-                        foreach (var position in _positions)
-                            yield return position;
-                }
-
-                return GetPositions();
-            }
-        }
         #pragma warning disable 0649
         [JsonProperty("name")]
         private string? _name;
+
         [JsonProperty("position"), JsonConverter(typeof(ArrayToObjectConverter<Orientation>))]
-        private Orientation? _position;
+        // ReSharper disable once InconsistentNaming
+        internal Orientation? _position { get; init; }
+
         [JsonProperty("positions", ItemConverterType = typeof(ArrayToObjectConverter<Orientation>))]
-        private IReadOnlyList<Orientation>? _positions;
+        // ReSharper disable once InconsistentNaming
+        internal IReadOnlyList<Orientation>? _positions { get; init; }
         #pragma warning restore 0649
     }
 }

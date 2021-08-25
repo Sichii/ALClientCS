@@ -217,6 +217,7 @@ namespace AL.Client
             if (fromPonty)
                 return GameData.NPCs["secondhands"]!.Locations.Any(location => location.Distance(Character) < CORE_CONSTANTS.NPC_RANGE);
 
+            // ReSharper disable once ConvertIfStatementToReturnStatement
             if (data.ObtainType != ObtainType.Buy)
                 return false;
 
@@ -2668,10 +2669,8 @@ namespace AL.Client
                     }
                     //check if the item can stack onto this banked item
                     else if ((stackSize > 1) && item.Name.EqualsI(bankedItem.Name) && (item.Quantity + bankedItem.Quantity <= stackSize))
-                    {
                         //-1 allows the item to automatically stack
                         return (bankPackIndex, -1);
-                    }
 
                     itemSlotIndex++;
                 }

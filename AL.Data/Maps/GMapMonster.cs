@@ -12,6 +12,13 @@ namespace AL.Data.Maps
     /// </summary>
     public record GMapMonster
     {
+        /// <summary>
+        ///     The areas this monster will spawn for the current map. <br />
+        ///     If you're familiar with the original form of this data, it's boundary(if present) + boundaries(if present).
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        [JsonIgnore]
+        public IReadOnlyList<InscribedBoundary> Boundaries { get; init; } = new List<InscribedBoundary>();
         //polygon
         /// <summary>
         ///     The number of this monster that spawns on this map.
@@ -50,8 +57,8 @@ namespace AL.Data.Maps
         ///     <b>NULLABLE</b>. If populated, specifies the boundary in which the entire
         ///     spawn of this monster will swarm you at <see cref="GMonster.ChargeSpeed" />.
         /// </summary>
-        [JsonProperty("rage"), JsonConverter(typeof(BoundaryConverter))]
-        public Boundary? RageBoundary { get; init; }
+        [JsonProperty("rage"), JsonConverter(typeof(MapRectangleConverter))]
+        public MapRectangle? RageRect { get; init; }
 
         /// <summary>
         ///     Whether or not this monster roams outside of it's spawn boundary.
@@ -68,35 +75,14 @@ namespace AL.Data.Maps
         /// </summary>
         public bool Special { get; init; }
 
-        /// <summary>
-        ///     Lazy enumeration of spawn boundaries for this monster. <br />
-        ///     If you're familiar with the original form of this data, it's boundary(if present) + boundaries(if present).
-        /// </summary>
-        /// <remarks>Aggregate property</remarks>
-        [JsonIgnore]
-        public IEnumerable<Boundary> Boundaries
-        {
-            get
-            {
-                IEnumerable<Boundary> GetBoundaries()
-                {
-                    if (_boundary != null)
-                        yield return _boundary;
-
-                    if (_boundaries != null)
-                        foreach (var boundary in _boundaries)
-                            yield return boundary;
-                }
-
-                return GetBoundaries();
-            }
-        }
         #pragma warning disable 0649
-        [JsonProperty("boundaries", ItemConverterType = typeof(BoundaryConverter))]
-        private IReadOnlyList<Boundary>? _boundaries;
+        [JsonProperty("boundaries", ItemConverterType = typeof(MapRectangleConverter))]
+        // ReSharper disable once InconsistentNaming
+        internal IReadOnlyList<MapRectangle>? _boundaries { get; init; }
 
-        [JsonProperty("boundary"), JsonConverter(typeof(BoundaryConverter))]
-        private Boundary? _boundary;
+        [JsonProperty("boundary"), JsonConverter(typeof(MapRectangleConverter))]
+        // ReSharper disable once InconsistentNaming
+        internal MapRectangle? _boundary { get; init; }
         #pragma warning restore 0649
 
         //position

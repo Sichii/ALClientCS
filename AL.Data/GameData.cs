@@ -272,35 +272,78 @@ namespace AL.Data
                 //connect npc data
                 foreach (var npc in map.NPCs)
                 {
-                    npc.Data = NPCs[npc.Name];
+                    var nData = NPCs[npc.Name];
+                    npc.Data = NPCs[npc.Name]!;
 
-                    if (npc.Data != null)
+                    if (nData == null)
                     {
-                        //TODO: refactor this maybe
-                        //connect npcs to their potential locations
-                        var locations = npc.Positions.Select(position => new Location(map.Accessor, position)).ToArray();
+                        Log.Warn($"NPC {npc.Name} is missing metadata.");
 
-                        //populate exits with transport npc data
-                        if ((npc.Data.Places != null) && (npc.Data.Role == NPCRole.Transport))
-                            foreach ((var mapAccessor, var spawnId) in npc.Data.Places)
-                                foreach (var location in locations)
-                                {
-                                    var toMapData = Maps[mapAccessor];
-
-                                    if ((toMapData == null) || toMapData.Accessor.EqualsI(map.Accessor))
-                                        continue;
-
-                                    var spawn = toMapData.Spawns[spawnId];
-
-                                    exits.Add(new Exit(map.Accessor, location, new Location(mapAccessor, spawn), spawnId,
-                                        ExitType.Transporter));
-                                }
+                        continue;
                     }
+
+                    //locations for this map
+                    var locations = (List<Location>)npc.Locations;
+
+                    if (npc._position != null)
+                    {
+                        var position = npc._position;
+
+                        locations.Add(new Location(map.Accessor, position));
+                    }
+
+                    if (npc._positions != null)
+                        foreach (var position in npc._positions)
+                            locations.Add(new Location(map.Accessor, position));
+
+                    //populate exits with transport npc data
+                    if ((nData.Role == NPCRole.Transport) && (nData.Places != null))
+                        foreach ((var mapAccessor, var spawnId) in nData.Places)
+                            foreach (var location in locations)
+                            {
+                                var toMapData = Maps[mapAccessor];
+
+                                if ((toMapData == null) || toMapData.Accessor.EqualsI(map.Accessor))
+                                    continue;
+
+                                var spawn = toMapData.Spawns[spawnId];
+
+                                exits.Add(new Exit(map.Accessor, location, new Location(mapAccessor, spawn), spawnId,
+                                    ExitType.Transporter));
+                            }
                 }
 
                 //connect monster data
                 foreach (var monster in map.Monsters)
-                    monster.Data = Monsters[monster.Name];
+                {
+                    monster.Data = Monsters[monster.Name]!;
+                    var boundaries = (List<InscribedBoundary>)monster.Boundaries;
+
+                    //boundaries for this map
+                    if (monster._boundary != null)
+                    {
+                        var boundary = monster._boundary;
+                        var v1 = new Point(boundary.Left, boundary.Top);
+                        var v2 = new Point(boundary.Right, boundary.Bottom);
+                        var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
+
+                        boundaries.Add(new InscribedBoundary(v1, v2, boundaryMap));
+                    }
+
+                    if (monster._boundaries != null)
+                    {
+                        var mBoundaries = monster._boundaries;
+
+                        foreach (var boundary in mBoundaries)
+                        {
+                            var v1 = new Point(boundary.Left, boundary.Top);
+                            var v2 = new Point(boundary.Right, boundary.Bottom);
+                            var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
+
+                            boundaries.Add(new InscribedBoundary(v1, v2, boundaryMap));
+                        }
+                    }
+                }
 
                 //connect map to it's geometry
                 if (geometry != null)
@@ -318,6 +361,52 @@ namespace AL.Data
 
                     exits.Add(new Exit(map.Accessor, door, new Location(door.DestinationMap, spawn),
                         door.DestinationSpawnId, ExitType.Door));
+                }
+            }
+        }
+
+        private static void EnrichMonsters()
+        {
+            Log.Debug("Enriching monster metadata");
+
+            foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
+            {
+                foreach (var monster in map.Monsters)
+                {
+                    var mData = monster.Data;
+
+                    if (mData == null)
+                    {
+                        Log.Warn($"Monster {monster.Name} is missing metadata.");
+
+                        continue;
+                    }
+
+                    var spawnAreas = (List<InscribedBoundary>)mData.SpawnAreas;
+                    spawnAreas.AddRange(monster.Boundaries);
+                }
+            }
+        }
+
+        private static void EnrichNPCs()
+        {
+            Log.Debug("Enriching npc metadata");
+
+            foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
+            {
+                foreach (var npc in map.NPCs)
+                {
+                    var nData = npc.Data;
+
+                    if (nData == null)
+                    {
+                        Log.Warn($"NPC {npc.Name} is missing meetadata.");
+
+                        continue;
+                    }
+
+                    var locations = (List<Location>)nData.Locations;
+                    locations.AddRange(npc.Locations);
                 }
             }
         }
@@ -399,6 +488,8 @@ namespace AL.Data
             EnrichRecipes();
             EnrichMaps();
             EnrichItems();
+            EnrichMonsters();
+            EnrichNPCs();
             BuildBoundingBases();
 
             stopwatch.Stop();

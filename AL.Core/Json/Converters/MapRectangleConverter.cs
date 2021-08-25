@@ -5,15 +5,15 @@ using Newtonsoft.Json;
 namespace AL.Core.Json.Converters
 {
     /// <summary>
-    ///     Provides conversion logic for <see cref="Boundary" /> objects.
+    ///     Provides conversion logic for <see cref="MapRectangle" /> objects.
     /// </summary>
     /// <seealso cref="Newtonsoft.Json.JsonConverter{T}" />
-    public class BoundaryConverter : JsonConverter<Boundary>
+    public class MapRectangleConverter : JsonConverter<MapRectangle>
     {
-        public override Boundary ReadJson(
+        public override MapRectangle ReadJson(
             JsonReader reader,
             Type objectType,
-            Boundary? existingValue,
+            MapRectangle? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
@@ -25,11 +25,11 @@ namespace AL.Core.Json.Converters
             var str = obj?.ToString();
 
             return float.TryParse(str, out var val)
-                ? new Boundary(new Point(val, num1), new Point(num2, num3))
-                : new Boundary(new Point(num1, num2), new Point(num3, num4), str);
+                ? new MapRectangle(new Point(val, num1), new Point(num2, num3))
+                : new MapRectangle(new Point(num1, num2), new Point(num3, num4), str);
         }
 
-        public override void WriteJson(JsonWriter writer, Boundary? value, JsonSerializer serializer) =>
+        public override void WriteJson(JsonWriter writer, MapRectangle? value, JsonSerializer serializer) =>
             throw new NotImplementedException();
     }
 }

@@ -31,7 +31,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.Map.EqualsI(l2.Map) ? float.MaxValue : ((IPoint)l1).AngularRelationTo(l2);
+            return !l1.OnSameMapAs(l2) ? float.MaxValue : ((IPoint)l1).AngularRelationTo(l2);
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.Map.EqualsI(l2.Map) ? Direction.Invalid : ((IPoint)l1).DirectionalRelationTo(l2);
+            return !l1.OnSameMapAs(l2) ? Direction.Invalid : ((IPoint)l1).DirectionalRelationTo(l2);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.Map.EqualsI(l2.Map) ? float.MaxValue : ((IPoint)l1).Distance(l2);
+            return !l1.OnSameMapAs(l2) ? float.MaxValue : ((IPoint)l1).Distance(l2);
         }
 
         /// <summary>
@@ -100,7 +100,15 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.Map.EqualsI(l2.Map) ? Point.None : ((IPoint)l1).MidPoint(l2);
+            return !l1.OnSameMapAs(l2) ? Point.None : ((IPoint)l1).MidPoint(l2);
+        }
+
+        private static bool OnSameMapAs(this ILocation l1, ILocation l2)
+        {
+            if ((l1.Map == string.Empty) || (l2.Map == string.Empty))
+                return true;
+
+            return l1.Map.EqualsI(l2.Map);
         }
 
         /// <summary>
@@ -124,7 +132,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.Map.EqualsI(l2.Map) ? Point.None : ((IPoint)l1).Translate(l2, maxDistance);
+            return !l1.OnSameMapAs(l2) ? Point.None : ((IPoint)l1).Translate(l2, maxDistance);
         }
     }
 }

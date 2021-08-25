@@ -60,15 +60,15 @@ namespace AL.Core.Geometry
         /// <summary>
         ///     Initializes a new instance of the <see cref="Rectangle" /> class.
         /// </summary>
-        /// <param name="pt1">An opposing vertex of a rectangle.</param>
-        /// <param name="pt2">Another opposing vertex of a rectangle.</param>
+        /// <param name="vertex1">An opposing vertex of a rectangle.</param>
+        /// <param name="vertex2">Another opposing vertex of a rectangle.</param>
         /// <exception cref="System.ArgumentNullException">pt1</exception>
         /// <exception cref="System.ArgumentNullException">pt2</exception>
-        public Rectangle(IPoint pt1, IPoint pt2)
+        public Rectangle(IPoint vertex1, IPoint vertex2)
             : this(
-                Math.Abs((pt1?.Y ?? throw new ArgumentNullException(nameof(pt1)))
-                         - (pt2?.Y ?? throw new ArgumentNullException(nameof(pt2)))), Math.Abs(pt1.X - pt2.X),
-                new Point((pt1.X + pt2.X) / 2, (pt1.Y + pt2.Y) / 2)) { }
+                Math.Abs((vertex1?.Y ?? throw new ArgumentNullException(nameof(vertex1)))
+                         - (vertex2?.Y ?? throw new ArgumentNullException(nameof(vertex2)))), Math.Abs(vertex1.X - vertex2.X),
+                new Point((vertex1.X + vertex2.X) / 2, (vertex1.Y + vertex2.Y) / 2)) { }
 
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
 

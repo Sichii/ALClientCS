@@ -1,15 +1,16 @@
 using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.Client;
+using AL.Core.Extensions;
 using AL.Core.Geometry;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.Integration
 {
-    [TestClass]
+    //[TestClass]
     public class IntegrationTests
     {
-        //[TestMethod]
+        [TestMethod]
         public async Task IdleTest()
         {
             var apiClient = AssemblyInit.APIClient;
@@ -36,7 +37,7 @@ namespace AL.Tests.Integration
             await client.SmartMoveAsync(location2).ConfigureAwait(false);
 
             //we made it yay
-            Assert.IsTrue(true);
+            Assert.IsTrue(client.Character.Distance(location2) < 10);
         }
     }
 }

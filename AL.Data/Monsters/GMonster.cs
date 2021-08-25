@@ -169,6 +169,12 @@ namespace AL.Data.Monsters
         public float Size { get; init; }
 
         /// <summary>
+        ///     A list of areas this Monster can be found.
+        /// </summary>
+        /// <remarks>Enriched property</remarks>
+        public IReadOnlyList<InscribedBoundary> SpawnAreas { get; internal set; } = new List<InscribedBoundary>();
+
+        /// <summary>
         ///     <b>NULLABLE</b>. If populated, this monster will spawn other monsters. <br />
         ///     This list contains the delay between spawns, and the name of the monster is spawns on that delay.
         /// </summary>
