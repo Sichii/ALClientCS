@@ -85,7 +85,7 @@ namespace AL.Data
         public static ProjectilesDatum Projectiles { get; private set; }
 
         [JsonIgnore]
-        public static IReadOnlyDictionary<Quest, Gnpc> Quests { get; private set; }
+        public static IReadOnlyDictionary<Quest, GNPC> Quests { get; private set; }
 
         [JsonProperty("shells_to_gold")]
         public static int ShellsToGold { get; private set; }
@@ -415,7 +415,7 @@ namespace AL.Data
         {
             Log.Debug("Enrishing quest metadata");
 
-            var quests = new Dictionary<Quest, Gnpc>();
+            var quests = new Dictionary<Quest, GNPC>();
 
             foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
                 if (npc.Quest != Quest.None)

@@ -61,7 +61,7 @@ namespace AL.MemberGenerator
             //levels
             { "maps", nameof(GMap) },
             { "monsters", nameof(GMonster) },
-            { "npcs", nameof(Gnpc) },
+            { "npcs", nameof(GNPC) },
             //positions
             { "projectiles", nameof(GProjectile) },
             //sets

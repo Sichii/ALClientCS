@@ -130,7 +130,7 @@ namespace AL.Pathfinding.Model
             //if we're standing on an end point... yield nothing
             if (endsArr.Any(end => end.Equals(start)))
                 yield break;
-
+            
             //get closest to start
             var startNode = Nodes.OrderBy(node => start.FastDistance(node.Edge)).FirstOrDefault(node => CanMove(start, node.Edge));
 
@@ -177,7 +177,7 @@ namespace AL.Pathfinding.Model
             //add the real end of the path based on the last node found
             var last = path.Last().End;
             var indexedLast = endPointLookup.FirstOrDefault(kvp => kvp.Key.Edge == last).Value;
-            path.Add(new EdgeConnector<Point> { Start = last, End = indexedLast.GetPoint() });
+            path.Add(new EdgeConnector<Point> { Start = last, End = indexedLast.ToPoint() });
 
             var finalPath = smoothPath ? SmoothPath(path, indexedLast.Radius) : path;
 

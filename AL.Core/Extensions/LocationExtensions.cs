@@ -134,5 +134,19 @@ namespace AL.Core.Extensions
 
             return !l1.OnSameMapAs(l2) ? Point.None : ((IPoint)l1).Translate(l2, maxDistance);
         }
+        
+        /// <summary>
+        ///     Creates a new <see cref="Location"/> from an <see cref="ILocation"/>.
+        /// </summary>
+        /// <param name="location">The location to get an instances of.</param>
+        /// <returns><see cref="Location"/> <br/>
+        /// A new location.</returns>
+        /// <exception cref="ArgumentNullException">location</exception>
+        public static Location ToLocation(this ILocation location) => location switch
+        {
+            null         => throw new ArgumentNullException(nameof(location)),
+            Location loc => loc,
+            _            => new Location(location.Map, location.ToPoint())
+        };
     }
 }

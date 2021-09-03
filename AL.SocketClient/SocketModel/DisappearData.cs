@@ -22,7 +22,7 @@ namespace AL.SocketClient.SocketModel
         public string Id { get; init; } = null!;
 
         /// <summary>
-        ///     TODO: unknown
+        ///     Whether or not the target disappeared because they became invisible.
         /// </summary>
         [JsonProperty("invis")]
         public bool Invisible { get; init; }

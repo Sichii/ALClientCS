@@ -22,7 +22,7 @@ namespace AL.APIClient
     /// </summary>
     public class ALAPIClient : IALAPIClient
     {
-        private static readonly IRestClient CLIENT;
+        private static readonly IRestClient Client;
         private static readonly ILog Logger;
         private readonly SemaphoreSlim Sync;
 
@@ -36,7 +36,7 @@ namespace AL.APIClient
         static ALAPIClient()
         {
             Logger = LogManager.GetLogger<ALAPIClient>();
-            CLIENT = new RestClient("http://adventure.land").UseJson().UseNewtonsoftJson();
+            Client = new RestClient("http://adventure.land").UseJson().UseNewtonsoftJson();
         }
 
         private ALAPIClient(AuthUser auth)
@@ -59,7 +59,7 @@ namespace AL.APIClient
             Logger.Info("Fetching game data...");
 
             var request = new RestRequest("data.js", Method.GET);
-            var response = await CLIENT.ExecuteGetAsync(request).ConfigureAwait(false);
+            var response = await Client.ExecuteGetAsync(request).ConfigureAwait(false);
             var startBracketIndex = response.Content.IndexOf('{');
             var endBrackedIndex = response.Content.LastIndexOf('}');
 
@@ -77,7 +77,7 @@ namespace AL.APIClient
             {
                 var arguments = result == null ? null : new { result.Cursor };
                 var request = new APIRequest(Method.POST, APIMethod.PullMail, arguments, Auth);
-                var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
+                var response = await Client.ExecutePostAsync(request).ConfigureAwait(false);
                 result = JsonConvert.DeserializeObject<MailResponse[]>(response.Content)![0];
 
                 foreach (var mail in result.Mail)
@@ -91,7 +91,7 @@ namespace AL.APIClient
         {
             Logger.Info("Fetching merchants");
             var request = new APIRequest(Method.POST, APIMethod.PullMerchants, null, Auth);
-            var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
+            var response = await Client.ExecutePostAsync(request).ConfigureAwait(false);
 
             (var merchantList, _) = JsonConvert.DeserializeObject<(MerchantList, string)>(response.Content,
                 new ArrayToTupleConverter<MerchantList, string>());
@@ -111,7 +111,7 @@ namespace AL.APIClient
 
                 Logger.Info("Fetching servers and characters");
                 var request = new APIRequest(Method.POST, APIMethod.ServersAndCharacters, null, Auth);
-                var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
+                var response = await Client.ExecutePostAsync(request).ConfigureAwait(false);
 
                 ServersAndCharacters = JsonConvert.DeserializeObject<ServersAndCharactersResponse[]>(response.Content)![0];
 
@@ -160,7 +160,7 @@ namespace AL.APIClient
                 only_login = true
             });
 
-            var response = await CLIENT.ExecutePostAsync(request).ConfigureAwait(false); //.WithTimeout(60000);
+            var response = await Client.ExecutePostAsync(request).ConfigureAwait(false); //.WithTimeout(60000);
             var setCookieHeader = response.Headers.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
             var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content);
 
@@ -185,7 +185,7 @@ namespace AL.APIClient
 
             Logger.Info($"Marking mail {mail.Id} as read");
             var request = new APIRequest(Method.POST, APIMethod.ReadMail, new { mail = mail.Id }, Auth);
-            await CLIENT.ExecutePostAsync(request).ConfigureAwait(false);
+            await Client.ExecutePostAsync(request).ConfigureAwait(false);
         }
 
         public async Task RenewAuth()

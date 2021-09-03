@@ -196,7 +196,7 @@ namespace AL.Core.Extensions
         ///     A new point.
         /// </returns>
         /// <exception cref="ArgumentNullException">point</exception>
-        public static Point GetPoint(this IPoint point) =>
+        public static Point ToPoint(this IPoint point) =>
             point switch
             {
                 null     => throw new ArgumentNullException(nameof(point)),
@@ -333,7 +333,7 @@ namespace AL.Core.Extensions
             if (distance.SignificantlyGreaterThan(maxDistance, CONSTANTS.EPSILON))
                 distance = maxDistance;
             else if (distance.NearlyEqualOrLessThan(maxDistance, CONSTANTS.EPSILON))
-                return p2.GetPoint();
+                return p2.ToPoint();
 
             var angle = p2.AngularRelationTo(p1);
 

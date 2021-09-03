@@ -225,7 +225,7 @@ namespace AL.Tests.Pathfinding.Tests
 
                 var closestExit = exits.OrderBy(exit => exit.Distance(startingPoint)).First();
                 Logger.Trace($"Distance from exit: {closestExit.Distance(startingPoint)}");
-                startingPoint = closestExit.Center.GetPoint();
+                startingPoint = closestExit.Center.ToPoint();
             }
         }
 

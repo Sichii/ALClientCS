@@ -22,7 +22,7 @@ namespace AL.Data.Maps
         /// </summary>
         /// <remarks>Enriched property</remarks>
         [JsonIgnore]
-        public Gnpc? Data { get; internal set; }
+        public GNPC? Data { get; internal set; }
 
         /// <summary>
         ///     The id/accessor of this NPC.

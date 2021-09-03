@@ -753,6 +753,7 @@ namespace AL.Core.Definitions
         LoseMoney
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum ObtainType
     {
         Unknown,
@@ -760,5 +761,25 @@ namespace AL.Core.Definitions
         Exchange,
         Buy,
         Quest
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum ChestType
+    {
+        Unknown,
+        Chest1,
+        Chest2,
+        Chest3,
+        Chest4,
+        Chest5,
+        Chest6
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum GamePlayMode
+    {
+        Unknown,
+        Normal,
+        Hardcore
     }
 }

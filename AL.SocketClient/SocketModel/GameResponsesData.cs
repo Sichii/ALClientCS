@@ -72,7 +72,7 @@ namespace AL.SocketClient.SocketModel
         public string? Name { get; init; }
 
         /// <summary>
-        ///     TODO: no rhyme or reson, it's just extra info?
+        ///     Extra information about the response. Often the name of a skill or action.
         /// </summary>
         public string? Place { get; init; }
 

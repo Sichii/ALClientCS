@@ -55,10 +55,8 @@ namespace AL.Pathfinding
 
                     if (exitMap == null)
                     {
-                        var mapName = maps.FirstOrDefault(kvp => kvp.Value == map).Key;
-
                         Logger.Warn(
-                            $"{mapName} has an exit that points to an unknown map.{Environment.NewLine}{exit}{Environment.NewLine}");
+                            $"{map.Accessor} has an exit that points to an unknown map.{Environment.NewLine}{exit}{Environment.NewLine}");
 
                         continue;
                     }
@@ -66,15 +64,11 @@ namespace AL.Pathfinding
                     if (nodeDic.TryGetValue(exitMap, out var neighbor))
                         node.Neighbors.Add(neighbor);
                     else
-                    {
-                        var mapName = maps.FirstOrDefault(kvp => kvp.Value == map).Key;
-
                         Logger.Warn(
-                            $"{mapName} has an exit that points to an invalid map.{Environment.NewLine}{exit}{Environment.NewLine}");
-                    }
+                            $"{map.Accessor} has an exit that points to an invalid map.{Environment.NewLine}{exit}{Environment.NewLine}");
                 }
 
-                node.Neighbors = node.Neighbors.DistinctBy(neighbor => neighbor.Edge.Key)
+                node.Neighbors = node.Neighbors.DistinctBy(neighbor => neighbor.Edge.Accessor)
                     .Where(neighbor => !node.Equals(neighbor))
                     .ToList();
 
@@ -96,15 +90,21 @@ namespace AL.Pathfinding
         ///     <c>true</c> if you can walk directly from <paramref name="start" /> to <paramref name="end" />, otherwise
         ///     <c>false</c>.
         /// </returns>
-        /// <exception cref="InvalidOperationException">No map was found for the accessor "{mapAccessor}".</exception>
+        /// <exception cref="ArgumentNullException">mapAccessor</exception>
+        /// <exception cref="ArgumentNullException">start</exception>
+        /// <exception cref="ArgumentNullException">end</exception>
         public static bool CanMove(string mapAccessor, IPoint start, IPoint end)
         {
-            var map = GameData.Maps[mapAccessor];
+            if (string.IsNullOrEmpty(mapAccessor))
+                throw new ArgumentNullException(nameof(mapAccessor));
 
-            if (map == null)
-                throw new InvalidOperationException($"No map was found for the accessor \"{mapAccessor}\".");
+            if (start == null)
+                throw new ArgumentNullException(nameof(start));
 
-            return !NavMeshes.TryGetValue(map.Key, out var navMesh)
+            if (end == null)
+                throw new ArgumentNullException(nameof(end));
+
+            return !NavMeshes.TryGetValue(mapAccessor, out var navMesh)
                    || navMesh.CanMove(navMesh.ApplyOffset(start), navMesh.ApplyOffset(end));
         }
 
@@ -122,11 +122,25 @@ namespace AL.Pathfinding
         public static bool CanMove(ILocation start, ILocation end) =>
             (start.Map == end.Map) && CanMove(start.Map, start, end);
 
+        /// <summary>
+        ///     Finds the shortest path between a start point and any number of end points.
+        /// </summary>
         /// <param name="mapAccessor">The accessor of the map to find the map on.</param>
+        /// <param name="start">A starting point.</param>
+        /// <param name="ends">Any number of end points. Upon reaching any of the end points, that path will be returned.</param>
+        /// <param name="smoothPath">
+        ///     Whether or not to smooth the path before returning it. <br />
+        ///     Path smoothing is lazy, so execution cost of raytracing is spread out.
+        /// </param>
+        /// <param name="useTownIfOptimal">Whether or not to consider using the <c>Town</c> skill.</param>
+        /// <returns>
+        ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="IConnector{TEdge}" /> of <see cref="Point" /> <br />
+        ///     A lazy enumeration of points along the most optimal path between the start node and the first end node a path is
+        ///     found for.
+        /// </returns>
         /// <exception cref="ArgumentNullException">mapAccessor</exception>
         /// <exception cref="ArgumentNullException">start</exception>
         /// <exception cref="ArgumentNullException">ends</exception>
-        /// <inheritdoc cref="NavMesh.FindPath" />
         /// <exception cref="InvalidOperationException">No map was found for the accessor "{<paramref name="mapAccessor" />}"</exception>
         public static async IAsyncEnumerable<IConnector<Point>> FindPath(
                 string mapAccessor,
@@ -151,15 +165,9 @@ namespace AL.Pathfinding
             //if any of the end nodes are equal to the start node... dont need to move
             if ((endPoints.Length == 0) || endPoints.Any(end => end.Equals(start)))
                 yield break;
-
-            var map = GameData.Maps[mapAccessor];
-
-            //failed to get map data
-            if (map == null)
-                throw new InvalidOperationException($"No map was found for the accessor \"{mapAccessor}\".");
-
+            
             //failed to find a mesh (map is boundless?)
-            if (!NavMeshes.TryGetValue(map.Key, out var navMesh))
+            if (!NavMeshes.TryGetValue(mapAccessor, out var navMesh))
             {
                 //find the closest end from the start
                 var bestDistance = float.MaxValue;
@@ -191,8 +199,8 @@ namespace AL.Pathfinding
                     yield return new EdgeConnector<Point>
                     {
                         Type = ConnectorType.Walk,
-                        Start = start.GetPoint(),
-                        End = newEnd.GetPoint(),
+                        Start = start.ToPoint(),
+                        End = newEnd.ToPoint(),
                         Heuristic = bestDistance
                     };
                 } else
@@ -200,8 +208,8 @@ namespace AL.Pathfinding
                     yield return new EdgeConnector<Point>
                     {
                         Type = ConnectorType.Walk,
-                        Start = start.GetPoint(),
-                        End = closestEnd.GetPoint(),
+                        Start = start.ToPoint(),
+                        End = closestEnd.ToPoint(),
                         Heuristic = bestDistance
                     };
             } else //navmesh found
@@ -271,23 +279,9 @@ namespace AL.Pathfinding
         /// <summary>
         ///     Gets a navmesh for a specific map.
         /// </summary>
-        /// <param name="keyOrAccessor"></param>
+        /// <param name="mapAccessor">The accessor of the map whos navmesh to find.</param>
         /// <returns></returns>
-        public static NavMesh? GetNavMesh(string keyOrAccessor)
-        {
-            if (!NavMeshes.TryGetValue(keyOrAccessor, out var navMesh))
-            {
-                var map = GameData.Maps[keyOrAccessor];
-
-                if (map == null)
-                    return null;
-
-                if (!NavMeshes.TryGetValue(map.Key, out navMesh))
-                    return null;
-            }
-
-            return navMesh;
-        }
+        public static NavMesh? GetNavMesh(string mapAccessor) => !NavMeshes.TryGetValue(mapAccessor, out var navMesh) ? null : navMesh;
 
         /// <summary>
         ///     Must be called after <see cref="GameData" /> is populated. <br />
@@ -323,7 +317,7 @@ namespace AL.Pathfinding
                 .ConfigureAwait(false);
 
             await foreach ((var map, var value) in navMeshes.ConfigureAwait(false))
-                NavMeshes.Add(map.Key, value);
+                NavMeshes.Add(map.Accessor, value);
 
             BuildWorldMesh(maps);
             Logger.Debug("Prepared worldmesh");
@@ -341,15 +335,8 @@ namespace AL.Pathfinding
         ///     <c>true</c> if the given location is part of a wall, otherwise <c>false</c>.
         /// </returns>
         /// <exception cref="InvalidOperationException">No map was found for the accessor "{location.Map}".</exception>
-        public static bool IsWall(ILocation location)
-        {
-            var map = GameData.Maps[location.Map];
-
-            if (map == null)
-                throw new InvalidOperationException($"No map was found for the accessor \"{location.Map}\".");
-
-            return NavMeshes.TryGetValue(map.Key, out var navMesh) && navMesh.IsWall(navMesh.ApplyOffset(location));
-        }
+        public static bool IsWall(ILocation location) =>
+            NavMeshes.TryGetValue(location.Map, out var navMesh) && navMesh.IsWall(navMesh.ApplyOffset(location));
 
         private static NavMesh? TryBuildNavMesh(string name, GMap map)
         {

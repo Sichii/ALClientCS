@@ -1538,7 +1538,7 @@ namespace AL.Client
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var currentMap = Character.Map;
-            var startLoc = new Location(Character.Map, Character.GetPoint());
+            var startLoc = new Location(Character.Map, Character.ToPoint());
             var correctionAttempted = false;
 
             using var delay = new DynamicDelay();
@@ -1550,7 +1550,7 @@ namespace AL.Client
                         case true when !data.Moving
                                        || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
                                        || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
-                            source.TrySetResult($"Failed to move to {point.GetPoint()}. (desync/packetloss)");
+                            source.TrySetResult($"Failed to move to {point.ToPoint()}. (desync/packetloss)");
 
                             return false;
                         case false when !data.Moving
@@ -1600,8 +1600,8 @@ namespace AL.Client
 
             if (token?.IsCancellationRequested == true)
             {
-                var finalDestination = Character.GetPoint();
-                Logger.Debug($"Move to {point.GetPoint()} canceled. Stopping at {finalDestination}");
+                var finalDestination = Character.ToPoint();
+                Logger.Debug($"Move to {point.ToPoint()} canceled. Stopping at {finalDestination}");
                 await MoveAsync(finalDestination).ConfigureAwait(false);
 
                 return;
@@ -1966,7 +1966,7 @@ namespace AL.Client
                     continue;
                 }
 
-                var innerPath = PathFinder.FindPath(Character.Map, Character.GetPoint(), exits, useTownIfOptimal);
+                var innerPath = PathFinder.FindPath(Character.Map, Character.ToPoint(), exits, useTownIfOptimal);
 
                 IPoint lastPoint = default!;
 
@@ -1980,7 +1980,7 @@ namespace AL.Client
                 await TransportAsync(destination.ToLocation.Map, destination.ToSpawnIndex).ConfigureAwait(false);
             }
 
-            var path = PathFinder.FindPath(Character.Map, Character.GetPoint(),
+            var path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
                 ends.Where(destination => destination.Map.EqualsI(Character.Map)));
 
             await foreach (var pathConnector in path.ConfigureAwait(false))

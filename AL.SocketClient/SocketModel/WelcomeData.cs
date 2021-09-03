@@ -1,4 +1,5 @@
 ﻿using AL.APIClient.Definitions;
+using AL.Core.Definitions;
 using AL.Core.Interfaces;
 using Newtonsoft.Json;
 
@@ -16,9 +17,8 @@ namespace AL.SocketClient.SocketModel
 
         /// <summary>
         ///     The type of server.
-        ///     TODO: make an enum for this (normal, hardcore)
         /// </summary>
-        public string GamePlay { get; init; } = null!;
+        public GamePlayMode GamePlay { get; init; }
 
         [JsonProperty("name")]
         public ServerId Identifier { get; init; }

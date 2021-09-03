@@ -186,7 +186,7 @@ namespace AL.Data.Maps
         //old_monsters obj[]
 
         public virtual bool Equals(GMap? other) =>
-            other is not null && Accessor.EqualsI(other.Accessor) && Key.Equals(other.Key);
+            other is not null && Accessor.EqualsI(other.Accessor);
 
         public override int GetHashCode() => HashCode.Combine(Name.GetHashCode(), Key.GetHashCode());
     }

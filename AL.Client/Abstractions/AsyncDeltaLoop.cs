@@ -73,8 +73,8 @@ namespace AL.Client.Abstractions
                     Client.Logger.Error(ex);
                 } finally
                 {
-                    var executionTime = DeltaTime.Value - delta;
-                    var timeTillNextLoop = Convert.ToInt32(1000 / PollingRate - executionTime);
+                    var executionTime = (int)(DeltaTime.Value - delta);
+                    var timeTillNextLoop = Convert.ToInt32(1000 / PollingRate) - executionTime;
 
                     if (timeTillNextLoop > 0)
                         await Task.Delay(timeTillNextLoop).ConfigureAwait(false);

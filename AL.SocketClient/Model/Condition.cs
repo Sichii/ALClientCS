@@ -15,12 +15,6 @@ namespace AL.SocketClient.Model
     public record Condition : AttributedRecordBase, IPingCompensated
     {
         /// <summary>
-        ///     TODO: something related to monsterhunt
-        /// </summary>
-        [JsonProperty]
-        public bool DL { get; init; }
-
-        /// <summary>
         ///     If populated, <br />
         ///     this could be the name of the monster you need to kill for
         ///     <see cref="AL.Core.Definitions.Condition.MonsterHunt" />
@@ -40,6 +34,13 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty("ability")]
         public bool IsMonsterAbility { get; init; }
+        /// <summary>
+        ///     Wizard: delevel flag, as long as it's on, after every level 1 monster kill monsters of that kind are deleveled -
+        ///     only for level 1's <br />
+        ///     It seems aimed to avoid just killing level 1's and getting the same quest afterwards
+        /// </summary>
+        [JsonProperty("dl")]
+        public bool MonstersDeLevel { get; init; }
 
         /// <summary>
         ///     If populated, this is the proportion of contribution this character has made towards a coop boss. <br />

@@ -53,14 +53,14 @@ namespace AL.Pathfinding.Model
         public IAsyncEnumerable<IConnector<GMap>> FindRoute(GMap start, IEnumerable<GMap> ends)
         {
             if (!NodeLookup.TryGetValue(start, out var startNode))
-                throw new InvalidOperationException($"Unable to locate a start node for the given map. ({start.Key})");
+                throw new InvalidOperationException($"Unable to locate a start node for the given map. ({start.Accessor})");
 
             var endMaps = ends.ToArray();
             var endNodes = NodeLookup.TryGetValues(endMaps).ToArray();
 
             if (endNodes.Length == 0)
                 throw new InvalidOperationException(
-                    $"Unable to locate any end nodes for the given maps. {string.Join(',', endMaps.Select(map => map.Key))}");
+                    $"Unable to locate any end nodes for the given maps. {string.Join(',', endMaps.Select(map => map.Accessor))}");
 
             return Navigate(startNode.Index, endNodes.Select(node => node.Index));
         }

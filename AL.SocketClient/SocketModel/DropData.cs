@@ -1,3 +1,4 @@
+using AL.Core.Definitions;
 using AL.Core.Interfaces;
 using Newtonsoft.Json;
 
@@ -11,23 +12,22 @@ namespace AL.SocketClient.SocketModel
     {
         /// <summary>
         ///     The type of chest that dropped. Fancier chest types drop more gold/better stuff.
-        ///     TODO: Create an enum for this field (chest1, chest2, chest3, chest4, chest5, chest6)
         /// </summary>
         [JsonProperty("chest")]
-        public string ChestType { get; set; } = null!;
+        public ChestType ChestType { get; set; }
 
         /// <summary>
         ///     The id of the chest. This will be needed when opening the chest.
         /// </summary>
         public string Id { get; set; } = null!;
 
-        public string Map { get; set; } = null!;
-
         /// <summary>
         ///     The number of items the chest contains.
         /// </summary>
         [JsonProperty("items")]
-        public int NumberOfItems { get; set; }
+        public int ItemCount { get; set; }
+
+        public string Map { get; set; } = null!;
 
         /// <summary>
         ///     Whether or not the contents of this chest will be distributed to the party.
