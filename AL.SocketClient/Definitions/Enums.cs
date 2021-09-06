@@ -219,6 +219,8 @@ namespace AL.SocketClient.Definitions
         Emotion,
         Equip,
         Exchange,
+        [EnumMember(Value = "imove")]
+        InventoryMove,
         [EnumMember(Value = "leave")]
         LeaveMap,
         Loaded,

@@ -1624,7 +1624,7 @@ namespace AL.Client
                 Character.UpdateLocation(going);
             }
         }
-
+        
         /// <summary>
         ///     Asynchronously pings the server.
         /// </summary>
@@ -1883,28 +1883,25 @@ namespace AL.Client
         /// <param name="distance">The distance from the location that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
         /// <param name="token">A token used to cancel this action.</param>
-        /// <returns>
-        ///     <see cref="ILocation" /> <br />
-        ///     The character's final location after this action has completed or been canceled.
-        /// </returns>
         /// <exception cref="ArgumentNullException">locations</exception>
         public Task SmartMoveAsync(IPoint point, float distance = 0, bool useTownIfOptimal = true, CancellationToken? token = null) =>
-            SmartMoveAsync(new[] { new Circle(new Location(Character.Map, point), distance) }, useTownIfOptimal, token);
+            SmartMoveAsync(new[] { new MapCircle(new Location(Character.Map, point), distance) }, useTownIfOptimal, token);
 
         /// <summary>
         ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
         ///     pathfinding.
         /// </summary>
-        /// <param name="endPoints">A collection of potential end points on the current map..</param>
+        /// <param name="endPoints">A collection of potential end points on the current map.</param>
+        /// <param name="distance">The distance from the point that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
         /// <param name="token">A token used to cancel this action.</param>
-        /// <returns>
-        ///     <see cref="ILocation" /> <br />
-        ///     The character's final location after this action has completed or been canceled.
-        /// </returns>
         /// <exception cref="ArgumentNullException">locations</exception>
-        public Task SmartMoveAsync(IEnumerable<IPoint> endPoints, bool useTownIfOptimal = true, CancellationToken? token = null) =>
-            SmartMoveAsync(endPoints.Select(point => new MapCircle(new Location(Character.Map, point), 0)), useTownIfOptimal, token);
+        public Task SmartMoveAsync(
+            IEnumerable<IPoint> endPoints,
+            float distance = 0,
+            bool useTownIfOptimal = true,
+            CancellationToken? token = null) =>
+            SmartMoveAsync(endPoints.Select(point => new MapCircle(new Location(Character.Map, point), distance)), useTownIfOptimal, token);
 
         /// <summary>
         ///     Asynchronously begins moving to a location that may or may not require complex pathfinding.
@@ -1913,29 +1910,38 @@ namespace AL.Client
         /// <param name="distance">The distance from the location that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
         /// <param name="token">A token used to cancel this action.</param>
-        /// <returns>
-        ///     <see cref="ILocation" /> <br />
-        ///     The character's final location after this action has completed or been canceled.
-        /// </returns>
         /// <exception cref="ArgumentNullException">locations</exception>
         public Task SmartMoveAsync(ILocation location, float distance = 0, bool useTownIfOptimal = true, CancellationToken? token = null) =>
             SmartMoveAsync(new[] { new MapCircle(location, distance) }, useTownIfOptimal, token);
 
         /// <summary>
-        ///     Asynchronously begins moving to an number of locations that may or may not require complex pathfinding.
+        ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
+        ///     pathfinding.
         /// </summary>
         /// <param name="endLocations">A collection of potential end locations.</param>
+        /// <param name="distance">The distance from the point that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
         /// <param name="token">A token used to cancel this action.</param>
-        /// <returns>
-        ///     <see cref="ILocation" /> <br />
-        ///     The character's final location after this action has completed or been canceled.
-        /// </returns>
         /// <exception cref="ArgumentNullException">locations</exception>
-        public async Task SmartMoveAsync(IEnumerable<MapCircle> endLocations, bool useTownIfOptimal = true, CancellationToken? token = null)
+        public Task SmartMoveAsync(
+            IEnumerable<ILocation> endLocations,
+            float distance = 0,
+            bool useTownIfOptimal = true,
+            CancellationToken? token = null) =>
+            SmartMoveAsync(endLocations.Select(l => new MapCircle(l, distance)), useTownIfOptimal, token);
+
+        /// <summary>
+        ///     Asynchronously begins moving to an number of locations that may or may not require complex pathfinding.
+        /// </summary>
+        /// <param name="endDestinations">A collection of potential end locations.</param>
+        /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
+        /// <param name="token">A token used to cancel this action.</param>
+        /// <exception cref="ArgumentNullException">locations</exception>
+        public async Task SmartMoveAsync<T>(IEnumerable<T> endDestinations, bool useTownIfOptimal = true, CancellationToken? token = null)
+            where T: ILocation, ICircle
         {
-            if (endLocations.Equals(default))
-                throw new ArgumentNullException(nameof(endLocations));
+            if (endDestinations.Equals(default))
+                throw new ArgumentNullException(nameof(endDestinations));
 
             // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
             Task HandlePathConnectorAsync(IConnector<Point> pathConnector) => pathConnector.Type switch
@@ -1945,12 +1951,13 @@ namespace AL.Client
                 _                  => throw new ArgumentOutOfRangeException($"Unexpected path connectorType: {pathConnector.Type}")
             };
 
-            var ends = endLocations.ToArray();
+            var ends = endDestinations.ToArray();
 
             if (ends.Length == 0)
-                throw new ArgumentNullException(nameof(endLocations));
+                throw new ArgumentNullException(nameof(endDestinations));
 
-            var route = PathFinder.FindRoute(Character.Map, ends.Select(destination => destination.Map).ToArray());
+            var route = PathFinder.FindRoute(Character.Map,
+                ends.Select(destination => destination.Map).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 
             await foreach (var routeConnector in route.ConfigureAwait(false))
             {
@@ -1981,10 +1988,112 @@ namespace AL.Client
             }
 
             var path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
-                ends.Where(destination => destination.Map.EqualsI(Character.Map)));
+                ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>());
 
             await foreach (var pathConnector in path.ConfigureAwait(false))
                 await HandlePathConnectorAsync(pathConnector).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
+        /// </summary>
+        /// <param name="bankPack">The bankpack whose slots are to be swapped.</param>
+        /// <param name="bankSlot1">A slot index within the inventory.</param>
+        /// <param name="bankSlot2">A slot index within the inventory.</param>
+        /// <exception cref="ArgumentOutOfRangeException">bankSlot1</exception>
+        /// <exception cref="ArgumentOutOfRangeException">bankSlot2</exception>
+        /// <exception cref="InvalidOperationException">Failed to swap bank slots {bankSlot1} and {bankSlot2}. ({reason})</exception>
+        public async Task SwapBankSlotsAsync(BankPack bankPack, int bankSlot1, int bankSlot2)
+        {
+            if (Character.Bank == null)
+                throw new InvalidOperationException($"Failed to swap bank slots {bankSlot1} and {bankSlot2}. (not in bank)");
+
+            if (!Character.Bank.TryGetValue(bankPack, out var bank))
+                throw new InvalidOperationException($"Failed to swap bank slots {bankSlot1} and {bankSlot2}. (bank unavailable)");
+
+            if ((bankSlot1 < 0) || (bankSlot1 >= bank.Count))
+                throw new ArgumentOutOfRangeException(nameof(bankSlot1));
+
+            if ((bankSlot2 < 0) || (bankSlot2 >= bank.Count))
+                throw new ArgumentOutOfRangeException(nameof(bankSlot2));
+
+            var item1 = bank[bankSlot1];
+            var item2 = bank[bankSlot2];
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if (data.Bank == null)
+                        return TaskCache.FALSE;
+
+                    if (!data.Bank.TryGetValue(bankPack, out var cBank))
+                        return TaskCache.FALSE;
+
+                    var cItem1 = cBank[bankSlot1];
+                    var cItem2 = cBank[bankSlot2];
+
+                    if ((cItem1 == item2) && (cItem2 == item1))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Bank, new
+                {
+                    operation = "move",
+                    a = bankSlot1,
+                    b = bankSlot2,
+                    pack = bankPack
+                })
+                .ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
+        /// Asynchronously swaps the items between two inventory slots, or moves an item from one slot to another.
+        /// </summary>
+        /// <param name="inventorySlot1">A slot index within the inventory.</param>
+        /// <param name="inventorySlot2">A slot index within the inventory.</param>
+        /// <exception cref="ArgumentOutOfRangeException">inventorySlot1</exception>
+        /// <exception cref="ArgumentOutOfRangeException">inventorySlot2</exception>
+        public async Task SwapInventorySlotsAsync(int inventorySlot1, int inventorySlot2)
+        {
+            if ((inventorySlot1 < 0) || (inventorySlot1 >= Character.InventorySize))
+                throw new ArgumentOutOfRangeException(nameof(inventorySlot1));
+            
+            if ((inventorySlot2 < 0) || (inventorySlot2 >= Character.InventorySize))
+                throw new ArgumentOutOfRangeException(nameof(inventorySlot2));
+
+            var item1 = Character.Inventory[inventorySlot1];
+            var item2 = Character.Inventory[inventorySlot2];
+
+            var source =
+                new TaskCompletionSource<Expectation>(TaskCreationOptions
+                    .RunContinuationsAsynchronously);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+            {
+                var cItem1 = data.Inventory[inventorySlot1];
+                var cItem2 = data.Inventory[inventorySlot2];
+
+                if ((cItem1 == item2) && (cItem2 == item1))
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            }).ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.InventoryMove, new
+            {
+                a = inventorySlot1,
+                b = inventorySlot2
+            }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
         }
 
         /// <summary>
