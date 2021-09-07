@@ -407,13 +407,13 @@ namespace AL.Client
         /// <param name="characterName">The name of the character to log in as.</param>
         /// <param name="region">The region to log into.</param>
         /// <param name="identifier">The identifier suffic for the region.</param>
-        /// <param name="apiClient">An <see cref="ALAPIClient" /> with your authorization credentials.</param>
+        /// <param name="apiClient">An <see cref="IALAPIClient" /> with your authorization credentials.</param>
         /// <returns>
         ///     <see cref="Priest" />
         /// </returns>
         /// <exception cref="ArgumentNullException">characterName</exception>
         /// <exception cref="ArgumentNullException">apiClient</exception>
-        public static async Task<Priest> StartAsync(string characterName, ServerRegion region, ServerId identifier, ALAPIClient apiClient)
+        public static async Task<Priest> StartAsync(string characterName, ServerRegion region, ServerId identifier, IALAPIClient apiClient)
         {
             if (string.IsNullOrEmpty(characterName))
                 throw new ArgumentNullException(nameof(characterName));
