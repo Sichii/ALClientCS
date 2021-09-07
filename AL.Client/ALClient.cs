@@ -1742,6 +1742,39 @@ namespace AL.Client
         }
 
         /// <summary>
+        /// Asynchronously attempts to respawn if dead.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Failed to respawn. ({reason})</exception>
+        public async Task RespawnAsync()
+        {
+            if (!Character.RIP)
+                throw new InvalidOperationException($"Failed to respawn. (not dead)");
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            {
+                if (data.EqualsI("can't respawn yet."))
+                    source.TrySetResult($"Failed to respawn. (too soon)");
+
+                return TaskCache.FALSE;
+            }).ConfigureAwait(false);
+
+            await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
+            {
+                if (data.Effect == DisappearEffect.Town)
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            }).ConfigureAwait(false);
+
+            await Socket.Emit(ALSocketEmitType.Respawn).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
         ///     Asynchronously sends gold to a player.
         /// </summary>
         /// <param name="amount">The amount of gold to send.</param>
