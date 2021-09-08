@@ -532,7 +532,7 @@ namespace AL.Client
 
                 await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, async _ =>
                     {
-                        await Socket.Emit(ALSocketEmitType.Auth, new
+                        await Socket.EmitAsync(ALSocketEmitType.Auth, new
                             {
                                 auth = API.Auth.AuthKey,
                                 character = Identifier,
@@ -614,7 +614,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Magiport, new { name = from }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Magiport, new { name = from }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -663,7 +663,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Party, new { @event = "accept", name = from }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Party, new { @event = "accept", name = from }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -712,7 +712,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Party, new { @event = "raccept", name = from }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Party, new { @event = "raccept", name = from }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -780,7 +780,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Attack, new { id = targetId }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Attack, new { id = targetId }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -832,9 +832,9 @@ namespace AL.Client
                 .ConfigureAwait(false);
 
             if (GameData.Items[itemName]?.StackSize > 1)
-                await Socket.Emit(ALSocketEmitType.Buy, new { name = itemName, quantity }).ConfigureAwait(false);
+                await Socket.EmitAsync(ALSocketEmitType.Buy, new { name = itemName, quantity }).ConfigureAwait(false);
             else
-                await Socket.Emit(ALSocketEmitType.Buy, new { name = itemName }).ConfigureAwait(false);
+                await Socket.EmitAsync(ALSocketEmitType.Buy, new { name = itemName }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -924,7 +924,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.TradeBuy, new { slot, id = playerName, rid = item.Id, q = quantity.ToString() })
+            await Socket.EmitAsync(ALSocketEmitType.TradeBuy, new { slot, id = playerName, rid = item.Id, q = quantity.ToString() })
                 .ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
@@ -995,7 +995,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.SecondHandsBuy, new { rid = item.Id }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.SecondHandsBuy, new { rid = item.Id }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -1050,7 +1050,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Compound, new
+            await Socket.EmitAsync(ALSocketEmitType.Compound, new
                 {
                     items = new[] { itemIndex1, itemIndex2, itemIndex3 },
                     scroll_num = scrollIndex,
@@ -1116,7 +1116,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Compound, new
+            await Socket.EmitAsync(ALSocketEmitType.Compound, new
                 {
                     items = new[] { itemIndex1, itemIndex2, itemIndex3 },
                     scroll_num = scrollIndex,
@@ -1193,7 +1193,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Craft, slots.Select((index, slot) => new[] { index, slot })).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Craft, slots.Select((index, slot) => new[] { index, slot })).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -1234,7 +1234,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Bank, new { amount, operation = "deposit" }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Bank, new { amount, operation = "deposit" }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -1300,7 +1300,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Swap, new
+            await Socket.EmitAsync(ALSocketEmitType.Swap, new
                 {
                     inv = inventorySlot, operation = "swap", pack = optimalIndexes.Value.BankPack, str = optimalIndexes.Value.BankSlot
                 })
@@ -1344,7 +1344,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Equip, new { num = inventorySlot, slot }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Equip, new { num = inventorySlot, slot }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -1420,7 +1420,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Exchange, new
+            await Socket.EmitAsync(ALSocketEmitType.Exchange, new
                 {
                     item_num = itemIndex,
                     q = itemData.ExchangeCount
@@ -1461,7 +1461,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.LeaveMap).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.LeaveMap).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -1482,7 +1482,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Party, new { @event = "leave" }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Party, new { @event = "leave" }).ConfigureAwait(false);
 
             await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -1517,7 +1517,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.MonsterHunt).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.MonsterHunt).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -1557,7 +1557,7 @@ namespace AL.Client
                                         || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
                                         || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
                             correctionAttempted = true;
-                            await Socket.Emit(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
+                            await Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
                             Logger.Debug("Move: Correction attempted...");
 
                             break;
@@ -1582,7 +1582,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Move, new
+            await Socket.EmitAsync(ALSocketEmitType.Move, new
                 {
                     x = Character.X,
                     y = Character.Y,
@@ -1624,7 +1624,7 @@ namespace AL.Client
                 Character.UpdateLocation(going);
             }
         }
-        
+
         /// <summary>
         ///     Asynchronously pings the server.
         /// </summary>
@@ -1641,7 +1641,7 @@ namespace AL.Client
                 .On<PingAckData>(ALSocketMessageType.PingAck, data => Task.FromResult(source.TrySetResult(data)))
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Ping, new { id = pingCount.ToString() }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Ping, new { id = pingCount.ToString() }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -1665,7 +1665,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
 
             //return await source.Task.WithNetworkTimeout();
             return await source.Task.WithTimeout(5000).ConfigureAwait(false);
@@ -1686,7 +1686,7 @@ namespace AL.Client
                     data => Task.FromResult(source.TrySetResult(data)))
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.SendUpdates, new object()).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.SendUpdates, new object()).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -1707,7 +1707,7 @@ namespace AL.Client
                     data => Task.FromResult(source.TrySetResult(new Expectation<IReadOnlyList<SimplePlayer>>(data))))
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Players).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Players).ConfigureAwait(false);
 
             return (await source.Task.WithNetworkTimeout().ConfigureAwait(false)).Result;
         }
@@ -1736,39 +1736,41 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.SecondHands).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.SecondHands).ConfigureAwait(false);
 
             return (await source.Task.WithNetworkTimeout().ConfigureAwait(false)).Result;
         }
 
         /// <summary>
-        /// Asynchronously attempts to respawn if dead.
+        ///     Asynchronously attempts to respawn if dead.
         /// </summary>
         /// <exception cref="InvalidOperationException">Failed to respawn. ({reason})</exception>
         public async Task RespawnAsync()
         {
             if (!Character.RIP)
-                throw new InvalidOperationException($"Failed to respawn. (not dead)");
+                throw new InvalidOperationException("Failed to respawn. (not dead)");
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
-            {
-                if (data.EqualsI("can't respawn yet."))
-                    source.TrySetResult($"Failed to respawn. (too soon)");
+                {
+                    if (data.EqualsI("can't respawn yet."))
+                        source.TrySetResult("Failed to respawn. (too soon)");
 
-                return TaskCache.FALSE;
-            }).ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await using var newMapCallback = Socket.On<NewMapData>(ALSocketMessageType.NewMap, data =>
-            {
-                if (data.Effect == DisappearEffect.Town)
-                    source.TrySetResult(Expectation.Success);
+                {
+                    if (data.Effect == DisappearEffect.Town)
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            }).ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Respawn).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Respawn).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -1832,7 +1834,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Send, new { gold = amount, name = toPlayerId }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Send, new { gold = amount, name = toPlayerId }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -1903,7 +1905,8 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Send, new { name = toPlayerId, num = inventorySlot, q = quantity }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Send, new { name = toPlayerId, num = inventorySlot, q = quantity })
+                .ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -2028,7 +2031,7 @@ namespace AL.Client
         }
 
         /// <summary>
-        /// Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
+        ///     Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
         /// </summary>
         /// <param name="bankPack">The bankpack whose slots are to be swapped.</param>
         /// <param name="bankSlot1">A slot index within the inventory.</param>
@@ -2073,7 +2076,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Bank, new
+            await Socket.EmitAsync(ALSocketEmitType.Bank, new
                 {
                     operation = "move",
                     a = bankSlot1,
@@ -2087,7 +2090,7 @@ namespace AL.Client
         }
 
         /// <summary>
-        /// Asynchronously swaps the items between two inventory slots, or moves an item from one slot to another.
+        ///     Asynchronously swaps the items between two inventory slots, or moves an item from one slot to another.
         /// </summary>
         /// <param name="inventorySlot1">A slot index within the inventory.</param>
         /// <param name="inventorySlot2">A slot index within the inventory.</param>
@@ -2097,33 +2100,33 @@ namespace AL.Client
         {
             if ((inventorySlot1 < 0) || (inventorySlot1 >= Character.InventorySize))
                 throw new ArgumentOutOfRangeException(nameof(inventorySlot1));
-            
+
             if ((inventorySlot2 < 0) || (inventorySlot2 >= Character.InventorySize))
                 throw new ArgumentOutOfRangeException(nameof(inventorySlot2));
 
             var item1 = Character.Inventory[inventorySlot1];
             var item2 = Character.Inventory[inventorySlot2];
 
-            var source =
-                new TaskCompletionSource<Expectation>(TaskCreationOptions
-                    .RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
-            {
-                var cItem1 = data.Inventory[inventorySlot1];
-                var cItem2 = data.Inventory[inventorySlot2];
+                {
+                    var cItem1 = data.Inventory[inventorySlot1];
+                    var cItem2 = data.Inventory[inventorySlot2];
 
-                if ((cItem1 == item2) && (cItem2 == item1))
-                    source.TrySetResult(Expectation.Success);
+                    if ((cItem1 == item2) && (cItem2 == item1))
+                        source.TrySetResult(Expectation.Success);
 
-                return TaskCache.FALSE;
-            }).ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.InventoryMove, new
-            {
-                a = inventorySlot1,
-                b = inventorySlot2
-            }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.InventoryMove, new
+                {
+                    a = inventorySlot1,
+                    b = inventorySlot2
+                })
+                .ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -2164,7 +2167,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Transport, new { to = map, s = spawnIndex }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Transport, new { to = map, s = spawnIndex }).ConfigureAwait(false);
             NewMapData newMap = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
 
             //if we're entering a bank, wait for bank data to populate
@@ -2217,7 +2220,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Unequip, new { slot }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Unequip, new { slot }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -2261,7 +2264,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Upgrade, new
+            await Socket.EmitAsync(ALSocketEmitType.Upgrade, new
                 {
                     item_num = itemIndex, scroll_num = scrollIndex, offering_num = offeringIndex,
                     clevel = item?.Level ?? 0
@@ -2314,7 +2317,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Upgrade, new
+            await Socket.EmitAsync(ALSocketEmitType.Upgrade, new
                 {
                     item_num = itemIndex,
                     scroll_num = scrollIndex,
@@ -2361,8 +2364,8 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.ReturnToTown).ConfigureAwait(false);
-            token?.Register(() => Socket.Emit(ALSocketEmitType.Stop, new { action = "town" }));
+            await Socket.EmitAsync(ALSocketEmitType.ReturnToTown).ConfigureAwait(false);
+            token?.Register(() => Socket.EmitAsync(ALSocketEmitType.Stop, new { action = "town" }));
 
             var expectation = await source.Task.WithTimeout(5000).ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -2400,7 +2403,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Bank, new { amount, operation = "withdraw" }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Bank, new { amount, operation = "withdraw" }).ConfigureAwait(false);
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
         }
@@ -2456,7 +2459,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Bank, new { inv = inventorySlot, operation = "swap", pack = bankPack, str = bankSlot })
+            await Socket.EmitAsync(ALSocketEmitType.Bank, new { inv = inventorySlot, operation = "swap", pack = bankPack, str = bankSlot })
                 .ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
@@ -2741,7 +2744,7 @@ namespace AL.Client
                 throw new Exception(
                     $"Logged into wrong server. Expected: {Server.Region} {Server.Identifier}  Current: {data.Region} {data.Identifier}");
 
-            await Socket.Emit(ALSocketEmitType.Loaded, new
+            await Socket.EmitAsync(ALSocketEmitType.Loaded, new
                 {
                     height = 1080,
                     width = 1920,

@@ -25,7 +25,7 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "upgrade_in_progress")]
         UpgradeInProgress,
         [EnumMember(Value = "upgrade_chance")]
-        UpgradeChance, //emit calculate: true
+        UpgradeChance, //Emit calculate: true
         [EnumMember(Value = "upgrade_success")]
         UpgradeSuccess,
         [EnumMember(Value = "upgrade_fail")]
@@ -46,7 +46,7 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "compound_in_progress")]
         CompoundInProgress,
         [EnumMember(Value = "compound_chance")]
-        CompoundChance, //emit calculate: true
+        CompoundChance, //EmitAsync calculate: true
         [EnumMember(Value = "compound_success")]
         CompoundSuccess,
         [EnumMember(Value = "compound_fail")]

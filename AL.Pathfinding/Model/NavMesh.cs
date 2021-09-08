@@ -130,7 +130,7 @@ namespace AL.Pathfinding.Model
             //if we're standing on an end point... yield nothing
             if (endsArr.Any(end => end.Equals(start)))
                 yield break;
-            
+
             //get closest to start
             var startNode = Nodes.OrderBy(node => start.FastDistance(node.Edge)).FirstOrDefault(node => CanMove(start, node.Edge));
 

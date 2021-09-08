@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using AL.APIClient;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Extensions;
@@ -80,7 +79,7 @@ namespace AL.Client
             })
             */
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -113,7 +112,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -146,7 +145,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -193,7 +192,7 @@ namespace AL.Client
             })
             */
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -247,7 +246,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -279,7 +278,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Merchant, new { num = stand.Index }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Merchant, new { num = stand.Index }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -341,7 +340,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.TradeWishlist, new
+            await Socket.EmitAsync(ALSocketEmitType.TradeWishlist, new
                 {
                     q = quantity.ToString(),
                     slot = tradeSlot,
@@ -415,7 +414,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Equip, new { num = inventorySlot, q = quantity, slot = tradeSlot, price })
+            await Socket.EmitAsync(ALSocketEmitType.Equip, new { num = inventorySlot, q = quantity, slot = tradeSlot, price })
                 .ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
@@ -434,7 +433,11 @@ namespace AL.Client
         /// </returns>
         /// <exception cref="ArgumentNullException">characterName</exception>
         /// <exception cref="ArgumentNullException">apiClient</exception>
-        public static async Task<Merchant> StartAsync(string characterName, ServerRegion region, ServerId identifier, IALAPIClient apiClient)
+        public static async Task<Merchant> StartAsync(
+            string characterName,
+            ServerRegion region,
+            ServerId identifier,
+            IALAPIClient apiClient)
         {
             if (string.IsNullOrEmpty(characterName))
                 throw new ArgumentNullException(nameof(characterName));
@@ -502,7 +505,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Unequip, new { slot }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Unequip, new { slot }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }

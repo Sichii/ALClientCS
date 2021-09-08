@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using AL.APIClient;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Extensions;
@@ -75,7 +74,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -120,7 +119,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -186,7 +185,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -233,7 +232,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -308,7 +307,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -364,7 +363,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }
@@ -408,7 +407,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.Emit(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();

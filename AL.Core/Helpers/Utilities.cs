@@ -3,16 +3,19 @@ using System;
 namespace AL.Core.Helpers
 {
     /// <summary>
-    /// A utility class for generally useful functions that don't belong attached to a specific object.
+    ///     A utility class for generally useful functions that don't belong attached to a specific object.
     /// </summary>
     public static class Utilities
     {
         /// <summary>
-        /// Calculates the damage multiplier that will be applied for a given defense value. (Does not account for the halving of resistance for heals)
+        ///     Calculates the damage multiplier that will be applied for a given defense value. (Does not account for the halving
+        ///     of resistance for heals)
         /// </summary>
         /// <param name="defense">A resistance or armor value, after piercing has been accounted for.</param>
-        /// <returns><see cref="float"/> <br/>
-        /// The multiplier to be applied to the damage value to get the effective damage.</returns>
+        /// <returns>
+        ///     <see cref="float" /> <br />
+        ///     The multiplier to be applied to the damage value to get the effective damage.
+        /// </returns>
         public static float CalculateDamageMultiplier(float defense) => Math.Clamp(
             1
             - (Math.Clamp(defense, 0f, 100f) * 0.00100f

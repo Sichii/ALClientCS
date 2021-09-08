@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
@@ -9,21 +8,30 @@ using Condition = AL.Core.Definitions.Condition;
 namespace AL.Client.Extensions
 {
     /// <summary>
-    ///     Provides a set of extensions for <see cref="EntityBase"/>'s.
+    ///     Provides a set of extensions for <see cref="EntityBase" />'s.
     /// </summary>
     public static class EntityExtensions
     {
         /// <summary>
-        /// Calculates the final damage value 
+        ///     Calculates the final damage value
         /// </summary>
         /// <param name="entity">The entity that is attacking.</param>
         /// <param name="target">The entity being attacked.</param>
         /// <param name="damageType">The type of damage being dealt.</param>
-        /// <param name="ignoreTempDefBuffs">Whether or not to ignore defenses gained from temp buffs like
-        /// <see cref="AL.Core.Definitions.Condition.HardShell"/>, <see cref="AL.Core.Definitions.Condition.WarCry"/>, and <see cref="AL.Core.Definitions.Condition.Fingered"/>.</param>
-        /// <returns><see cref="float"/> <br/>
-        /// The amount of damage dealt after factoring in penetration and defenses.</returns>
-        public static async ValueTask<float> CalculateDamageAgainstAsync(this EntityBase entity, EntityBase target, DamageType damageType, bool ignoreTempDefBuffs = false)
+        /// <param name="ignoreTempDefBuffs">
+        ///     Whether or not to ignore defenses gained from temp buffs like
+        ///     <see cref="AL.Core.Definitions.Condition.HardShell" />, <see cref="AL.Core.Definitions.Condition.WarCry" />, and
+        ///     <see cref="AL.Core.Definitions.Condition.Fingered" />.
+        /// </param>
+        /// <returns>
+        ///     <see cref="float" /> <br />
+        ///     The amount of damage dealt after factoring in penetration and defenses.
+        /// </returns>
+        public static async ValueTask<float> CalculateDamageAgainstAsync(
+            this EntityBase entity,
+            EntityBase target,
+            DamageType damageType,
+            bool ignoreTempDefBuffs = false)
         {
             var defense = 0f;
 
@@ -49,7 +57,7 @@ namespace AL.Client.Extensions
                     }
 
                     defense -= entity.RPiercing;
-                    
+
                     if (damageType == DamageType.Heal)
                         defense /= 2;
 
@@ -63,10 +71,10 @@ namespace AL.Client.Extensions
                     {
                         if (await player.Conditions.ContainsKeyAsync(Condition.HardShell).ConfigureAwait(false))
                             defense -= GameData.Conditions[Condition.HardShell]!.Armor;
-                        
+
                         if (await player.Conditions.ContainsKeyAsync(Condition.FullGuard).ConfigureAwait(false))
                             defense -= GameData.Conditions[Condition.FullGuard]!.Armor;
-                        
+
                         if (await player.Conditions.ContainsKeyAsync(Condition.WarCry).ConfigureAwait(false))
                             defense -= GameData.Conditions[Condition.WarCry]!.Armor;
                     }
@@ -80,7 +88,7 @@ namespace AL.Client.Extensions
 
                     break;
             }
-            
+
             var damageMultiplier = Utilities.CalculateDamageMultiplier(defense);
 
             return entity.Attack * damageMultiplier;

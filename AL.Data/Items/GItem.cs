@@ -92,7 +92,7 @@ namespace AL.Data.Items
         public ObtainType ObtainType { get; internal set; }
 
         /// <summary>
-        ///     If this item is a weapon, this is the name of the projectile it emits when attacking.
+        ///     If this item is a weapon, this is the name of the projectile it Emits when attacking.
         /// </summary>
         public string? Projectile { get; init; }
 

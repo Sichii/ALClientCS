@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.Integration
 {
-    //[TestClass]
+    [TestClass]
     public class IntegrationTests
     {
         [TestMethod]

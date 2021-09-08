@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.Core.Helpers;
@@ -10,10 +11,10 @@ using AL.Core.Json.Converters;
 using AL.SocketClient.ClientModel;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
-using H.Socket.IO;
-using H.Socket.IO.EventsArgs;
-using H.WebSockets.Args;
+using Chaos.Core.Extensions;
 using Newtonsoft.Json;
+using SocketIOClient;
+using SocketIOClient.Newtonsoft.Json;
 
 namespace AL.SocketClient
 {
@@ -24,16 +25,17 @@ namespace AL.SocketClient
     /// <seealso cref="IAsyncDisposable" />
     public class ALSocketClient : IALSocketClient
     {
+        private readonly ConcurrentDictionary<Type, Func<SocketIOResponse, int, object>> CompiledExpressions;
         private readonly IFormattedLogger Logger;
         private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
         private bool Disposed;
-        private SocketIoClient Socket;
+        private SocketIO Socket = null!;
 
         /// <summary>
         ///     Whether or not this socket is currently connected.
         /// </summary>
         public bool Connected { get; private set; }
-        public event EventHandler<WebSocketCloseEventArgs>? Disconnected;
+        public event EventHandler<string>? Disconnected;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -43,7 +45,7 @@ namespace AL.SocketClient
         {
             Logger = logger;
             Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
-            Socket = new SocketIoClient();
+            CompiledExpressions = new ConcurrentDictionary<Type, Func<SocketIOResponse, int, object>>();
         }
 
         /// <inheritdoc />
@@ -54,19 +56,35 @@ namespace AL.SocketClient
                 throw new InvalidOperationException("Socket is already open.");
 
             if (Disposed)
-            {
-                Socket = new SocketIoClient();
-                Disposed = false;
-            }
+                throw new ObjectDisposedException(nameof(ALSocketClient));
 
             var host = $"ws://{server.IPAddress}:{server.Port}";
 
-            Socket.EventReceived += EventHandler;
-            Socket.Disconnected += OnDisconnected;
-
             Logger.Info($"Connecting to {host}");
-            await Socket.ConnectAsync(new Uri(host)).ConfigureAwait(false);
+            Socket = new SocketIO(host);
+            Socket.JsonSerializer = new NewtonsoftJsonSerializer(Socket.Options.EIO);
+            Socket.OnDisconnected += OnDisconnected;
+            Socket.OnAny(OnAny);
+
+            await Socket.ConnectAsync().ConfigureAwait(false);
             Connected = true;
+        }
+
+        private static Func<SocketIOResponse, int, object> CreateLambda(Type type)
+        {
+            //compile an expression for a given type, that called response.GetValue<T> where T is the type object
+            var responseParam = Expression.Parameter(typeof(SocketIOResponse), "response");
+            var callParam = Expression.Parameter(typeof(int));
+
+            var method = typeof(SocketIOResponse).GetMethods()
+                .Where(mInfo => mInfo.Name.EqualsI(nameof(SocketIOResponse.GetValue)))
+                .FirstOrDefault(mInfo => mInfo.IsGenericMethod)!.MakeGenericMethod(type);
+
+            var call = Expression.Call(responseParam, method, callParam);
+
+            var lambda = Expression.Lambda<Func<SocketIOResponse, int, object>>(call, responseParam, callParam);
+
+            return lambda.Compile();
         }
 
         public async Task DisconnectAsync()
@@ -82,12 +100,11 @@ namespace AL.SocketClient
                     await sub.DisposeAsync().ConfigureAwait(false);
 
             Subscriptions.Clear();
-
             await Socket.DisconnectAsync().ConfigureAwait(false);
 
             try
             {
-                await Socket.DisposeAsync().ConfigureAwait(false);
+                Socket.Dispose();
                 Disposed = true;
             } catch
             {
@@ -99,29 +116,29 @@ namespace AL.SocketClient
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
-        public Task Emit<T>(ALSocketEmitType socketEmitType, T data)
+        public async Task EmitAsync<T>(ALSocketEmitType emitType, T data)
         {
-            Logger.Trace($"{socketEmitType}, {data}");
+            Logger.Trace($"{emitType}, {data}");
 
             if ((Socket == null) || !Connected)
                 throw new InvalidOperationException("Socket is null or closed.");
 
-            return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant(), data);
+            await Socket.EmitAsync(EnumHelper.ToString(emitType).ToLowerInvariant(), data).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
-        public Task Emit(ALSocketEmitType socketEmitType)
+        public Task EmitAsync(ALSocketEmitType emitType)
         {
-            Logger.Trace($"{socketEmitType}");
+            Logger.Trace($"{emitType}");
 
             if ((Socket == null) || !Connected)
                 throw new InvalidOperationException("Socket is null or closed.");
 
-            return Socket.Emit(EnumHelper.ToString(socketEmitType).ToLowerInvariant());
+            return Socket.EmitAsync(EnumHelper.ToString(emitType).ToLowerInvariant());
         }
 
-        private async void EventHandler(object? sender, SocketIoEventArgs e) => await HandleEventAsync(e.Value).ConfigureAwait(false);
+        //private async void EventHandler(object? sender, SocketIO e) => await HandleEventAsync(e.Value).ConfigureAwait(false);
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">
@@ -206,7 +223,22 @@ RAW JSON:
             return AlSocketSubscription<T>.Create(invocationList, callback);
         }
 
-        private void OnDisconnected(object? sender, WebSocketCloseEventArgs e)
+        private void OnAny(string eventName, SocketIOResponse response)
+        {
+            if (!EnumHelper.TryParse(eventName, out ALSocketMessageType messageType))
+                return;
+
+            if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
+                return;
+
+            var type = subscriptionList.Type;
+            var getValue = CompiledExpressions.GetOrAdd(type, CreateLambda);
+            var dataObject = getValue(response, 0);
+
+            _ = subscriptionList.InvokeAsync(dataObject);
+        }
+
+        private void OnDisconnected(object? sender, string e)
         {
             try
             {
@@ -228,7 +260,8 @@ RAW JSON:
 
         #region Do Not ReOrder
         /// <summary>
-        ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing emits and deserializing messages.
+        ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing Emits and deserializing
+        ///     messages.
         ///     <br />
         ///     Caching an instance of this helps with performance. <br />
         ///     If you replace this instance, you must also replace the <see cref="JsonSerializer" /> instance.

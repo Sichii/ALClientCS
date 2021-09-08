@@ -35,7 +35,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="H.Socket.IO" Version="1.1.7.1"/>
+        <PackageReference Include="SocketIOClient.Newtonsoft.Json" Version="2.3.1"/>
     </ItemGroup>
 
 </Project>

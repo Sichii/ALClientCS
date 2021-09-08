@@ -165,7 +165,7 @@ namespace AL.Pathfinding
             //if any of the end nodes are equal to the start node... dont need to move
             if ((endPoints.Length == 0) || endPoints.Any(end => end.Equals(start)))
                 yield break;
-            
+
             //failed to find a mesh (map is boundless?)
             if (!NavMeshes.TryGetValue(mapAccessor, out var navMesh))
             {

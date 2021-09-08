@@ -11,7 +11,7 @@
         <Description>A headless client for the Adventure.Land game.</Description>
         <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
         <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
-        <Company />
+        <Company/>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
     </PropertyGroup>
@@ -30,9 +30,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
-        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj" />
-        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
+        <ProjectReference Include="..\AL.Data\AL.Data.csproj"/>
+        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj"/>
+        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

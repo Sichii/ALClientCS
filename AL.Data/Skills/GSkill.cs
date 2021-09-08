@@ -32,7 +32,7 @@ namespace AL.Data.Skills
         public IReadOnlyDictionary<ALAttribute, float>? AttributeRequirements { get; init; }
 
         /// <summary>
-        ///     If true, this skill emits an aura.
+        ///     If true, this skill Emits an aura.
         /// </summary>
         public bool Aura { get; init; }
 

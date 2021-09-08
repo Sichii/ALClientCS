@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.SocketClient.Definitions;
-using H.WebSockets.Args;
 
 namespace AL.SocketClient.Interfaces
 {
@@ -15,7 +14,7 @@ namespace AL.SocketClient.Interfaces
         ///     Occurs when the underlying socket disconnects.
         /// </summary>
         // ReSharper disable once EventNeverSubscribedTo.Global
-        event EventHandler<WebSocketCloseEventArgs>? Disconnected;
+        event EventHandler<string> Disconnected;
 
         /// <summary>
         ///     Whether or not the socket is currently open.
@@ -38,18 +37,18 @@ namespace AL.SocketClient.Interfaces
         Task DisconnectAsync();
 
         /// <summary>
-        ///     Serializes the data and emits a message to the server via socket.io protocol.
+        ///     Serializes the data and Emits a message to the server via socket.io protocol.
         /// </summary>
         /// <param name="emitType">A value indicating the title of the message.</param>
         /// <param name="data">The data to serialize.</param>
         /// <typeparam name="T">The type of the data being serialized.</typeparam>
-        Task Emit<T>(ALSocketEmitType emitType, T data);
+        Task EmitAsync<T>(ALSocketEmitType emitType, T data);
 
         /// <summary>
         ///     Emits a message to the server via socket.io protocol.
         /// </summary>
         /// <param name="emitType">A value indicating the title of the message.</param>
-        Task Emit(ALSocketEmitType emitType);
+        Task EmitAsync(ALSocketEmitType emitType);
 
         /// <summary>
         ///     Handles a received socket event based on the title of the message, and how certain messages are set up to be

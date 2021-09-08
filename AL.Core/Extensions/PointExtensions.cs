@@ -187,24 +187,6 @@ namespace AL.Core.Extensions
         }
 
         /// <summary>
-        ///     Creates a new <see cref="Geometry.Point" /> from a <see cref="IPoint" />.
-        /// </summary>
-        /// <param name="point">An implementation of <see cref="IPoint" />.</param>
-        /// <returns>
-        ///     <see cref="Geometry.Point" />
-        ///     <br />
-        ///     A new point.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">point</exception>
-        public static Point ToPoint(this IPoint point) =>
-            point switch
-            {
-                null     => throw new ArgumentNullException(nameof(point)),
-                Point pt => pt,
-                _        => new Point(point.X, point.Y)
-            };
-
-        /// <summary>
         ///     Calculates the midpoint between two points.
         /// </summary>
         /// <param name="point">A point.</param>
@@ -307,6 +289,24 @@ namespace AL.Core.Extensions
                 }
             }
         }
+
+        /// <summary>
+        ///     Creates a new <see cref="Geometry.Point" /> from a <see cref="IPoint" />.
+        /// </summary>
+        /// <param name="point">An implementation of <see cref="IPoint" />.</param>
+        /// <returns>
+        ///     <see cref="Geometry.Point" />
+        ///     <br />
+        ///     A new point.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">point</exception>
+        public static Point ToPoint(this IPoint point) =>
+            point switch
+            {
+                null     => throw new ArgumentNullException(nameof(point)),
+                Point pt => pt,
+                _        => new Point(point.X, point.Y)
+            };
 
         /// <summary>
         ///     Moves an point towards another at a given speed.
