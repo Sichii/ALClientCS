@@ -4,9 +4,9 @@ Due to the difference in weak vs strongly typed language... many API, Socket, an
 This project consists of multiple libraries that build on eachother, and so can be used seperately if required. <br/>
 <br/>
 ```
-        ┌────>AL.Data─────>AL.Pathfinding───┐
-AL.Core─┤                                   ├─AL.Client
-        └─>AL.APIClient───>AL.SocketClient──┘
+        ┌────> AL.Data ─────> AL.Pathfinding ───┐
+AL.Core─┤                                       ├─> AL.Client
+        └─> AL.APIClient ───> AL.SocketClient ──┘
 ```
 
 # Logging
@@ -74,29 +74,6 @@ Extra data elements have been enriched into this data. A few such examples are..
 
 ### Extensions
 Many utility methods are contained within `Extensions` classes, most of those being under the `AL.Core.Extensions` namespace. <br/>
-Some of these extensions overlap with eachother intentionally, such as doing distance calculations. <br/>
-In this case, it is intentional to force the user to consider what type of distance they want to use. <br/>
-
-```c#
-	//potential ambiguous reference
-	SomeEntity.Distance(otherEntity);
-	
-	//center to center distance
-	SomeEntity.Distance((IPoint) otherEntity);
-	
-	//center to center distance, but include a map check
-	SomeEntity.Distance((ILocation) otherEntity);
-	
-	//center to center distance, but include an instance AND map check
-	SomeEntity.Distance((IInstancedLocation) otherEntity);
-	
-	//edge to edge distance
-	SomeEntity.Distance((IRectangle) otherEntity);
-	
-	//ICircle inherits from IPoint
-	//edge to edge distance
-	SomeCircle.Distance((ICircle) otherCircle);
-```
 
 ### Persistence
 1. Each time you enter the `Bank`, new bank information overwrites `Client.Bank`. <br/>
