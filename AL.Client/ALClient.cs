@@ -10,6 +10,7 @@ using AL.APIClient.Definitions;
 using AL.APIClient.Extensions;
 using AL.APIClient.Interfaces;
 using AL.APIClient.Model;
+using AL.Client.Definitions;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Client.Interfaces;
@@ -215,13 +216,14 @@ namespace AL.Client
                 return true;
 
             if (fromPonty)
-                return GameData.NPCs["secondhands"]!.Locations.Any(location => location.Distance(Character) < CORE_CONSTANTS.NPC_RANGE);
+                return GameData.NPCs["secondhands"]!.Locations.Any(location =>
+                    location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
 
             // ReSharper disable once ConvertIfStatementToReturnStatement
             if (data.ObtainType != ObtainType.Buy)
                 return false;
 
-            return data.ObtainableFromNPC!.Locations.Any(location => Character.Distance(location) < CORE_CONSTANTS.NPC_RANGE);
+            return data.ObtainableFromNPC!.Locations.Any(location => Character.DistanceWithMapCheck(location) < CORE_CONSTANTS.NPC_RANGE);
         }
 
         /// <summary>
@@ -267,7 +269,7 @@ namespace AL.Client
 
             return !distanceCheck
                    || Character.Inventory.ContainsItem("computer")
-                   || data.ObtainableFromNPC.Locations.Any(location => location.Distance(Character) < CORE_CONSTANTS.NPC_RANGE);
+                   || data.ObtainableFromNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
         }
 
         /// <summary>
@@ -295,7 +297,7 @@ namespace AL.Client
 
             return !distanceCheck
                    || Character.Inventory.ContainsItem("computer")
-                   || data.ExchangeAtNPC.Locations.Any(location => location.Distance(Character) < CORE_CONSTANTS.NPC_RANGE);
+                   || data.ExchangeAtNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
         }
 
         /// <summary>
@@ -323,7 +325,7 @@ namespace AL.Client
 
             foreach (var npc in map.NPCs)
                 if ((npc.Data?.Items != null)
-                    && npc.Data.Locations.Any(location => location.Distance(Character) < CORE_CONSTANTS.NPC_RANGE))
+                    && npc.Data.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE))
                     return true;
 
             return false;
@@ -456,13 +458,14 @@ namespace AL.Client
         /// </summary>
         /// <param name="target">A target able to have edge-to-edge distance calculated.</param>
         /// <param name="skillName">The name of the skill.</param>
+        /// <param name="distanceType">The type of distance to calculate.</param>
         /// <returns>
         ///     <see cref="bool" /> <br />
         ///     <c>true</c> if the target is within range of the skill, otherwise <c>false</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException">skillName</exception>
         /// <exception cref="ArgumentNullException">target</exception>
-        public bool WithinSkillRange(IRectangle target, string skillName)
+        public bool WithinSkillRange(IRectangle target, string skillName, DistanceType distanceType = DistanceType.CenterToCenter)
         {
             if (string.IsNullOrEmpty(skillName))
                 throw new ArgumentNullException(nameof(skillName));
@@ -488,7 +491,13 @@ namespace AL.Client
 
             range += data.RangeBonus;
 
-            return Character.Distance(target) < range;
+            return distanceType switch
+            {
+                DistanceType.CenterToCenter => Character.Distance(target) < range,
+                DistanceType.EdgeToCenter => Character.EdgeToCenterDistance(target) < range,
+                DistanceType.EdgeToEdge => Character.EdgeToEdgeDistance(target) < range,
+                _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
+            };
         }
         #endregion
 
@@ -868,7 +877,7 @@ namespace AL.Client
                 || ((player = await playerTask.ConfigureAwait(false)) == null))
                 throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (seller gone)");
 
-            if (Character.Distance((ILocation)player) > CORE_CONSTANTS.NPC_RANGE)
+            if (Character.DistanceWithMapCheck(player) > CORE_CONSTANTS.NPC_RANGE)
                 throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (get closer)");
 
             var slotItem = player.Slots[slot.ToSlot()];
@@ -1597,7 +1606,7 @@ namespace AL.Client
             var initialDelay = Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000);
             Character.SetMoving(point);
 
-            var delayTask = delay.WaitAsync(initialDelay);
+            var delayTask = delay.WaitAsync(initialDelay, token);
             var completedTask = await Task.WhenAny(delayTask, source.Task).ConfigureAwait(false);
 
             if (token?.IsCancellationRequested == true)
@@ -1803,7 +1812,7 @@ namespace AL.Client
 
                 var player = await toPlayerTask.ConfigureAwait(false);
 
-                if (Character.Distance((ILocation)player) > CORE_CONSTANTS.NPC_RANGE)
+                if (Character.DistanceWithMapCheck(player) > CORE_CONSTANTS.NPC_RANGE)
                     throw new InvalidOperationException($"Failed to send {amount} gold to {toPlayerId}. (get closer)");
             }
 
@@ -1878,7 +1887,7 @@ namespace AL.Client
 
                 var toPlayer = await toPlayerTask.ConfigureAwait(false);
 
-                if (Character.Distance((ILocation)toPlayer) > CORE_CONSTANTS.NPC_RANGE)
+                if (Character.DistanceWithMapCheck(toPlayer) > CORE_CONSTANTS.NPC_RANGE)
                     throw new InvalidOperationException($"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)");
             }
 
@@ -2782,6 +2791,17 @@ namespace AL.Client
 
         protected async Task<bool> OnNewMapAsync(NewMapData data)
         {
+            if (data.Map.EqualsI("jail"))
+            {
+                var standingLocation = Character.ToLocation();
+                var standingOnWall = PathFinder.IsWall(standingLocation);
+                var goingLocation = new Location(Character.Map, Character.GoingX, Character.GoingY);
+                var validPath = PathFinder.CanMove(standingLocation, goingLocation);
+
+                Logger.Error(
+                    $"Sent to jail from {Character.ToLocation()} (IsWall: {standingOnWall}), moving to {goingLocation} (Valid {validPath}");
+            }
+
             await Projectiles.ClearAsync().ConfigureAwait(false);
             Character.UpdateLocation(data);
 

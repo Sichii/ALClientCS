@@ -209,6 +209,38 @@ namespace AL.Core.Extensions
         }
 
         /// <summary>
+        ///     Moves an point towards another at a given speed.
+        /// </summary>
+        /// <param name="p1">The starting point.</param>
+        /// <param name="p2">The end point.</param>
+        /// <param name="maxDistance">The max distance to translate by.</param>
+        /// <returns>
+        ///     <see cref="Geometry.Point" /> <br />
+        ///     A new point.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">point</exception>
+        /// <exception cref="System.ArgumentNullException">other</exception>
+        public static Point OffsetTowards(this IPoint p1, IPoint p2, float maxDistance)
+        {
+            if (p1 == null)
+                throw new ArgumentNullException(nameof(p1));
+
+            if (p2 == null)
+                throw new ArgumentNullException(nameof(p2));
+
+            var distance = p1.Distance(p2);
+
+            if (distance.SignificantlyGreaterThan(maxDistance, CONSTANTS.EPSILON))
+                distance = maxDistance;
+            else if (distance.NearlyEqualOrLessThan(maxDistance, CONSTANTS.EPSILON))
+                return p2.ToPoint();
+
+            var angle = p2.AngularRelationTo(p1);
+
+            return p1.AngularOffset(angle, distance);
+        }
+
+        /// <summary>
         ///     Lazily generates points between two points. <br />
         ///     https://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
         /// </summary>
@@ -307,37 +339,5 @@ namespace AL.Core.Extensions
                 Point pt => pt,
                 _        => new Point(point.X, point.Y)
             };
-
-        /// <summary>
-        ///     Moves an point towards another at a given speed.
-        /// </summary>
-        /// <param name="p1">The starting point.</param>
-        /// <param name="p2">The end point.</param>
-        /// <param name="maxDistance">The max distance to translate by.</param>
-        /// <returns>
-        ///     <see cref="Geometry.Point" /> <br />
-        ///     A new point.
-        /// </returns>
-        /// <exception cref="System.ArgumentNullException">point</exception>
-        /// <exception cref="System.ArgumentNullException">other</exception>
-        public static Point Translate(this IPoint p1, IPoint p2, float maxDistance)
-        {
-            if (p1 == null)
-                throw new ArgumentNullException(nameof(p1));
-
-            if (p2 == null)
-                throw new ArgumentNullException(nameof(p2));
-
-            var distance = p1.Distance(p2);
-
-            if (distance.SignificantlyGreaterThan(maxDistance, CONSTANTS.EPSILON))
-                distance = maxDistance;
-            else if (distance.NearlyEqualOrLessThan(maxDistance, CONSTANTS.EPSILON))
-                return p2.ToPoint();
-
-            var angle = p2.AngularRelationTo(p1);
-
-            return p1.AngularOffset(angle, distance);
-        }
     }
 }

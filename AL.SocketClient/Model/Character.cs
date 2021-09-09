@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AL.Core.Definitions;
+using AL.Core.Extensions;
 using AL.Core.Interfaces;
 using AL.SocketClient.Json.Converters;
 using AL.SocketClient.SocketModel;
@@ -136,6 +137,7 @@ namespace AL.SocketClient.Model
         {
             GoingX = point.X;
             GoingY = point.Y;
+            Angle = point.AngularRelationTo(this);
             Moving = true;
         }
 

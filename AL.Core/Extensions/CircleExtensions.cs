@@ -76,7 +76,7 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return circle.Radius >= circle.Distance(other) + other.Radius;
+            return circle.Radius >= circle.EdgeToEdgeDistance(other) + other.Radius;
         }
 
         /// <summary>
@@ -99,18 +99,19 @@ namespace AL.Core.Extensions
         }
 
         /// <summary>
-        ///     Calculates the edge-to-edge euclidean distance to another circle.
+        ///     Calculates the edge-to-center euclidean distance to some center-point.
         /// </summary>
         /// <param name="circle">This circle.</param>
-        /// <param name="other">Another circle.</param>
+        /// <param name="other">A center-point of some entity.</param>
         /// <returns>
         ///     <see cref="float" />
         ///     <br />
-        ///     The euclidean distance between the two closest points of this circle and the <paramref name="other" />.
+        ///     The euclidean distance between the center-point of this circle and the some other point, minus this circle's
+        ///     radius. <paramref name="other" />.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">circle</exception>
         /// <exception cref="System.ArgumentNullException">other</exception>
-        public static float Distance(this ICircle circle, ICircle other)
+        public static float EdgeToCenterDistance(this ICircle circle, IPoint other)
         {
             if (circle == null)
                 throw new ArgumentNullException(nameof(circle));
@@ -118,7 +119,30 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return Math.Max(0, circle.Distance((IPoint)other) - circle.Radius - other.Radius);
+            return Math.Max(0, circle.Distance(other) - circle.Radius);
+        }
+
+        /// <summary>
+        ///     Calculates the edge-to-edge euclidean distance to another circle.
+        /// </summary>
+        /// <param name="circle">This circle.</param>
+        /// <param name="other">Another circle.</param>
+        /// <returns>
+        ///     <see cref="float" />
+        ///     <br />
+        ///     The euclidean distance between the centerpoints of two circles, minus the sum of their radi.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">circle</exception>
+        /// <exception cref="System.ArgumentNullException">other</exception>
+        public static float EdgeToEdgeDistance(this ICircle circle, ICircle other)
+        {
+            if (circle == null)
+                throw new ArgumentNullException(nameof(circle));
+
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+
+            return Math.Max(0, circle.Distance(other) - circle.Radius - other.Radius);
         }
 
         /// <summary>
@@ -156,7 +180,7 @@ namespace AL.Core.Extensions
             if (other == null)
                 throw new ArgumentNullException(nameof(other));
 
-            return circle.Distance((IPoint)other) <= circle.Radius + other.Radius;
+            return circle.Distance(other) <= circle.Radius + other.Radius;
         }
 
         /// <summary>

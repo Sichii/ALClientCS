@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Linq.Expressions;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Newtonsoft.Json;
@@ -10,7 +10,20 @@ namespace AL.SocketClient.Json.Converters
 {
     public class EventAndBossDataConverter : JsonConverter<EventAndBossData>
     {
-        private static readonly PropertyInfo PropertyInfo = typeof(BossInfo).GetProperty(nameof(BossInfo.Id))!;
+        private static readonly Action<BossInfo, string> SetValue;
+
+        static EventAndBossDataConverter()
+        {
+            var bossInfoParam = Expression.Parameter(typeof(BossInfo), "bossInfo");
+            var bossIdParam = Expression.Parameter(typeof(string), "bossId");
+
+            var propertyInfo = typeof(BossInfo).GetProperty(nameof(BossInfo.Id))!;
+
+            var bossIdProperty = Expression.Property(bossInfoParam, propertyInfo);
+            var assignBossId = Expression.Assign(bossIdProperty, bossIdParam);
+
+            SetValue = Expression.Lambda<Action<BossInfo, string>>(assignBossId, bossInfoParam, bossIdParam).Compile();
+        }
 
         public override EventAndBossData? ReadJson(
             JsonReader reader,
@@ -37,7 +50,7 @@ namespace AL.SocketClient.Json.Converters
                     var bossInfo = token.ToObject<BossInfo>(serializer)
                                    ?? throw new InvalidOperationException("Failed to deserialize boss info.");
 
-                    PropertyInfo.SetValue(bossInfo, key);
+                    SetValue(bossInfo, key);
                     bossInfoDic[key] = bossInfo;
                 }
 

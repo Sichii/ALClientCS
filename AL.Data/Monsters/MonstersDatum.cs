@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using AL.Core.Json.Converters;
-using Chaos.Core.Extensions;
 using Newtonsoft.Json;
 
 namespace AL.Data.Monsters

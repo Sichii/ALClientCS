@@ -69,7 +69,7 @@ namespace AL.Core.Extensions
         /// </returns>
         /// <exception cref="System.ArgumentNullException">l1</exception>
         /// <exception cref="System.ArgumentNullException">l2</exception>
-        public static float Distance(this ILocation l1, ILocation l2)
+        public static float DistanceWithMapCheck(this ILocation l1, ILocation l2)
         {
             if (l1 == null)
                 throw new ArgumentNullException(nameof(l1));
@@ -77,22 +77,23 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.OnSameMapAs(l2) ? float.MaxValue : ((IPoint)l1).Distance(l2);
+            return !l1.OnSameMapAs(l2) ? float.MaxValue : l1.Distance(l2);
         }
 
         /// <summary>
-        ///     <inheritdoc cref="PointExtensions.MidPoint" />
+        ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
         ///     <br />
         ///     Additionally checks both locations are on the same map.
         /// </summary>
         /// <param name="l1">A location.</param>
         /// <param name="l2">Another location.</param>
+        /// <param name="maxDistance">The max distance to translate by.</param>
         /// <returns>
-        ///     <inheritdoc cref="PointExtensions.MidPoint" />
+        ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
         /// </returns>
         /// <exception cref="System.ArgumentNullException">l1</exception>
         /// <exception cref="System.ArgumentNullException">l2</exception>
-        public static Point MidPoint(this ILocation l1, ILocation l2)
+        public static Point OffsetTowards(this ILocation l1, ILocation l2, float maxDistance)
         {
             if (l1 == null)
                 throw new ArgumentNullException(nameof(l1));
@@ -100,11 +101,29 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.OnSameMapAs(l2) ? Point.None : ((IPoint)l1).MidPoint(l2);
+            return !l1.OnSameMapAs(l2) ? Point.None : PointExtensions.OffsetTowards(l1, l2, maxDistance);
         }
 
-        private static bool OnSameMapAs(this ILocation l1, ILocation l2)
+        /// <summary>
+        ///     Checks if two locations are on the same map.
+        /// </summary>
+        /// <param name="l1">A location.</param>
+        /// <param name="l2">Another location.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if both locations are on the same map, or either location's map is equal to <c>string.Empty</c>,
+        ///     otherwise <c>false</c>.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">l1</exception>
+        /// <exception cref="System.ArgumentNullException">l2</exception>
+        public static bool OnSameMapAs(this ILocation l1, ILocation l2)
         {
+            if (l1 == null)
+                throw new ArgumentNullException(nameof(l1));
+
+            if (l2 == null)
+                throw new ArgumentNullException(nameof(l2));
+
             if ((l1.Map == string.Empty) || (l2.Map == string.Empty))
                 return true;
 
@@ -126,29 +145,5 @@ namespace AL.Core.Extensions
             Location loc => loc,
             _            => new Location(location.Map, location.ToPoint())
         };
-
-        /// <summary>
-        ///     <inheritdoc cref="PointExtensions.Translate" />
-        ///     <br />
-        ///     Additionally checks both locations are on the same map.
-        /// </summary>
-        /// <param name="l1">A location.</param>
-        /// <param name="l2">Another location.</param>
-        /// <param name="maxDistance">The max distance to translate by.</param>
-        /// <returns>
-        ///     <inheritdoc cref="PointExtensions.Translate" />
-        /// </returns>
-        /// <exception cref="System.ArgumentNullException">l1</exception>
-        /// <exception cref="System.ArgumentNullException">l2</exception>
-        public static Point Translate(this ILocation l1, ILocation l2, float maxDistance)
-        {
-            if (l1 == null)
-                throw new ArgumentNullException(nameof(l1));
-
-            if (l2 == null)
-                throw new ArgumentNullException(nameof(l2));
-
-            return !l1.OnSameMapAs(l2) ? Point.None : ((IPoint)l1).Translate(l2, maxDistance);
-        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using AL.Core.Json.Attributes;
@@ -16,8 +17,21 @@ namespace AL.Core.Json.Converters
     public class ArrayToObjectConverter<T> : JsonConverter
     {
         public static readonly ArrayToObjectConverter<T> Singleton = new();
+        // ReSharper disable once StaticMemberInGenericType - expected behavior
+        private static readonly Dictionary<int, string> PropertyNamesByIndex;
 
         public override bool CanWrite => true;
+
+        static ArrayToObjectConverter() =>
+            PropertyNamesByIndex = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                .Select(p => new
+                {
+                    p,
+                    p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index
+                })
+                .Where(set => set.Index.HasValue)
+                .ToDictionary(set => set.Index!.Value, set => set.p.Name);
 
         public override bool CanConvert(Type objectType) => objectType == typeof(T);
 
@@ -28,17 +42,8 @@ namespace AL.Core.Json.Converters
 
             var array = JArray.Load(reader);
 
-            var propsByIndex = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-                .Select(p => new
-                {
-                    p,
-                    p.GetCustomAttribute<JsonArrayIndexAttribute>()?.Index
-                })
-                .Where(set => set.Index.HasValue)
-                .ToDictionary(set => set.Index!.Value, set => set.p);
-
-            var obj = new JObject(array.Select((jt, i) => propsByIndex.TryGetValue(i, out var prop) ? new JProperty(prop.Name, jt) : null)
+            var obj = new JObject(array
+                .Select((jt, i) => PropertyNamesByIndex.TryGetValue(i, out var propName) ? new JProperty(propName, jt) : null)
                 .Where(jp => jp != null));
 
             return obj.ToObject<T>();

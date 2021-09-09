@@ -58,6 +58,27 @@ namespace AL.Core.Extensions
         }
 
         /// <summary>
+        ///     Calculated the edge-to-center euclidean distance between this rectange, and some center-point.
+        /// </summary>
+        /// <param name="rect">A rectangle.</param>
+        /// <param name="other">A center-point.</param>
+        /// <returns>
+        ///     <see cref="float" /> <br />
+        ///     The lowest euclidean distance among the distances between this rectangle's vertices, and the other center-point.
+        /// </returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static float EdgeToCenterDistance(this IRectangle rect, IPoint other)
+        {
+            if (rect == null)
+                throw new ArgumentNullException(nameof(rect));
+
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+
+            return rect.Contains(other) ? 0f : rect.Vertices.Select(point => point.Distance(other)).Min();
+        }
+
+        /// <summary>
         ///     Calculates the edge-to-edge euclidean distance between two rectangles.
         /// </summary>
         /// <param name="rect">A rectangle.</param>
@@ -70,7 +91,7 @@ namespace AL.Core.Extensions
         /// </returns>
         /// <exception cref="System.ArgumentNullException">rect</exception>
         /// <exception cref="System.ArgumentNullException">other</exception>
-        public static float Distance(this IRectangle rect, IRectangle other)
+        public static float EdgeToEdgeDistance(this IRectangle rect, IRectangle other)
         {
             if (rect == null)
                 throw new ArgumentNullException(nameof(rect));

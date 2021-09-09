@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.Integration
 {
-    [TestClass]
+    //[TestClass]
     public class IntegrationTests
     {
         [TestMethod]
@@ -37,7 +37,7 @@ namespace AL.Tests.Integration
             await client.SmartMoveAsync(location2).ConfigureAwait(false);
 
             //we made it yay
-            Assert.IsTrue(client.Character.Distance(location2) < 10);
+            Assert.IsTrue(client.Character.DistanceWithMapCheck(location2) < 10);
         }
     }
 }

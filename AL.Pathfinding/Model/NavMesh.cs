@@ -115,10 +115,12 @@ namespace AL.Pathfinding.Model
             if (ends == null)
                 throw new ArgumentNullException(nameof(ends));
 
+            var endsArr = ends.ToArray();
+            
             //initialization / offset start and end points
-            start = ApplyOffset(start);
+            var offsetStart = ApplyOffset(start);
 
-            var endsArr = ends.Select(end =>
+            var offsetEnds = endsArr.Select(end =>
                 {
                     if (end is Exit exit)
                         return exit with { X = exit.X + XOffset, Y = exit.Y + YOffset };
@@ -128,11 +130,11 @@ namespace AL.Pathfinding.Model
                 .ToArray();
 
             //if we're standing on an end point... yield nothing
-            if (endsArr.Any(end => end.Equals(start)))
+            if (offsetEnds.Any(end => end.Equals(offsetStart)))
                 yield break;
 
             //get closest to start
-            var startNode = Nodes.OrderBy(node => start.FastDistance(node.Edge)).FirstOrDefault(node => CanMove(start, node.Edge));
+            var startNode = Nodes.OrderBy(node => offsetStart.FastDistance(node.Edge)).FirstOrDefault(node => CanMove(offsetStart, node.Edge));
 
             if (startNode == null)
                 throw new InvalidOperationException($"Unable to locate a start node for the given point. {start}");
@@ -142,7 +144,7 @@ namespace AL.Pathfinding.Model
             //for each possible end
             //add a lookup as vertex : end
             //to figure out which end was discovered
-            foreach (var end in endsArr)
+            foreach (var end in offsetEnds)
             {
                 var orderedNodes = Nodes.OrderBy(node => end.FastDistance(node.Edge));
 
@@ -170,7 +172,7 @@ namespace AL.Pathfinding.Model
 
             //get the path (prepend the real start of the path
             var path = await Navigate(startNode.Index, endPointLookup.Keys.Select(node => node.Index), setup, cleanup)
-                .Prepend(new EdgeConnector<Point> { Start = (Point)start, End = startNode.Edge })
+                .Prepend(new EdgeConnector<Point> { Start = offsetStart, End = startNode.Edge })
                 .ToListAsync()
                 .ConfigureAwait(false);
 

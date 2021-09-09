@@ -10,6 +10,13 @@ namespace AL.Client.Definitions
         Exalted
     }
 
+    public enum DistanceType
+    {
+        CenterToCenter,
+        EdgeToCenter,
+        EdgeToEdge
+    }
+
     public enum MutationType
     {
         None,

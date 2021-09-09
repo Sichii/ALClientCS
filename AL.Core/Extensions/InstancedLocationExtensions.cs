@@ -31,7 +31,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? float.MaxValue : ((ILocation)l1).AngularRelationTo(l2);
+            return !l1.InSameInstanceAs(l2) ? float.MaxValue : ((ILocation)l1).AngularRelationTo(l2);
         }
 
         /// <summary>
@@ -54,13 +54,13 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? Direction.Invalid : ((ILocation)l1).DirectionalRelationTo(l2);
+            return !l1.InSameInstanceAs(l2) ? Direction.Invalid : ((ILocation)l1).DirectionalRelationTo(l2);
         }
 
         /// <summary>
         ///     <inheritdoc cref="PointExtensions.Distance" />
         ///     <br />
-        ///     Additionally checks both locations are on the same map.
+        ///     Additionally checks both locations are on the same map and instance.
         /// </summary>
         /// <param name="l1">A location.</param>
         /// <param name="l2">Another location.</param>
@@ -69,7 +69,7 @@ namespace AL.Core.Extensions
         /// </returns>
         /// <exception cref="System.ArgumentNullException">l1</exception>
         /// <exception cref="System.ArgumentNullException">l2</exception>
-        public static float Distance(this IInstancedLocation l1, IInstancedLocation l2)
+        public static float DistanceWithInstanceCheck(this IInstancedLocation l1, IInstancedLocation l2)
         {
             if (l1 == null)
                 throw new ArgumentNullException(nameof(l1));
@@ -77,22 +77,22 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? float.MaxValue : ((ILocation)l1).Distance(l2);
+            return !l1.InSameInstanceAs(l2) ? float.MaxValue : l1.DistanceWithMapCheck(l2);
         }
 
         /// <summary>
-        ///     <inheritdoc cref="PointExtensions.MidPoint" />
-        ///     <br />
-        ///     Additionally checks both locations are on the same map.
+        ///     Checks if two instanced locations are in the same instance.
         /// </summary>
-        /// <param name="l1">A location.</param>
-        /// <param name="l2">Another location.</param>
+        /// <param name="l1">An instanced location.</param>
+        /// <param name="l2">Another instanced location.</param>
         /// <returns>
-        ///     <inheritdoc cref="PointExtensions.MidPoint" />
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if both instanced locations are in the same instance, or either location's instance is equal to
+        ///     <c>string.Empty</c>, otherwise <c>false</c>.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">l1</exception>
         /// <exception cref="System.ArgumentNullException">l2</exception>
-        public static Point MidPoint(this IInstancedLocation l1, IInstancedLocation l2)
+        public static bool InSameInstanceAs(this IInstancedLocation l1, IInstancedLocation l2)
         {
             if (l1 == null)
                 throw new ArgumentNullException(nameof(l1));
@@ -100,11 +100,14 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? Point.None : ((ILocation)l1).MidPoint(l2);
+            if ((l1.In == string.Empty) || (l2.In == string.Empty))
+                return true;
+
+            return l1.In.EqualsI(l2.In);
         }
 
         /// <summary>
-        ///     <inheritdoc cref="PointExtensions.Translate" />
+        ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
         ///     <br />
         ///     Additionally checks both locations are on the same map.
         /// </summary>
@@ -112,11 +115,11 @@ namespace AL.Core.Extensions
         /// <param name="l2">Another location.</param>
         /// <param name="maxDistance">The max distance to translate by.</param>
         /// <returns>
-        ///     <inheritdoc cref="PointExtensions.Translate" />
+        ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
         /// </returns>
         /// <exception cref="System.ArgumentNullException">l1</exception>
         /// <exception cref="System.ArgumentNullException">l2</exception>
-        public static Point Translate(this IInstancedLocation l1, IInstancedLocation l2, float maxDistance)
+        public static Point OffsetTowards(this IInstancedLocation l1, IInstancedLocation l2, float maxDistance)
         {
             if (l1 == null)
                 throw new ArgumentNullException(nameof(l1));
@@ -124,7 +127,7 @@ namespace AL.Core.Extensions
             if (l2 == null)
                 throw new ArgumentNullException(nameof(l2));
 
-            return !l1.In.EqualsI(l2.In) ? Point.None : ((ILocation)l1).Translate(l2, maxDistance);
+            return !l1.InSameInstanceAs(l2) ? Point.None : LocationExtensions.OffsetTowards(l1, l2, maxDistance);
         }
     }
 }
