@@ -225,17 +225,33 @@ RAW JSON:
 
         private void OnAny(string eventName, SocketIOResponse response)
         {
-            if (!EnumHelper.TryParse(eventName, out ALSocketMessageType messageType))
-                return;
+            try
+            {
+                if (!EnumHelper.TryParse(eventName, out ALSocketMessageType messageType))
+                    return;
 
-            if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
-                return;
+                if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
+                    return;
 
-            var type = subscriptionList.Type;
-            var getValue = CompiledExpressions.GetOrAdd(type, CreateLambda);
-            var dataObject = getValue(response, 0);
+                var type = subscriptionList.Type;
+                var getValue = CompiledExpressions.GetOrAdd(type, CreateLambda);
+                var dataObject = getValue(response, 0);
+                Logger.Trace($"{messageType}, {response}");
 
-            _ = subscriptionList.InvokeAsync(dataObject);
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await subscriptionList.InvokeAsync(dataObject).ConfigureAwait(false);
+                    } catch (Exception e)
+                    {
+                        Logger.Fatal(e);
+                    }
+                });
+            } catch (Exception e)
+            {
+                Logger.Fatal(e);
+            }
         }
 
         private void OnDisconnected(object? sender, string e)

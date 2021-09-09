@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using AL.Core.Extensions;
 
 namespace AL.Client.Helpers
 {
@@ -11,37 +12,48 @@ namespace AL.Client.Helpers
     internal class DynamicDelay : IDisposable
     {
         private readonly SemaphoreSlim Sync;
-        private CancellationTokenSource? Canceller;
+        private CancellationTokenSource Canceller;
         private int? Delay;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="DynamicDelay" /> class.
         /// </summary>
-        internal DynamicDelay() => Sync = new SemaphoreSlim(1, 1);
+        internal DynamicDelay()
+        {
+            Sync = new SemaphoreSlim(1, 1);
+            Canceller = new CancellationTokenSource();
+        }
 
-        /// <summary>
-        ///     Another way of cancelling the delay.
-        /// </summary>
-        internal void Cancel()
+        public void Dispose()
         {
             try
             {
-                Canceller?.Cancel();
+                GC.SuppressFinalize(this);
+
+                Sync.Dispose();
+
+                var canceller = Canceller;
+                Canceller = null!;
+                // ReSharper disable once ConstantConditionalAccessQualifier
+                canceller?.Dispose();
             } catch
             {
                 //ignored
             }
         }
 
-        public void Dispose()
+        /// <summary>
+        ///     Another way of cancelling the delay.
+        /// </summary>
+        internal void RequestCancellation()
         {
-            GC.SuppressFinalize(this);
-
-            Sync.Dispose();
-
-            var canceller = Canceller;
-            Canceller = null;
-            canceller?.Dispose();
+            try
+            {
+                Canceller.CancelWithAsynchronousContinuations();
+            } catch
+            {
+                //ignored
+            }
         }
 
         /// <summary>
@@ -51,17 +63,18 @@ namespace AL.Client.Helpers
         internal async Task SetDelayAsync(int delay)
         {
             var syncTask = Sync.WaitAsync();
-            Cancel();
-            await syncTask.ConfigureAwait(false);
 
             try
             {
+                var canceller = Canceller;
+                canceller.CancelWithAsynchronousContinuations();
+                Canceller = new CancellationTokenSource();
+
+                await syncTask.ConfigureAwait(false);
                 Delay = delay;
+                canceller.Dispose();
             } finally
             {
-                var canceller = Canceller;
-                Canceller = null;
-                canceller?.Dispose();
                 Sync.Release();
             }
         }
@@ -74,7 +87,7 @@ namespace AL.Client.Helpers
         internal async Task WaitAsync(int initialDelay, CancellationToken? token = null)
         {
             Delay = initialDelay;
-            token?.Register(Cancel);
+            token?.Register(RequestCancellation);
 
             while (true)
             {
@@ -84,8 +97,6 @@ namespace AL.Client.Helpers
                 {
                     if (!Delay.HasValue)
                         return;
-
-                    Canceller = new CancellationTokenSource();
 
                     try
                     {

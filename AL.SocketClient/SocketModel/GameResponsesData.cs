@@ -36,7 +36,7 @@ namespace AL.SocketClient.SocketModel
         ///     The distance to the entity you are too far away from.
         /// </summary>
         [JsonProperty("dist")]
-        public int Distance { get; init; }
+        public float Distance { get; init; }
 
         /// <summary>
         ///     The amount of gold sent or received.

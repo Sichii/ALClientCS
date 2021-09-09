@@ -138,8 +138,9 @@ namespace AL.Data.Monsters
             base.BuildLookupTable();
 
             //map accessors are populated based on the string from the server, not the local copy.
-            foreach ((var accessor, var monster) in this.Reverse().DistinctBy(kvp => kvp.Value))
-                monster.Accessor = accessor;
+            foreach ((var accessor, var monster) in this.Reverse())
+                if (string.IsNullOrEmpty(monster.Accessor))
+                    monster.Accessor = accessor;
         }
     }
 }

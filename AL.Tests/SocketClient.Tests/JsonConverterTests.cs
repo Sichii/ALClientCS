@@ -1,4 +1,6 @@
 ﻿using System.Linq;
+using AL.Core.Extensions;
+using AL.Core.Geometry;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -341,6 +343,7 @@ namespace AL.Tests.SocketClient.Tests
             var obj = JsonConvert.DeserializeObject<CorrectionData>(CORRECTION_DATA);
 
             Assert.IsNotNull(obj);
+            Assert.IsTrue(new Point(64.123f, 792.456f).Distance(obj) < 10);
         }
 
         [TestMethod]

@@ -10,6 +10,6 @@ namespace AL.SocketClient.SocketModel
         /// <summary>
         ///     The code to be eval'd and executed. <br />
         /// </summary>
-        public string Code { get; set; } = null!;
+        public string? Code { get; set; } = null!;
     }
 }

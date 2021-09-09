@@ -8,6 +8,7 @@ using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Pathfinding;
+using AL.Pathfinding.Definitions;
 using AL.Visualizer.Extensions;
 using Chaos.Core.Extensions;
 using Common.Logging;
@@ -109,6 +110,17 @@ namespace AL.Tests.Pathfinding.Tests
             Logger.Debug($"Path found from {StartPoint} to {path.Last().End} in {timer.ElapsedMilliseconds}ms");
 
             Assert.IsTrue(path.Any());
+        }
+
+        [TestMethod]
+        public async Task FindNonTownPathTest()
+        {
+            var point1 = new Point(-887, -80);
+            var point2 = new Point(-681, 1553);
+            var endCircle = new Circle(point2, 100);
+            var path = await PathFinder.FindPath("main", point1, new[] { endCircle }).ToArrayAsync();
+
+            Assert.IsTrue(path.All(c => c.Type != ConnectorType.Town));
         }
 
         [TestMethod]

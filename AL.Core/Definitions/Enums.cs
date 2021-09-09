@@ -244,6 +244,7 @@ namespace AL.Core.Definitions
         Charging,
         Charmed,
         Citizen0Aura,
+        Citizen4Aura,
         CoOp,
         Cursed,
         Dampened,
@@ -273,6 +274,7 @@ namespace AL.Core.Definitions
         MonsterHunt,
         MShield,
         MTangle,
+        NewcomersBlessing,
         NotVerified,
         [EnumMember(Value = "penalty_cd")]
         PenaltyCooldown,

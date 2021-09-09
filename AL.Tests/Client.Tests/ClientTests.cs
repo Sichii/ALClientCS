@@ -48,7 +48,7 @@ namespace AL.Tests.Client.Tests
 
             var elapsed = timer.ElapsedMilliseconds;
 
-            Assert.IsTrue(elapsed > 5000);
+            Assert.IsTrue(elapsed > 9000);
         }
 
         [TestMethod]

@@ -16,7 +16,7 @@ namespace AL.Client
         ///     The network timeout in milliseconds used for most socket calls. Defaults to 1000. <br />
         ///     If you live in narnia and are experiencing timeout exceptions, set it higher.
         /// </summary>
-        public static int NetworkTimeoutMS { get; set; } = 1000;
+        public static int NetworkTimeoutMS { get; set; } = 1500;
 
         /// <summary>
         ///     The rate (per second) to update entity positions. Default 50. <br />
@@ -37,7 +37,7 @@ namespace AL.Client
         }
 
         /// <summary>
-        ///     Configures ALClient to use default internal logging. This uses <see cref="NLogFactoryAdapter" /> to
+        ///     Configures ALClient to use default logging. This uses <see cref="NLogFactoryAdapter" /> to
         ///     adapt Common.Logging to use an NLog logger, and configures console and file log targets. <br />
         ///     Optionally, you can use your own Common.Logging adapter, and configure your own logging.
         /// </summary>
@@ -47,7 +47,7 @@ namespace AL.Client
 
             var config = new LoggingConfiguration();
 
-            var fileTarget = new FileTarget("ALClientCSFileTarget")
+            var fileTarget = new FileTarget("ALClientCSInternalFileTarget")
             {
                 Layout = new SimpleLayout(@"[${date:format=HH\:mm\:ss.fff}][${level:uppercase=true}][${logger:shortName=true}] ${message}"),
                 FileName = @"logs\${shortdate}.txt",
@@ -57,15 +57,17 @@ namespace AL.Client
                 MaxArchiveFiles = 30
             };
 
-            var consoleTarget = new ConsoleTarget("ALClientCSConsoleTarget")
+            var consoleTarget = new ConsoleTarget("ALClientCSConsoleInternalTarget")
             {
                 Layout = @"[${level:uppercase=true}][${logger:shortName=true}] ${message}"
             };
 
             config.AddTarget(fileTarget);
             config.AddTarget(consoleTarget);
-            config.AddRule(LogLevel.Info, LogLevel.Fatal, "ALClientCSFileTarget", "AL.*");
-            config.AddRule(LogLevel.Info, LogLevel.Fatal, "ALClientCSConsoleTarget", "AL.*");
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, fileTarget, "AL.*");
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, consoleTarget, "AL.*", true);
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, fileTarget);
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, consoleTarget);
 
             LogManager.Configuration = config;
         }

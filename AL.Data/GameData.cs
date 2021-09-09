@@ -371,6 +371,9 @@ namespace AL.Data
 
             foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
             {
+                if (map.Ignore)
+                    continue;
+
                 foreach (var monster in map.Monsters)
                 {
                     var mData = monster.Data;
@@ -394,13 +397,16 @@ namespace AL.Data
 
             foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
             {
+                if (map.Ignore)
+                    continue;
+
                 foreach (var npc in map.NPCs)
                 {
                     var nData = npc.Data;
 
                     if (nData == null)
                     {
-                        Log.Warn($"NPC {npc.Name} is missing meetadata.");
+                        Log.Warn($"NPC {npc.Name} is missing metadata.");
 
                         continue;
                     }

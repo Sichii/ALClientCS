@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using AL.Core.Extensions;
 using AL.Core.Helpers;
 
 namespace AL.Client.Abstractions
@@ -16,11 +17,11 @@ namespace AL.Client.Abstractions
         ///     of passing a data object.
         /// </summary>
         protected readonly ALClient Client;
-        private readonly object Sync;
+        private readonly SemaphoreSlim Sync;
 
         /// <summary>
         ///     The source of the cancellation token for the currently running loop. <br />
-        ///     A new one is created when <see cref="Stop" /> is called.
+        ///     A new one is created when <see cref="StopAsync" /> is called.
         /// </summary>
         protected CancellationTokenSource Canceller;
 
@@ -40,7 +41,7 @@ namespace AL.Client.Abstractions
         {
             Client = client ?? throw new ArgumentNullException(nameof(client));
             Canceller = new CancellationTokenSource();
-            Sync = new object();
+            Sync = new SemaphoreSlim(1, 1);
         }
 
         /// <summary>
@@ -53,12 +54,17 @@ namespace AL.Client.Abstractions
         /// </summary>
         public async void Start()
         {
-            lock (Sync)
+            await Sync.WaitAsync().ConfigureAwait(false);
+
+            try
             {
                 if (Running)
                     return;
 
                 Running = true;
+            } finally
+            {
+                Sync.Release();
             }
 
             while (!Canceller.IsCancellationRequested)
@@ -83,15 +89,23 @@ namespace AL.Client.Abstractions
         }
 
         /// <summary>
-        ///     Indicates to the loop that it should stop after the current iteration completes.
+        ///     Asynchronously stops the loop, returning after cancellation is requested on any running tasks, but not waiting for
+        ///     cancellation to complete.
         /// </summary>
-        public void Stop()
+        public async Task StopAsync()
         {
-            lock (Sync)
+            await Sync.WaitAsync().ConfigureAwait(false);
+
+            try
             {
                 Running = false;
-                Canceller.Cancel();
+                var canceller = Canceller;
+                canceller.CancelWithAsynchronousContinuations();
                 Canceller = new CancellationTokenSource();
+                canceller.Dispose();
+            } finally
+            {
+                Sync.Release();
             }
         }
     }

@@ -52,6 +52,13 @@ namespace AL.Data.Items
         public int? ExchangeCount { get; init; }
 
         /// <summary>
+        ///     If populated, this item gives some attribute when consumed. <br />
+        ///     These are the attributes it gives.
+        /// </summary>
+        [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<ALAttribute, float>))]
+        public IReadOnlyList<(ALAttribute Attribute, float Amount)>? Gives { get; init; }
+
+        /// <summary>
         ///     The default gold value of this item if selling to an NPC merchant.
         /// </summary>
         [JsonProperty("g")]

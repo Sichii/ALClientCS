@@ -448,7 +448,7 @@ namespace AL.Client
                 skillName = data.SharedCooldown;
 
             return !await Cooldowns.TryGetValueAsync(skillName, out var cooldownTask).ConfigureAwait(false)
-                   || !(await cooldownTask.ConfigureAwait(false)).CanUse();
+                   || (await cooldownTask.ConfigureAwait(false)).CanUse();
         }
 
         /// <summary>
@@ -530,9 +530,10 @@ namespace AL.Client
                         data => Task.FromResult(source.TrySetResult(data.Message)))
                     .ConfigureAwait(false);
 
-                await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, async _ =>
+                await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, _ =>
                     {
-                        await Socket.EmitAsync(ALSocketEmitType.Auth, new
+                        //dont await, seems to cause issues
+                        Socket.EmitAsync(ALSocketEmitType.Auth, new
                             {
                                 auth = API.Auth.AuthKey,
                                 character = Identifier,
@@ -546,7 +547,7 @@ namespace AL.Client
                             })
                             .ConfigureAwait(false);
 
-                        return false;
+                        return TaskCache.FALSE;
                     })
                     .ConfigureAwait(false);
 
@@ -752,9 +753,9 @@ namespace AL.Client
                         GameResponseType.AttackFailed when data.TargetID.EqualsI(targetId) => source.TrySetResult(
                             $"Attack on {targetId} failed. (attack failed)"),
                         GameResponseType.TooFar when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                            $"Attack on {targetId} failed. (too far: {data.Distance})"),
+                            $"Attack on {targetId} failed. (too far: {data.Distance:N2})"),
                         GameResponseType.Cooldown when data.TargetID.EqualsI(targetId) => source.TrySetResult(
-                            $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS}"),
+                            $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS:N2}"),
                         GameResponseType.NoMP when data.Place == "attack" => source.TrySetResult(
                             $"Attack on {targetId} failed. (not enough mp)"),
                         _ => false
@@ -823,7 +824,7 @@ namespace AL.Client
                         GameResponseType.BuyCantNPC   => source.TrySetResult($"Failed to buy {itemName}. (wrong npc)"),
                         GameResponseType.BuyCantSpace => source.TrySetResult($"Failed to buy {itemName}. (not enough space)"),
                         GameResponseType.BuyCost      => source.TrySetResult($"Failed to buy {itemName}. (not enough gold)"),
-                        GameResponseType.BuyGetCloser => source.TrySetResult($"Failed to buy {itemName}. (get closer: {data.Distance})"),
+                        GameResponseType.BuyGetCloser => source.TrySetResult($"Failed to buy {itemName}. (get closer: {data.Distance:N2})"),
                         _                             => false
                     };
 
@@ -1003,9 +1004,9 @@ namespace AL.Client
         /// <summary>
         ///     Attempts to compound 3 items of the same level/name.
         /// </summary>
-        /// <param name="itemIndex1">The inventory index of the first item.</param>
-        /// <param name="itemIndex2">The inventory index of the second item.</param>
-        /// <param name="itemIndex3">The inventory index of the third item.</param>
+        /// <param name="inventorySlot1">The inventory index of the first item.</param>
+        /// <param name="inventorySlot2">The inventory index of the second item.</param>
+        /// <param name="inventorySlot3">The inventory index of the third item.</param>
         /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
         /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
         /// <returns>
@@ -1014,13 +1015,13 @@ namespace AL.Client
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to compound. ({reason})</exception>
         public async Task<bool> CompoundAsync(
-            int itemIndex1,
-            int itemIndex2,
-            int itemIndex3,
+            int inventorySlot1,
+            int inventorySlot2,
+            int inventorySlot3,
             int scrollIndex,
             int? offeringIndex = null)
         {
-            var item = Character.Inventory[itemIndex1];
+            var item = Character.Inventory[inventorySlot1];
             var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
@@ -1052,7 +1053,7 @@ namespace AL.Client
 
             await Socket.EmitAsync(ALSocketEmitType.Compound, new
                 {
-                    items = new[] { itemIndex1, itemIndex2, itemIndex3 },
+                    items = new[] { inventorySlot1, inventorySlot2, inventorySlot3 },
                     scroll_num = scrollIndex,
                     clevel = item?.Level ?? 0,
                     offering_num = offeringIndex
@@ -1065,9 +1066,9 @@ namespace AL.Client
         /// <summary>
         ///     Attempts to have the server calculate the chance for a compound to succeed.
         /// </summary>
-        /// <param name="itemIndex1">The inventory index of the first item.</param>
-        /// <param name="itemIndex2">The inventory index of the second item.</param>
-        /// <param name="itemIndex3">The inventory index of the third item.</param>
+        /// <param name="inventorySlot1">The inventory index of the first item.</param>
+        /// <param name="inventorySlot2">The inventory index of the second item.</param>
+        /// <param name="inventorySlot3">The inventory index of the third item.</param>
         /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
         /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
         /// <returns>
@@ -1076,13 +1077,13 @@ namespace AL.Client
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to compound. ({reason})</exception>
         public async Task<ResponseItem> CompoundCalculateAsync(
-            int itemIndex1,
-            int itemIndex2,
-            int itemIndex3,
+            int inventorySlot1,
+            int inventorySlot2,
+            int inventorySlot3,
             int scrollIndex,
             int? offeringIndex = null)
         {
-            var item = Character.Inventory[itemIndex1];
+            var item = Character.Inventory[inventorySlot1];
             var source = new TaskCompletionSource<Expectation<ResponseItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
@@ -1118,7 +1119,7 @@ namespace AL.Client
 
             await Socket.EmitAsync(ALSocketEmitType.Compound, new
                 {
-                    items = new[] { itemIndex1, itemIndex2, itemIndex3 },
+                    items = new[] { inventorySlot1, inventorySlot2, inventorySlot3 },
                     scroll_num = scrollIndex,
                     clevel = item?.Level ?? 0,
                     offering_num = offeringIndex,
@@ -1353,18 +1354,18 @@ namespace AL.Client
         /// <summary>
         ///     Asynchronously attempts to exchange an item.
         /// </summary>
-        /// <param name="itemIndex">The index of the item to exchange.</param>
+        /// <param name="inventorySlot">The index of the item to exchange.</param>
         /// <returns>
         ///     <see cref="IndexedInventoryItem" /> <br />
         ///     The item received from the exchange.
         /// </returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<IndexedInventoryItem> ExchangeAsync(int itemIndex)
+        public async Task<IndexedInventoryItem> ExchangeAsync(int inventorySlot)
         {
-            if (itemIndex >= Character.InventorySize)
+            if (inventorySlot >= Character.InventorySize)
                 throw new InvalidOperationException("Failed to exchange. (index out of range)");
 
-            var item = Character.Inventory[itemIndex];
+            var item = Character.Inventory[inventorySlot];
 
             if (item == null)
                 throw new InvalidOperationException("Failed to exchange. (no item at index)");
@@ -1422,7 +1423,7 @@ namespace AL.Client
 
             await Socket.EmitAsync(ALSocketEmitType.Exchange, new
                 {
-                    item_num = itemIndex,
+                    item_num = inventorySlot,
                     q = itemData.ExchangeCount
                 })
                 .ConfigureAwait(false);
@@ -1557,8 +1558,9 @@ namespace AL.Client
                                         || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
                                         || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
                             correctionAttempted = true;
-                            await Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
-                            Logger.Debug("Move: Correction attempted...");
+                            //do not await a socket event within a callback
+                            Logger.Debug("Move: Correcting position...");
+                            _ = Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
 
                             break;
                     }
@@ -2228,7 +2230,7 @@ namespace AL.Client
         /// <summary>
         ///     Attempts to upgrade an item.
         /// </summary>
-        /// <param name="itemIndex">The inventory index of the item.</param>
+        /// <param name="inventorySlot">The inventory index of the item.</param>
         /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
         /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
         /// <returns>
@@ -2236,9 +2238,9 @@ namespace AL.Client
         ///     <c>true</c> if the upgrade succeeded, otherwise <c>false</c>.
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to upgrade. ({reason})</exception>
-        public async Task<bool> UpgradeAsync(int itemIndex, int scrollIndex, int? offeringIndex = null)
+        public async Task<bool> UpgradeAsync(int inventorySlot, int scrollIndex, int? offeringIndex = null)
         {
-            var item = Character.Inventory[itemIndex];
+            var item = Character.Inventory[inventorySlot];
             var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
@@ -2266,7 +2268,7 @@ namespace AL.Client
 
             await Socket.EmitAsync(ALSocketEmitType.Upgrade, new
                 {
-                    item_num = itemIndex, scroll_num = scrollIndex, offering_num = offeringIndex,
+                    item_num = inventorySlot, scroll_num = scrollIndex, offering_num = offeringIndex,
                     clevel = item?.Level ?? 0
                 })
                 .ConfigureAwait(false);
@@ -2277,7 +2279,7 @@ namespace AL.Client
         /// <summary>
         ///     Attempts to have the server calculate the chance for an upgrade to succeed.
         /// </summary>
-        /// <param name="itemIndex">The inventory index of the item.</param>
+        /// <param name="inventorySlot">The inventory index of the item.</param>
         /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
         /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
         /// <returns>
@@ -2285,9 +2287,9 @@ namespace AL.Client
         ///     An object containing details about the item, and it's chance to successully be upgraded.
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to upgrade. ({reason})</exception>
-        public async Task<ResponseItem> UpgradeChanceAsync(int itemIndex, int scrollIndex, int? offeringIndex = null)
+        public async Task<ResponseItem> UpgradeChanceAsync(int inventorySlot, int scrollIndex, int? offeringIndex = null)
         {
-            var item = Character.Inventory[itemIndex];
+            var item = Character.Inventory[inventorySlot];
             var source = new TaskCompletionSource<Expectation<ResponseItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
@@ -2319,7 +2321,7 @@ namespace AL.Client
 
             await Socket.EmitAsync(ALSocketEmitType.Upgrade, new
                 {
-                    item_num = itemIndex,
+                    item_num = inventorySlot,
                     scroll_num = scrollIndex,
                     offering_num = offeringIndex,
                     clevel = item?.Level ?? 0
@@ -2327,6 +2329,109 @@ namespace AL.Client
                 .ConfigureAwait(false);
 
             return await source.Task.WithTimeout(60000).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        ///     Asynchronously uses an HP or MP potion from the inventory. <br />
+        ///     To check the cooldown of potions/regen, check the cooldown of the skill "use_hp" or "use_mp".
+        /// </summary>
+        /// <param name="inventorySlot">The inventory index of the potion to be used.</param>
+        /// <exception cref="InvalidOperationException">Failed to use pot {slotOrName}. ({reason})</exception>
+        public async Task UsePotAsync(int inventorySlot)
+        {
+            var item = Character.Inventory[inventorySlot];
+
+            if (item == null)
+                throw new InvalidOperationException($"Failed to use pot {inventorySlot}. (no item)");
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
+                {
+                    if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
+                        source.TrySetResult($"Failed to use pot {item.Name}. (not ready)");
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.Equip, new { num = inventorySlot }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
+        ///     Asynchronously regens a small amount of hp. Has a shared CD with potions with a 2x multiplier.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Failed to use regen_hp. ({readon})</exception>
+        public async Task UseRegenHPAsync()
+        {
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
+                {
+                    if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
+                        source.TrySetResult("Failed to use regen_hp. (not ready)");
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.Use, new { item = "hp" }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
+        ///     Asynchronously regens a small amount of mp. Has a shared CD with potions with a 2x multiplier.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Failed to use regen_mp. ({readon})</exception>
+        public async Task UseRegenMPAsync()
+        {
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var disappearingTextCallback = Socket.On<DisappearingTextData>(ALSocketMessageType.DisappearingText, data =>
+                {
+                    if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
+                        source.TrySetResult("Failed to use regen_mp. (not ready)");
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await using var evalCallback = Socket.On<EvalData>(ALSocketMessageType.Eval, data =>
+                {
+                    if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.Use, new { item = "mp" }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
         }
 
         /// <summary>
@@ -2529,7 +2634,7 @@ namespace AL.Client
 
         protected Task<bool> OnCorrectionAsync(CorrectionData data)
         {
-            Character.CorrectAndCompensate(data.Data, PingManager.Offset);
+            Character.CorrectAndCompensate(data, PingManager.Offset);
 
             return TaskCache.FALSE;
         }
@@ -2568,15 +2673,32 @@ namespace AL.Client
         {
             Match match;
 
+            if (string.IsNullOrEmpty(data.Code))
+                return false;
+
             if ((match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success)
             {
                 var skillName = match.Groups[1].Value;
                 var cooldownStr = match.Groups[2].Value;
 
+                if (string.IsNullOrEmpty(skillName))
+                    throw new InvalidOperationException($"Failed to parse skill cooldown. ({data.Code})");
+
                 if (float.TryParse(cooldownStr, out var cooldownMS))
                     await SetCooldownAsync(skillName, cooldownMS).ConfigureAwait(false);
                 else
                     await SetCooldownAsync(skillName).ConfigureAwait(false);
+            } else if ((match = RegexCache.POT_TIMEOUT.Match(data.Code)).Success)
+            {
+                const string? USE_HP = "use_hp";
+                const string? USE_MP = "use_mp";
+                var cooldownStr = match.Groups[1].Value;
+
+                if (!float.TryParse(cooldownStr, out var cooldownMS))
+                    throw new InvalidOperationException($"Failed to parse potion cooldown. ({data.Code})");
+
+                await SetCooldownAsync(USE_HP, cooldownMS).ConfigureAwait(false);
+                await SetCooldownAsync(USE_MP, cooldownMS).ConfigureAwait(false);
             }
 
             return false;
@@ -2909,6 +3031,11 @@ namespace AL.Client
 
                     if (dic.TryGetValue(monster.Id, out var monsterX))
                         monsterX.Update(monster);
+                    else
+                    {
+                        monster.SetBoundingBase(monster.GetData().BoundingBase);
+                        dic.Add(monster.Id, monster);
+                    }
                 }
             });
         }
@@ -2951,6 +3078,8 @@ namespace AL.Client
                         Character.UpdateLocation(player);
                     else if (dic.TryGetValue(player.Id, out var existing))
                         existing.UpdatePosition(player);
+                    else
+                        dic.Add(player.Id, player);
                 }
             });
         }
