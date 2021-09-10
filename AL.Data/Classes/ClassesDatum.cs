@@ -9,31 +9,31 @@ namespace AL.Data.Classes
     public class ClassesDatum : DatumBase<GClass>
     {
         /// <summary>
-        ///     Default info for the <see cref="ALClass">mage</see> class.
+        ///     Default info for the <see cref="ALClass.Mage">mage</see> class.
         /// </summary>
         public GClass Mage { get; set; } = null!;
         /// <summary>
-        ///     Default info for the <see cref="ALClass">merchant</see> class.
+        ///     Default info for the <see cref="ALClass.Merchant">merchant</see> class.
         /// </summary>
         public GClass Merchant { get; set; } = null!;
         /// <summary>
-        ///     Default info for the <see cref="ALClass">paladin</see> class.
+        ///     Default info for the <see cref="ALClass.Paladin">paladin</see> class.
         /// </summary>
         public GClass Paladin { get; set; } = null!;
         /// <summary>
-        ///     Default info for the <see cref="ALClass">priest</see> class.
+        ///     Default info for the <see cref="ALClass.Priest">priest</see> class.
         /// </summary>
         public GClass Priest { get; set; } = null!;
         /// <summary>
-        ///     Default info for the <see cref="ALClass">ranger</see> class.
+        ///     Default info for the <see cref="ALClass.Ranger">ranger</see> class.
         /// </summary>
         public GClass Ranger { get; set; } = null!;
         /// <summary>
-        ///     Default info for the <see cref="ALClass">rogue</see> class.
+        ///     Default info for the <see cref="ALClass.Rogue">rogue</see> class.
         /// </summary>
         public GClass Rogue { get; set; } = null!;
         /// <summary>
-        ///     Default info for the <see cref="ALClass">warrior</see> class.
+        ///     Default info for the <see cref="ALClass.Warrior">warrior</see> class.
         /// </summary>
         public GClass Warrior { get; set; } = null!;
     }

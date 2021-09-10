@@ -35,7 +35,11 @@ namespace AL.SocketClient
         ///     Whether or not this socket is currently connected.
         /// </summary>
         public bool Connected { get; private set; }
-        public event EventHandler<string>? Disconnected;
+
+        /// <summary>
+        ///     An event fired when the socket disconnects unintentionally.
+        /// </summary>
+        public event EventHandler<string>? OnDisconnected;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -63,7 +67,7 @@ namespace AL.SocketClient
             Logger.Info($"Connecting to {host}");
             Socket = new SocketIO(host);
             Socket.JsonSerializer = new NewtonsoftJsonSerializer(Socket.Options.EIO);
-            Socket.OnDisconnected += OnDisconnected;
+            Socket.OnDisconnected += DisconnectedEvent;
             Socket.OnAny(OnAny);
 
             await Socket.ConnectAsync().ConfigureAwait(false);
@@ -87,25 +91,51 @@ namespace AL.SocketClient
             return lambda.Compile();
         }
 
-        public async Task DisconnectAsync()
+        public async Task DisconnectAsync(bool intentional = true)
         {
-            if (!Connected)
-                return;
-
-            Logger.Warn("Disconnecting");
-            Connected = false;
-
-            foreach ((_, var subList) in Subscriptions)
-                foreach (var sub in await subList.ToArrayAsync().ConfigureAwait(false))
-                    await sub.DisposeAsync().ConfigureAwait(false);
-
-            Subscriptions.Clear();
-            await Socket.DisconnectAsync().ConfigureAwait(false);
-
             try
             {
-                Socket.Dispose();
-                Disposed = true;
+                if (!Connected)
+                    return;
+
+                if (intentional)
+                    Logger.Info("(Intentionally) Disconnecting...");
+
+                Connected = false;
+
+                foreach ((_, var subList) in Subscriptions)
+                    foreach (var sub in await subList.ToArrayAsync().ConfigureAwait(false))
+                        await sub.DisposeAsync().ConfigureAwait(false);
+
+                Subscriptions.Clear();
+                await Socket.DisconnectAsync().ConfigureAwait(false);
+
+                try
+                {
+                    Socket.Dispose();
+                    Disposed = true;
+                } catch
+                {
+                    //ignored
+                }
+            } catch
+            {
+                //ignored
+            }
+        }
+
+        private void DisconnectedEvent(object? sender, string e)
+        {
+            try
+            {
+                if (Connected)
+                {
+                    Logger.Error("(Unintentionally) Disconnecting...");
+                    OnDisconnected -= DisconnectedEvent;
+                    OnDisconnected?.Invoke(sender, e);
+                }
+
+                DisconnectAsync(false).GetAwaiter().GetResult();
             } catch
             {
                 //ignored
@@ -164,8 +194,6 @@ namespace AL.SocketClient
 RAW JSON:
 {rawJson}", ex);
 
-                Logger.Fatal(wrapper);
-
                 throw wrapper;
             }
 
@@ -178,8 +206,6 @@ RAW JSON:
                 var wrapper = new Exception($@"Uncaught exception in handler. See inner exception.
 RAW JSON:
 {rawJson}", ex);
-
-                Logger.Fatal(wrapper);
 
                 throw wrapper;
             }
@@ -245,27 +271,13 @@ RAW JSON:
                         await subscriptionList.InvokeAsync(dataObject).ConfigureAwait(false);
                     } catch (Exception e)
                     {
-                        Logger.Fatal(e);
+                        Logger.Error(e);
                     }
                 });
             } catch (Exception e)
             {
-                Logger.Fatal(e);
+                Logger.Error(e);
             }
-        }
-
-        private void OnDisconnected(object? sender, string e)
-        {
-            try
-            {
-                if (Connected)
-                    Disconnected?.Invoke(sender, e);
-            } catch
-            {
-                //ignored
-            }
-
-            DisconnectAsync().GetAwaiter().GetResult();
         }
 
         public async ValueTask Unsub<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)

@@ -90,7 +90,13 @@ namespace AL.Client
         /// <summary>
         ///     The connection to the Adventure.Land socket server.
         /// </summary>
-        public IALSocketClient Socket { get; init; }
+        public IALSocketClient Socket { get; private set; }
+
+        /// <summary>
+        ///     An event fired when a party invite is received.
+        /// </summary>
+        // ReSharper disable once EventNeverSubscribedTo.Global
+        public event EventHandler<InviteData>? OnPartyInvite;
 
         /// <summary>
         ///     The character's progress towards ongoing achievements.
@@ -531,53 +537,92 @@ namespace AL.Client
 
             try
             {
-                AttachListeners();
-
-                var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                await using var gameErrorCallback = Socket.On<GameErrorData>(ALSocketMessageType.GameError,
-                        data => Task.FromResult(source.TrySetResult(data.Message)))
-                    .ConfigureAwait(false);
-
-                await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, _ =>
-                    {
-                        //dont await, seems to cause issues
-                        Socket.EmitAsync(ALSocketEmitType.Auth, new
-                            {
-                                auth = API.Auth.AuthKey,
-                                character = Identifier,
-                                height = 1080,
-                                no_graphics = "true",
-                                no_html = "1",
-                                passphrase = string.Empty,
-                                scale = 2,
-                                user = API.Auth.UserID.ToString(),
-                                width = 1920
-                            })
-                            .ConfigureAwait(false);
-
-                        return TaskCache.FALSE;
-                    })
-                    .ConfigureAwait(false);
-
-                await using var startCallback = Socket.On<StartData>(ALSocketMessageType.Start, data =>
-                    {
-                        source.TrySetResult(data);
-
-                        return TaskCache.FALSE;
-                    })
-                    .ConfigureAwait(false);
-
-                await Socket.ConnectAsync(Server).ConfigureAwait(false);
-
-                var result = await source.Task.WithTimeout(10000).ConfigureAwait(false);
-                result.ThrowIfUnsuccessful();
-
-                PositionManager.Start();
-                PingManager.Start();
+                await InternalConnectAsync().ConfigureAwait(false);
             } finally
             {
                 Sync.Release();
+            }
+        }
+
+        protected async Task InternalConnectAsync()
+        {
+            AttachListeners();
+
+            var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var gameErrorCallback = Socket.On<GameErrorData>(ALSocketMessageType.GameError,
+                    data => Task.FromResult(source.TrySetResult(data.Message)))
+                .ConfigureAwait(false);
+
+            await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, _ =>
+                {
+                    //dont await, seems to cause issues
+                    Socket.EmitAsync(ALSocketEmitType.Auth, new
+                        {
+                            auth = API.Auth.AuthKey,
+                            character = Identifier,
+                            height = 1080,
+                            no_graphics = "true",
+                            no_html = "1",
+                            passphrase = string.Empty,
+                            scale = 2,
+                            user = API.Auth.UserID.ToString(),
+                            width = 1920
+                        })
+                        .ConfigureAwait(false);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await using var startCallback = Socket.On<StartData>(ALSocketMessageType.Start, data =>
+                {
+                    source.TrySetResult(data);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.ConnectAsync(Server).ConfigureAwait(false);
+
+            var result = await source.Task.WithTimeout(10000).ConfigureAwait(false);
+            result.ThrowIfUnsuccessful();
+
+            Socket.OnDisconnected += OnDisconnected;
+            PositionManager.Start();
+            PingManager.Start();
+        }
+
+        protected async Task ReconnectAsync()
+        {
+            try
+            {
+                await Socket.DisposeAsync().ConfigureAwait(false);
+            } catch
+            {
+                //ignored
+            }
+
+            var logger = new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>());
+            Socket = new ALSocketClient(logger);
+            var reconnectCount = 0;
+
+            while (reconnectCount < 10)
+            {
+                try
+                {
+                    Logger.Info($"Attemping to reconnect. (Retry: {++reconnectCount}");
+                    await InternalConnectAsync().ConfigureAwait(false);
+
+                    break;
+                } catch
+                {
+                    Logger.Error("Reconnect failed, waiting 10s to retry...");
+                    await Task.Delay(1000 * 10).ConfigureAwait(false);
+                }
+
+                Logger.Fatal("Reconnect attempts failed.");
+                Environment.Exit(-1);
             }
         }
 
@@ -633,10 +678,6 @@ namespace AL.Client
         ///     Asynchronously accepts a party invite.
         /// </summary>
         /// <param name="from">The name of the character who invited you.</param>
-        /// <returns>
-        ///     <see cref="PartyUpdateData" /> <br />
-        ///     Information about the party state after accepting the invite.
-        /// </returns>
         /// <exception cref="ArgumentNullException">from</exception>
         /// <exception cref="InvalidOperationException">Failed to accept party invite. ({reason})</exception>
         public async Task AcceptPartyInviteAsync(string from)
@@ -682,10 +723,6 @@ namespace AL.Client
         ///     Asynchronously accepts a party request.
         /// </summary>
         /// <param name="from">The name of the character who requested the invite.</param>
-        /// <returns>
-        ///     <see cref="PartyUpdateData" /> <br />
-        ///     Information about the party state after accepting the request.
-        /// </returns>
         /// <exception cref="ArgumentNullException">from</exception>
         /// <exception cref="InvalidOperationException">Failed to accept party request. ({reason})</exception>
         public async Task AcceptPartyRequestAsync(string from)
@@ -1637,6 +1674,40 @@ namespace AL.Client
         }
 
         /// <summary>
+        ///     Asynchronously opens a chest.
+        /// </summary>
+        /// <param name="chestId">The id of the chest.</param>
+        /// <returns>
+        ///     <see cref="ChestOpenedData" /> <br />
+        ///     Information about what was in the chest.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">chestId</exception>
+        /// <exception cref="InvalidOperationException">Failed to open chest {chestId}. ({reason})</exception>
+        public async Task<ChestOpenedData> OpenChestAsync(string chestId)
+        {
+            if (string.IsNullOrEmpty(chestId))
+                throw new ArgumentNullException(nameof(chestId));
+
+            var source = new TaskCompletionSource<Expectation<ChestOpenedData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var chestOpenedCallback = Socket.On<ChestOpenedData>(ALSocketMessageType.ChestOpened, data =>
+                {
+                    if (data.Id.EqualsI(chestId))
+                        if (data.Gone)
+                            source.TrySetResult($"Failed to open chest {chestId}. (no chest)");
+                        else
+                            source.TrySetResult(data);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.OpenChest, new { id = chestId }).ConfigureAwait(false);
+
+            return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+        }
+
+        /// <summary>
         ///     Asynchronously pings the server.
         /// </summary>
         /// <param name="pingCount">The current ping count.</param>
@@ -1918,6 +1989,33 @@ namespace AL.Client
 
             await Socket.EmitAsync(ALSocketEmitType.Send, new { name = toPlayerId, num = inventorySlot, q = quantity })
                 .ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
+        ///     Asynchronously sends a party invite.
+        /// </summary>
+        /// <param name="name">The name of the person to invite.</param>
+        /// <exception cref="ArgumentNullException">name</exception>
+        public async Task SendPartyInviteAsync(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentNullException(nameof(name));
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+                {
+                    if (data.EqualsI($"invited {name} to party"))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.Party, new { @event = "invite", name }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -2596,6 +2694,7 @@ namespace AL.Client
             Socket.On<EvalData>(ALSocketMessageType.Eval, OnEvalAsync);
             Socket.On<GameErrorData>(ALSocketMessageType.GameError, OnGameErrorAsync);
             Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, OnPartyUpdateAsync);
+            Socket.On<InviteData>(ALSocketMessageType.Invite, OnPartyInvited);
             Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedActionAsync);
             Socket.On<QueuedActionResultData>(ALSocketMessageType.QueuedActionResult, OnQueuedActionResult);
             Socket.On<WelcomeData>(ALSocketMessageType.Welcome, OnWelcomeAsync);
@@ -2605,6 +2704,13 @@ namespace AL.Client
             Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
             Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
             Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
+        }
+
+        protected Task<bool> OnPartyInvited(InviteData data)
+        {
+            OnPartyInvite?.Invoke(this, data);
+
+            return TaskCache.FALSE;
         }
 
         protected async Task<bool> OnAchievementProgressAsync(AchievementProgressData data)
@@ -3128,6 +3234,14 @@ namespace AL.Client
 
             //wait for it to be populated
             await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+        }
+
+        protected async void OnDisconnected(object? sender, string message)
+        {
+            await PingManager.StopAsync().ConfigureAwait(false);
+            await PositionManager.StopAsync().ConfigureAwait(false);
+
+            await ReconnectAsync().ConfigureAwait(false);
         }
         #endregion
     }

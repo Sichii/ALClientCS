@@ -116,7 +116,7 @@ namespace AL.Pathfinding.Model
                 throw new ArgumentNullException(nameof(ends));
 
             var endsArr = ends.ToArray();
-            
+
             //initialization / offset start and end points
             var offsetStart = ApplyOffset(start);
 
@@ -134,7 +134,8 @@ namespace AL.Pathfinding.Model
                 yield break;
 
             //get closest to start
-            var startNode = Nodes.OrderBy(node => offsetStart.FastDistance(node.Edge)).FirstOrDefault(node => CanMove(offsetStart, node.Edge));
+            var startNode = Nodes.OrderBy(node => offsetStart.FastDistance(node.Edge))
+                .FirstOrDefault(node => CanMove(offsetStart, node.Edge));
 
             if (startNode == null)
                 throw new InvalidOperationException($"Unable to locate a start node for the given point. {start}");

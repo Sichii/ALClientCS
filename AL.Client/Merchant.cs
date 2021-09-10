@@ -39,6 +39,31 @@ namespace AL.Client
             : base(characterName, apiClient, socketClient) { }
 
         /// <summary>
+        ///     Asynchronously closes the merchant stand.
+        /// </summary>
+        public async Task CloseStandAsync()
+        {
+            if (Character.Stand == Stand.None)
+                return;
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    if (data.Stand == Stand.None)
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.Merchant, new { close = 1 }).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
         ///     Asynchronously uses Fishing. <br />
         ///     <b>USEABLE BUT INCOMPLETE, I don't own a fishing rod lmaokai</b>
         /// </summary>

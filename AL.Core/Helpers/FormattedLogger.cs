@@ -26,8 +26,7 @@ namespace AL.Core.Helpers
 
         public void Debug(object message) => Logger.Debug($"[{Prefix}] {message}");
 
-        public void Error(object message) =>
-            Logger.Error($"[{Prefix}]{Environment.NewLine}{message}{Environment.NewLine}");
+        public void Error(object message) => Logger.Error($"[{Prefix}] {message}");
 
         public void Fatal(object message) =>
             Logger.Fatal($"[{Prefix}]{Environment.NewLine}{message}{Environment.NewLine}");

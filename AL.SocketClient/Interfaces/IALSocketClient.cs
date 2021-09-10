@@ -14,7 +14,7 @@ namespace AL.SocketClient.Interfaces
         ///     Occurs when the underlying socket disconnects.
         /// </summary>
         // ReSharper disable once EventNeverSubscribedTo.Global
-        event EventHandler<string> Disconnected;
+        event EventHandler<string> OnDisconnected;
 
         /// <summary>
         ///     Whether or not the socket is currently open.
@@ -34,7 +34,7 @@ namespace AL.SocketClient.Interfaces
         ///     Asynchronously disconnects this client from the server. <br />
         ///     Also disposes of the internal socket.
         /// </summary>
-        Task DisconnectAsync();
+        Task DisconnectAsync(bool intentional = true);
 
         /// <summary>
         ///     Serializes the data and Emits a message to the server via socket.io protocol.
