@@ -239,7 +239,7 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await Socket.EmitAsync(ALSocketEmitType.Skill, new { name = SKILL_NAME, id = targetId }).ConfigureAwait(false);
+            await Socket.EmitAsync(ALSocketEmitType.Heal, new { id = targetId }).ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
         }

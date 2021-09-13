@@ -272,12 +272,12 @@ namespace AL.Data
                 //connect npc data
                 foreach (var npc in map.NPCs)
                 {
-                    var nData = NPCs[npc.Name];
-                    npc.Data = NPCs[npc.Name]!;
+                    var nData = NPCs[npc.Id];
+                    npc.Data = NPCs[npc.Id]!;
 
                     if (nData == null)
                     {
-                        Log.Warn($"NPC {npc.Name} is missing metadata.");
+                        Log.Warn($"NPC {npc.Id} is missing metadata.");
 
                         continue;
                     }
@@ -323,11 +323,9 @@ namespace AL.Data
                     if (monster._boundary != null)
                     {
                         var boundary = monster._boundary;
-                        var v1 = new Point(boundary.Left, boundary.Top);
-                        var v2 = new Point(boundary.Right, boundary.Bottom);
                         var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
 
-                        boundaries.Add(new InscribedBoundary(v1, v2, boundaryMap));
+                        boundaries.Add(new InscribedBoundary(boundary, boundaryMap));
                     }
 
                     if (monster._boundaries != null)
@@ -336,11 +334,9 @@ namespace AL.Data
 
                         foreach (var boundary in mBoundaries)
                         {
-                            var v1 = new Point(boundary.Left, boundary.Top);
-                            var v2 = new Point(boundary.Right, boundary.Bottom);
                             var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
 
-                            boundaries.Add(new InscribedBoundary(v1, v2, boundaryMap));
+                            boundaries.Add(new InscribedBoundary(boundary, boundaryMap));
                         }
                     }
                 }
@@ -406,7 +402,7 @@ namespace AL.Data
 
                     if (nData == null)
                     {
-                        Log.Warn($"NPC {npc.Name} is missing metadata.");
+                        Log.Warn($"NPC {npc.Id} is missing metadata.");
 
                         continue;
                     }

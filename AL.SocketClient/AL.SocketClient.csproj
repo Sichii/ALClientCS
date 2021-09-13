@@ -11,6 +11,8 @@
         <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -27,7 +29,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj"/>
+        <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -35,7 +37,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="SocketIOClient.Newtonsoft.Json" Version="2.3.1"/>
+        <PackageReference Include="SocketIOClient.Newtonsoft.Json" Version="2.3.1" />
     </ItemGroup>
 
 </Project>

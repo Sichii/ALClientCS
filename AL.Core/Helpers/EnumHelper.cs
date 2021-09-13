@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Chaos.Core.Extensions;
@@ -10,6 +11,9 @@ namespace AL.Core.Helpers
     /// </summary>
     public static class EnumHelper
     {
+        private static readonly Dictionary<Type, Dictionary<string, Enum>> EnumValues = new();
+        private static readonly object Sync = new object();
+
         /// <summary>
         ///     A helper method for converting an enum to a string, taking into consideration <see cref="EnumMemberAttribute" />s
         ///     if they exist.
@@ -23,7 +27,7 @@ namespace AL.Core.Helpers
         public static string ToString<T>(T value) where T: Enum
         {
             var result = value.ToString();
-
+            
             var members = typeof(T).GetFields();
 
             foreach (var member in members)
@@ -48,32 +52,54 @@ namespace AL.Core.Helpers
         /// <param name="str">A string to parse.</param>
         /// <param name="result"><see cref="Enum" /> value of type <typeparamref name="T" /></param>
         /// <returns><c>true</c> if parsing was successful, <c>false</c> otherwise.</returns>
-        public static bool TryParse<T>(string? str, out T result) where T: struct
+        public static bool TryParse<T>(string? str, out T? result) where T: Enum
         {
             result = default;
-
+            
             if (string.IsNullOrEmpty(str))
                 return false;
-
-            if (Enum.TryParse(str, true, out result))
-                return true;
-
-            var members = typeof(T).GetFields();
-
-            foreach (var member in members)
+            
+            var type = typeof(T);
+            
+            // ReSharper disable once InconsistentlySynchronizedField
+            if (!EnumValues.TryGetValue(type, out var valueLookup))
             {
-                var enumMember = member.GetCustomAttribute<EnumMemberAttribute>();
+                lock (Sync)
+                {
+                    if (!EnumValues.TryGetValue(type, out valueLookup))
+                    {
+                        valueLookup = new Dictionary<string, Enum>(StringComparer.OrdinalIgnoreCase);
+                        var members = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-                if ((enumMember == null) || !enumMember.Value.EqualsI(str))
-                    continue;
+                        foreach (var member in members)
+                        {
+                            var name = member.Name;
+                            var value = (T?)member.GetRawConstantValue();
 
-                var final = member.GetValue(null);
-                result = (T?)final ?? default;
+                            if (value == null)
+                                continue;
 
-                return true;
+                            valueLookup.Add(name, value);
+
+                            var enumMember = member.GetCustomAttribute<EnumMemberAttribute>();
+
+                            if ((enumMember?.Value == null) || enumMember.Value.EqualsI(name))
+                                continue;
+
+                            valueLookup.Add(enumMember.Value, value);
+                        }
+
+                        EnumValues[type] = valueLookup;
+                    }
+                }
             }
 
-            return false;
+            if (!valueLookup.TryGetValue(str, out var enumValue))
+                return false;
+
+            result = (T)enumValue;
+
+            return true;
         }
     }
 }

@@ -11,6 +11,8 @@
         <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -27,8 +29,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CM-Chaos.Core" Version="1.0.10"/>
-        <PackageReference Include="Common.Logging.NLogNetStandard" Version="1.0.7072.33966"/>
+        <PackageReference Include="CM-Chaos.Core" Version="1.0.10" />
+        <PackageReference Include="Common.Logging.NLogNetStandard" Version="1.0.7072.33966" />
         <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

@@ -103,6 +103,9 @@ namespace AL.Core.Extensions
             if ((l1.In == string.Empty) || (l2.In == string.Empty))
                 return true;
 
+            if (l1.In is null && l2.In is null)
+                return true;
+
             return l1.In.EqualsI(l2.In);
         }
 

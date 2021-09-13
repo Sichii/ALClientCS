@@ -37,7 +37,7 @@ namespace AL.SocketClient.Model
         public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
         public string? Prefix { get; init; }
         public long Price { get; init; }
-        public int Quantity { get; init; }
+        public int Quantity { get; init; } = 1;
         public ALAttribute StatType { get; init; }
         public string? Volatile { get; init; }
     }

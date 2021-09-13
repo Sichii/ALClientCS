@@ -5,7 +5,7 @@ namespace AL.Client.Interfaces
     /// <summary>
     ///     Represents an item at a specific index within a collection of items.
     /// </summary>
-    public interface IIndexedItem<out T> where T: ISimpleItem
+    public interface IIndexer<out T> where T: ISimpleItem
     {
         /// <summary>
         ///     The index the item is at within it's collection.

@@ -74,7 +74,7 @@ namespace AL.SocketClient
             Connected = true;
         }
 
-        private static Func<SocketIOResponse, int, object> CreateLambda(Type type)
+        internal static Func<SocketIOResponse, int, object> CreateLambda(Type type)
         {
             //compile an expression for a given type, that called response.GetValue<T> where T is the type object
             var responseParam = Expression.Parameter(typeof(SocketIOResponse), "response");
@@ -258,7 +258,7 @@ RAW JSON:
 
                 if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
                     return;
-
+                
                 var type = subscriptionList.Type;
                 var getValue = CompiledExpressions.GetOrAdd(type, CreateLambda);
                 var dataObject = getValue(response, 0);

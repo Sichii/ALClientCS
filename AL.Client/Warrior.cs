@@ -356,7 +356,9 @@ namespace AL.Client
 
             await using var actionCallback = Socket.On<ActionData>(ALSocketMessageType.Action, data =>
                 {
-                    if (data.AttackerId.EqualsI(Character.Id) && data.Source.EqualsI(SKILL_NAME) && data.Target.EqualsI(targetId))
+                    if (data.AttackerId.EqualsI(Character.Id)
+                        && (data.Source ?? data.Type).EqualsI(SKILL_NAME)
+                        && data.Target.EqualsI(targetId))
                         return Task.FromResult(source.TrySetResult(data));
 
                     return TaskCache.FALSE;

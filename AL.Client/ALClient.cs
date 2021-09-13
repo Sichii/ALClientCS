@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -33,6 +34,7 @@ using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Chaos.Core.Collections.Synchronized.Awaitable;
 using Chaos.Core.Extensions;
+using Chaos.Core.Utilities;
 using Common.Logging;
 using Condition = AL.Core.Definitions.Condition;
 using CONSTANTS = AL.Client.Definitions.CONSTANTS;
@@ -99,7 +101,8 @@ namespace AL.Client
         public event EventHandler<InviteData>? OnPartyInvite;
 
         /// <summary>
-        ///     The character's progress towards ongoing achievements.
+        ///     The character's progress towards ongoing achievements. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, AchievementProgressData> AchievementProgress { get; }
 
@@ -114,12 +117,14 @@ namespace AL.Client
         public Character Character { get; }
 
         /// <summary>
-        ///     When a chest drops or is opened, it will be populated or removed from this collection.
+        ///     When a chest drops or is opened, it will be populated or removed from this collection. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, DropData> Chests { get; }
 
         /// <summary>
-        ///     When a skill is used and the server sends back a cooldown, it will be populated here.
+        ///     When a skill is used and the server sends back a cooldown, it will be populated here. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, CooldownInfo> Cooldowns { get; }
 
@@ -129,7 +134,8 @@ namespace AL.Client
         public FormattedLogger Logger { get; }
 
         /// <summary>
-        ///     A collection of the monsters being kept track of.
+        ///     A collection of the monsters being kept track of. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, Monster> Monsters { get; }
 
@@ -139,12 +145,14 @@ namespace AL.Client
         public string Name { get; }
 
         /// <summary>
-        ///     A collection of the players being kept track of.
+        ///     A collection of the players being kept track of. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, Player> Players { get; }
 
         /// <summary>
-        ///     A collection of projectiles being kept track of.
+        ///     A collection of projectiles being kept track of. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, ActionData> Projectiles { get; }
 
@@ -505,6 +513,35 @@ namespace AL.Client
                 _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
             };
         }
+
+        /// <summary>
+        ///     Checks if you are within range of an NPC, using a range depending on the NPC.
+        /// </summary>
+        /// <param name="npcId">The id of the NPC.</param>
+        /// <exception cref="ArgumentNullException">npcId</exception>
+        /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId} </exception>
+        public async ValueTask<bool> WithinRangeOfNPCAsync(string npcId)
+        {
+            if (string.IsNullOrEmpty(npcId))
+                throw new ArgumentNullException(nameof(npcId));
+
+            if (!await Players.TryGetValueAsync(npcId, out var npcTask).ConfigureAwait(false))
+                return false;
+
+            var nData = GameData.NPCs[npcId];
+
+            if (nData == null)
+                throw new InvalidOperationException($"Missing npc metadata for {npcId}");
+
+            var range = CORE_CONSTANTS.NPC_RANGE;
+
+            if (nData.Role == NPCRole.Transport)
+                range = CORE_CONSTANTS.TRANSPORTER_RANGE;
+
+            var npc = await npcTask.ConfigureAwait(false);
+
+            return Character.Distance(npc).SignificantlyLessThan(range, CORE_CONSTANTS.EPSILON);
+        }
         #endregion
 
         #region Connection stuff
@@ -550,14 +587,14 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameErrorCallback = Socket.On<GameErrorData>(ALSocketMessageType.GameError,
+            await using var gameErrorCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameError,
                     data => Task.FromResult(source.TrySetResult(data.Message)))
                 .ConfigureAwait(false);
 
-            await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, _ =>
+            await using var welcomeCallback = Socket.On<WelcomeData>(ALSocketMessageType.Welcome, async _ =>
                 {
                     //dont await, seems to cause issues
-                    Socket.EmitAsync(ALSocketEmitType.Auth, new
+                    await Socket.EmitAsync(ALSocketEmitType.Auth, new
                         {
                             auth = API.Auth.AuthKey,
                             character = Identifier,
@@ -571,7 +608,7 @@ namespace AL.Client
                         })
                         .ConfigureAwait(false);
 
-                    return TaskCache.FALSE;
+                    return false;
                 })
                 .ConfigureAwait(false);
 
@@ -604,26 +641,25 @@ namespace AL.Client
             }
 
             var logger = new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>());
-            Socket = new ALSocketClient(logger);
+
             var reconnectCount = 0;
 
             while (reconnectCount < 10)
-            {
                 try
                 {
-                    Logger.Info($"Attemping to reconnect. (Retry: {++reconnectCount}");
+                    Socket = new ALSocketClient(logger);
+                    Logger.Info($"Attemping to reconnect. (Retry: {++reconnectCount})");
                     await InternalConnectAsync().ConfigureAwait(false);
 
-                    break;
+                    return;
                 } catch
                 {
                     Logger.Error("Reconnect failed, waiting 10s to retry...");
                     await Task.Delay(1000 * 10).ConfigureAwait(false);
                 }
 
-                Logger.Fatal("Reconnect attempts failed.");
-                Environment.Exit(-1);
-            }
+            Logger.Fatal("Reconnect attempts failed.");
+            Environment.Exit(-1);
         }
 
         /// <summary>
@@ -696,19 +732,20 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
                     var result = false;
+                    var message = data.Message;
 
-                    if (data.EqualsI("invitation expired") || data.EqualsI($"{from} is not found"))
-                        result = source.TrySetResult($"Failed to accept party invite. ({data})");
-                    else if (data.EqualsI("already partying"))
+                    if (message.EqualsI("invitation expired") || message.EqualsI($"{from} is not found"))
+                        result = source.TrySetResult($"Failed to accept party invite. ({message})");
+                    else if (message.EqualsI("already partying"))
                         if (Party.Members.Count == 0)
-                            result = source.TrySetResult($"Failed to accept party invite. ({data})");
+                            result = source.TrySetResult($"Failed to accept party invite. ({message})");
                         else
                             result = Party.MemberNames.ContainsI(from)
                                 ? source.TrySetResult(Expectation.Success)
-                                : source.TrySetResult($"Failed to accept party invite. ({data})");
+                                : source.TrySetResult($"Failed to accept party invite. ({message})");
 
                     return Task.FromResult(result);
                 })
@@ -741,19 +778,20 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
                     var result = false;
+                    var message = data.Message;
 
-                    if (data.EqualsI("request expired") || data.EqualsI($"Failed to accept party request. ({data})"))
-                        result = source.TrySetResult(data);
-                    else if (data.EqualsI("already partying"))
+                    if (message.EqualsI("request expired") || message.EqualsI($"Failed to accept party request. ({message})"))
+                        result = source.TrySetResult(message);
+                    else if (message.EqualsI("already partying"))
                         if (Party.Members.Count == 0)
-                            result = source.TrySetResult($"Failed to accept party request. ({data})");
+                            result = source.TrySetResult($"Failed to accept party request. ({message})");
                         else
                             result = Party.MemberNames.ContainsI(from)
                                 ? source.TrySetResult(Expectation.Success)
-                                : source.TrySetResult($"Failed to accept party request. ({data})");
+                                : source.TrySetResult($"Failed to accept party request. ({message})");
 
                     return Task.FromResult(result);
                 })
@@ -844,7 +882,7 @@ namespace AL.Client
         /// <exception cref="ArgumentNullException">itemName</exception>
         /// <exception cref="InvalidOperationException">Quantity cannot be below 1.</exception>
         /// <exception cref="InvalidOperationException">Failed to buy {itemName}. ({reason})</exception>
-        public async Task<IndexedSimpleItem> BuyAsync(string itemName, int quantity = 1)
+        public async Task<SimpleIndexer> BuyAsync(string itemName, int quantity = 1)
         {
             if (string.IsNullOrEmpty(itemName))
                 throw new ArgumentNullException(nameof(itemName));
@@ -852,13 +890,13 @@ namespace AL.Client
             if (quantity < 1)
                 throw new InvalidOperationException("Quantity cannot be below 1.");
 
-            var source = new TaskCompletionSource<Expectation<IndexedSimpleItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<SimpleIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
                     var result = data.ResponseType switch
                     {
-                        GameResponseType.BuySuccess => source.TrySetResult(new IndexedSimpleItem
+                        GameResponseType.BuySuccess => source.TrySetResult(new SimpleIndexer
                         {
                             Index = data.SlotNum,
                             Item = new SimpleItem
@@ -894,13 +932,13 @@ namespace AL.Client
         /// <param name="item">The item to buy</param>
         /// <param name="quantity">The quantity of the item to buy.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     Information about the item that was bought.
         /// </returns>
         /// <exception cref="ArgumentNullException">playerName</exception>
         /// <exception cref="ArgumentNullException">item</exception>
         /// <exception cref="InvalidOperationException">{reason}</exception>
-        public async Task<IndexedInventoryItem> BuyFromPlayerAsync(string playerName, TradeSlot slot, TradeItem item, int quantity = 1)
+        public async Task<InventoryIndexer> BuyFromPlayerAsync(string playerName, TradeSlot slot, TradeItem item, int quantity = 1)
         {
             if (string.IsNullOrEmpty(playerName))
                 throw new ArgumentNullException(nameof(playerName));
@@ -922,7 +960,7 @@ namespace AL.Client
             if ((slotItem == null) || (slotItem.Id != item.Id))
                 throw new InvalidOperationException($"Failed to buy {item.Name} from {playerName}. (wrong id)");
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var inventorySnapshot = Character.Inventory.AsIndexed();
             var existingTotal = Character.Inventory.CountOf(item.Name);
@@ -938,12 +976,13 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
                     var result = false;
+                    var message = data.Message;
 
-                    if (data.EqualsI("not enough gold") || data.EqualsI("you can't buy that many") || data.EqualsI("seller gone"))
-                        result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({data})");
+                    if (message.EqualsI("not enough gold") || message.EqualsI("you can't buy that many") || message.EqualsI("seller gone"))
+                        result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({message})");
 
                     return Task.FromResult(result);
                 })
@@ -983,17 +1022,17 @@ namespace AL.Client
         /// </summary>
         /// <param name="item">The item to buy.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     Information about the item that was bought.
         /// </returns>
         /// <exception cref="ArgumentNullException">item</exception>
         /// <exception cref="InvalidOperationException">Failed to buy {item.Name}. ({reason})</exception>
-        public async Task<IndexedInventoryItem> BuyFromPontyAsync(TradeItem item)
+        public async Task<InventoryIndexer> BuyFromPontyAsync(TradeItem item)
         {
             if (item == null)
                 throw new ArgumentNullException(nameof(item));
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var existingCount = Character.Inventory.CountOf(item.Name);
             var existingItems = Character.Inventory.AsIndexed();
@@ -1009,12 +1048,13 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
                     var result = false;
+                    var message = data.Message;
 
-                    if (data.EqualsI("item gone"))
-                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data})");
+                    if (message.EqualsI("item gone"))
+                        result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({message})");
 
                     return Task.FromResult(result);
                 })
@@ -1035,7 +1075,7 @@ namespace AL.Client
                 {
                     var newCount = data.Inventory.CountOf(item.Name);
 
-                    if (newCount - existingCount == item.Quantity)
+                    if (newCount - existingCount == Math.Max(1, item.Quantity))
                         source.TrySetResult(data.Inventory.AsIndexed().Except(existingItems).First());
 
                     return TaskCache.FALSE;
@@ -1181,12 +1221,12 @@ namespace AL.Client
         /// </summary>
         /// <param name="itemName">The name of the item to craft.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     Information about the item that was crafted, and it's position in the inventory.
         /// </returns>
         /// <exception cref="ArgumentNullException">itemName</exception>
         /// <exception cref="InvalidOperationException">Failed to craft {itemName}. ({reason})</exception>
-        public async Task<IndexedInventoryItem> CraftAsync(string itemName)
+        public async Task<InventoryIndexer> CraftAsync(string itemName)
         {
             if (string.IsNullOrEmpty(itemName))
                 throw new ArgumentNullException(nameof(itemName));
@@ -1211,7 +1251,7 @@ namespace AL.Client
                 slots.Add(result.Index);
             }
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
             var previousInventory = Character.Inventory.AsIndexed();
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
@@ -1297,12 +1337,12 @@ namespace AL.Client
         ///     empty.
         /// </param>
         /// <returns>
-        ///     <see cref="IndexedBankItem" /> <br />
+        ///     <see cref="BankIndexer" /> <br />
         ///     Information about the item and it's index in the bank.
         /// </returns>
         /// <exception cref="ArgumentException">If specifying bankSlot), must also specify bankPack.</exception>
         /// <exception cref="InvalidOperationException">Failed to deposit item {item}. ({reason})</exception>
-        public async Task<IndexedBankItem> DepositItemAsync(int inventorySlot, BankPack? bankPack = null, int? bankSlot = null)
+        public async Task<BankIndexer> DepositItemAsync(int inventorySlot, BankPack? bankPack = null, int? bankSlot = null)
         {
             if ((bankSlot != null) && (bankPack == null))
                 throw new ArgumentException($"If specifying {nameof(bankSlot)}, must also specify {nameof(bankPack)}.");
@@ -1315,13 +1355,14 @@ namespace AL.Client
             if (item == null)
                 throw new InvalidOperationException($"Failed to deposit item. (no item in slot {inventorySlot})");
 
-            var indexedItem = new IndexedInventoryItem { Index = inventorySlot, Item = item };
+            var indexedItem = new InventoryIndexer { Index = inventorySlot, Item = item };
             var optimalIndexes = FindOptimalBankIndex(indexedItem, bankPack, bankSlot);
 
             if (optimalIndexes == null)
                 throw new InvalidOperationException($"Failed to deposit item {item.Name}. (no space)");
 
-            var source = new TaskCompletionSource<Expectation<IndexedBankItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            (bankPack, bankSlot) = optimalIndexes.Value;
+            var source = new TaskCompletionSource<Expectation<BankIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
@@ -1334,22 +1375,24 @@ namespace AL.Client
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
                 {
-                    if ((data.Inventory[inventorySlot] == null) && Bank!.TryGetValue(bankPack!.Value, out var bankedItems))
+                    if (data.Bank == null)
+                        source.TrySetResult($"Failed to deposit item {item.Name}. (not in bank)");
+                    else if ((data.Inventory[inventorySlot] == null) && data.Bank.TryGetValue(bankPack.Value, out var bankedItems))
                     {
-                        var bankedItem = bankedItems[bankSlot!.Value];
+                        var bankedItem = bankedItems[bankSlot.Value];
 
                         if (bankedItem != null)
-                            source.TrySetResult(
-                                new IndexedBankItem { BankPack = bankPack.Value, Index = bankSlot.Value, Item = bankedItem });
+                            source.TrySetResult(new BankIndexer { BankPack = bankPack.Value, Index = bankSlot.Value, Item = bankedItem });
                     }
 
                     return TaskCache.FALSE;
                 })
                 .ConfigureAwait(false);
 
-            await Socket.EmitAsync(ALSocketEmitType.Swap, new
+            await Socket.EmitAsync(ALSocketEmitType.Bank, new
                 {
-                    inv = inventorySlot, operation = "swap", pack = optimalIndexes.Value.BankPack, str = optimalIndexes.Value.BankSlot
+                    operation = "swap", inv = inventorySlot,
+                    str = bankSlot.Value, pack = bankPack.Value.ToString().ToLower()
                 })
                 .ConfigureAwait(false);
 
@@ -1402,11 +1445,11 @@ namespace AL.Client
         /// </summary>
         /// <param name="inventorySlot">The index of the item to exchange.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     The item received from the exchange.
         /// </returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<IndexedInventoryItem> ExchangeAsync(int inventorySlot)
+        public async Task<InventoryIndexer> ExchangeAsync(int inventorySlot)
         {
             if (inventorySlot >= Character.InventorySize)
                 throw new InvalidOperationException("Failed to exchange. (index out of range)");
@@ -1427,7 +1470,7 @@ namespace AL.Client
             if (itemData.ExchangeCount > item.Quantity)
                 throw new InvalidOperationException($"Failed to exchange. (you do not have {itemData.ExchangeCount})");
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
@@ -1452,7 +1495,7 @@ namespace AL.Client
                 {
                     if (!exchangeStarted
                         && (data.QueuedActions?.Exchange != null)
-                        && (data.QueuedActions.Exchange.CurrentMS == data.QueuedActions.Exchange.LengthMS))
+                        && data.QueuedActions.Exchange.CurrentMS.NearlyEquals(data.QueuedActions.Exchange.LengthMS, CORE_CONSTANTS.EPSILON))
                         exchangeStarted = true;
 
                     if (exchangeStarted)
@@ -1580,40 +1623,77 @@ namespace AL.Client
         ///     The point we ended up on after this operation either completed, failed, or was canceled.
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to move to {point}. ({reason})</exception>
+        [SuppressMessage("ReSharper", "AccessToModifiedClosure"), SuppressMessage("ReSharper", "AccessToDisposedClosure")]
         public async Task MoveAsync(IPoint point, CancellationToken? token = null)
         {
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var currentMap = Character.Map;
             var startLoc = new Location(Character.Map, Character.ToPoint());
+            DateTime? setMovingAt = default;
             var correctionAttempted = false;
 
             using var delay = new DynamicDelay();
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, async data =>
                 {
-                    switch (correctionAttempted)
+                    if (!setMovingAt.HasValue)
+                        return false;
+                    
+                    var now = DateTime.UtcNow;
+                    var elapsed = now.Subtract(setMovingAt.Value).TotalMilliseconds;
+                    
+                    //if the movement data doesnt look right
+                    if (!data.Moving
+                        || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
+                        || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON))
                     {
-                        case true when !data.Moving
-                                       || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
-                                       || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
+                        //if we already tried to request new movement data
+                        if (correctionAttempted)
+                        {
+                            //set a failure result
                             source.TrySetResult($"Failed to move to {point.ToPoint()}. (desync/packetloss)");
 
+                            return false;
+                        }
+                        
+                        //if we should have reasonably received correct movement data
+                        if (elapsed > PingManager.Offset * 2)
+                        {
+                            //request new movement data from the server
+                            Logger.Debug("Correcting position");
+                            _ = Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
+                            correctionAttempted = true;
+                        }
+                        //this could be some other random character data, just set it's movement data to the correct stuff
+                        else
+                            Character.SetMoving(point);
+                    }
+
+                    await delay.SetDelayAsync(Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000)).ConfigureAwait(false);
+
+                    /*
+                    switch (correctionAttempted)
+                    {
+                        case true when shouldBeMoving && (!data.Moving
+                                       || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
+                                       || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON)):
+                            source.TrySetResult($"Failed to move to {point.ToPoint()}. (desync/packetloss)");
+    
                             return false;
                         case false when !data.Moving
                                         || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
                                         || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
                             correctionAttempted = true;
-                            //do not await a socket event within a callback
-                            Logger.Debug("Move: Correcting position...");
-                            _ = Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
-
+    
+                            Logger.Debug("Correcting position");
+                            await Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
+    
                             break;
-                    }
+                    }*/
 
                     // ReSharper disable once AccessToDisposedClosure - this action is safe even if disposed
-                    await delay.SetDelayAsync(Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000)).ConfigureAwait(false);
-
+                    
                     return false;
                 })
                 .ConfigureAwait(false);
@@ -1623,8 +1703,15 @@ namespace AL.Client
                     var goingLoc = new Location(currentMap, point);
 
                     if (data.Map.EqualsI("jail"))
+                    {
+                        var standingLocation = Character.ToLocation();
+                        var standingOnWall = PathFinder.IsWall(standingLocation);
+                        var goingLocation = new Location(Character.Map, Character.GoingX, Character.GoingY);
+                        var validPath = PathFinder.CanMove(standingLocation, goingLocation);
+
                         source.TrySetResult(
-                            $"Sent to jail trying to move from {ILocation.ToString(startLoc)} to {ILocation.ToString(goingLoc)}. IsWall = {PathFinder.IsWall(goingLoc)}");
+                            $"Sent to jail from {startLoc} (IsWall: {standingOnWall}), moving to {goingLoc} (Valid: {validPath})");
+                    }
 
                     return TaskCache.FALSE;
                 })
@@ -1642,16 +1729,28 @@ namespace AL.Client
 
             var initialDelay = Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000);
             Character.SetMoving(point);
+            setMovingAt = DateTime.UtcNow;
 
             var delayTask = delay.WaitAsync(initialDelay, token);
             var completedTask = await Task.WhenAny(delayTask, source.Task).ConfigureAwait(false);
 
+            //if cancellation is requested, emit a walk to where we're already standing.
             if (token?.IsCancellationRequested == true)
             {
                 var finalDestination = Character.ToPoint();
                 Logger.Debug($"Move to {point.ToPoint()} canceled. Stopping at {finalDestination}");
-                await MoveAsync(finalDestination).ConfigureAwait(false);
-
+                point = finalDestination;
+                
+                await Socket.EmitAsync(ALSocketEmitType.Move, new
+                    {
+                        x = Character.X,
+                        y = Character.Y,
+                        going_x = point.X,
+                        going_y = point.Y,
+                        m = Character.MapChangeCount
+                    })
+                    .ConfigureAwait(false);
+                
                 return;
             }
 
@@ -1806,7 +1905,7 @@ namespace AL.Client
             var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions
                 .RunContinuationsAsynchronously);
 
-            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.SecondHands, data =>
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
                     var result = data.ResponseType switch
                     {
@@ -1815,6 +1914,14 @@ namespace AL.Client
                     };
 
                     return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
+            await using var onSecondHandsCallback = Socket.On<TradeItem[]>(ALSocketMessageType.SecondHands, data =>
+                {
+                    source.TrySetResult(data);
+
+                    return TaskCache.FALSE;
                 })
                 .ConfigureAwait(false);
 
@@ -1834,9 +1941,11 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
-                    if (data.EqualsI("can't respawn yet."))
+                    var message = data.Message;
+
+                    if (message.EqualsI("can't respawn yet."))
                         source.TrySetResult("Failed to respawn. (too soon)");
 
                     return TaskCache.FALSE;
@@ -1853,6 +1962,56 @@ namespace AL.Client
                 .ConfigureAwait(false);
 
             await Socket.EmitAsync(ALSocketEmitType.Respawn).ConfigureAwait(false);
+
+            var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
+            expectation.ThrowIfUnsuccessful();
+        }
+
+        /// <summary>
+        ///     Asynchronously sells an item.
+        /// </summary>
+        /// <param name="inventorySlot">The inventory slot of the item to sell.</param>
+        /// <param name="quantity">The quantity to sell.</param>
+        /// <exception cref="InvalidOperationException">Failed to sell item {nameOrSlot}. ({reason})</exception>
+        public async Task SellItemAsync(int inventorySlot, int quantity)
+        {
+            var item = Character.Inventory[inventorySlot];
+
+            if (item == null)
+                throw new InvalidOperationException($"Failed to sell item {inventorySlot}. (no item)");
+
+            if ((item.Quantity < quantity) || (quantity <= 0))
+                throw new InvalidOperationException($"Failed to sell item {item.Name}. (invalid quantity)");
+
+            var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var previousQuantity = Character.Inventory.CountOf(item.Name);
+
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+                {
+                    var result = data.ResponseType switch
+                    {
+                        GameResponseType.BankRestrictions =>
+                            source.TrySetResult($"Failed to sell item {item.Name}. (can't sell from bank)"),
+                        GameResponseType.SellGetCloser => source.TrySetResult($"Failed to sell item {item.Name}. (get closer)"),
+                        _                              => false
+                    };
+
+                    return Task.FromResult(result);
+                })
+                .ConfigureAwait(false);
+
+            await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
+                {
+                    var newQuantity = data.Inventory.CountOf(item.Name);
+
+                    if (newQuantity == previousQuantity - quantity)
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
+
+            await Socket.EmitAsync(ALSocketEmitType.Sell, new { num = inventorySlot, quantity }).ConfigureAwait(false);
 
             var expectation = await source.Task.WithNetworkTimeout().ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -2006,9 +2165,11 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
-                    if (data.EqualsI($"invited {name} to party"))
+                    var message = data.Message;
+
+                    if (message.EqualsI($"invited {name} to party"))
                         source.TrySetResult(Expectation.Success);
 
                     return TaskCache.FALSE;
@@ -2027,10 +2188,14 @@ namespace AL.Client
         /// <param name="point">The point to walk to.</param>
         /// <param name="distance">The distance from the location that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
-        /// <param name="token">A token used to cancel this action.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
         /// <exception cref="ArgumentNullException">locations</exception>
-        public Task SmartMoveAsync(IPoint point, float distance = 0, bool useTownIfOptimal = true, CancellationToken? token = null) =>
-            SmartMoveAsync(new[] { new MapCircle(new Location(Character.Map, point), distance) }, useTownIfOptimal, token);
+        public Task SmartMoveAsync(
+            IPoint point,
+            float distance = 0,
+            bool useTownIfOptimal = true,
+            CancellationToken? cancellationToken = null) =>
+            SmartMoveAsync(new[] { new MapCircle(new Location(Character.Map, point), distance) }, useTownIfOptimal, cancellationToken);
 
         /// <summary>
         ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -2039,14 +2204,15 @@ namespace AL.Client
         /// <param name="endPoints">A collection of potential end points on the current map.</param>
         /// <param name="distance">The distance from the point that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
-        /// <param name="token">A token used to cancel this action.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
         /// <exception cref="ArgumentNullException">locations</exception>
         public Task SmartMoveAsync(
             IEnumerable<IPoint> endPoints,
             float distance = 0,
             bool useTownIfOptimal = true,
-            CancellationToken? token = null) =>
-            SmartMoveAsync(endPoints.Select(point => new MapCircle(new Location(Character.Map, point), distance)), useTownIfOptimal, token);
+            CancellationToken? cancellationToken = null) =>
+            SmartMoveAsync(endPoints.Select(point => new MapCircle(new Location(Character.Map, point), distance)), useTownIfOptimal,
+                cancellationToken);
 
         /// <summary>
         ///     Asynchronously begins moving to a location that may or may not require complex pathfinding.
@@ -2054,10 +2220,14 @@ namespace AL.Client
         /// <param name="location">The location to walk to.</param>
         /// <param name="distance">The distance from the location that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
-        /// <param name="token">A token used to cancel this action.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
         /// <exception cref="ArgumentNullException">locations</exception>
-        public Task SmartMoveAsync(ILocation location, float distance = 0, bool useTownIfOptimal = true, CancellationToken? token = null) =>
-            SmartMoveAsync(new[] { new MapCircle(location, distance) }, useTownIfOptimal, token);
+        public Task SmartMoveAsync(
+            ILocation location,
+            float distance = 0,
+            bool useTownIfOptimal = true,
+            CancellationToken? cancellationToken = null) =>
+            SmartMoveAsync(new[] { new MapCircle(location, distance) }, useTownIfOptimal, cancellationToken);
 
         /// <summary>
         ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -2066,35 +2236,38 @@ namespace AL.Client
         /// <param name="endLocations">A collection of potential end locations.</param>
         /// <param name="distance">The distance from the point that it is acceptable to stop at.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
-        /// <param name="token">A token used to cancel this action.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
         /// <exception cref="ArgumentNullException">locations</exception>
         public Task SmartMoveAsync(
             IEnumerable<ILocation> endLocations,
             float distance = 0,
             bool useTownIfOptimal = true,
-            CancellationToken? token = null) =>
-            SmartMoveAsync(endLocations.Select(l => new MapCircle(l, distance)), useTownIfOptimal, token);
+            CancellationToken? cancellationToken = null) =>
+            SmartMoveAsync(endLocations.Select(l => new MapCircle(l, distance)), useTownIfOptimal, cancellationToken);
 
         /// <summary>
-        ///     Asynchronously begins moving to an number of locations that may or may not require complex pathfinding.
+        ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding.
         /// </summary>
         /// <param name="endDestinations">A collection of potential end locations.</param>
         /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
-        /// <param name="token">A token used to cancel this action.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
         /// <exception cref="ArgumentNullException">locations</exception>
-        public async Task SmartMoveAsync<T>(IEnumerable<T> endDestinations, bool useTownIfOptimal = true, CancellationToken? token = null)
-            where T: ILocation, ICircle
+        public async Task SmartMoveAsync<T>(
+            IEnumerable<T> endDestinations,
+            bool useTownIfOptimal = true,
+            CancellationToken? cancellationToken = null) where T: ILocation, ICircle
         {
             if (endDestinations.Equals(default))
                 throw new ArgumentNullException(nameof(endDestinations));
 
             // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-            Task HandlePathConnectorAsync(IConnector<Point> pathConnector) => pathConnector.Type switch
-            {
-                ConnectorType.Walk => MoveAsync(pathConnector.End, token),
-                ConnectorType.Town => UseTownAsync(token),
-                _                  => throw new ArgumentOutOfRangeException($"Unexpected path connectorType: {pathConnector.Type}")
-            };
+            Task HandlePathConnectorAsync(IConnector<Point> pathConnector, CancellationToken? innerToken = null) =>
+                pathConnector.Type switch
+                {
+                    ConnectorType.Walk => MoveAsync(pathConnector.End, innerToken),
+                    ConnectorType.Town => UseTownAsync(innerToken),
+                    _                  => throw new ArgumentOutOfRangeException($"Unexpected path connectorType: {pathConnector.Type}")
+                };
 
             var ends = endDestinations.ToArray();
 
@@ -2106,10 +2279,8 @@ namespace AL.Client
 
             await foreach (var routeConnector in route.ConfigureAwait(false))
             {
-                if (token?.IsCancellationRequested == true)
+                if (cancellationToken?.IsCancellationRequested == true)
                     return;
-
-                var exits = routeConnector.Start.Exits.Where(exit => exit.ToLocation.Map.EqualsI(routeConnector.End.Accessor)).ToArray();
 
                 if (routeConnector.Type == ConnectorType.Leave)
                 {
@@ -2118,25 +2289,151 @@ namespace AL.Client
                     continue;
                 }
 
-                var innerPath = PathFinder.FindPath(Character.Map, Character.ToPoint(), exits, useTownIfOptimal);
-
-                IPoint lastPoint = default!;
+                var exits = routeConnector.Start.Exits.Where(exit => exit.ToLocation.Map.EqualsI(routeConnector.End.Accessor)).ToArray();
+                var currentPoint = Character.ToPoint();
+                var innerPath = PathFinder.FindPath(Character.Map, currentPoint, exits, useTownIfOptimal: useTownIfOptimal);
+                RecurseWithoutTowning1:
 
                 await foreach (var pathConnector in innerPath.ConfigureAwait(false))
                 {
-                    await HandlePathConnectorAsync(pathConnector).ConfigureAwait(false);
-                    lastPoint = pathConnector.End;
+                    try
+                    {
+                        await HandlePathConnectorAsync(pathConnector, cancellationToken).ConfigureAwait(false);
+                    } catch (Exception e)
+                    {
+                        if (e.Message.ContainsI("failed to town"))
+                        {
+                            innerPath = PathFinder.FindPath(Character.Map, currentPoint, exits, useTownIfOptimal: false);
+
+                            goto RecurseWithoutTowning1;
+                        }
+
+                        throw;
+                    }
+
+                    currentPoint = pathConnector.End;
+
+                    if (cancellationToken is { IsCancellationRequested: true })
+                        return;
                 }
 
-                var destination = exits.OrderBy(exit => exit.Distance(lastPoint)).First();
+                var destination = exits.MinBy(exit => exit.Distance(currentPoint))!;
                 await TransportAsync(destination.ToLocation.Map, destination.ToSpawnIndex).ConfigureAwait(false);
             }
 
             var path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
-                ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>());
+                ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>(), useTownIfOptimal: useTownIfOptimal);
+            RecurseWithoutTowning2:
 
             await foreach (var pathConnector in path.ConfigureAwait(false))
-                await HandlePathConnectorAsync(pathConnector).ConfigureAwait(false);
+            {
+                try
+                {
+                    await HandlePathConnectorAsync(pathConnector, cancellationToken).ConfigureAwait(false);
+                } catch (Exception e)
+                {
+                    if (e.Message.ContainsI("failed to town"))
+                    {
+                        path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
+                            ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>(), useTownIfOptimal: false);
+                        goto RecurseWithoutTowning2;
+                    }
+
+                    throw;
+                }
+
+                if (cancellationToken is { IsCancellationRequested: true })
+                    return;
+            }
+        }
+
+        /// <summary>
+        ///     Asynchronously moves to the first spawn of a given map.
+        /// </summary>
+        /// <param name="mapName">The name of the map to move to.</param>
+        /// <param name="distance">The distance from the point that it is acceptable to stop at.</param>
+        /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
+        /// <exception cref="ArgumentNullException">npcId</exception>
+        /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
+        public Task SmartMoveToMapAsync(
+            string mapName,
+            float distance = 0f,
+            bool useTownIfOptimal = true,
+            CancellationToken? cancellationToken = null)
+        {
+            if (string.IsNullOrEmpty(mapName))
+                throw new ArgumentNullException(nameof(mapName));
+
+            var mData = GameData.Maps[mapName];
+
+            if (mData == null)
+                throw new InvalidOperationException($"Missing map metadata for {mapName}");
+
+            var spawn1 = mData.Spawns[0];
+            var spawnLoc = new Location(mapName, spawn1);
+
+            return SmartMoveAsync(spawnLoc, distance, useTownIfOptimal, cancellationToken);
+        }
+
+        /// <summary>
+        ///     Asynchronously moves to the closest monster spawn for a given monster name.
+        /// </summary>
+        /// <param name="monsterName">The name of the monster whose spawn to move to.</param>
+        /// <param name="pickRandomSpawn">Changes the behavior from closest spawn to random spawn.</param>
+        /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
+        /// <exception cref="ArgumentNullException">monsterName</exception>
+        /// <exception cref="InvalidOperationException">Missing monster metadata for {monsterName}</exception>
+        public Task SmartMoveToMonsterAsync(
+            string monsterName,
+            bool pickRandomSpawn = false,
+            bool useTownIfOptimal = true,
+            CancellationToken? cancellationToken = null)
+        {
+            if (string.IsNullOrEmpty(monsterName))
+                throw new ArgumentNullException(nameof(monsterName));
+
+            var mData = GameData.Monsters[monsterName];
+
+            if (mData == null)
+                throw new InvalidOperationException($"Missing monster metadata for {monsterName}");
+
+            var spawnAreas = mData.SpawnAreas;
+
+            if (pickRandomSpawn)
+            {
+                var fr = new FastRandom();
+                spawnAreas = spawnAreas.OrderBy(_ => fr.Next()).Take(1).ToList();
+            }
+
+            return SmartMoveAsync(spawnAreas, useTownIfOptimal, cancellationToken);
+        }
+
+        /// <summary>
+        ///     Asynchronously moves to the closest possible location for a given npc id.
+        /// </summary>
+        /// <param name="npcId">The name of the npc to move to.</param>
+        /// <param name="distance">The distance from the point that it is acceptable to stop at.</param>
+        /// <param name="useTownIfOptimal">Whether or not to consider using town ability.</param>
+        /// <param name="cancellationToken">A token used to cancel this action.</param>
+        /// <exception cref="ArgumentNullException">npcId</exception>
+        /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
+        public Task SmartMoveToNPCAsync(
+            string npcId,
+            float distance = CORE_CONSTANTS.NPC_RANGE,
+            bool useTownIfOptimal = true,
+            CancellationToken? cancellationToken = null)
+        {
+            if (string.IsNullOrEmpty(npcId))
+                throw new ArgumentNullException(nameof(npcId));
+
+            var nData = GameData.NPCs[npcId];
+
+            if (nData == null)
+                throw new InvalidOperationException($"Missing npc metadata for {npcId}");
+            
+            return SmartMoveAsync(nData.Locations, distance, useTownIfOptimal, cancellationToken);
         }
 
         /// <summary>
@@ -2294,11 +2591,11 @@ namespace AL.Client
         /// </summary>
         /// <param name="slot">The slot of the item to unequip.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     Information about the item that was unequiped within the inventory.
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to unequip item {itemNameOrSlot}. ({reason})</exception>
-        public async Task<IndexedInventoryItem> UnequipAsync(Slot slot)
+        public async Task<InventoryIndexer> UnequipAsync(Slot slot)
         {
             var item = Character.Slots[slot];
 
@@ -2308,7 +2605,7 @@ namespace AL.Client
             if (Character.EmptySlots == 0)
                 throw new InvalidOperationException($"Failed to unequip item {item.Name}. (no space)");
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
             var previousInventory = Character.Inventory.AsIndexed();
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
@@ -2576,8 +2873,21 @@ namespace AL.Client
                 })
                 .ConfigureAwait(false);
 
+            await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
+            {
+                if (data.ResponseType == GameResponseType.TransportFailed)
+                    source.TrySetResult($"Failed to town. (failed)");
+
+                return TaskCache.FALSE;
+            }).ConfigureAwait(false);
+
             await Socket.EmitAsync(ALSocketEmitType.ReturnToTown).ConfigureAwait(false);
-            token?.Register(() => Socket.EmitAsync(ALSocketEmitType.Stop, new { action = "town" }));
+            token?.Register(() =>
+            {
+                _ = Socket.EmitAsync(ALSocketEmitType.Stop, new { action = "town" });
+                Logger.Info($"Town recall canceled");
+                source.TrySetResult(Expectation.Success);
+            });
 
             var expectation = await source.Task.WithTimeout(5000).ConfigureAwait(false);
             expectation.ThrowIfUnsuccessful();
@@ -2627,11 +2937,11 @@ namespace AL.Client
         /// <param name="bankSlot">The slot within the bankPack to withdraw from.</param>
         /// <param name="inventorySlot">The slot in the inventory to place the item. -1 for first available.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     Information about the withdrawn item in the inventory.
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to withdraw item {item}. ({reason})</exception>
-        public async Task<IndexedInventoryItem> WithdrawItemAsync(BankPack bankPack, int bankSlot, int inventorySlot = -1)
+        public async Task<InventoryIndexer> WithdrawItemAsync(BankPack bankPack, int bankSlot, int inventorySlot = -1)
         {
             if (Character.Bank == null)
                 throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (not in bank)");
@@ -2646,7 +2956,7 @@ namespace AL.Client
             if (item == null)
                 throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (no item)");
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
                 {
@@ -2665,13 +2975,14 @@ namespace AL.Client
                     var inventoryItem = data.Inventory[inventorySlot];
 
                     if (inventoryItem != null)
-                        source.TrySetResult(new IndexedInventoryItem { Index = inventorySlot, Item = inventoryItem });
+                        source.TrySetResult(new InventoryIndexer { Index = inventorySlot, Item = inventoryItem });
 
                     return TaskCache.FALSE;
                 })
                 .ConfigureAwait(false);
 
-            await Socket.EmitAsync(ALSocketEmitType.Bank, new { inv = inventorySlot, operation = "swap", pack = bankPack, str = bankSlot })
+            await Socket.EmitAsync(ALSocketEmitType.Bank,
+                    new { operation = "swap", inv = inventorySlot, str = bankSlot, pack = bankPack.ToString().ToLower() })
                 .ConfigureAwait(false);
 
             return await source.Task.WithNetworkTimeout().ConfigureAwait(false);
@@ -2685,6 +2996,7 @@ namespace AL.Client
                 throw new NullReferenceException(nameof(Socket));
 
             Socket.On<StartData>(ALSocketMessageType.Start, OnStartAsync);
+            Socket.On<ChestOpenedData>(ALSocketMessageType.ChestOpened, OnChestOpened);
             Socket.On<CharacterData>(ALSocketMessageType.Character, OnCharacterAsync);
             Socket.On<CorrectionData>(ALSocketMessageType.Correction, OnCorrectionAsync);
             Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, OnGameResponseAsync);
@@ -2692,7 +3004,7 @@ namespace AL.Client
             Socket.On<AchievementProgressData>(ALSocketMessageType.AchievementProgress, OnAchievementProgressAsync);
             Socket.On<DropData>(ALSocketMessageType.Drop, OnDropAsync);
             Socket.On<EvalData>(ALSocketMessageType.Eval, OnEvalAsync);
-            Socket.On<GameErrorData>(ALSocketMessageType.GameError, OnGameErrorAsync);
+            Socket.On<GameMessageData>(ALSocketMessageType.GameError, OnGameErrorAsync);
             Socket.On<PartyUpdateData>(ALSocketMessageType.PartyUpdate, OnPartyUpdateAsync);
             Socket.On<InviteData>(ALSocketMessageType.Invite, OnPartyInvited);
             Socket.On<QueuedActionData>(ALSocketMessageType.QueuedActionData, OnQueuedActionAsync);
@@ -2704,6 +3016,13 @@ namespace AL.Client
             Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
             Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
             Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
+        }
+
+        protected async Task<bool> OnChestOpened(ChestOpenedData data)
+        {
+            await Chests.RemoveAsync(data.Id).ConfigureAwait(false);
+
+            return false;
         }
 
         protected Task<bool> OnPartyInvited(InviteData data)
@@ -2780,6 +3099,7 @@ namespace AL.Client
             await UpdateMonsters(data.Monsters, data.In, data.Map, data.UpdateType).ConfigureAwait(false);
             await UpdatePlayers(data.Players, data.In, data.Map, data.UpdateType).ConfigureAwait(false);
 
+            Character.UpdateMap(data.In, data.Map);
             return false;
         }
 
@@ -2819,7 +3139,7 @@ namespace AL.Client
             return false;
         }
 
-        protected Task<bool> OnGameErrorAsync(GameErrorData data)
+        protected Task<bool> OnGameErrorAsync(GameMessageData data)
         {
             Logger.Warn($"GAME ERROR: {data.Message}");
 
@@ -2836,7 +3156,7 @@ namespace AL.Client
             {
                 case GameResponseType.Cooldown:
                 {
-                    await SetCooldownAsync(data.SkillName!, data.CooldownMS).ConfigureAwait(false);
+                    await SetCooldownAsync(data.SkillName ?? data.Place!, data.CooldownMS).ConfigureAwait(false);
 
                     break;
                 }
@@ -2850,7 +3170,8 @@ namespace AL.Client
 
                 case GameResponseType.SkillSuccess:
                 {
-                    await SetCooldownAsync(data.SkillName!).ConfigureAwait(false);
+                    if (await IsOffCooldown(data.SkillName ?? data.Name!).ConfigureAwait(false))
+                        await SetCooldownAsync(data.SkillName ?? data.Name!).ConfigureAwait(false);
 
                     break;
                 }
@@ -2905,7 +3226,7 @@ namespace AL.Client
                 var validPath = PathFinder.CanMove(standingLocation, goingLocation);
 
                 Logger.Error(
-                    $"Sent to jail from {Character.ToLocation()} (IsWall: {standingOnWall}), moving to {goingLocation} (Valid {validPath}");
+                    $"Sent to jail from {Character.ToLocation()} (IsWall: {standingOnWall}), moving to {goingLocation} (Valid: {validPath})");
             }
 
             await Projectiles.ClearAsync().ConfigureAwait(false);
@@ -3024,7 +3345,7 @@ namespace AL.Client
             await Monsters.TryGetValueAsync(id, out var monsterTask).ConfigureAwait(false) ? await monsterTask.ConfigureAwait(false) : null;
 
         protected (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
-            IIndexedItem<IInventoryItem> indexedInventoryItem,
+            IIndexer<IInventoryItem> indexedInventoryItem,
             BankPack? bankPack = null,
             int? bankSlot = null)
         {
@@ -3040,6 +3361,7 @@ namespace AL.Client
             var stackSize = itemData?.StackSize ?? 1;
             //an enumerable of acceptable bankpacks or the bankPack the user wants to use
             var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : Utility.GetAvailableBankPacks(Character.Map);
+            (BankPack, int)? firstEmptySlot = null;
 
             foreach (var bankPackIndex in availableBanks)
             {
@@ -3059,6 +3381,10 @@ namespace AL.Client
                         //if this item IS stackable, continue looking for a slot we can stack the item into
                         if (stackSize == 1)
                             return (bankPackIndex, itemSlotIndex);
+
+                        //if this is the first empty slot we've come across, save it for later
+                        //if the item is stackable and we arent able to find a stackable index we will use this
+                        firstEmptySlot ??= (bankPackIndex, itemSlotIndex);
                     }
                     //check if the item can stack onto this banked item
                     else if ((stackSize > 1) && item.Name.EqualsI(bankedItem.Name) && (item.Quantity + bankedItem.Quantity <= stackSize))
@@ -3069,10 +3395,7 @@ namespace AL.Client
                 }
             }
 
-            if (!bankPack.HasValue || !bankSlot.HasValue)
-                return null;
-
-            return (bankPack.Value, bankSlot.Value);
+            return firstEmptySlot;
         }
 
         public static async Task InitializeAsync()

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AL.APIClient.Interfaces;
 using AL.Core.Definitions;
+using Newtonsoft.Json;
 
 namespace AL.APIClient.Model
 {
@@ -24,6 +25,7 @@ namespace AL.APIClient.Model
         public int Level { get; init; }
         public string Name { get; init; } = null!;
 
+        [JsonProperty("p")]
         public string? Prefix { get; init; }
 
         public long Price { get; init; }

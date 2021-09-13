@@ -8,8 +8,8 @@ namespace AL.Client.Interfaces
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <seealso cref="IReadOnlyList{T}" />
-    /// <seealso cref="IIndexedItem{T}" />
-    public interface ICompoundableGrouping<out T> : IReadOnlyList<T> where T: IIndexedItem<InventoryItem>
+    /// <seealso cref="IIndexer{T}" />
+    public interface ICompoundableGrouping<out T> : IReadOnlyList<T> where T: IIndexer<Item>
     {
         /// <summary>
         ///     The level of all items in the group.

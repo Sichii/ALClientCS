@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AL.Core.Definitions;
 using AL.SocketClient.Interfaces;
+using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
 {
@@ -9,7 +10,7 @@ namespace AL.SocketClient.Model
     ///     <inheritdoc cref="IInventoryItem" />
     /// </summary>
     /// <seealso cref="IInventoryItem" />
-    public record InventoryItem : IInventoryItem
+    public record Item : IInventoryItem
     {
         public string? AchievementName { get; init; }
 
@@ -33,9 +34,14 @@ namespace AL.SocketClient.Model
 
         public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
-        public string? Prefix { get; init; }
+        /// <summary>
+        ///     If populated, this item is in the process of being upgraded or compounded,
+        ///     and this contains details about the chance of it succeeding.
+        /// </summary>
+        [JsonProperty("p")]
+        public Prediction? Prediction { get; init; }
 
-        public int Quantity { get; init; }
+        public int Quantity { get; init; } = 1;
 
         public ALAttribute StatType { get; init; }
 

@@ -30,13 +30,13 @@ namespace AL.Client.Managers
             await Client.PingAsync(PingCount++).ConfigureAwait(false);
             var jitter = Convert.ToInt32((DeltaTime.Value - delta) / 2);
 
-            if (jitter < Offset)
+            if ((Offset == 0) || (jitter < Offset))
                 Offset = jitter;
 
             var old = Pings.Add(jitter);
 
             if (old == Offset)
-                Offset = Pings.Where(ping => ping.HasValue).Min(ping => ping!.Value);
+                Offset = Pings.Where(ping => ping.HasValue && (ping.Value != default)).Min(ping => ping!.Value);
         }
     }
 }

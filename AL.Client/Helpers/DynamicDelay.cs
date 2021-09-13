@@ -95,13 +95,13 @@ namespace AL.Client.Helpers
 
                 try
                 {
-                    if (!Delay.HasValue)
+                    if (!Delay.HasValue || token is { IsCancellationRequested: true })
                         return;
 
                     try
                     {
                         await Task.Delay(Delay.Value, Canceller.Token).ConfigureAwait(false);
-                    } catch (TaskCanceledException)
+                    } catch
                     {
                         //ignored
                     }

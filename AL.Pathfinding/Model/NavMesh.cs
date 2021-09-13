@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
-using AL.Data;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
-using AL.Pathfinding.Extensions;
 using AL.Pathfinding.Interfaces;
 using Common.Logging;
 
@@ -50,6 +47,43 @@ namespace AL.Pathfinding.Model
             return true;
         }
 
+        private IEnumerable<IConnector<Point>> FindDistanceShortcuts(IEnumerable<IConnector<Point>> connectors, ICircle end)
+        {
+            foreach (var connector in connectors)
+            {
+                var start = connector.Start;
+
+                if (end.Contains(start))
+                    yield break;
+
+                if (connector.Type == ConnectorType.Town)
+                {
+                    yield return connector;
+
+                    continue;
+                }
+
+                var angleOfAttack = start.AngularRelationTo(end);
+                var bestPoint = end.AngularOffset(angleOfAttack, end.Radius);
+
+                if (CanMove(start, bestPoint))
+                {
+                    yield return new EdgeConnector<Point>
+                    {
+                        Start = start,
+                        End = bestPoint,
+                        Heuristic = start.Distance(bestPoint),
+                        Type = ConnectorType.Walk
+                    };
+
+                    yield break;
+                }
+
+                yield return connector;
+            }
+        }
+
+        /*
         private static void FindDistanceShortcut(List<IConnector<Point>> connectors, float distance = 0)
         {
             var end = connectors.Last().End;
@@ -64,7 +98,7 @@ namespace AL.Pathfinding.Model
 
                 var intersection = circle.CalculateIntersectionEntryPoint(connector.ToLine());
 
-                if (intersection != null)
+                if (intersection.HasValue)
                 {
                     connectors.RemoveRange(i, connectors.Count - i);
 
@@ -76,7 +110,7 @@ namespace AL.Pathfinding.Model
                     break;
                 }
             }
-        }
+        } */
 
         /// <summary>
         ///     Finds the shortest path between a start point and any number of end points.
@@ -119,18 +153,10 @@ namespace AL.Pathfinding.Model
 
             //initialization / offset start and end points
             var offsetStart = ApplyOffset(start);
+            var offsetEnds = endsArr.Select(end => (ICircle)new Circle(ApplyOffset(end), end.Radius)).ToArray();
 
-            var offsetEnds = endsArr.Select(end =>
-                {
-                    if (end is Exit exit)
-                        return exit with { X = exit.X + XOffset, Y = exit.Y + YOffset };
-
-                    return (ICircle)new Circle(ApplyOffset(end), end.Radius);
-                })
-                .ToArray();
-
-            //if we're standing on an end point... yield nothing
-            if (offsetEnds.Any(end => end.Equals(offsetStart)))
+            //if we're standing in one of the end areas already, yield nothing
+            if (offsetEnds.Any(end => end.Equals(offsetStart) || end.Contains(offsetStart)))
                 yield break;
 
             //get closest to start
@@ -148,10 +174,7 @@ namespace AL.Pathfinding.Model
             foreach (var end in offsetEnds)
             {
                 var orderedNodes = Nodes.OrderBy(node => end.FastDistance(node.Edge));
-
-                var endNode = end is Exit { Type: ExitType.Transporter or ExitType.Door }
-                    ? orderedNodes.FirstOrDefault()
-                    : orderedNodes.FirstOrDefault(node => CanMove(end, node.Edge));
+                var endNode = end.Radius > 0 ? orderedNodes.FirstOrDefault() : orderedNodes.FirstOrDefault(node => CanMove(end, node.Edge));
 
                 if (endNode == null)
                     continue;
@@ -163,43 +186,59 @@ namespace AL.Pathfinding.Model
                 throw new InvalidOperationException(
                     $"Unable to locate any end nodes for the given points. {string.Join(',', endsArr.AsEnumerable())}");
 
-            var setup = useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode)
-                ? () => Connect(startNode, TownNode, ConnectorType.Town)
-                : default(Action);
-
-            var cleanup = useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode)
-                ? () => Disconnect(startNode, TownNode)
-                : default(Action);
+            var setup = new Action(() => ConnectTownNodeIfNeeded(useTownIfOptimal, startNode));
+            var cleanup = new Action(() => RemoveTownNodeIfNeeded(useTownIfOptimal, startNode));
+            var startIndex = startNode.Index;
+            var endIndexes = endPointLookup.Keys.Select(node => node.Index);
 
             //get the path (prepend the real start of the path
-            var path = await Navigate(startNode.Index, endPointLookup.Keys.Select(node => node.Index), setup, cleanup)
+            var path = await Navigate(startIndex, endIndexes, setup, cleanup)
                 .Prepend(new EdgeConnector<Point> { Start = offsetStart, End = startNode.Edge })
                 .ToListAsync()
                 .ConfigureAwait(false);
 
             //add the real end of the path based on the last node found
             var last = path.Last().End;
-            var indexedLast = endPointLookup.FirstOrDefault(kvp => kvp.Key.Edge == last).Value;
+            var indexedLast = endPointLookup.FirstOrDefault(kvp => last.Equals(kvp.Key.Edge)).Value;
+
+            if (indexedLast == null)
+                throw new InvalidOperationException("No indexed last node found.");
+
             path.Add(new EdgeConnector<Point> { Start = last, End = indexedLast.ToPoint() });
 
-            var finalPath = smoothPath ? SmoothPath(path, indexedLast.Radius) : path;
+            var finalPath = (IEnumerable<IConnector<Point>>) path;
+            
+            if (smoothPath)
+                finalPath = SmoothPath(path);
+
+            if (indexedLast.Radius > 0)
+                finalPath = FindDistanceShortcuts(finalPath, indexedLast);
 
             foreach (var connector in finalPath)
                 yield return connector;
+        }
+
+        private void ConnectTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
+        {
+            if(useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
+                Connect(startNode, TownNode, ConnectorType.Town);
+        }
+
+        private void RemoveTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
+        {
+            if(useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
+                Disconnect(startNode, TownNode);
         }
 
         internal bool IsWall(IPoint point) => PointMap[Convert.ToInt32(point.X), Convert.ToInt32(point.Y)].HasFlag(PointType.Wall);
 
         internal Point RemoveOffset(IPoint point) => new(point.X - XOffset, point.Y - YOffset);
 
-        private IEnumerable<IConnector<Point>> SmoothPath(List<IConnector<Point>> connectors, float distance = 0)
+        private IEnumerable<IConnector<Point>> SmoothPath(IReadOnlyList<IConnector<Point>> connectors)
         {
             if (connectors.Count == 0)
                 yield break;
-
-            if (distance > 0)
-                FindDistanceShortcut(connectors, distance);
-
+            
             for (var i = 0; i < connectors.Count; i++)
             {
                 var current = connectors[i];

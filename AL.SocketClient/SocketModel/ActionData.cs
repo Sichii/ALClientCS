@@ -55,7 +55,7 @@ namespace AL.SocketClient.SocketModel
         ///     Describes the source of the action. "attack", "3shot", etc
         /// </summary>
         [JsonProperty]
-        public string Source { get; init; } = null!;
+        public string? Source { get; init; }
 
         /// <summary>
         ///     The id of the entity that is the target of this action.
@@ -67,7 +67,7 @@ namespace AL.SocketClient.SocketModel
         ///     The type of action. Generally the same as <see cref="Source" />
         /// </summary>
         [JsonProperty]
-        public string Type { get; init; } = null!;
+        public string? Type { get; init; }
 
         [JsonProperty]
         public float X { get; init; }

@@ -44,7 +44,8 @@ namespace AL.SocketClient.Model
         public float Angle { get; protected set; }
 
         /// <summary>
-        ///     The conditions this entity has.
+        ///     The conditions this entity has. <br/>
+        ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         [JsonProperty("s")]
         public AwaitableDictionary<Core.Definitions.Condition, Condition> Conditions { get; protected set; } = new();
@@ -73,7 +74,7 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty]
         public string Id { get; init; } = null!;
-        public string In { get; protected set; } = null!;
+        public string? In { get; protected set; }
 
         public bool IsCompensated { get; private set; }
         public long LastDeltaTime { get; protected set; } = DeltaTime.Value;
@@ -176,7 +177,6 @@ namespace AL.SocketClient.Model
             Level = @new.Level;
             MoveNum = @new.MoveNum;
             Moving = @new.Moving;
-            Conditions = @new.Conditions;
             Speed = @new.Speed;
             X = @new.X;
             Y = @new.Y;
@@ -185,6 +185,8 @@ namespace AL.SocketClient.Model
             Frequency = @new.Frequency;
             MP = @new.MP;
             Resistance = @new.Resistance;
+            Target = @new.Target;
+            Conditions = @new.Conditions;
         }
 
         public void Update(long deltaTime)

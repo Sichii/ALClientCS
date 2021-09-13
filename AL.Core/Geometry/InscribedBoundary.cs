@@ -58,6 +58,34 @@ namespace AL.Core.Geometry
             };
         }
 
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="InscribedBoundary" /> class.
+        /// </summary>
+        /// <param name="rect">A rectangle.</param>
+        /// <param name="map">The map.</param>
+        /// <exception cref="ArgumentNullException">rect</exception>
+        /// <exception cref="ArgumentNullException">map</exception>
+        public InscribedBoundary(IRectangle rect, string map)
+        {
+            if (rect == null)
+                throw new ArgumentNullException(nameof(rect));
+
+            if (string.IsNullOrEmpty(map))
+                throw new ArgumentNullException(nameof(map));
+
+            Map = map;
+            X = rect.X;
+            Y = rect.Y;
+            Width = rect.Width;
+            Height = rect.Height;
+            Left = rect.Left;
+            Top = rect.Top;
+            Right = rect.Right;
+            Bottom = rect.Bottom;
+            Radius = Math.Min(Width, Height) / 2;
+            Vertices = rect.Vertices;
+        }
+
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public virtual bool Equals(ICircle? other) => ICircle.Comparer.Equals(this, other);
         public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);

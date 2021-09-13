@@ -9,7 +9,7 @@ namespace AL.SocketClient.Model
     ///     Represents all data for the bank system.
     /// </summary>
     [JsonObject]
-    public record BankInfo : IReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem?>>
+    public record BankInfo : IReadOnlyDictionary<BankPack, IReadOnlyList<Item?>>
     {
         /// <summary>
         ///     The amount of gold in the bank. (there is only 1 bank that holds gold)
@@ -21,22 +21,22 @@ namespace AL.SocketClient.Model
         ///     A dictionary of banks, and the items contained within each of those banks.
         /// </summary>
         [JsonIgnore]
-        internal IReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem?>> Items { get; init; } =
-            new Dictionary<BankPack, IReadOnlyList<InventoryItem?>>();
+        internal IReadOnlyDictionary<BankPack, IReadOnlyList<Item?>> Items { get; init; } =
+            new Dictionary<BankPack, IReadOnlyList<Item?>>();
 
-        public IReadOnlyList<InventoryItem?> this[BankPack bankPack] => Items[bankPack];
+        public IReadOnlyList<Item?> this[BankPack bankPack] => Items[bankPack];
         public int Count { get; }
         public IEnumerable<BankPack> Keys => Items.Keys;
-        public IEnumerable<IReadOnlyList<InventoryItem?>> Values => Items.Values;
+        public IEnumerable<IReadOnlyList<Item?>> Values => Items.Values;
 
         public bool ContainsKey(BankPack key) => Items.ContainsKey(key);
 
-        public IEnumerator<KeyValuePair<BankPack, IReadOnlyList<InventoryItem?>>> GetEnumerator() =>
+        public IEnumerator<KeyValuePair<BankPack, IReadOnlyList<Item?>>> GetEnumerator() =>
             Items.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public bool TryGetValue(BankPack key, out IReadOnlyList<InventoryItem?> value) =>
+        public bool TryGetValue(BankPack key, out IReadOnlyList<Item?> value) =>
             Items.TryGetValue(key, out value!);
     }
 }

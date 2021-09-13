@@ -1,7 +1,7 @@
 ﻿using System.Linq;
+using AL.APIClient.Model;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
-using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
@@ -419,7 +419,7 @@ namespace AL.Tests.SocketClient.Tests
         [TestMethod]
         public void DeserializeEntitiesDataTest()
         {
-            const string ENTITIES_DATA = @"{
+           const string ENTITIES_DATA = @"{
         ""players"": [
             {
                 ""hp"": 5245,
@@ -514,7 +514,57 @@ namespace AL.Tests.SocketClient.Tests
                 ""owner"": ""6314512450322432""
             }
         ],
-        ""monsters"": [],
+        ""monsters"": [
+            {
+               ""speed"":25.92,
+               ""hp"":85016,
+               ""mp"":96,
+               ""attack"":640,
+               ""xp"":131200,
+               ""frequency"":1.072,
+               ""max_hp"":86400,
+               ""id"":""1869105"",
+               ""x"":335.4667740677073,
+               ""y"":-2011.3367167663876,
+               ""moving"":true,
+               ""going_x"":363.95981679423096,
+               ""going_y"":-1874.8896953933113,
+               ""abs"":false,
+               ""move_num"":22612448,
+               ""angle"":78.20491891313337,
+               ""type"":""wolfie"",
+               ""cid"":8,
+               ""s"":{
+                  
+               },
+               ""level"":8
+            },
+            {
+               ""speed"":53.92,
+               ""hp"":85092,
+               ""mp"":96,
+               ""attack"":640,
+               ""xp"":131200,
+               ""frequency"":1.072,
+               ""max_hp"":86400,
+               ""id"":""1869147"",
+               ""x"":253.47654407885798,
+               ""y"":-1916.635392105144,
+               ""moving"":true,
+               ""going_x"":232,
+               ""going_y"":-1888,
+               ""abs"":false,
+               ""move_num"":22612446,
+               ""angle"":126.86989764584402,
+               ""type"":""wolfie"",
+               ""cid"":10,
+               ""target"":""makiz"",
+               ""s"":{
+                  
+               },
+               ""level"":8
+            }
+         ],
         ""type"": ""xy"",
         ""in"": ""main"",
         ""map"": ""main""
@@ -524,7 +574,7 @@ namespace AL.Tests.SocketClient.Tests
 
             Assert.IsNotNull(obj);
             Assert.IsTrue(obj.Players.Any());
-            Assert.IsFalse(obj.Monsters.Any());
+            Assert.IsTrue(obj.Monsters.Any());
         }
 
         [TestMethod]
@@ -1040,943 +1090,783 @@ namespace AL.Tests.SocketClient.Tests
         [TestMethod]
         public void DeserializeSecondHandsDataTest()
         {
-            const string SECONDHANDS_DATA = @"[
+           const string SECONDHANDS_DATA = @"[
    {
       ""q"":9999,
-      ""rid"":""AiHpv"",
-      ""m"":true,
+      ""rid"":""AbUEw"",
       ""name"":""vitscroll""
    },
    {
       ""q"":9999,
-      ""rid"":""fRLIh"",
+      ""rid"":""nTZVO"",
       ""name"":""vitscroll""
    },
    {
       ""q"":9999,
-      ""rid"":""DpiwS"",
+      ""rid"":""XG6Jb"",
       ""name"":""vitscroll""
    },
    {
       ""q"":9999,
-      ""rid"":""KHuE3"",
+      ""rid"":""WyHTq"",
       ""name"":""vitscroll""
    },
    {
-      ""rid"":""eUGAM"",
-      ""name"":""phelmet"",
+      ""q"":9999,
+      ""rid"":""QeSVe"",
+      ""name"":""vitscroll""
+   },
+   {
+      ""acc"":1,
+      ""rid"":""vZCHK"",
+      ""level"":3,
+      ""name"":""spear""
+   },
+   {
+      ""rid"":""HhP6B"",
+      ""level"":4,
+      ""name"":""spear""
+   },
+   {
+      ""rid"":""OMN9v"",
+      ""name"":""spear"",
       ""level"":0
    },
    {
-      ""rid"":""z61zI"",
-      ""name"":""phelmet"",
+      ""rid"":""oqdXN"",
+      ""name"":""spear"",
       ""level"":0
    },
    {
-      ""rid"":""cGJbX"",
-      ""name"":""phelmet"",
+      ""rid"":""TfufP"",
+      ""name"":""spear"",
       ""level"":0
    },
    {
-      ""rid"":""vES9n"",
-      ""name"":""phelmet"",
+      ""rid"":""POvvK"",
+      ""name"":""spear"",
       ""level"":0
    },
    {
-      ""rid"":""aEXqd"",
+      ""rid"":""ltmOX"",
+      ""name"":""spear"",
+      ""level"":0
+   },
+   {
+      ""rid"":""O8iy7"",
+      ""name"":""spear"",
+      ""level"":3
+   },
+   {
+      ""rid"":""CZRaL"",
+      ""name"":""spear"",
+      ""level"":3
+   },
+   {
+      ""rid"":""eGpeI"",
+      ""name"":""spear"",
+      ""level"":3
+   },
+   {
+      ""q"":100,
+      ""rid"":""mnlk6"",
+      ""name"":""smoke""
+   },
+   {
+      ""rid"":""BSaKC"",
       ""name"":""iceskates"",
       ""level"":0
    },
    {
-      ""rid"":""RfnU5"",
-      ""name"":""mushroomstaff"",
-      ""level"":0
-   },
-   {
-      ""rid"":""xorQt"",
-      ""m"":""Sinstrite"",
-      ""name"":""mushroomstaff"",
-      ""level"":0
-   },
-   {
-      ""q"":1770,
-      ""rid"":""F3aAu"",
-      ""name"":""vitscroll""
-   },
-   {
-      ""rid"":""sSxGD"",
-      ""name"":""fieldgen0""
-   },
-   {
-      ""rid"":""WMJbn"",
-      ""m"":""kakaka"",
-      ""name"":""fieldgen0""
-   },
-   {
-      ""rid"":""bB4bS"",
-      ""name"":""fieldgen0""
-   },
-   {
-      ""rid"":""KQ5vs"",
-      ""name"":""fieldgen0""
-   },
-   {
-      ""rid"":""tsxRG"",
-      ""name"":""fieldgen0""
-   },
-   {
-      ""rid"":""Smdxa"",
-      ""name"":""epyjamas"",
-      ""level"":0
-   },
-   {
-      ""rid"":""bGSgn"",
-      ""name"":""epyjamas"",
-      ""level"":0
-   },
-   {
-      ""rid"":""GZgKz"",
-      ""name"":""epyjamas"",
-      ""level"":0
-   },
-   {
-      ""rid"":""nKv8c"",
-      ""name"":""epyjamas"",
-      ""level"":0
-   },
-   {
-      ""rid"":""u6zTL"",
-      ""name"":""carrotsword"",
-      ""level"":3
-   },
-   {
-      ""rid"":""UiAxN"",
-      ""name"":""epyjamas"",
-      ""level"":2
-   },
-   {
-      ""rid"":""ZAtn0"",
-      ""name"":""epyjamas"",
-      ""level"":0
-   },
-   {
-      ""rid"":""IUfog"",
-      ""name"":""hhelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""neQIT"",
-      ""name"":""harmor"",
-      ""level"":0
-   },
-   {
-      ""rid"":""Tyc6B"",
-      ""name"":""harmor"",
-      ""level"":0
-   },
-   {
-      ""rid"":""NhBSo"",
-      ""name"":""harmor"",
-      ""level"":0
-   },
-   {
-      ""rid"":""pcfmX"",
-      ""name"":""hgloves"",
-      ""level"":0
-   },
-   {
-      ""rid"":""HGxD9"",
-      ""name"":""hgloves"",
-      ""level"":0
-   },
-   {
-      ""rid"":""NRGT2"",
-      ""name"":""hhelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""CDwFb"",
-      ""name"":""hgloves"",
-      ""level"":0
-   },
-   {
-      ""rid"":""XK80e"",
-      ""name"":""harmor"",
+      ""rid"":""tfZTD"",
+      ""name"":""gloves1"",
       ""level"":1
    },
    {
-      ""rid"":""dlCap"",
+      ""rid"":""umTgl"",
+      ""name"":""gloves1"",
+      ""level"":1
+   },
+   {
+      ""rid"":""trZ1v"",
+      ""name"":""gloves1"",
+      ""level"":1
+   },
+   {
+      ""rid"":""U8ZXU"",
+      ""name"":""coat1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""y3BUL"",
+      ""name"":""gphelmet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""JRUBm"",
+      ""name"":""gphelmet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""koSiM"",
+      ""name"":""gphelmet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""AF8vK"",
+      ""name"":""gphelmet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""ngvFD"",
+      ""name"":""gphelmet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""zwbmX"",
       ""name"":""phelmet"",
-      ""level"":2
-   },
-   {
-      ""rid"":""EIgbO"",
-      ""name"":""hpants"",
       ""level"":0
    },
    {
-      ""rid"":""lwt0J"",
-      ""name"":""hpants"",
+      ""rid"":""izTeD"",
+      ""name"":""phelmet"",
       ""level"":0
    },
    {
-      ""rid"":""fzTM9"",
-      ""name"":""harmor"",
+      ""rid"":""ooF6I"",
+      ""name"":""phelmet"",
       ""level"":0
    },
    {
-      ""rid"":""drpp3"",
-      ""name"":""hhelmet"",
+      ""rid"":""TIQtD"",
+      ""name"":""phelmet"",
       ""level"":0
    },
    {
-      ""rid"":""PTFAi"",
-      ""name"":""hhelmet"",
+      ""rid"":""KmIKk"",
+      ""name"":""phelmet"",
       ""level"":0
    },
    {
-      ""rid"":""QdOiA"",
-      ""name"":""hgloves"",
+      ""rid"":""ln2Xz"",
+      ""name"":""slimestaff"",
       ""level"":0
    },
    {
-      ""rid"":""Lxp7d"",
-      ""name"":""hgloves"",
+      ""rid"":""hs3bt"",
+      ""name"":""slimestaff"",
       ""level"":0
    },
    {
-      ""rid"":""QOppT"",
-      ""name"":""hpants"",
+      ""rid"":""iy4iy"",
+      ""name"":""slimestaff"",
       ""level"":0
    },
    {
-      ""rid"":""qL7zt"",
-      ""name"":""mushroomstaff"",
+      ""rid"":""dcHNZ"",
+      ""name"":""slimestaff"",
       ""level"":0
    },
    {
-      ""rid"":""tgTA1"",
-      ""name"":""hpants"",
+      ""rid"":""EnwZm"",
+      ""name"":""slimestaff"",
       ""level"":0
    },
    {
-      ""rid"":""k4BSV"",
-      ""name"":""frankypants"",
+      ""rid"":""TyFuv"",
+      ""name"":""coat1"",
       ""level"":0
    },
    {
-      ""rid"":""gnJwB"",
-      ""name"":""frankypants"",
+      ""rid"":""qXXqp"",
+      ""name"":""shoes1"",
       ""level"":0
    },
    {
-      ""rid"":""x90xz"",
-      ""name"":""frankypants"",
+      ""rid"":""cSZDo"",
+      ""name"":""shoes1"",
       ""level"":0
    },
    {
-      ""rid"":""Fepmz"",
-      ""name"":""hboots"",
-      ""level"":0
-   },
-   {
-      ""rid"":""ZhEEg"",
-      ""name"":""hboots"",
-      ""level"":0
-   },
-   {
-      ""rid"":""xqrrV"",
-      ""name"":""hhelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""apH4c"",
-      ""name"":""mushroomstaff"",
-      ""level"":0
-   },
-   {
-      ""rid"":""UoCcr"",
-      ""name"":""hpants"",
-      ""level"":0
-   },
-   {
-      ""rid"":""a0A6f"",
-      ""name"":""spear"",
-      ""level"":0
-   },
-   {
-      ""rid"":""n1sz8"",
-      ""name"":""gphelmet"",
-      ""level"":0
-   },
-   {
-      ""q"":2898,
-      ""rid"":""sdbyE"",
-      ""name"":""spores""
-   },
-   {
-      ""rid"":""tS095"",
-      ""name"":""harmor"",
-      ""level"":0
-   },
-   {
-      ""rid"":""WcVT3"",
-      ""name"":""spear"",
-      ""level"":0
-   },
-   {
-      ""rid"":""xovB9"",
-      ""name"":""spear"",
-      ""level"":0
-   },
-   {
-      ""rid"":""IawoD"",
-      ""name"":""frankypants"",
-      ""level"":0
-   },
-   {
-      ""rid"":""zPInq"",
-      ""name"":""mushroomstaff"",
-      ""level"":0
-   },
-   {
-      ""rid"":""UzeCh"",
-      ""name"":""gphelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""yz1Gc"",
-      ""name"":""gphelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""D8VTX"",
-      ""name"":""gphelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""q9oaO"",
-      ""name"":""gphelmet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""aV13l"",
-      ""name"":""hboots"",
-      ""level"":0
-   },
-   {
-      ""rid"":""hZoe2"",
-      ""name"":""hboots"",
-      ""level"":0
-   },
-   {
-      ""rid"":""rlGCE"",
-      ""name"":""hboots"",
-      ""level"":0
-   },
-   {
-      ""rid"":""hiG4l"",
-      ""name"":""spear"",
-      ""level"":0
-   },
-   {
-      ""rid"":""SFF1H"",
-      ""name"":""woodensword"",
-      ""level"":0
-   },
-   {
-      ""rid"":""BgKTM"",
-      ""name"":""quiver"",
-      ""level"":0
-   },
-   {
-      ""rid"":""o799u"",
-      ""name"":""quiver"",
-      ""level"":0
-   },
-   {
-      ""rid"":""Ptq7i"",
-      ""name"":""quiver"",
-      ""level"":0
-   },
-   {
-      ""rid"":""Jr5A3"",
+      ""rid"":""cc3T4"",
       ""name"":""hpamulet"",
       ""level"":0
    },
    {
-      ""q"":100,
-      ""rid"":""i0Z0E"",
-      ""name"":""smoke""
+      ""rid"":""I8H4R"",
+      ""name"":""hpbelt"",
+      ""level"":0
    },
    {
-      ""rid"":""MiinB"",
+      ""rid"":""p228L"",
       ""name"":""hpamulet"",
       ""level"":0
    },
    {
-      ""rid"":""pXHTL"",
-      ""name"":""stramulet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""MOiHL"",
-      ""name"":""stramulet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""k8bVZ"",
-      ""name"":""stramulet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""uzGoG"",
-      ""name"":""stramulet"",
-      ""level"":0
-   },
-   {
-      ""rid"":""K6bTN"",
+      ""rid"":""ZOQcT"",
       ""name"":""hpbelt"",
       ""level"":0
    },
    {
-      ""rid"":""AkUx9"",
+      ""rid"":""TxUwW"",
+      ""name"":""hpamulet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""SA7gv"",
+      ""name"":""hpamulet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""Pmzko"",
+      ""level"":2,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""Lu6dU"",
+      ""level"":1,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""TksLH"",
+      ""level"":1,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""NPX1x"",
       ""name"":""hpbelt"",
       ""level"":0
    },
    {
-      ""rid"":""i6AzD"",
-      ""name"":""sword"",
-      ""level"":0
-   },
-   {
-      ""rid"":""X8Wdz"",
-      ""name"":""rednose"",
+      ""rid"":""Qr65x"",
+      ""name"":""hpbelt"",
       ""level"":0
    },
    {
       ""q"":100,
-      ""rid"":""BEmuy"",
+      ""rid"":""kJVM6"",
       ""name"":""smoke""
    },
    {
-      ""q"":100,
-      ""rid"":""LqkDs"",
-      ""name"":""smoke""
+      ""rid"":""amZtT"",
+      ""level"":6,
+      ""name"":""mushroomstaff""
    },
    {
-      ""q"":100,
-      ""rid"":""rmVyu"",
-      ""name"":""smoke""
+      ""rid"":""KgdHb"",
+      ""level"":2,
+      ""name"":""hpbelt""
    },
    {
-      ""rid"":""Z166s"",
-      ""name"":""frankypants"",
-      ""level"":5
+      ""acc"":1,
+      ""rid"":""XEDFV"",
+      ""name"":""blade"",
+      ""level"":7
    },
    {
-      ""rid"":""yE0TN"",
-      ""name"":""frankypants"",
+      ""rid"":""TJuv3"",
+      ""level"":2,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""RTRg8"",
+      ""level"":2,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""TSO0d"",
+      ""name"":""iceskates"",
       ""level"":0
    },
    {
-      ""q"":16,
-      ""rid"":""EzR3a"",
+      ""rid"":""EdNLt"",
+      ""level"":2,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""NTJtl"",
+      ""level"":2,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""UbpRR"",
+      ""level"":2,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""BtoJE"",
+      ""level"":2,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""bdvGU"",
+      ""name"":""pants1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""EpKEV"",
+      ""name"":""pants1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""DckSS"",
+      ""level"":1,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""qHpUH"",
+      ""level"":1,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""bSyTO"",
+      ""level"":1,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""geU0E"",
+      ""level"":1,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""eqB5V"",
+      ""level"":1,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""MCS8K"",
+      ""level"":2,
+      ""name"":""hpamulet""
+   },
+   {
+      ""rid"":""LSF19"",
+      ""level"":1,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""kfln2"",
+      ""level"":1,
+      ""name"":""hpbelt""
+   },
+   {
+      ""q"":100,
+      ""rid"":""ZmsRJ"",
+      ""name"":""smoke""
+   },
+   {
+      ""q"":100,
+      ""rid"":""Fsslg"",
+      ""name"":""smoke""
+   },
+   {
+      ""q"":100,
+      ""rid"":""KZoEt"",
+      ""name"":""smoke""
+   },
+   {
+      ""q"":110,
+      ""rid"":""NbTWc"",
       ""name"":""snowball""
    },
    {
-      ""rid"":""RNz9o"",
-      ""name"":""rednose"",
+      ""rid"":""kan4i"",
+      ""name"":""iceskates"",
       ""level"":0
    },
    {
-      ""rid"":""NDDxt"",
-      ""m"":""Vytak"",
+      ""rid"":""QCH06"",
+      ""name"":""iceskates"",
+      ""level"":0
+   },
+   {
+      ""rid"":""q2L9L"",
+      ""name"":""iceskates"",
+      ""level"":0
+   },
+   {
+      ""rid"":""CwaNM"",
+      ""name"":""warmscarf"",
+      ""level"":0
+   },
+   {
+      ""rid"":""evvAw"",
+      ""name"":""warmscarf"",
+      ""level"":0
+   },
+   {
+      ""rid"":""tTbM7"",
+      ""name"":""warmscarf"",
+      ""level"":0
+   },
+   {
+      ""rid"":""nSQXM"",
+      ""name"":""hpamulet"",
+      ""level"":0
+   },
+   {
+      ""rid"":""T36WK"",
+      ""name"":""gloves1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""m8thN"",
+      ""name"":""gloves1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""gF4tD"",
+      ""name"":""helmet1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""uk2Q2"",
+      ""name"":""coat1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""JokEK"",
+      ""name"":""coat1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""ZtevX"",
+      ""name"":""shoes1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""xx4OI"",
+      ""name"":""pants1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""XlWb2"",
+      ""name"":""coat1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""f79JR"",
+      ""name"":""pants1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""hlhHJ"",
+      ""name"":""shoes1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""bLtxR"",
+      ""name"":""shoes1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""DaCW3"",
+      ""name"":""helmet1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""KkCJT"",
+      ""name"":""helmet1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""JcXAo"",
+      ""name"":""pants1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""euF3t"",
+      ""name"":""gloves1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""EFO24"",
+      ""name"":""helmet1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""GS0uD"",
+      ""name"":""helmet1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""w7cTk"",
+      ""name"":""gloves1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""uW9ga"",
+      ""level"":1,
+      ""name"":""hpbelt""
+   },
+   {
+      ""rid"":""mbr3o"",
+      ""name"":""gloves1"",
+      ""level"":0
+   },
+   {
+      ""rid"":""Pg120"",
+      ""m"":""MageMain"",
       ""name"":""hpbelt"",
       ""level"":0
    },
    {
-      ""rid"":""ZlfrB"",
-      ""name"":""candycanesword"",
-      ""level"":0
+      ""q"":1,
+      ""rid"":""kOp5f"",
+      ""name"":""elixirvit0""
    },
    {
-      ""rid"":""NiWlm"",
-      ""m"":""Malkav"",
-      ""name"":""stramulet"",
-      ""level"":0
+      ""rid"":""sdToZ"",
+      ""name"":""dagger"",
+      ""level"":6
    },
    {
-      ""rid"":""Ra35N"",
-      ""name"":""cape"",
-      ""level"":0
+      ""rid"":""vwKKn"",
+      ""stat_type"":""int"",
+      ""name"":""helmet1"",
+      ""level"":4
    },
    {
-      ""rid"":""mhaRt"",
-      ""name"":""cape"",
-      ""level"":0
+      ""rid"":""SrzcQ"",
+      ""stat_type"":""int"",
+      ""name"":""shoes1"",
+      ""level"":4
    },
    {
-      ""rid"":""IvTxb"",
-      ""name"":""cape"",
-      ""level"":0
+      ""rid"":""NLIpA"",
+      ""stat_type"":""int"",
+      ""name"":""helmet1"",
+      ""level"":4
    },
    {
-      ""rid"":""tgiqd"",
+      ""rid"":""EHm2l"",
       ""name"":""dagger"",
       ""level"":0
    },
    {
-      ""rid"":""FbPpR"",
-      ""name"":""spear"",
+      ""rid"":""GC5Dc"",
+      ""name"":""dagger"",
       ""level"":0
    },
    {
-      ""rid"":""Qq10U"",
-      ""name"":""sword"",
+      ""rid"":""gA0Id"",
+      ""name"":""dagger"",
       ""level"":0
    },
    {
-      ""rid"":""hT4te"",
-      ""name"":""sword"",
+      ""rid"":""S6SqL"",
+      ""name"":""xmassweater"",
       ""level"":0
    },
    {
-      ""rid"":""AIZPB"",
-      ""name"":""sword"",
+      ""rid"":""Op6FA"",
+      ""name"":""xmassweater"",
       ""level"":0
    },
    {
-      ""name"":""hpamulet"",
-      ""level"":0,
-      ""rid"":""iwTGT""
+      ""rid"":""CLw6X"",
+      ""name"":""xmassweater"",
+      ""level"":0
    },
    {
+      ""rid"":""veZEh"",
+      ""name"":""xmassweater"",
+      ""level"":0
+   },
+   {
+      ""rid"":""r7UqI"",
+      ""name"":""xmassweater"",
+      ""level"":0
+   },
+   {
+      ""rid"":""Gdzuh"",
+      ""name"":""dagger"",
+      ""level"":0
+   },
+   {
+      ""rid"":""QKhBF"",
+      ""name"":""dagger"",
+      ""level"":0
+   },
+   {
+      ""rid"":""o10eu"",
+      ""name"":""fieldgen0""
+   },
+   {
+      ""rid"":""nA77u"",
+      ""name"":""fieldgen0""
+   },
+   {
+      ""rid"":""vyiyg"",
+      ""name"":""fieldgen0""
+   },
+   {
+      ""rid"":""J4ylH"",
+      ""name"":""fieldgen0""
+   },
+   {
+      ""rid"":""pqieN"",
+      ""name"":""fieldgen0""
+   },
+   {
+      ""rid"":""L8rTC"",
       ""name"":""ringsj"",
-      ""level"":0,
-      ""rid"":""Iyyxm""
+      ""level"":0
    },
    {
-      ""name"":""hpbelt"",
-      ""level"":0,
-      ""rid"":""ovfss""
-   },
-   {
-      ""name"":""hpamulet"",
-      ""level"":0,
-      ""rid"":""Sa3Bd""
-   },
-   {
-      ""name"":""dexamulet"",
-      ""level"":0,
-      ""rid"":""qpuS7""
-   },
-   {
+      ""rid"":""XkSR2"",
       ""name"":""ringsj"",
-      ""level"":0,
-      ""rid"":""GNpgQ""
+      ""level"":0
    },
    {
-      ""name"":""hpamulet"",
-      ""level"":0,
-      ""rid"":""Sv1dC""
+      ""rid"":""vAOsO"",
+      ""name"":""ringsj"",
+      ""level"":0
    },
    {
-      ""name"":""hpbelt"",
-      ""level"":0,
-      ""rid"":""szPuH""
+      ""rid"":""n6U1R"",
+      ""name"":""ringsj"",
+      ""level"":0
    },
    {
-      ""name"":""throwingstars"",
-      ""level"":0,
-      ""rid"":""V57fo""
-   },
-   {
-      ""name"":""throwingstars"",
-      ""level"":0,
-      ""rid"":""z7V90""
-   },
-   {
-      ""name"":""throwingstars"",
-      ""level"":0,
-      ""rid"":""hhFDn""
-   },
-   {
-      ""name"":""throwingstars"",
-      ""level"":0,
-      ""rid"":""q7sHS""
-   },
-   {
-      ""name"":""throwingstars"",
-      ""level"":0,
-      ""rid"":""ku6Z9""
-   },
-   {
-      ""name"":""gloves1"",
-      ""level"":0,
-      ""rid"":""eWeVq""
-   },
-   {
-      ""name"":""carrotsword"",
-      ""level"":0,
-      ""rid"":""fEUAD""
-   },
-   {
-      ""name"":""carrotsword"",
-      ""level"":0,
-      ""rid"":""hQSTl""
-   },
-   {
-      ""name"":""carrotsword"",
-      ""level"":0,
-      ""rid"":""TXBFp""
-   },
-   {
-      ""name"":""carrotsword"",
-      ""level"":0,
-      ""rid"":""r60XL""
-   },
-   {
-      ""name"":""strring"",
-      ""level"":0,
-      ""rid"":""lnmCv""
-   },
-   {
-      ""name"":""coat1"",
-      ""level"":0,
-      ""rid"":""NhLt0""
+      ""rid"":""wqtSq"",
+      ""name"":""ringsj"",
+      ""level"":0
    },
    {
       ""name"":""quiver"",
-      ""level"":0,
-      ""rid"":""RfixG""
+      ""level"":2,
+      ""rid"":""BZ7yu""
    },
    {
-      ""name"":""helmet1"",
-      ""level"":0,
-      ""rid"":""TPCmp""
+      ""name"":""quiver"",
+      ""level"":3,
+      ""rid"":""dF7Ac""
    },
    {
-      ""name"":""beewings"",
-      ""q"":914,
-      ""m"":""BadgerHealer"",
-      ""rid"":""DAE8s""
+      ""name"":""quiver"",
+      ""level"":3,
+      ""rid"":""UA1Jq""
    },
    {
-      ""name"":""pants1"",
-      ""level"":0,
-      ""rid"":""rXBJe""
+      ""name"":""quiver"",
+      ""level"":3,
+      ""rid"":""xWA2T""
    },
    {
-      ""name"":""shoes1"",
-      ""level"":0,
-      ""rid"":""nBTsA""
+      ""name"":""quiver"",
+      ""level"":3,
+      ""rid"":""e5A02""
    },
    {
-      ""name"":""helmet1"",
-      ""level"":0,
-      ""rid"":""rCGE5""
+      ""name"":""quiver"",
+      ""level"":2,
+      ""rid"":""vQrJf""
    },
    {
-      ""name"":""helmet1"",
-      ""level"":0,
-      ""rid"":""rHcXF""
+      ""name"":""quiver"",
+      ""level"":2,
+      ""rid"":""l4yq2""
    },
    {
-      ""name"":""coat1"",
-      ""level"":0,
-      ""rid"":""Tqpky""
+      ""name"":""quiver"",
+      ""level"":2,
+      ""rid"":""kGiJR""
    },
    {
-      ""name"":""gloves1"",
-      ""level"":0,
-      ""rid"":""mFqi5""
+      ""name"":""quiver"",
+      ""level"":2,
+      ""rid"":""VHD9E""
    },
    {
-      ""name"":""shoes1"",
-      ""level"":0,
-      ""rid"":""RWJWC""
+      ""name"":""quiver"",
+      ""level"":3,
+      ""rid"":""PTAz4""
    },
    {
-      ""name"":""coat1"",
+      ""name"":""cclaw"",
       ""level"":0,
-      ""rid"":""aoRJr""
+      ""rid"":""fUicB""
    },
    {
-      ""name"":""shoes1"",
+      ""name"":""stinger"",
       ""level"":0,
-      ""rid"":""yzrLQ""
+      ""rid"":""diVWD""
    },
    {
-      ""name"":""pants1"",
+      ""name"":""cclaw"",
       ""level"":0,
-      ""rid"":""Qyn5h""
+      ""rid"":""XzW5i""
    },
    {
-      ""name"":""coat1"",
+      ""name"":""cclaw"",
       ""level"":0,
-      ""rid"":""ZvA7a""
+      ""rid"":""FAhKo""
    },
    {
-      ""name"":""shoes1"",
+      ""name"":""cclaw"",
       ""level"":0,
-      ""rid"":""QEDqk""
+      ""rid"":""Ceqnx""
    },
    {
-      ""name"":""shoes1"",
+      ""name"":""cclaw"",
       ""level"":0,
-      ""rid"":""PcPLn""
-   },
-   {
-      ""name"":""helmet1"",
-      ""level"":0,
-      ""rid"":""DT5ui""
-   },
-   {
-      ""name"":""pants1"",
-      ""level"":0,
-      ""rid"":""rTKe4""
-   },
-   {
-      ""name"":""gloves1"",
-      ""level"":0,
-      ""rid"":""vm7pN""
-   },
-   {
-      ""name"":""helmet1"",
-      ""level"":0,
-      ""p"":""shiny"",
-      ""rid"":""w0Mbx""
-   },
-   {
-      ""name"":""pants1"",
-      ""level"":0,
-      ""rid"":""spXon""
-   },
-   {
-      ""name"":""gloves1"",
-      ""level"":0,
-      ""rid"":""rpk2d""
-   },
-   {
-      ""name"":""pants1"",
-      ""level"":0,
-      ""rid"":""Lcl52""
-   },
-   {
-      ""name"":""gloves1"",
-      ""level"":0,
-      ""rid"":""abuRs""
-   },
-   {
-      ""name"":""dexamulet"",
-      ""level"":0,
-      ""rid"":""g4ffq""
-   },
-   {
-      ""name"":""swifty"",
-      ""level"":0,
-      ""rid"":""RzAeG""
-   },
-   {
-      ""name"":""swifty"",
-      ""level"":0,
-      ""rid"":""oOc2J""
-   },
-   {
-      ""name"":""ringsj"",
-      ""level"":0,
-      ""rid"":""k7i2X""
-   },
-   {
-      ""name"":""dexamulet"",
-      ""level"":0,
-      ""rid"":""nBX8p""
+      ""rid"":""uGzyP""
    },
    {
       ""q"":3,
       ""name"":""ijx"",
-      ""rid"":""yNvAl""
+      ""rid"":""kJsPd""
    },
    {
-      ""name"":""dstones"",
-      ""q"":146,
-      ""rid"":""kTB8P""
-   },
-   {
-      ""name"":""ringsj"",
+      ""name"":""stinger"",
       ""level"":0,
-      ""rid"":""TFNsB""
-   },
-   {
-      ""name"":""ringsj"",
-      ""level"":0,
-      ""rid"":""E2pfC""
-   },
-   {
-      ""name"":""smoke"",
-      ""q"":100,
-      ""rid"":""PkTXG""
-   },
-   {
-      ""name"":""elixirstr0"",
-      ""q"":46,
-      ""rid"":""LB54l""
-   },
-   {
-      ""name"":""phelmet"",
-      ""level"":0,
-      ""rid"":""pCUv7""
-   },
-   {
-      ""name"":""frogt"",
-      ""q"":12,
-      ""m"":""cclair"",
-      ""rid"":""ExdAU""
-   },
-   {
-      ""level"":1,
-      ""name"":""quiver"",
-      ""rid"":""KreIy""
-   },
-   {
-      ""name"":""quiver"",
-      ""level"":1,
-      ""rid"":""oovJ6""
-   },
-   {
-      ""level"":1,
-      ""name"":""strring"",
-      ""rid"":""NIGT2""
-   },
-   {
-      ""name"":""strring"",
-      ""level"":0,
-      ""rid"":""pdJWl""
+      ""rid"":""TeEAP""
    },
    {
       ""name"":""crabclaw"",
-      ""q"":2,
-      ""rid"":""xPG2Z""
-   },
-   {
-      ""name"":""carrotsword"",
-      ""level"":0,
-      ""rid"":""JIx4H""
-   },
-   {
-      ""name"":""elixirstr2"",
-      ""q"":1,
-      ""rid"":""pmZUd""
+      ""q"":4,
+      ""rid"":""bx3NL""
    },
    {
       ""name"":""stinger"",
       ""level"":0,
-      ""rid"":""kxs9a""
-   },
-   {
-      ""name"":""strring"",
-      ""level"":0,
-      ""rid"":""nwr6B""
-   },
-   {
-      ""name"":""swifty"",
-      ""level"":0,
-      ""rid"":""GeIao""
-   },
-   {
-      ""name"":""coat1"",
-      ""level"":0,
-      ""rid"":""SGrXu""
-   },
-   {
-      ""name"":""warmscarf"",
-      ""level"":0,
-      ""rid"":""kycxC""
-   },
-   {
-      ""name"":""swifty"",
-      ""level"":0,
-      ""rid"":""RzmLZ""
-   },
-   {
-      ""name"":""dexamulet"",
-      ""level"":0,
-      ""rid"":""yqeqh""
-   },
-   {
-      ""name"":""dexamulet"",
-      ""level"":0,
-      ""rid"":""IiNPs""
-   },
-   {
-      ""name"":""sstinger"",
-      ""q"":1,
-      ""rid"":""vlQQf""
+      ""m"":""Terazarrior"",
+      ""rid"":""unIIJ""
    },
    {
       ""name"":""stinger"",
       ""level"":0,
-      ""rid"":""CcLbN""
+      ""rid"":""W5JLz""
    },
    {
-      ""name"":""elixirdex0"",
-      ""q"":14,
-      ""rid"":""xzOOD""
-   },
-   {
-      ""name"":""elixirstr1"",
-      ""q"":2,
-      ""rid"":""C5tC4""
+      ""name"":""spores"",
+      ""q"":23,
+      ""rid"":""TJJyv""
    },
    {
       ""name"":""stinger"",
       ""level"":0,
-      ""rid"":""r6Hhe""
+      ""rid"":""pXHt2""
    },
    {
-      ""name"":""swifty"",
+      ""name"":""mushroomstaff"",
       ""level"":0,
-      ""rid"":""e07Nq""
+      ""rid"":""Bl7UX""
    },
    {
-      ""name"":""elixirdex1"",
-      ""q"":1,
-      ""rid"":""bteOq""
-   },
-   {
-      ""name"":""stinger"",
+      ""name"":""throwingstars"",
       ""level"":0,
-      ""rid"":""wwA4b""
+      ""rid"":""DA1Al""
    },
    {
-      ""name"":""elixirvit0"",
-      ""q"":9,
-      ""rid"":""Zi3Ci""
-   },
-   {
-      ""name"":""strbelt"",
+      ""name"":""vitearring"",
       ""level"":0,
-      ""rid"":""UAH3h""
-   },
-   {
-      ""name"":""strbelt"",
-      ""level"":0,
-      ""rid"":""GKZiN""
-   },
-   {
-      ""name"":""elixirint0"",
-      ""q"":8,
-      ""rid"":""hgb9b""
-   },
-   {
-      ""name"":""elixirdex2"",
-      ""q"":1,
-      ""rid"":""R6PTt""
+      ""m"":""Dooba"",
+      ""rid"":""lUz2c""
    }
 ]";
 
-            var obj = JsonConvert.DeserializeObject<SlotItem[]>(SECONDHANDS_DATA);
+            var obj = JsonConvert.DeserializeObject<TradeItem[]>(SECONDHANDS_DATA);
 
             Assert.IsNotNull(obj);
             Assert.IsTrue(obj.Any());

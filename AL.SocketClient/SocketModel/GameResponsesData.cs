@@ -80,7 +80,7 @@ namespace AL.SocketClient.SocketModel
         ///     The quantity of the item bought or sent.
         /// </summary>
         [JsonProperty("q")]
-        public int Quantity { get; init; }
+        public int Quantity { get; init; } = 1;
 
         /// <summary>
         ///     The reason you are unable to enter the bank.

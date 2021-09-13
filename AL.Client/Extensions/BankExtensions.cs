@@ -18,18 +18,18 @@ namespace AL.Client.Extensions
         /// </summary>
         /// <param name="bank">The client's <see cref="BankInfo" />.</param>
         /// <returns>
-        ///     <see cref="IEnumerable{T}" /> of <see cref="IndexedBankItem" /> <br />
+        ///     <see cref="IEnumerable{T}" /> of <see cref="BankIndexer" /> <br />
         ///     A lazy enumeration of banked items.
         /// </returns>
         /// <exception cref="ArgumentNullException">bank</exception>
-        public static IEnumerable<IndexedBankItem> AsIndexed(this BankInfo bank)
+        public static IEnumerable<BankIndexer> AsIndexed(this BankInfo bank)
         {
             if (bank == null)
                 throw new ArgumentNullException(nameof(bank));
 
             return bank.SelectMany(kvp => kvp.Value.Select((item, index) => item == null
                     ? null
-                    : new IndexedBankItem
+                    : new BankIndexer
                     {
                         BankPack = kvp.Key,
                         Index = index,
@@ -88,14 +88,14 @@ namespace AL.Client.Extensions
         ///     Finds the first item in the bank that is not null, and meets the predicate conditions.
         /// </summary>
         /// <param name="bank">The client's <see cref="BankInfo" />.</param>
-        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem" />.</param>
+        /// <param name="predicate">A function that returns true or false for a given <see cref="Item" />.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
         /// </returns>
         /// <exception cref="ArgumentNullException">bank</exception>
         /// <exception cref="ArgumentNullException">predicate</exception>
-        public static IndexedBankItem? FindItem(this BankInfo bank, Func<InventoryItem, bool> predicate)
+        public static BankIndexer? FindItem(this BankInfo bank, Func<Item, bool> predicate)
         {
             if (bank == null)
                 throw new ArgumentNullException(nameof(bank));
@@ -110,7 +110,7 @@ namespace AL.Client.Extensions
                 if (index == -1)
                     continue;
 
-                return new IndexedBankItem
+                return new BankIndexer
                 {
                     BankPack = bankPack,
                     Index = index,
@@ -133,11 +133,11 @@ namespace AL.Client.Extensions
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
         /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
         /// <returns>
-        ///     <see cref="IndexedBankItem" /> <br />
+        ///     <see cref="BankIndexer" /> <br />
         ///     The item, and information about what bank and slot it is in, or <c>null</c> if no item was found.
         /// </returns>
         /// <exception cref="ArgumentNullException">bank</exception>
-        public static IndexedBankItem? FindItem(
+        public static BankIndexer? FindItem(
             this BankInfo bank,
             string? itemName = null,
             int? level = null,
@@ -175,7 +175,7 @@ namespace AL.Client.Extensions
                 if (index == -1)
                     continue;
 
-                return new IndexedBankItem
+                return new BankIndexer
                 {
                     BankPack = bankPack,
                     Index = index,

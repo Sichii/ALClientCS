@@ -177,53 +177,101 @@ namespace AL.Core.Definitions
     public enum BankPack
     {
         None,
+        [JsonProperty("items0")]
         Items0,
+        [JsonProperty("items1")]
         Items1,
+        [JsonProperty("items2")]
         Items2,
+        [JsonProperty("items3")]
         Items3,
+        [JsonProperty("items4")]
         Items4,
+        [JsonProperty("items5")]
         Items5,
+        [JsonProperty("items6")]
         Items6,
+        [JsonProperty("items7")]
         Items7,
+        [JsonProperty("items8")]
         Items8,
+        [JsonProperty("items9")]
         Items9,
+        [JsonProperty("items10")]
         Items10,
+        [JsonProperty("items11")]
         Items11,
+        [JsonProperty("items12")]
         Items12,
+        [JsonProperty("items13")]
         Items13,
+        [JsonProperty("items14")]
         Items14,
+        [JsonProperty("items15")]
         Items15,
+        [JsonProperty("items16")]
         Items16,
+        [JsonProperty("items17")]
         Items17,
+        [JsonProperty("items18")]
         Items18,
+        [JsonProperty("items19")]
         Items19,
+        [JsonProperty("items20")]
         Items20,
+        [JsonProperty("items21")]
         Items21,
+        [JsonProperty("items22")]
         Items22,
+        [JsonProperty("items23")]
         Items23,
+        [JsonProperty("items24")]
         Items24,
+        [JsonProperty("items25")]
         Items25,
+        [JsonProperty("items26")]
         Items26,
+        [JsonProperty("items27")]
         Items27,
+        [JsonProperty("items28")]
         Items28,
+        [JsonProperty("items29")]
         Items29,
+        [JsonProperty("items30")]
         Items30,
+        [JsonProperty("items31")]
         Items31,
+        [JsonProperty("items32")]
         Items32,
+        [JsonProperty("items33")]
         Items33,
+        [JsonProperty("items34")]
         Items34,
+        [JsonProperty("items35")]
         Items35,
+        [JsonProperty("items36")]
         Items36,
+        [JsonProperty("items37")]
         Items37,
+        [JsonProperty("items38")]
         Items38,
+        [JsonProperty("items39")]
         Items39,
+        [JsonProperty("items40")]
         Items40,
+        [JsonProperty("items41")]
         Items41,
+        [JsonProperty("items42")]
         Items42,
+        [JsonProperty("items43")]
         Items43,
+        [JsonProperty("items44")]
         Items44,
+        [JsonProperty("items45")]
         Items45,
+        [JsonProperty("items46")]
         Items46,
+        [JsonProperty("items47")]
         Items47
     }
 
@@ -265,6 +313,7 @@ namespace AL.Core.Definitions
 
         [EnumMember(Value = "licenced")]
         Licensed,
+        Magiport,
         Marked,
         MassProduction,
         MassProductionPP,
@@ -274,6 +323,8 @@ namespace AL.Core.Definitions
         MonsterHunt,
         MShield,
         MTangle,
+        [EnumMember(Value = "multi_freeze")]
+        MultiFreeze,
         NewcomersBlessing,
         NotVerified,
         [EnumMember(Value = "penalty_cd")]

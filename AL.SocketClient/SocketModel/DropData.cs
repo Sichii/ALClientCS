@@ -30,9 +30,9 @@ namespace AL.SocketClient.SocketModel
         public string Map { get; set; } = null!;
 
         /// <summary>
-        ///     Whether or not the contents of this chest will be distributed to the party.
+        ///     If populated, this is the party this chest dropped for.
         /// </summary>
-        public bool Party { get; set; }
+        public string? Party { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);

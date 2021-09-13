@@ -49,10 +49,11 @@ namespace AL.Core.Extensions
 
             descriminant = (float)Math.Sqrt(descriminant);
 
-            if (descriminant > 0)
+            if (descriminant >= 0)
             {
                 var t = (-lne - descriminant) / (2 * sqr);
 
+                //if there's an intersection, we only care about the close one
                 if (t is >= 0 and <= 1)
                     return new Point(start.X + t * dx, start.Y + t * dy);
             }
@@ -95,7 +96,7 @@ namespace AL.Core.Extensions
             if (point == null)
                 throw new ArgumentNullException(nameof(point));
 
-            return point.Distance(circle) > circle.Radius;
+            return point.Distance(circle) < circle.Radius;
         }
 
         /// <summary>

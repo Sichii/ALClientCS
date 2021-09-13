@@ -26,20 +26,20 @@ namespace AL.SocketClient.Json.Converters
             if (obj == null)
                 return null;
 
-            var dic = new Dictionary<BankPack, IReadOnlyList<InventoryItem?>>();
+            var dic = new Dictionary<BankPack, IReadOnlyList<Item?>>();
             var gold = 0L;
 
             foreach ((var key, var token) in obj)
                 if (key == "gold")
                     gold = token!.Value<long>();
                 else if (EnumHelper.TryParse(key, out BankPack bankPack))
-                    dic[bankPack] = token!.ToObject<InventoryItem[]>(serializer)
+                    dic[bankPack] = token!.ToObject<Item[]>(serializer)
                                     ?? throw new InvalidOperationException("Failed to deserialize items.");
 
             return new BankInfo
             {
                 Gold = gold,
-                Items = new ReadOnlyDictionary<BankPack, IReadOnlyList<InventoryItem?>>(dic)
+                Items = new ReadOnlyDictionary<BankPack, IReadOnlyList<Item?>>(dic)
             };
         }
 

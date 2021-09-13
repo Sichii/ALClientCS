@@ -29,6 +29,17 @@ namespace AL.Tests.Pathfinding.Tests
         private readonly List<IPoint> EndPoints = new() { new Point(1891, -47) };
 
         [TestMethod]
+        public async Task PathfindToEnclosedPointTest()
+        {
+            var startLocation = new Location("main", 0, 0);
+            var location = new Location("main", -35, -162);
+
+            var path = await PathFinder.FindPath("main", startLocation, new[] { new MapCircle(location, 400) }, true).ToArrayAsync();
+
+            Assert.IsFalse(path.Any());
+        }
+        
+        [TestMethod]
         public async Task FindAnyPathBenchTest()
         {
             var timer = new Stopwatch();

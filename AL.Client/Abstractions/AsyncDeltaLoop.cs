@@ -67,7 +67,7 @@ namespace AL.Client.Abstractions
                 Sync.Release();
             }
 
-            while (!Canceller.IsCancellationRequested)
+            while (!Canceller.Token.IsCancellationRequested)
             {
                 var delta = DeltaTime.Value;
 

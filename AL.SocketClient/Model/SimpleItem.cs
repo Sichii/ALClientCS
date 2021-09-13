@@ -9,6 +9,6 @@ namespace AL.SocketClient.Model
     {
         public string Name { get; init; } = null!;
         [JsonProperty("q")]
-        public int Quantity { get; init; }
+        public int Quantity { get; init; } = 1;
     }
 }

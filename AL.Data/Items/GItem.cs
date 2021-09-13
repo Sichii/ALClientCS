@@ -36,6 +36,11 @@ namespace AL.Data.Items
         /// </summary>
         [JsonProperty("damage")]
         public DamageType DamageType { get; init; }
+        
+        /// <summary>
+        ///     If this item is an elixir, this is the duration of the elixir's effect in hours.
+        /// </summary>
+        public float? DurationHrs { get; init; }
 
         /// <summary>
         ///     If populated, this item can be exchanged at this NPC.
@@ -63,6 +68,11 @@ namespace AL.Data.Items
         /// </summary>
         [JsonProperty("g")]
         public float GoldValue { get; init; }
+
+        /// <summary>
+        ///     If populated, this is the grade of the item. (scrolls, and various other items)
+        /// </summary>
+        public int? Grade { get; set; }
 
         /// <summary>
         ///     <b>NULLABLE</b>. If populated, this item is compoundable or upgradeable.

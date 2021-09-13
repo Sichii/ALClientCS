@@ -144,12 +144,10 @@ namespace AL.Pathfinding
         /// <exception cref="InvalidOperationException">No map was found for the accessor "{<paramref name="mapAccessor" />}"</exception>
         public static async IAsyncEnumerable<IConnector<Point>> FindPath(
                 string mapAccessor,
-                // ReSharper disable InvalidXmlDocComment
                 IPoint start,
                 IEnumerable<ICircle> ends,
                 bool smoothPath = true,
                 bool useTownIfOptimal = true)
-            // ReSharper restore InvalidXmlDocComment
         {
             if (string.IsNullOrEmpty(mapAccessor))
                 throw new ArgumentNullException(nameof(mapAccessor));

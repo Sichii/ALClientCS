@@ -7,7 +7,7 @@ namespace AL.Client.Model
 {
     /// <seealso cref="ICompoundableGrouping{T}" />
     /// <inheritdoc cref="ICompoundableGrouping{T}" />
-    public record CompoundableGrouping<T> : ICompoundableGrouping<T> where T: IIndexedItem<InventoryItem>
+    public record CompoundableGrouping<T> : ICompoundableGrouping<T> where T: IIndexer<Item>
     {
         public int Level { get; init; }
         public string Name { get; init; } = null!;

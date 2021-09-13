@@ -8,29 +8,29 @@ namespace AL.SocketClient.Model
     /// <summary>
     ///     Represents the character's inventory.
     /// </summary>
-    public class Inventory : IReadOnlyList<InventoryItem?>
+    public class Inventory : IReadOnlyList<Item?>
     {
-        private readonly IReadOnlyList<InventoryItem?> Items;
+        private readonly IReadOnlyList<Item?> Items;
 
-        public InventoryItem? this[int index] => Items[index];
+        public Item? this[int index] => Items[index];
         public int Count => Items.Count;
 
         [JsonConstructor]
-        internal Inventory(IEnumerable<InventoryItem>? items) =>
+        internal Inventory(IEnumerable<Item>? items) =>
             Items = items switch
             {
-                null                                  => new List<InventoryItem>(),
-                IReadOnlyList<InventoryItem> itemList => itemList,
+                null                                  => new List<Item>(),
+                IReadOnlyList<Item> itemList => itemList,
                 _                                     => items.ToList()
             };
 
-        public IEnumerator<InventoryItem?> GetEnumerator() => Items.GetEnumerator();
+        public IEnumerator<Item?> GetEnumerator() => Items.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         internal void SetCapacity(int capacity)
         {
-            var items = (List<InventoryItem?>)Items;
+            var items = (List<Item?>)Items;
 
             if (items.Count < capacity)
                 items.Capacity = capacity;

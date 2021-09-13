@@ -1,10 +1,13 @@
+using System;
 using System.Threading.Tasks;
 using AL.Core.Helpers;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Common.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SocketIOClient;
 
 namespace AL.Tests.SocketClient.Tests
 {
@@ -13,6 +16,16 @@ namespace AL.Tests.SocketClient.Tests
     {
         public static ALSocketClient Socket { get; set; } = null!;
 
+        [TestMethod]
+        public void CreateLambdaTest()
+        {
+            Func<SocketIOResponse, int, object> InternalCreateLambda<T>() => ALSocketClient.CreateLambda(typeof(T));
+
+            var lambda = InternalCreateLambda<SlotItem[]>();
+            
+            Assert.IsNotNull(lambda);
+        }
+        
         [TestMethod]
         public async Task HandleMessageTest()
         {

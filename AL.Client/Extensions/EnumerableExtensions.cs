@@ -14,19 +14,19 @@ namespace AL.Client.Extensions
     public static class EnumerableExtensions
     {
         /// <summary>
-        ///     Lazily enumerates an enumeration of <see cref="IIndexedItem{T}" />s and finds groups of items that can be
+        ///     Lazily enumerates an enumeration of <see cref="IIndexer{T}" />s and finds groups of items that can be
         ///     compounded.
         /// </summary>
-        /// <param name="enumerable">An enumerable of <see cref="IIndexedItem{T}" />s.</param>
-        /// <typeparam name="T">A type that inherits from <see cref="IIndexedItem{T}" />.</typeparam>
+        /// <param name="enumerable">An enumerable of <see cref="IIndexer{T}" />s.</param>
+        /// <typeparam name="T">A type that inherits from <see cref="IIndexer{T}" />.</typeparam>
         /// <returns>
-        ///     <see cref="IEnumerable{T}" /> of <see cref="ICompoundableGrouping{T}" /> of <see cref="IIndexedItem{T}" /> <br />
+        ///     <see cref="IEnumerable{T}" /> of <see cref="ICompoundableGrouping{T}" /> of <see cref="IIndexer{T}" /> <br />
         ///     A lazy enumeration of groups of compoundable items. If there are more than 3 of an item, the group will contains
         ///     all of them.
         /// </returns>
         /// <exception cref="ArgumentNullException">enumerable</exception>
         public static IEnumerable<ICompoundableGrouping<T>> CompoundableGroupBy<T>(this IEnumerable<T> enumerable)
-            where T: IIndexedItem<InventoryItem>
+            where T: IIndexer<Item>
         {
             if (enumerable == null)
                 throw new ArgumentNullException(nameof(enumerable));

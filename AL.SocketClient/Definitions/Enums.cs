@@ -125,6 +125,8 @@ namespace AL.SocketClient.Definitions
         MagiportSent,
         [EnumMember(Value = "no_mp")]
         NoMP,
+        [EnumMember(Value = "sell_get_closer")]
+        SellGetCloser,
         [EnumMember(Value = "seashell_success")]
         SeashellSuccess,
         [EnumMember(Value = "skill_fail")]
@@ -141,6 +143,8 @@ namespace AL.SocketClient.Definitions
         ItemReceived,
         [EnumMember(Value = "transport_cant_reach")]
         TransportCantReach,
+        [EnumMember(Value = "transport_failed")]
+        TransportFailed,
         Invalid,
         [EnumMember(Value = "non_friendly_target")]
         NonFriendlyTarget,
@@ -219,6 +223,7 @@ namespace AL.SocketClient.Definitions
         Emotion,
         Equip,
         Exchange,
+        Heal,
         [EnumMember(Value = "imove")]
         InventoryMove,
         [EnumMember(Value = "leave")]
@@ -247,7 +252,6 @@ namespace AL.SocketClient.Definitions
         Skill,
         [EnumMember(Value = "stop")]
         Stop,
-        Swap,
         [EnumMember(Value = "mail_take_item")]
         TakeMailItem,
         Tracker,

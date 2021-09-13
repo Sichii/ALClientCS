@@ -18,16 +18,16 @@ namespace AL.Client.Extensions
         ///     Lazily enumerates all inventory in the inventory, providing a way to keep track of what slot the item was in.
         /// </summary>
         /// <param name="inventory">The inventory to index.</param>
-        /// <returns><see cref="IEnumerable{T}" /> of <see cref="IndexedInventoryItem" /> <br /></returns>
+        /// <returns><see cref="IEnumerable{T}" /> of <see cref="InventoryIndexer" /> <br /></returns>
         /// <exception cref="ArgumentNullException">inventory</exception>
-        public static IEnumerable<IndexedInventoryItem> AsIndexed(this Inventory inventory)
+        public static IEnumerable<InventoryIndexer> AsIndexed(this Inventory inventory)
         {
             if (inventory == null)
                 throw new ArgumentNullException(nameof(inventory));
 
             return inventory.Select((item, index) => item == null
                     ? null
-                    : new IndexedInventoryItem
+                    : new InventoryIndexer
                     {
                         Index = index,
                         Item = item
@@ -83,14 +83,14 @@ namespace AL.Client.Extensions
         ///     Finds the first item in the inventory that is not null, and meets the predicate conditions.
         /// </summary>
         /// <param name="inventory">The character's <see cref="Inventory" />.</param>
-        /// <param name="predicate">A function that returns true or false for a given <see cref="InventoryItem" />.</param>
+        /// <param name="predicate">A function that returns true or false for a given <see cref="Item" />.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
         /// </returns>
         /// <exception cref="ArgumentNullException">inventory</exception>
         /// <exception cref="ArgumentNullException">predicate</exception>
-        public static IndexedInventoryItem? FindItem(this Inventory inventory, Func<InventoryItem, bool> predicate)
+        public static InventoryIndexer? FindItem(this Inventory inventory, Func<Item, bool> predicate)
         {
             if (inventory == null)
                 throw new ArgumentNullException(nameof(inventory));
@@ -103,7 +103,7 @@ namespace AL.Client.Extensions
             if (index == -1)
                 return null;
 
-            return new IndexedInventoryItem
+            return new InventoryIndexer
             {
                 Index = index,
                 Item = inventory[index]!
@@ -122,11 +122,11 @@ namespace AL.Client.Extensions
         /// <param name="quantityMin">The item must have a minimum of this quantity.</param>
         /// <param name="quantityMax">The item must have a maximum of this quantity.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     The item, and informaiton about what slot it is in, or <c>null</c> if no item was found.
         /// </returns>
         /// <exception cref="ArgumentNullException">inventory</exception>
-        public static IndexedInventoryItem? FindItem(
+        public static InventoryIndexer? FindItem(
             this Inventory inventory,
             string? itemName = null,
             int? level = null,
@@ -162,7 +162,7 @@ namespace AL.Client.Extensions
             if (index == -1)
                 return null;
 
-            return new IndexedInventoryItem
+            return new InventoryIndexer
             {
                 Index = index,
                 Item = inventory[index]!

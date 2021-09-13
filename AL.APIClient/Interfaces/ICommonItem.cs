@@ -26,13 +26,7 @@ namespace AL.APIClient.Interfaces
         /// </summary>
         [JsonProperty]
         int Level { get; }
-
-        /// <summary>
-        ///     If populated, the prefix of this item.
-        /// </summary>
-        [JsonProperty("p")]
-        string? Prefix { get; }
-
+        
         /// <summary>
         ///     The type of stat attributed to this item.
         /// </summary>

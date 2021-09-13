@@ -8,8 +8,8 @@ namespace AL.SocketClient.SocketModel
     ///     Represents the data received when a game error occurs.
     /// </summary>
     /// <seealso cref="IOptionalObject" />
-    [JsonConverter(typeof(StringOrObjectConverter<GameErrorData>), nameof(Message))]
-    public record GameErrorData : IOptionalObject
+    [JsonConverter(typeof(StringOrObjectConverter<GameMessageData>), nameof(Message))]
+    public record GameMessageData : IOptionalObject
     {
         public bool ContainsData { get; init; }
 

@@ -399,11 +399,12 @@ namespace AL.Client
 
             var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await using var gameLogCallback = Socket.On<string>(ALSocketMessageType.GameLog, data =>
+            await using var gameLogCallback = Socket.On<GameMessageData>(ALSocketMessageType.GameLog, data =>
                 {
                     var result = false;
+                    var message = data.Message;
 
-                    if (data.EqualsI("not enough"))
+                    if (message.EqualsI("not enough"))
                         result = source.TrySetResult($"Failed to post item {item.Name} for sale. (not enough)");
 
                     return Task.FromResult(result);
@@ -484,13 +485,13 @@ namespace AL.Client
         /// </summary>
         /// <param name="tradeSlot">The trade slot of the item to unpost.</param>
         /// <returns>
-        ///     <see cref="IndexedInventoryItem" /> <br />
+        ///     <see cref="InventoryIndexer" /> <br />
         ///     If the unposted item was an item for sale, this will return information about that item within the inventory.
         ///     <br />
         ///     Otherwise this will return null
         /// </returns>
         /// <exception cref="InvalidOperationException">Failed to unpost trade item {itemNameOrSlot}. ({reason})</exception>
-        public async Task<IndexedInventoryItem?> UnpostItemAsync(TradeSlot tradeSlot)
+        public async Task<InventoryIndexer?> UnpostItemAsync(TradeSlot tradeSlot)
         {
             var slot = tradeSlot.ToSlot();
             var tradeItem = Character.Slots[slot];
@@ -501,7 +502,7 @@ namespace AL.Client
             if (!tradeItem.Buying && (Character.EmptySlots == 0))
                 throw new InvalidOperationException($"Failed to unpost trade item {tradeItem.Name}. (no space)");
 
-            var source = new TaskCompletionSource<Expectation<IndexedInventoryItem?>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new TaskCompletionSource<Expectation<InventoryIndexer?>>(TaskCreationOptions.RunContinuationsAsynchronously);
             var previousInventory = tradeItem.Buying ? null : Character.Inventory.AsIndexed();
 
             await using var characterCallback = Socket.On<CharacterData>(ALSocketMessageType.Character, data =>
@@ -512,7 +513,7 @@ namespace AL.Client
                     {
                         if (tradeItem.Buying)
                         {
-                            source.TrySetResult(default(IndexedInventoryItem?));
+                            source.TrySetResult(default(InventoryIndexer?));
 
                             return TaskCache.FALSE;
                         }

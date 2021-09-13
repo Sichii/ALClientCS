@@ -38,7 +38,7 @@ namespace AL.Core.Collections
             if (Index >= Count)
                 Index = 0;
 
-            var result = Items[Index++];
+            var result = Items[Index];
             Items[Index++] = item;
 
             return result;

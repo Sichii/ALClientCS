@@ -10,13 +10,14 @@ namespace AL.Client.Model
     /// </summary>
     public class CooldownInfo : IPingCompensated
     {
-        private readonly long Delta = DeltaTime.Value;
+        private long Delta = DeltaTime.Value;
         /// <summary>
         ///     The cooldown of the skill.
         /// </summary>
-        public float CooldownMS { get; private set; }
+        public float CooldownMS { get; init; }
         public bool IsCompensated { get; private set; }
 
+        //TODO: maybe make this the skill name, but there's really no point
         string IMutable.Id => string.Empty;
 
         /// <summary>
@@ -32,15 +33,25 @@ namespace AL.Client.Model
         ///     <see cref="bool" /> <br />
         ///     <c>true</c> if the skill can be used, otherwise <c>false</c>.
         /// </returns>
-        public bool CanUse() => DeltaTime.Value - Delta > CooldownMS;
+        public bool CanUse() => ElapsedMS > CooldownMS;
 
+        /// <summary>
+        ///     Gets the amount of milliseconds that have elapsed since a skill was used.
+        /// </summary>
+        public float ElapsedMS => DeltaTime.Value - Delta;
+
+        /// <summary>
+        ///     Gets the remaining cooldown in milliseconds.
+        /// </summary>
+        public float RemainingMS => Math.Min(0, CooldownMS - ElapsedMS);
+        
         public void CompensateOnce(int minimumOffsetMS)
         {
             if (IsCompensated)
                 throw new InvalidOperationException("Object already compensated.");
 
             IsCompensated = true;
-            CooldownMS -= minimumOffsetMS;
+            Delta -= minimumOffsetMS;
         }
     }
 }

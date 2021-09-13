@@ -1,19 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Library</OutputType>
         <TargetFramework>net5.0</TargetFramework>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <RootNamespace>AL.Client</RootNamespace>
         <Nullable>enable</Nullable>
         <Title>AL.Client</Title>
         <Authors>Sichi</Authors>
         <Description>A headless client for the Adventure.Land game.</Description>
         <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
         <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
-        <Company/>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -30,9 +29,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Data\AL.Data.csproj"/>
-        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj"/>
-        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj"/>
+        <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
+        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj" />
+        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>

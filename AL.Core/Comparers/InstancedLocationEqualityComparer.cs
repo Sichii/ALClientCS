@@ -22,6 +22,6 @@ namespace AL.Core.Comparers
         }
 
         public int GetHashCode(IInstancedLocation obj) =>
-            HashCode.Combine(obj.In.GetHashCode(), ILocation.Comparer.GetHashCode(obj));
+            HashCode.Combine(obj.In?.GetHashCode(), ILocation.Comparer.GetHashCode(obj));
     }
 }
