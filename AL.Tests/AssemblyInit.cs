@@ -13,8 +13,6 @@ namespace AL.Tests
     [TestClass]
     public class AssemblyInit
     {
-        public static ALAPIClient APIClient { get; set; } = null!;
-
         [AssemblyInitialize]
         public static async Task Init(TestContext context)
         {
@@ -23,22 +21,6 @@ namespace AL.Tests
 
             ALClientSettings.UseDefaultLoggingConfiguration();
             ALClientSettings.SetLogLevel(LogLevel.Debug);
-
-            var lines = await File.ReadAllLinesAsync("TestCredentials.txt").ConfigureAwait(false);
-
-            if (lines.Length < 2)
-                throw new Exception("Put login info in TestCredentials.txt to perform tests.");
-
-            var email = lines[0];
-            var pw = lines[1];
-
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pw))
-                throw new Exception("Put in login info to perform tests");
-
-            APIClient = await ALAPIClient.LoginAsync(email, pw).ConfigureAwait(false);
-
-            GameData.Populate(await ALAPIClient.GetGameDataAsync().ConfigureAwait(false));
-            await PathFinder.InitializeAsync().ConfigureAwait(false);
         }
     }
 }

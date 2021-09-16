@@ -143,11 +143,11 @@ namespace AL.Pathfinding
         /// <exception cref="ArgumentNullException">ends</exception>
         /// <exception cref="InvalidOperationException">No map was found for the accessor "{<paramref name="mapAccessor" />}"</exception>
         public static async IAsyncEnumerable<IConnector<Point>> FindPath(
-                string mapAccessor,
-                IPoint start,
-                IEnumerable<ICircle> ends,
-                bool smoothPath = true,
-                bool useTownIfOptimal = true)
+            string mapAccessor,
+            IPoint start,
+            IEnumerable<ICircle> ends,
+            bool smoothPath = true,
+            bool useTownIfOptimal = true)
         {
             if (string.IsNullOrEmpty(mapAccessor))
                 throw new ArgumentNullException(nameof(mapAccessor));

@@ -13,7 +13,7 @@ using Point = AL.Core.Geometry.Point;
 namespace AL.Tests.Visualizer.Tests
 {
     [TestClass]
-    public class VisualizerTests
+    public class VisualizerTests : PathfindingTestBed
     {
         [TestMethod]
         public async Task DumpMapImages()

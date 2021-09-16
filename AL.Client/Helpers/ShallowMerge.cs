@@ -23,10 +23,10 @@ namespace AL.Client.Helpers
                 var targetEx = Expression.Parameter(typeof(T), "targetObj");
 
                 var properties = GetRecursiveProperties(typeof(T));
-                    
-                    //typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                    //.Where(p => p.CanRead && p.CanWrite)
-                    //.ToArray();
+
+                //typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                //.Where(p => p.CanRead && p.CanWrite)
+                //.ToArray();
 
                 var assignmentExpressions =
                     properties.Select(p => Expression.Assign(Expression.Property(targetEx, p), Expression.Property(fromEx, p)));

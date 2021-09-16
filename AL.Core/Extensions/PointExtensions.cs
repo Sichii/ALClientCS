@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
@@ -253,6 +254,7 @@ namespace AL.Core.Extensions
         /// </returns>
         /// <exception cref="ArgumentNullException">point</exception>
         /// <exception cref="ArgumentNullException">other</exception>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static IEnumerable<Point> RayTraceTo(this IPoint point, IPoint other)
         {
             if (point == null)

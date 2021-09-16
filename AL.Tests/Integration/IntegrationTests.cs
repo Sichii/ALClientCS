@@ -3,19 +3,19 @@ using AL.APIClient.Definitions;
 using AL.Client;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Tests.Client.Tests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.Integration
 {
     //[TestClass]
-    public class IntegrationTests
+    public class IntegrationTests : ClientTestBed
     {
         [TestMethod]
         public async Task IdleTest()
         {
-            var apiClient = AssemblyInit.APIClient;
 
-            await using var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient).ConfigureAwait(false);
+            await using var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, APIClient).ConfigureAwait(false);
 
             //stand still for 1minute
             await Task.Delay(1000 * 60).ConfigureAwait(false);
@@ -26,9 +26,7 @@ namespace AL.Tests.Integration
         [TestMethod]
         public async Task PathfindTest()
         {
-            var apiClient = AssemblyInit.APIClient;
-
-            var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient).ConfigureAwait(false);
+            var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, APIClient).ConfigureAwait(false);
 
             var location1 = new Location("main", -917, 133);
             var location2 = new Location("winterland", 285, -115);

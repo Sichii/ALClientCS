@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace AL.Tests.Data.Tests
 {
     [TestClass]
-    public class JsonConverterTests
+    public class JsonConverterTests : GameDataTestBed
     {
         [TestMethod]
         public void GameDataTest()

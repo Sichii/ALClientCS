@@ -258,7 +258,7 @@ RAW JSON:
 
                 if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
                     return;
-                
+
                 var type = subscriptionList.Type;
                 var getValue = CompiledExpressions.GetOrAdd(type, CreateLambda);
                 var dataObject = getValue(response, 0);

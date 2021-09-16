@@ -419,7 +419,7 @@ namespace AL.Tests.SocketClient.Tests
         [TestMethod]
         public void DeserializeEntitiesDataTest()
         {
-           const string ENTITIES_DATA = @"{
+            const string ENTITIES_DATA = @"{
         ""players"": [
             {
                 ""hp"": 5245,
@@ -1090,7 +1090,7 @@ namespace AL.Tests.SocketClient.Tests
         [TestMethod]
         public void DeserializeSecondHandsDataTest()
         {
-           const string SECONDHANDS_DATA = @"[
+            const string SECONDHANDS_DATA = @"[
    {
       ""q"":9999,
       ""rid"":""AbUEw"",

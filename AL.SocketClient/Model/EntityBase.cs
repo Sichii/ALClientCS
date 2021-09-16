@@ -44,7 +44,7 @@ namespace AL.SocketClient.Model
         public float Angle { get; protected set; }
 
         /// <summary>
-        ///     The conditions this entity has. <br/>
+        ///     The conditions this entity has. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         [JsonProperty("s")]

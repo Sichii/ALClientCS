@@ -25,8 +25,7 @@ namespace AL.Client.Extensions
         ///     all of them.
         /// </returns>
         /// <exception cref="ArgumentNullException">enumerable</exception>
-        public static IEnumerable<ICompoundableGrouping<T>> CompoundableGroupBy<T>(this IEnumerable<T> enumerable)
-            where T: IIndexer<Item>
+        public static IEnumerable<ICompoundableGrouping<T>> CompoundableGroupBy<T>(this IEnumerable<T> enumerable) where T: IIndexer<Item>
         {
             if (enumerable == null)
                 throw new ArgumentNullException(nameof(enumerable));

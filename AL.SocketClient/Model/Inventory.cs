@@ -19,9 +19,9 @@ namespace AL.SocketClient.Model
         internal Inventory(IEnumerable<Item>? items) =>
             Items = items switch
             {
-                null                                  => new List<Item>(),
+                null                         => new List<Item>(),
                 IReadOnlyList<Item> itemList => itemList,
-                _                                     => items.ToList()
+                _                            => items.ToList()
             };
 
         public IEnumerator<Item?> GetEnumerator() => Items.GetEnumerator();

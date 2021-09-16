@@ -12,7 +12,7 @@ namespace AL.Core.Helpers
     public static class EnumHelper
     {
         private static readonly Dictionary<Type, Dictionary<string, Enum>> EnumValues = new();
-        private static readonly object Sync = new object();
+        private static readonly object Sync = new();
 
         /// <summary>
         ///     A helper method for converting an enum to a string, taking into consideration <see cref="EnumMemberAttribute" />s
@@ -27,7 +27,7 @@ namespace AL.Core.Helpers
         public static string ToString<T>(T value) where T: Enum
         {
             var result = value.ToString();
-            
+
             var members = typeof(T).GetFields();
 
             foreach (var member in members)
@@ -55,17 +55,15 @@ namespace AL.Core.Helpers
         public static bool TryParse<T>(string? str, out T? result) where T: Enum
         {
             result = default;
-            
+
             if (string.IsNullOrEmpty(str))
                 return false;
-            
+
             var type = typeof(T);
-            
+
             // ReSharper disable once InconsistentlySynchronizedField
             if (!EnumValues.TryGetValue(type, out var valueLookup))
-            {
                 lock (Sync)
-                {
                     if (!EnumValues.TryGetValue(type, out valueLookup))
                     {
                         valueLookup = new Dictionary<string, Enum>(StringComparer.OrdinalIgnoreCase);
@@ -91,8 +89,6 @@ namespace AL.Core.Helpers
 
                         EnumValues[type] = valueLookup;
                     }
-                }
-            }
 
             if (!valueLookup.TryGetValue(str, out var enumValue))
                 return false;

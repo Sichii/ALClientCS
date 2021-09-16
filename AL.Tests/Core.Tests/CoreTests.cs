@@ -1,7 +1,6 @@
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
-using AL.Core.Interfaces;
 using AL.SocketClient.Model;
 using Chaos.Core.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -11,6 +10,27 @@ namespace AL.Tests.Core.Tests
     [TestClass]
     public class CoreTests
     {
+        [TestMethod]
+        public void InstancedDistanceTest()
+        {
+            var instancedLoc1 = new PartyMember
+            {
+                X = 5,
+                Y = 5,
+                In = "beep"
+            };
+
+            var instancedLoc2 = new PartyMember
+            {
+                X = 10,
+                Y = 10
+            };
+
+            var distance = instancedLoc1.DistanceWithInstanceCheck(instancedLoc2);
+
+            Assert.IsTrue(distance < 10);
+        }
+
         [TestMethod]
         public void OffsetTest()
         {
@@ -38,27 +58,6 @@ namespace AL.Tests.Core.Tests
             var location = new Location("foo", 10, 15);
 
             Assert.IsTrue(circle.Equals(location));
-        }
-
-        [TestMethod]
-        public void InstancedDistanceTest()
-        {
-            var instancedLoc1 = new PartyMember
-            {
-                X = 5,
-                Y = 5,
-                In = "beep"
-            };
-
-            var instancedLoc2 = new PartyMember
-            {
-                X = 10,
-                Y = 10
-            };
-
-            var distance = instancedLoc1.DistanceWithInstanceCheck(instancedLoc2);
-            
-            Assert.IsTrue(true);
         }
     }
 }

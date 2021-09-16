@@ -17,6 +17,16 @@ namespace AL.Client.Model
         public float CooldownMS { get; init; }
         public bool IsCompensated { get; private set; }
 
+        /// <summary>
+        ///     Gets the amount of milliseconds that have elapsed since a skill was used.
+        /// </summary>
+        public float ElapsedMS => DeltaTime.Value - Delta;
+
+        /// <summary>
+        ///     Gets the remaining cooldown in milliseconds.
+        /// </summary>
+        public float RemainingMS => Math.Min(0, CooldownMS - ElapsedMS);
+
         //TODO: maybe make this the skill name, but there's really no point
         string IMutable.Id => string.Empty;
 
@@ -35,16 +45,6 @@ namespace AL.Client.Model
         /// </returns>
         public bool CanUse() => ElapsedMS > CooldownMS;
 
-        /// <summary>
-        ///     Gets the amount of milliseconds that have elapsed since a skill was used.
-        /// </summary>
-        public float ElapsedMS => DeltaTime.Value - Delta;
-
-        /// <summary>
-        ///     Gets the remaining cooldown in milliseconds.
-        /// </summary>
-        public float RemainingMS => Math.Min(0, CooldownMS - ElapsedMS);
-        
         public void CompensateOnce(int minimumOffsetMS)
         {
             if (IsCompensated)

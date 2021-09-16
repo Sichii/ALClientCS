@@ -36,7 +36,7 @@ namespace AL.Data.Items
         /// </summary>
         [JsonProperty("damage")]
         public DamageType DamageType { get; init; }
-        
+
         /// <summary>
         ///     If this item is an elixir, this is the duration of the elixir's effect in hours.
         /// </summary>

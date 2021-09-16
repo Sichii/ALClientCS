@@ -26,7 +26,7 @@ namespace AL.APIClient.Interfaces
         /// </summary>
         [JsonProperty]
         int Level { get; }
-        
+
         /// <summary>
         ///     The type of stat attributed to this item.
         /// </summary>

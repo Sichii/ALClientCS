@@ -6,10 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace AL.Tests.APIClient.Tests
 {
     [TestClass]
-    public class APIClientTests
+    public class APIClientTests : APITestBed
     {
-        private static ALAPIClient APIClient = null!;
-
         [TestMethod]
         public async Task GetMailTest()
         {
@@ -26,10 +24,7 @@ namespace AL.Tests.APIClient.Tests
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Any());
         }
-
-        [ClassInitialize]
-        public static void Init(TestContext context) => APIClient = AssemblyInit.APIClient;
-
+        
         [TestMethod]
         public async Task UpdateServersAndCharactersTest()
         {

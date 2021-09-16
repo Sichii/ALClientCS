@@ -12,7 +12,7 @@ namespace AL.Pathfinding.Definitions
         Walkable = 2,
         Inline = 4 | Walkable,
         Vertex = 8 | Inline,
-        Discovered = 16
+        Discovered = 16 | Vertex
     }
 
     [Flags, JsonConverter(typeof(StringEnumConverter))]
@@ -21,6 +21,7 @@ namespace AL.Pathfinding.Definitions
         Walk,
         Town,
         Transport,
+        Door,
         Leave
     }
 }

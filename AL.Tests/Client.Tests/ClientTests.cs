@@ -14,47 +14,47 @@ using PATHFINDING_CONSTANTS = AL.Pathfinding.Definitions.CONSTANTS;
 
 namespace AL.Tests.Client.Tests
 {
-   [TestClass]
-   public class ClientTests
-   {
-      [TestMethod]
-      public void CalculateDamageMultiplierTest()
-      {
-         var defense = -160;
-         var points = new List<Point>();
+    [TestClass]
+    public class ClientTests
+    {
+        [TestMethod]
+        public void CalculateDamageMultiplierTest()
+        {
+            var defense = -160;
+            var points = new List<Point>();
 
-         for (; defense < 2000; defense += 5)
-         {
-            var damageMult = Utilities.CalculateDamageMultiplier(defense);
-            points.Add(new Point(defense, Convert.ToInt32(damageMult * 100f)));
-         }
+            for (; defense < 2000; defense += 5)
+            {
+                var damageMult = Utilities.CalculateDamageMultiplier(defense);
+                points.Add(new Point(defense, Convert.ToInt32(damageMult * 100f)));
+            }
 
-         Assert.IsTrue(points[0] == new Point(-160, 112));
-         Assert.IsTrue(points.Last() == new Point(1995, 5));
-      }
+            Assert.IsTrue(points[0] == new Point(-160, 112));
+            Assert.IsTrue(points.Last() == new Point(1995, 5));
+        }
 
-      [TestMethod]
-      public async Task DynamicDelayTest()
-      {
-         var delay = new DynamicDelay();
+        [TestMethod]
+        public async Task DynamicDelayTest()
+        {
+            var delay = new DynamicDelay();
 
-         var delayTask = delay.WaitAsync(5000);
+            var delayTask = delay.WaitAsync(5000);
 
-         await Task.Delay(2000).ConfigureAwait(false);
-         await delay.SetDelayAsync(10000).ConfigureAwait(false);
-         var timer = Stopwatch.StartNew();
-         await delayTask.ConfigureAwait(false);
-         timer.Stop();
+            await Task.Delay(2000).ConfigureAwait(false);
+            await delay.SetDelayAsync(10000).ConfigureAwait(false);
+            var timer = Stopwatch.StartNew();
+            await delayTask.ConfigureAwait(false);
+            timer.Stop();
 
-         var elapsed = timer.ElapsedMilliseconds;
+            var elapsed = timer.ElapsedMilliseconds;
 
-         Assert.IsTrue(elapsed > 9000);
-      }
+            Assert.IsTrue(elapsed > 9000);
+        }
 
-      [TestMethod]
-      public void ShallowMergeIntoTest()
-      {
-         const string CHARACTER_DATA = @"{
+        [TestMethod]
+        public void ShallowMergeIntoTest()
+        {
+            const string CHARACTER_DATA = @"{
    ""hp"":7826,
    ""max_hp"":7826,
    ""mp"":2020,
@@ -304,26 +304,26 @@ namespace AL.Tests.Client.Tests
    ""cc"":1
 }";
 
-         var emptyCharacters = Enumerable.Range(0, 100000).Select(_ => new Character()).ToArray();
-         var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
+            var emptyCharacters = Enumerable.Range(0, 100000).Select(_ => new Character()).ToArray();
+            var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
 
-         var timer = Stopwatch.StartNew();
-         var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;
+            var timer = Stopwatch.StartNew();
+            var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;
 
-         foreach (var emptyChar in emptyCharacters)
-         {
-            emptyChar.SetBoundingBase(defaultBase);
-            ShallowMerge<Character>.Merge(obj!, emptyChar);
-            Assert.AreEqual(obj, emptyChar);
-            Assert.AreEqual(emptyChar.HalfWidth, defaultBase.HalfWidth);
-            Assert.AreEqual(emptyChar.VerticalNorth, defaultBase.VerticalNorth);
-            Assert.AreEqual(emptyChar.VerticalNotNorth, defaultBase.VerticalNotNorth);
-         }
+            foreach (var emptyChar in emptyCharacters)
+            {
+                emptyChar.SetBoundingBase(defaultBase);
+                ShallowMerge<Character>.Merge(obj!, emptyChar);
+                Assert.AreEqual(obj, emptyChar);
+                Assert.AreEqual(emptyChar.HalfWidth, defaultBase.HalfWidth);
+                Assert.AreEqual(emptyChar.VerticalNorth, defaultBase.VerticalNorth);
+                Assert.AreEqual(emptyChar.VerticalNotNorth, defaultBase.VerticalNotNorth);
+            }
 
-         timer.Stop();
-         var elapsed = timer.ElapsedMilliseconds;
-         //this takes like 60ms on my machine. if this goes above 500 on any machine, there must be a problem.
-         Assert.IsTrue(elapsed < 500);
-      }
-   }
+            timer.Stop();
+            var elapsed = timer.ElapsedMilliseconds;
+            //this takes like 60ms on my machine. if this goes above 500 on any machine, there must be a problem.
+            Assert.IsTrue(elapsed < 500);
+        }
+    }
 }

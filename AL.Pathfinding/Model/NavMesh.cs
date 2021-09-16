@@ -47,6 +47,12 @@ namespace AL.Pathfinding.Model
             return true;
         }
 
+        private void ConnectTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
+        {
+            if (useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
+                Connect(startNode, TownNode, ConnectorType.Town);
+        }
+
         private IEnumerable<IConnector<Point>> FindDistanceShortcuts(IEnumerable<IConnector<Point>> connectors, ICircle end)
         {
             foreach (var connector in connectors)
@@ -206,8 +212,8 @@ namespace AL.Pathfinding.Model
 
             path.Add(new EdgeConnector<Point> { Start = last, End = indexedLast.ToPoint() });
 
-            var finalPath = (IEnumerable<IConnector<Point>>) path;
-            
+            var finalPath = (IEnumerable<IConnector<Point>>)path;
+
             if (smoothPath)
                 finalPath = SmoothPath(path);
 
@@ -218,27 +224,21 @@ namespace AL.Pathfinding.Model
                 yield return connector;
         }
 
-        private void ConnectTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
-        {
-            if(useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
-                Connect(startNode, TownNode, ConnectorType.Town);
-        }
-
-        private void RemoveTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
-        {
-            if(useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
-                Disconnect(startNode, TownNode);
-        }
-
         internal bool IsWall(IPoint point) => PointMap[Convert.ToInt32(point.X), Convert.ToInt32(point.Y)].HasFlag(PointType.Wall);
 
         internal Point RemoveOffset(IPoint point) => new(point.X - XOffset, point.Y - YOffset);
+
+        private void RemoveTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
+        {
+            if (useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
+                Disconnect(startNode, TownNode);
+        }
 
         private IEnumerable<IConnector<Point>> SmoothPath(IReadOnlyList<IConnector<Point>> connectors)
         {
             if (connectors.Count == 0)
                 yield break;
-            
+
             for (var i = 0; i < connectors.Count; i++)
             {
                 var current = connectors[i];

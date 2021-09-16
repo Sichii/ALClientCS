@@ -101,7 +101,7 @@ namespace AL.Client
         public event EventHandler<InviteData>? OnPartyInvite;
 
         /// <summary>
-        ///     The character's progress towards ongoing achievements. <br/>
+        ///     The character's progress towards ongoing achievements. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, AchievementProgressData> AchievementProgress { get; }
@@ -117,13 +117,13 @@ namespace AL.Client
         public Character Character { get; }
 
         /// <summary>
-        ///     When a chest drops or is opened, it will be populated or removed from this collection. <br/>
+        ///     When a chest drops or is opened, it will be populated or removed from this collection. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, DropData> Chests { get; }
 
         /// <summary>
-        ///     When a skill is used and the server sends back a cooldown, it will be populated here. <br/>
+        ///     When a skill is used and the server sends back a cooldown, it will be populated here. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, CooldownInfo> Cooldowns { get; }
@@ -134,7 +134,7 @@ namespace AL.Client
         public FormattedLogger Logger { get; }
 
         /// <summary>
-        ///     A collection of the monsters being kept track of. <br/>
+        ///     A collection of the monsters being kept track of. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, Monster> Monsters { get; }
@@ -145,13 +145,13 @@ namespace AL.Client
         public string Name { get; }
 
         /// <summary>
-        ///     A collection of the players being kept track of. <br/>
+        ///     A collection of the players being kept track of. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, Player> Players { get; }
 
         /// <summary>
-        ///     A collection of projectiles being kept track of. <br/>
+        ///     A collection of projectiles being kept track of. <br />
         ///     <b>THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.</b>
         /// </summary>
         public AwaitableDictionary<string, ActionData> Projectiles { get; }
@@ -1379,10 +1379,14 @@ namespace AL.Client
                         source.TrySetResult($"Failed to deposit item {item.Name}. (not in bank)");
                     else if ((data.Inventory[inventorySlot] == null) && data.Bank.TryGetValue(bankPack.Value, out var bankedItems))
                     {
-                        var bankedItem = bankedItems[bankSlot.Value];
+                        var probableIndex = bankedItems.FindIndex(b =>
+                            (b != null) && b.Name.EqualsI(item.Name) && (b.Level == item.Level) && (b.Quantity >= item.Quantity));
 
-                        if (bankedItem != null)
-                            source.TrySetResult(new BankIndexer { BankPack = bankPack.Value, Index = bankSlot.Value, Item = bankedItem });
+                        if (probableIndex == -1)
+                            return TaskCache.FALSE;
+                        
+                        var bankedItem = bankedItems[probableIndex]!;
+                        source.TrySetResult(new BankIndexer { BankPack = bankPack.Value, Index = probableIndex, Item = bankedItem });
                     }
 
                     return TaskCache.FALSE;
@@ -1639,10 +1643,10 @@ namespace AL.Client
                 {
                     if (!setMovingAt.HasValue)
                         return false;
-                    
+
                     var now = DateTime.UtcNow;
                     var elapsed = now.Subtract(setMovingAt.Value).TotalMilliseconds;
-                    
+
                     //if the movement data doesnt look right
                     if (!data.Moving
                         || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
@@ -1656,7 +1660,7 @@ namespace AL.Client
 
                             return false;
                         }
-                        
+
                         //if we should have reasonably received correct movement data
                         if (elapsed > PingManager.Offset * 2)
                         {
@@ -1693,7 +1697,7 @@ namespace AL.Client
                     }*/
 
                     // ReSharper disable once AccessToDisposedClosure - this action is safe even if disposed
-                    
+
                     return false;
                 })
                 .ConfigureAwait(false);
@@ -1740,7 +1744,7 @@ namespace AL.Client
                 var finalDestination = Character.ToPoint();
                 Logger.Debug($"Move to {point.ToPoint()} canceled. Stopping at {finalDestination}");
                 point = finalDestination;
-                
+
                 await Socket.EmitAsync(ALSocketEmitType.Move, new
                     {
                         x = Character.X,
@@ -1750,7 +1754,7 @@ namespace AL.Client
                         m = Character.MapChangeCount
                     })
                     .ConfigureAwait(false);
-                
+
                 return;
             }
 
@@ -2323,6 +2327,7 @@ namespace AL.Client
 
             var path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
                 ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>(), useTownIfOptimal: useTownIfOptimal);
+
             RecurseWithoutTowning2:
 
             await foreach (var pathConnector in path.ConfigureAwait(false))
@@ -2336,6 +2341,7 @@ namespace AL.Client
                     {
                         path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
                             ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>(), useTownIfOptimal: false);
+
                         goto RecurseWithoutTowning2;
                     }
 
@@ -2432,7 +2438,7 @@ namespace AL.Client
 
             if (nData == null)
                 throw new InvalidOperationException($"Missing npc metadata for {npcId}");
-            
+
             return SmartMoveAsync(nData.Locations, distance, useTownIfOptimal, cancellationToken);
         }
 
@@ -2874,18 +2880,20 @@ namespace AL.Client
                 .ConfigureAwait(false);
 
             await using var gameResponseCallback = Socket.On<GameResponseData>(ALSocketMessageType.GameResponse, data =>
-            {
-                if (data.ResponseType == GameResponseType.TransportFailed)
-                    source.TrySetResult($"Failed to town. (failed)");
+                {
+                    if (data.ResponseType == GameResponseType.TransportFailed)
+                        source.TrySetResult("Failed to town. (failed)");
 
-                return TaskCache.FALSE;
-            }).ConfigureAwait(false);
+                    return TaskCache.FALSE;
+                })
+                .ConfigureAwait(false);
 
             await Socket.EmitAsync(ALSocketEmitType.ReturnToTown).ConfigureAwait(false);
+
             token?.Register(() =>
             {
                 _ = Socket.EmitAsync(ALSocketEmitType.Stop, new { action = "town" });
-                Logger.Info($"Town recall canceled");
+                Logger.Info("Town recall canceled");
                 source.TrySetResult(Expectation.Success);
             });
 
@@ -3100,6 +3108,7 @@ namespace AL.Client
             await UpdatePlayers(data.Players, data.In, data.Map, data.UpdateType).ConfigureAwait(false);
 
             Character.UpdateMap(data.In, data.Map);
+
             return false;
         }
 

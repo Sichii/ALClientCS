@@ -9,8 +9,8 @@ namespace AL.Core.Extensions
             where TSelected: IComparable<TSelected>
         {
             TResult? max = default;
-            
-            foreach(var item in source)
+
+            foreach (var item in source)
                 if ((item != null) && ((max == null) || (selectorFunc(max).CompareTo(selectorFunc(item)) <= 0)))
                     max = item;
 
@@ -21,8 +21,8 @@ namespace AL.Core.Extensions
             where TSelected: IComparable<TSelected>
         {
             TResult? min = default;
-            
-            foreach(var item in source)
+
+            foreach (var item in source)
                 if ((item != null) && ((min == null) || (selectorFunc(min).CompareTo(selectorFunc(item)) >= 0)))
                     min = item;
 

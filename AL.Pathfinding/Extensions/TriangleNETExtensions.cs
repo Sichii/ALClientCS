@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Geometry;
+using AL.Pathfinding.Model;
 using Poly2Tri;
 using Polygon = Poly2Tri.Polygon;
 
@@ -30,5 +31,10 @@ namespace AL.Pathfinding.Extensions
 
             return inside;
         }
+
+        internal static GenericTriangle ToGenericTriangle(this DelaunayTriangle triangle, string map) => new()
+        {
+            Vertices = triangle.Points.Select(vertex => new Location(map, (float)vertex.X, (float)vertex.Y)).ToArray()
+        };
     }
 }

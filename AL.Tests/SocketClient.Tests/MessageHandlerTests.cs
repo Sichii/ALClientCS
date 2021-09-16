@@ -22,10 +22,10 @@ namespace AL.Tests.SocketClient.Tests
             Func<SocketIOResponse, int, object> InternalCreateLambda<T>() => ALSocketClient.CreateLambda(typeof(T));
 
             var lambda = InternalCreateLambda<SlotItem[]>();
-            
+
             Assert.IsNotNull(lambda);
         }
-        
+
         [TestMethod]
         public async Task HandleMessageTest()
         {

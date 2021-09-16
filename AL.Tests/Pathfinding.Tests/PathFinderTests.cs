@@ -27,17 +27,6 @@ namespace AL.Tests.Pathfinding.Tests
         private static readonly IPoint StartPoint = new Point(-1582, 496);
         private static readonly SemaphoreSlim Sync = new(1, 1);
         private readonly List<IPoint> EndPoints = new() { new Point(1891, -47) };
-
-        [TestMethod]
-        public async Task PathfindToEnclosedPointTest()
-        {
-            var startLocation = new Location("main", 0, 0);
-            var location = new Location("main", -35, -162);
-
-            var path = await PathFinder.FindPath("main", startLocation, new[] { new MapCircle(location, 400) }, true).ToArrayAsync();
-
-            Assert.IsFalse(path.Any());
-        }
         
         [TestMethod]
         public async Task FindAnyPathBenchTest()
@@ -223,6 +212,17 @@ namespace AL.Tests.Pathfinding.Tests
             Logger.Debug(string.Join(Environment.NewLine, route.Select(connector => connector.End.Accessor)));
 
             Assert.IsTrue(route.Any());
+        }
+
+        [TestMethod]
+        public async Task PathfindToEnclosedPointTest()
+        {
+            var startLocation = new Location("main", 0, 0);
+            var location = new Location("main", -35, -162);
+
+            var path = await PathFinder.FindPath("main", startLocation, new[] { new MapCircle(location, 400) }).ToArrayAsync();
+
+            Assert.IsFalse(path.Any());
         }
 
         [TestMethod]
