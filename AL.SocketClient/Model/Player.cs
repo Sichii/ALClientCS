@@ -147,7 +147,7 @@ namespace AL.SocketClient.Model
 
         public void Update(QueuedActionInfo queuedActionInfo) => QueuedActions = queuedActionInfo;
 
-        public void UpdatePosition(Player other)
+        public void Update(Player other)
         {
             if (Id != other.Id)
                 throw new InvalidOperationException($"Attempting to update player with ID: {Id}, with data for entity with ID: {other.Id}");

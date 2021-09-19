@@ -4,11 +4,11 @@ using System.Linq;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
+using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Interfaces;
-using AL.Pathfinding.Model;
+using Priority_Queue;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using Point = AL.Core.Geometry.Point;
 
 namespace AL.Visualizer.Extensions
 {
@@ -29,7 +29,9 @@ namespace AL.Visualizer.Extensions
         /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">navMesh</exception>
-        public static Image<Rgba32> DrawConnections(this Image<Rgba32> image, NavMesh navMesh, Color color = default)
+        public static Image<Rgba32> DrawEdges<TNode, TEdge>(this Image<Rgba32> image, MeshBase<TNode, TEdge> navMesh, Color color = default)
+            where TEdge: IGraphEdge<TNode>, new() where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+
         {
             if (image == null)
                 throw new ArgumentNullException(nameof(image));
@@ -40,9 +42,13 @@ namespace AL.Visualizer.Extensions
             if (color == default)
                 color = Color.Red;
 
-            foreach (var connection in navMesh.Connectors)
-                if (connection != null)
-                    image.DrawLine(connection.Start, connection.End.MidPoint(connection.Start), color);
+            foreach (var edge in navMesh.TraverseEdges())
+            {
+                var start = navMesh.ApplyOffset(edge.Start.Vertex);
+                var midEnd = navMesh.ApplyOffset(edge.End.Vertex.MidPoint(edge.Start.Vertex));
+
+                image.DrawLine(start, midEnd, color);
+            }
 
             return image;
         }
@@ -110,13 +116,16 @@ namespace AL.Visualizer.Extensions
                 ptColor = Color.Magenta;
 
             foreach ((var x, var y) in new Line(start, end).Points())
-                image[Convert.ToInt32(x), Convert.ToInt32(y)] = color;
+                image[Math.Clamp(Convert.ToInt32(x), 0, image.Width - 1), Math.Clamp(Convert.ToInt32(y), 0, image.Height - 1)] = color;
 
             //image.Mutate(context =>
             //    context.DrawLines(color, 1, new PointF(start.X, start.Y), new PointF(end.X, end.Y)));
 
-            image[Convert.ToInt32(start.X), Convert.ToInt32(start.Y)] = ptColor;
-            image[Convert.ToInt32(end.X), Convert.ToInt32(end.Y)] = ptColor;
+            image[Math.Clamp(Convert.ToInt32(start.X), 0, image.Width - 1), Math.Clamp(Convert.ToInt32(start.Y), 0, image.Height - 1)] =
+                ptColor;
+
+            image[Math.Clamp(Convert.ToInt32(end.X), 0, image.Width - 1), Math.Clamp(Convert.ToInt32(end.Y), 0, image.Height - 1)] =
+                ptColor;
 
             return image;
         }
@@ -134,11 +143,12 @@ namespace AL.Visualizer.Extensions
         /// </returns>
         /// <exception cref="ArgumentNullException">image</exception>
         /// <exception cref="ArgumentNullException">pathConnectors</exception>
-        public static Image<Rgba32> DrawPath<TConnector>(
+        public static Image<Rgba32> DrawPath<TNode, TEdge>(
             this Image<Rgba32> image,
-            NavMesh navMesh,
-            IEnumerable<TConnector?> pathConnectors,
-            Color color = default) where TConnector: IConnector<Point>
+            MeshBase<TNode, TEdge> navMesh,
+            IEnumerable<TEdge?> pathConnectors,
+            Color color = default) where TEdge: IGraphEdge<TNode>, new() where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+
         {
             if (image == null)
                 throw new ArgumentNullException(nameof(image));
@@ -146,13 +156,13 @@ namespace AL.Visualizer.Extensions
             if (pathConnectors == null)
                 throw new ArgumentNullException(nameof(pathConnectors));
 
-            IEnumerable<Point> SelectPoints(IEnumerable<TConnector?> connectors)
+            IEnumerable<IPoint> SelectPoints(IEnumerable<TEdge?> connectors)
             {
-                foreach (var connector in connectors)
-                    if (connector != null)
+                foreach (var edge in connectors)
+                    if (edge != null)
                     {
-                        yield return navMesh.ApplyOffset(connector.Start);
-                        yield return navMesh.ApplyOffset(connector.End);
+                        yield return navMesh.ApplyOffset(edge.Start.Vertex);
+                        yield return navMesh.ApplyOffset(edge.End.Vertex);
                     }
             }
 

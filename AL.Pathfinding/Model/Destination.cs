@@ -2,6 +2,9 @@ using AL.Core.Interfaces;
 
 namespace AL.Pathfinding.Model
 {
+    /// <summary>
+    ///     Represents a pathfinding destination.
+    /// </summary>
     public record Destination : ILocation, ICircle
     {
         public string Map { get; init; } = null!;
@@ -18,7 +21,7 @@ namespace AL.Pathfinding.Model
             Y = location.Y;
             Radius = radius;
         }
-        
+
         public bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
         public bool Equals(ICircle? other) => ICircle.Comparer.Equals(this, other);

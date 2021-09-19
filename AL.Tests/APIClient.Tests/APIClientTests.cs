@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using AL.APIClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.APIClient.Tests
@@ -24,7 +23,7 @@ namespace AL.Tests.APIClient.Tests
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Any());
         }
-        
+
         [TestMethod]
         public async Task UpdateServersAndCharactersTest()
         {

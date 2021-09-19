@@ -155,7 +155,9 @@ namespace AL.SocketClient.Definitions
         [EnumMember(Value = "log_gold_not_enough")]
         NotEnoughGold,
         [EnumMember(Value = "slot_occuppied")]
-        SlotOccupied
+        SlotOccupied,
+        [EnumMember(Value = "get_closer")]
+        GetCloser
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

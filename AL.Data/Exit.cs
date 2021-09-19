@@ -1,3 +1,4 @@
+using System;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
 
@@ -10,6 +11,7 @@ namespace AL.Data
     /// <seealso cref="ILocation" />
     public record Exit : ICircle, ILocation
     {
+        public bool Locked;
         public string Map { get; init; } = null!;
         public float Radius { get; init; }
         /// <summary>
@@ -41,11 +43,12 @@ namespace AL.Data
             ToSpawnIndex = toSpawnIndex;
             Type = type;
 
+            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
             Radius = type switch
             {
                 ExitType.Door        => CONSTANTS.DOOR_RANGE,
                 ExitType.Transporter => CONSTANTS.TRANSPORTER_RANGE,
-                _                    => float.MaxValue
+                _                    => throw new ArgumentOutOfRangeException(nameof(type))
             };
         }
 

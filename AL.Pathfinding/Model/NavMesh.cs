@@ -1,280 +1,72 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
-using Common.Logging;
 
 namespace AL.Pathfinding.Model
 {
     /// <summary>
-    ///     <inheritdoc /> <br />
-    ///     Represents a delauney triangulated mesh generated from a set of nodes. <br />
-    ///     A <see cref="NavMesh" /> is generated for a specific map for pathfinding purposes.
+    ///     <inheritdoc cref="MeshBase{TNode,TEdge}" />
     /// </summary>
-    /// <seealso cref="GraphBase{TNode,TEdge}" />
-    public class NavMesh : GraphBase<GraphNode<Point>, Point>
+    public class NavMesh : MeshBase<GraphNode, GraphEdge>
     {
-        protected sealed override ILog Logger { get; init; }
-        internal PointType[,] PointMap { get; }
-        internal GraphNode<Point>? TownNode { get; }
-        internal int XOffset { get; }
-        internal int YOffset { get; }
+        protected internal NavMesh(
+            string map,
+            IEnumerable<IGenericTriangle<ILocation>> triangles,
+            PointType[,] pointMap,
+            int xOffset,
+            int yOffset)
+            : base(map, triangles, pointMap, xOffset, yOffset) { }
 
-        internal NavMesh(NavMeshBuilderContext context)
-            : base(context.Nodes, (current, neighbor) => current.Edge.Distance(neighbor.Edge), (_, _) => ConnectorType.Walk)
+        protected internal override GraphEdge ConstructEdge(GraphNode start, GraphNode end, EdgeType? typeOverride = null)
         {
-            Logger = LogManager.GetLogger<NavMesh>();
-            XOffset = context.XOffset;
-            YOffset = context.YOffset;
-            PointMap = context.PointMap;
-            TownNode = context.TownNode;
-            Reset();
-        }
+            var type = typeOverride ?? ConnectorTypeSelector(start.Vertex, end.Vertex);
 
-        internal Point ApplyOffset(IPoint point) => new(point.X + XOffset, point.Y + YOffset);
-
-        internal bool CanMove(IPoint start, IPoint end)
-        {
-            foreach ((var x, var y) in new Line(start, end).Points())
-                if (PointMap[Convert.ToInt32(x), Convert.ToInt32(y)].HasFlag(PointType.Wall))
-                    return false;
-
-            return true;
-        }
-
-        private void ConnectTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
-        {
-            if (useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
-                Connect(startNode, TownNode, ConnectorType.Town);
-        }
-
-        private IEnumerable<IConnector<Point>> FindDistanceShortcuts(IEnumerable<IConnector<Point>> connectors, ICircle end)
-        {
-            foreach (var connector in connectors)
+            var heuristic = type switch
             {
-                var start = connector.Start;
+                EdgeType.Leave     => CONSTANTS.TRANSPORT_HEURISTIC,
+                EdgeType.Transport => CONSTANTS.TRANSPORT_HEURISTIC,
+                EdgeType.Door      => CONSTANTS.TRANSPORT_HEURISTIC,
+                EdgeType.Town      => CONSTANTS.TOWN_HEURISTIC,
+                EdgeType.Walk      => CalculateHeuristic(start.Vertex, end.Vertex),
+                _                  => throw new ArgumentOutOfRangeException(nameof(type))
+            };
 
-                if (end.Contains(start))
-                    yield break;
-
-                if (connector.Type == ConnectorType.Town)
-                {
-                    yield return connector;
-
-                    continue;
-                }
-
-                var angleOfAttack = start.AngularRelationTo(end);
-                var bestPoint = end.AngularOffset(angleOfAttack, end.Radius);
-
-                if (CanMove(start, bestPoint))
-                {
-                    yield return new EdgeConnector<Point>
-                    {
-                        Start = start,
-                        End = bestPoint,
-                        Heuristic = start.Distance(bestPoint),
-                        Type = ConnectorType.Walk
-                    };
-
-                    yield break;
-                }
-
-                yield return connector;
-            }
-        }
-
-        /*
-        private static void FindDistanceShortcut(List<IConnector<Point>> connectors, float distance = 0)
-        {
-            var end = connectors.Last().End;
-            var circle = new Circle(end, distance * 0.98f);
-
-            for (var i = 0; i < connectors.Count; i++)
+            return new GraphEdge
             {
-                var connector = connectors[i];
+                Start = start,
+                End = end,
+                Heuristic = heuristic,
+                Type = type
+            };
+        }
 
-                if (connector.Type != ConnectorType.Walk)
-                    continue;
-
-                var intersection = circle.CalculateIntersectionEntryPoint(connector.ToLine());
-
-                if (intersection.HasValue)
-                {
-                    connectors.RemoveRange(i, connectors.Count - i);
-
-                    connectors.Add((EdgeConnector<Point>)connector with
-                    {
-                        End = intersection.Value, Heuristic = connector.Start.Distance(intersection.Value)
-                    });
-
-                    break;
-                }
-            }
-        } */
-
-        /// <summary>
-        ///     Finds the shortest path between a start point and any number of end points.
-        /// </summary>
-        /// <param name="start">A starting point.</param>
-        /// <param name="ends">Any number of end points. Upon reaching any of the end points, that path will be returned.</param>
-        /// <param name="smoothPath">
-        ///     Whether or not to smooth the path before returning it. <br />
-        ///     Path smoothing is lazy, so execution cost of raytracing is spread out.
-        /// </param>
-        /// <param name="useTownIfOptimal">Whether or not to consider using the <c>Town</c> skill.</param>
-        /// <returns>
-        ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="IConnector{TEdge}" /> of <see cref="Point" /> <br />
-        ///     A lazy enumeration of points along the most optimal path between the start node and the first end node a path is
-        ///     found for.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">start</exception>
-        /// <exception cref="ArgumentNullException">ends</exception>
-        /// <exception cref="InvalidOperationException">
-        ///     Unable to locate a start node for the given point. {
-        ///     <paramref name="start" />}
-        /// </exception>
-        /// <exception cref="InvalidOperationException">
-        ///     Unable to locate any end nodes for the given points. {string.Join(',',
-        ///     <paramref name="ends" />)}
-        /// </exception>
-        public async IAsyncEnumerable<IConnector<Point>> FindPath(
-            IPoint start,
-            IEnumerable<ICircle> ends,
-            bool smoothPath = true,
-            bool useTownIfOptimal = true)
+        protected internal override GraphNode ConstructNode(ILocation vertex)
         {
-            if (start == null)
-                throw new ArgumentNullException(nameof(start));
+            var radius = 0f;
 
-            if (ends == null)
-                throw new ArgumentNullException(nameof(ends));
+            if (vertex is ICircle circle)
+                radius = circle.Radius;
 
-            var endsArr = ends.ToArray();
-
-            //initialization / offset start and end points
-            var offsetStart = ApplyOffset(start);
-            var offsetEnds = endsArr.Select(end => (ICircle)new Circle(ApplyOffset(end), end.Radius)).ToArray();
-
-            //if we're standing in one of the end areas already, yield nothing
-            if (offsetEnds.Any(end => end.Equals(offsetStart) || end.Contains(offsetStart)))
-                yield break;
-
-            //get closest to start
-            var startNode = Nodes.OrderBy(node => offsetStart.FastDistance(node.Edge))
-                .FirstOrDefault(node => CanMove(offsetStart, node.Edge));
-
-            if (startNode == null)
-                throw new InvalidOperationException($"Unable to locate a start node for the given point. {start}");
-
-            var endPointLookup = new Dictionary<GraphNode<Point>, ICircle>();
-
-            //for each possible end
-            //add a lookup as vertex : end
-            //to figure out which end was discovered
-            foreach (var end in offsetEnds)
+            return new GraphNode
             {
-                var orderedNodes = Nodes.OrderBy(node => end.FastDistance(node.Edge));
-                var endNode = end.Radius > 0 ? orderedNodes.FirstOrDefault() : orderedNodes.FirstOrDefault(node => CanMove(end, node.Edge));
-
-                if (endNode == null)
-                    continue;
-
-                endPointLookup[endNode] = end;
-            }
-
-            if (endPointLookup.Count == 0)
-                throw new InvalidOperationException(
-                    $"Unable to locate any end nodes for the given points. {string.Join(',', endsArr.AsEnumerable())}");
-
-            var setup = new Action(() => ConnectTownNodeIfNeeded(useTownIfOptimal, startNode));
-            var cleanup = new Action(() => RemoveTownNodeIfNeeded(useTownIfOptimal, startNode));
-            var startIndex = startNode.Index;
-            var endIndexes = endPointLookup.Keys.Select(node => node.Index);
-
-            //get the path (prepend the real start of the path
-            var path = await Navigate(startIndex, endIndexes, setup, cleanup)
-                .Prepend(new EdgeConnector<Point> { Start = offsetStart, End = startNode.Edge })
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            //add the real end of the path based on the last node found
-            var last = path.Last().End;
-            var indexedLast = endPointLookup.FirstOrDefault(kvp => last.Equals(kvp.Key.Edge)).Value;
-
-            if (indexedLast == null)
-                throw new InvalidOperationException("No indexed last node found.");
-
-            path.Add(new EdgeConnector<Point> { Start = last, End = indexedLast.ToPoint() });
-
-            var finalPath = (IEnumerable<IConnector<Point>>)path;
-
-            if (smoothPath)
-                finalPath = SmoothPath(path);
-
-            if (indexedLast.Radius > 0)
-                finalPath = FindDistanceShortcuts(finalPath, indexedLast);
-
-            foreach (var connector in finalPath)
-                yield return connector;
+                Vertex = vertex,
+                Radius = radius,
+                Edges = new HashSet<GraphEdge>()
+            };
         }
 
-        internal bool IsWall(IPoint point) => PointMap[Convert.ToInt32(point.X), Convert.ToInt32(point.Y)].HasFlag(PointType.Wall);
-
-        internal Point RemoveOffset(IPoint point) => new(point.X - XOffset, point.Y - YOffset);
-
-        private void RemoveTownNodeIfNeeded(bool useTownIfOptimal, GraphNode<Point> startNode)
+        protected internal override GraphTriangle ConstructTriangle(GraphNode node1, GraphNode node, GraphNode node3)
         {
-            if (useTownIfOptimal && (TownNode != null) && !startNode.Equals(TownNode))
-                Disconnect(startNode, TownNode);
+            var centroid = new Location(node1.Vertex.Map, (node1.Vertex.X + node.Vertex.X + node3.Vertex.X) / 3f,
+                (node1.Vertex.Y + node.Vertex.Y + node3.Vertex.Y) / 3f);
+
+            return new GraphTriangle(centroid, new[] { node1, node, node3 });
         }
 
-        private IEnumerable<IConnector<Point>> SmoothPath(IReadOnlyList<IConnector<Point>> connectors)
-        {
-            if (connectors.Count == 0)
-                yield break;
-
-            for (var i = 0; i < connectors.Count; i++)
-            {
-                var current = connectors[i];
-
-                if (i != connectors.Count)
-                    for (var e = i + 1; e < connectors.Count; e++)
-                    {
-                        var next = connectors[e];
-
-                        //can town from anywhere
-                        if (next.Type == ConnectorType.Town)
-                        {
-                            i = e;
-
-                            break;
-                        }
-
-                        //if you can move to this node, it's better
-                        if (CanMove(current.Start, next.End))
-                            i = e;
-                    }
-
-                var bestNext = connectors[i];
-
-                if (current == bestNext)
-                    yield return current;
-                else
-                {
-                    var combined = (EdgeConnector<Point>)bestNext with
-                    {
-                        Start = current.Start, Heuristic = current.Start.Distance(bestNext.End)
-                    };
-
-                    yield return combined;
-                }
-            }
-        }
+        protected internal override ILocation ConstructVertex(ILocation location) => location;
     }
 }

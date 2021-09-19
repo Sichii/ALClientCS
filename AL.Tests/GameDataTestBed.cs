@@ -1,20 +1,18 @@
-using System.Threading;
 using System.Threading.Tasks;
 using AL.APIClient;
 using AL.Data;
-using AL.Pathfinding;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests
 {
     [TestClass]
-    public abstract class GameDataTestBed
+    public abstract class GameDataTestBed : APITestBed
     {
-        protected static readonly SemaphoreSlim Sync = new(1, 1);   
-        
         [TestInitialize]
-        public virtual async Task Init()
+        public override async Task Init()
         {
+            await base.Init();
+
             await Sync.WaitAsync();
 
             try

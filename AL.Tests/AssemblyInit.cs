@@ -1,10 +1,5 @@
-using System;
 using System.IO;
-using System.Threading.Tasks;
-using AL.APIClient;
 using AL.Client;
-using AL.Data;
-using AL.Pathfinding;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NLog;
 
@@ -13,11 +8,17 @@ namespace AL.Tests
     [TestClass]
     public class AssemblyInit
     {
+        public const string IMAGE_DIR = "images";
+        public const string PATH_IMAGES_DIR = @"images\path";
+
         [AssemblyInitialize]
-        public static async Task Init(TestContext context)
+        public static void Init(TestContext context)
         {
-            if (!Directory.Exists("images"))
-                Directory.CreateDirectory("images");
+            if (!Directory.Exists(IMAGE_DIR))
+                Directory.CreateDirectory(IMAGE_DIR);
+
+            if (!Directory.Exists(PATH_IMAGES_DIR))
+                Directory.CreateDirectory(PATH_IMAGES_DIR);
 
             ALClientSettings.UseDefaultLoggingConfiguration();
             ALClientSettings.SetLogLevel(LogLevel.Debug);

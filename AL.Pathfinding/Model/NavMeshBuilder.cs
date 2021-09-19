@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
@@ -13,21 +14,25 @@ using Polygon = Poly2Tri.Polygon;
 
 namespace AL.Pathfinding.Model
 {
-    internal class NavMeshBuilder
+    /// <summary>
+    ///     Provides the ability to build a mesh from a map's data.
+    /// </summary>
+    public class NavMeshBuilder
     {
         private readonly GGeometry Geometry;
         private readonly int Height;
         private readonly GMap Map;
-        private readonly Dictionary<Point, GraphNode<Point>> NodeDic;
         private readonly PointType[,] PointMap;
-        private readonly Dictionary<Point, DelaunayTriangle> Triangles;
         private readonly int Width;
         private readonly int XOffset;
         private readonly int YOffset;
-        private int Index;
-        private GraphNode<Point>? TownNode;
 
-        internal NavMeshBuilder(GMap map, GGeometry geometry)
+        /// <summary>
+        ///     Initializes a new instances of the <see cref="NavMeshBuilder" /> class.
+        /// </summary>
+        /// <param name="map">A map's gamedata.</param>
+        /// <param name="geometry">A maps gemometry data.</param>
+        public NavMeshBuilder(GMap map, GGeometry geometry)
         {
             Map = map;
             Geometry = geometry;
@@ -35,114 +40,37 @@ namespace AL.Pathfinding.Model
             Height = Geometry.MaxY - Geometry.MinY;
             XOffset = Math.Abs(Geometry.MinX);
             YOffset = Math.Abs(Geometry.MinY);
-            NodeDic = new Dictionary<Point, GraphNode<Point>>();
             PointMap = new PointType[Width + 1, Height + 1];
-            Triangles = new Dictionary<Point, DelaunayTriangle>();
         }
 
-        internal NavMesh Build()
+        /// <summary>
+        ///     Builds a triangulated navmesh and pointmap from a map's data.
+        /// </summary>
+        /// <returns>
+        ///     <see cref="NavMesh" /> <br />
+        ///     A navmesh containing triangle data
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        public NavMesh Build()
         {
             FillWalls();
-            var vertices = new HashSet<Point>();
+            var polyVertices = new HashSet<Point>();
 
             foreach (var spawn in Map.Spawns)
-                vertices.UnionWith(FloodFindVertices(spawn));
+                polyVertices.UnionWith(FloodFindVertices(spawn));
 
-            var polySet = TracePolygons(vertices);
+            var polySet = TracePolygons(polyVertices);
             P2T.Triangulate(polySet);
 
-            foreach (var triangle in polySet.Polygons.SelectMany(polygon => polygon.Triangles))
-                Triangles.Add(TriangleNetExtensions.Centroid(triangle), triangle);
+            var polyTriangles = polySet.Polygons.SelectMany(polygon => polygon.Triangles);
 
-            foreach (var triangle in Triangles.Values)
-            {
-                var vertex1 = triangle.Points._0.ToPoint();
-                var vertex2 = triangle.Points._1.ToPoint();
-                var vertex3 = triangle.Points._2.ToPoint();
+            var meshTriangles = polyTriangles.Select(triangle => triangle.ToGenericTriangle(Map.Accessor));
 
-                if (!NodeDic.TryGetValue(vertex1, out var node1))
-                {
-                    node1 = new GraphNode<Point>(vertex1, Index++);
-                    NodeDic[vertex1] = node1;
-                }
-
-                if (!NodeDic.TryGetValue(vertex2, out var node2))
-                {
-                    node2 = new GraphNode<Point>(vertex2, Index++);
-                    NodeDic[vertex2] = node2;
-                }
-
-                if (!NodeDic.TryGetValue(vertex3, out var node3))
-                {
-                    node3 = new GraphNode<Point>(vertex3, Index++);
-                    NodeDic[vertex3] = node3;
-                }
-
-                node1.Neighbors.Add(node2);
-                node1.Neighbors.Add(node3);
-                node2.Neighbors.Add(node1);
-                node2.Neighbors.Add(node3);
-                node3.Neighbors.Add(node1);
-                node3.Neighbors.Add(node2);
-            }
-
-            TownNode = CreateTownNode();
-
-            if (TownNode != null)
-                NodeDic[TownNode.Edge] = TownNode;
-
-            //ensure unique neighbors
-            foreach (var node in NodeDic.Values)
-                node.Neighbors = node.Neighbors.Distinct().ToList();
-
-            var context = new NavMeshBuilderContext
-            {
-                Nodes = NodeDic.Values.ToList(),
-                Triangles = Triangles,
-                TownNode = TownNode,
-                XOffset = XOffset,
-                YOffset = YOffset,
-                PointMap = PointMap
-            };
-
-            return new NavMesh(context);
+            return new NavMesh(Map.Accessor, meshTriangles, PointMap, XOffset, YOffset);
         }
-
-        #region Utility
-        private GraphNode<Point>? CreateTownNode()
-        {
-            var spawn = Map.Spawns.Count > 0 ? Map.Spawns[0] : default;
-
-            if ((spawn == null) || Map.Boundless)
-                return null;
-
-            var spawnPoint = new Point(spawn.X + XOffset, spawn.Y + YOffset);
-            var node = new GraphNode<Point>(spawnPoint, Index++);
-
-            var townTriangle = Triangles.OrderBy(kvp => kvp.Key.Distance(spawnPoint))
-                .Select(kvp => kvp.Value)
-                .FirstOrDefault(triangle => triangle.ContainsPoint(spawnPoint.X, spawnPoint.Y));
-
-            if (townTriangle == null)
-                return null;
-
-            foreach (var vertex in townTriangle.Points)
-            {
-                var point = vertex.ToPoint();
-
-                if (spawnPoint.Equals(point))
-                    continue;
-
-                node.Neighbors.Add(NodeDic[point]);
-            }
-
-            NodeDic.Add(node.Edge, node);
-
-            return node;
-        }
-        #endregion
 
         #region Polygons
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private void FillWalls()
         {
             //for each point in each wall rect, set that point to a wall in the grid
@@ -178,6 +106,7 @@ namespace AL.Pathfinding.Model
                     }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private IEnumerable<IRectangle> PadWalls(BoundingBase boundingBase)
         {
             (var halfWidth, var verticalNorth, var verticalNotNorth) = boundingBase;
@@ -218,14 +147,15 @@ namespace AL.Pathfinding.Model
             }
         }
 
-        private PolygonSet TracePolygons(HashSet<Point> vertices)
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private PolygonSet TracePolygons(ICollection<Point> vertices)
         {
             var polygons = new List<Polygon>();
 
             while (vertices.Count > 0)
             {
                 //get a polygon via floodfill
-                var polyLine = FloodPolyLine(vertices).Select((point, i) => point.ToPolyPoint(i)).ToArray();
+                var polyLine = FloodPolyLine(vertices).Select((point, i) => new PolygonPoint(point.X, point.Y, i)).ToArray();
                 var polygon = new Polygon(polyLine);
                 var isHole = false;
 
@@ -262,6 +192,7 @@ namespace AL.Pathfinding.Model
         #endregion
 
         #region Flood
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private IEnumerable<Point> FloodFindVertices(IPoint start)
         {
             var x = Convert.ToInt32(start.X + XOffset);
@@ -295,8 +226,10 @@ namespace AL.Pathfinding.Model
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private int OctagonalFill(int ix, int iy, Stack<Point> stack)
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
             void FillIndex(int x, int y, ref int signature)
             {
                 var val = PointMap[x, y];
@@ -363,6 +296,7 @@ namespace AL.Pathfinding.Model
             return signature;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private bool MinesweeperLogic(int cx, int cy, int signature)
         {
             switch (signature)
@@ -395,11 +329,13 @@ namespace AL.Pathfinding.Model
         }
 
         // ReSharper disable once SuggestBaseTypeForParameter
-        private IEnumerable<Point> FloodPolyLine(HashSet<Point> vertices)
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private IEnumerable<Point> FloodPolyLine(ICollection<Point> vertices)
         {
-            //new points will always be on the top, allowing us to directly trace the inner poly line
+            //new points will always be on the top, allowing us to directly trace the inner poly line clockwise
             var stack = new Stack<Point>();
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
             bool TryDiscoverVertex(int x, int y, out Point point)
             {
                 point = Point.None;

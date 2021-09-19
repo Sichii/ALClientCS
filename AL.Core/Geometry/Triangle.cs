@@ -6,7 +6,7 @@ namespace AL.Core.Geometry
 {
     public class Triangle : ITriangle
     {
-        public bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+        public IReadOnlyList<IPoint> Vertices { get; }
 
         public float X { get; }
         public float Y { get; }
@@ -18,10 +18,10 @@ namespace AL.Core.Geometry
 
             Vertices = vertices;
         }
+
+        public bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public IReadOnlyList<IPoint> Vertices { get; }
     }
 }

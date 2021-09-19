@@ -9,15 +9,8 @@ namespace AL.Pathfinding.Extensions
 {
     internal static class TriangleNetExtensions
     {
-        internal static Point Centroid(this DelaunayTriangle triangle) =>
-            new((float)(triangle.Points._0.X + triangle.Points._1.X + triangle.Points._2.X) / 3,
-                (float)(triangle.Points._0.Y + triangle.Points._1.Y + triangle.Points._2.Y) / 3);
-
         internal static bool ContainsPoint(this Polygon polygon, float x, float y) =>
             PolyLineEncircles(polygon.Points, x, y);
-
-        internal static bool ContainsPoint(this DelaunayTriangle triangle, float x, float y) =>
-            PolyLineEncircles(triangle.Points.ToArray(), x, y);
 
         private static bool PolyLineEncircles(IList<TriangulationPoint> poly, float x, float y)
         {

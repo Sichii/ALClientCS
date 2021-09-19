@@ -6,6 +6,9 @@ using AL.Pathfinding.Interfaces;
 
 namespace AL.Pathfinding.Model
 {
+    /// <summary>
+    ///     A triangle whose vertices are locations.
+    /// </summary>
     public class GenericTriangle : IGenericTriangle<ILocation>
     {
         public IReadOnlyList<ILocation> Vertices { get; init; } = new List<ILocation>();

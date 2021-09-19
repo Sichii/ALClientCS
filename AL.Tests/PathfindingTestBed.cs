@@ -1,4 +1,3 @@
-using System.Threading;
 using System.Threading.Tasks;
 using AL.Pathfinding;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -9,17 +8,17 @@ namespace AL.Tests
     public abstract class PathfindingTestBed : GameDataTestBed
     {
         [TestInitialize]
-        public virtual async Task Init()
+        public override async Task Init()
         {
             await base.Init();
-            
+
             await Sync.WaitAsync();
 
             try
             {
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (Pathfinder2.DirectedGraph == null)
-                    await Pathfinder2.InitializeAsync().ConfigureAwait(false);
+                if (Pathfinder.DirectedGraph == null)
+                    await Pathfinder.InitializeAsync().ConfigureAwait(false);
             } finally
             {
                 Sync.Release();

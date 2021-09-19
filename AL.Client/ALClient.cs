@@ -26,7 +26,7 @@ using AL.Core.Model;
 using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
-using AL.Pathfinding.Interfaces;
+using AL.Pathfinding.Model;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
@@ -583,7 +583,7 @@ namespace AL.Client
 
         protected async Task InternalConnectAsync()
         {
-            AttachListeners();
+            await AttachListenersAsync().ConfigureAwait(false);
 
             var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -1384,7 +1384,7 @@ namespace AL.Client
 
                         if (probableIndex == -1)
                             return TaskCache.FALSE;
-                        
+
                         var bankedItem = bankedItems[probableIndex]!;
                         source.TrySetResult(new BankIndexer { BankPack = bankPack.Value, Index = probableIndex, Item = bankedItem });
                     }
@@ -1652,6 +1652,13 @@ namespace AL.Client
                         || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
                         || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON))
                     {
+                        if (token is { IsCancellationRequested: true })
+                        {
+                            source.TrySetResult(Expectation.Success);
+                            
+                            return false;
+                        }
+                        
                         //if we already tried to request new movement data
                         if (correctionAttempted)
                         {
@@ -1662,7 +1669,7 @@ namespace AL.Client
                         }
 
                         //if we should have reasonably received correct movement data
-                        if (elapsed > PingManager.Offset * 2)
+                        if (elapsed > PingManager.Offset * 3)
                         {
                             //request new movement data from the server
                             Logger.Debug("Correcting position");
@@ -1675,29 +1682,7 @@ namespace AL.Client
                     }
 
                     await delay.SetDelayAsync(Convert.ToInt32(Character.Distance(point) / Character.Speed * 1000)).ConfigureAwait(false);
-
-                    /*
-                    switch (correctionAttempted)
-                    {
-                        case true when shouldBeMoving && (!data.Moving
-                                       || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
-                                       || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON)):
-                            source.TrySetResult($"Failed to move to {point.ToPoint()}. (desync/packetloss)");
-    
-                            return false;
-                        case false when !data.Moving
-                                        || !data.GoingX.NearlyEquals(point.X, CORE_CONSTANTS.EPSILON)
-                                        || !data.GoingY.NearlyEquals(point.Y, CORE_CONSTANTS.EPSILON):
-                            correctionAttempted = true;
-    
-                            Logger.Debug("Correcting position");
-                            await Socket.EmitAsync(ALSocketEmitType.Property, new { typing = true }).ConfigureAwait(false);
-    
-                            break;
-                    }*/
-
-                    // ReSharper disable once AccessToDisposedClosure - this action is safe even if disposed
-
+                    
                     return false;
                 })
                 .ConfigureAwait(false);
@@ -1709,9 +1694,9 @@ namespace AL.Client
                     if (data.Map.EqualsI("jail"))
                     {
                         var standingLocation = Character.ToLocation();
-                        var standingOnWall = PathFinder.IsWall(standingLocation);
+                        var standingOnWall = Pathfinder.IsWall(standingLocation);
                         var goingLocation = new Location(Character.Map, Character.GoingX, Character.GoingY);
-                        var validPath = PathFinder.CanMove(standingLocation, goingLocation);
+                        var validPath = Pathfinder.CanMove(standingLocation, goingLocation);
 
                         source.TrySetResult(
                             $"Sent to jail from {startLoc} (IsWall: {standingOnWall}), moving to {goingLoc} (Valid: {validPath})");
@@ -2199,7 +2184,7 @@ namespace AL.Client
             float distance = 0,
             bool useTownIfOptimal = true,
             CancellationToken? cancellationToken = null) =>
-            SmartMoveAsync(new[] { new MapCircle(new Location(Character.Map, point), distance) }, useTownIfOptimal, cancellationToken);
+            SmartMoveAsync(new[] { new Destination(new Location(Character.Map, point), distance) }, useTownIfOptimal, cancellationToken);
 
         /// <summary>
         ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -2215,7 +2200,7 @@ namespace AL.Client
             float distance = 0,
             bool useTownIfOptimal = true,
             CancellationToken? cancellationToken = null) =>
-            SmartMoveAsync(endPoints.Select(point => new MapCircle(new Location(Character.Map, point), distance)), useTownIfOptimal,
+            SmartMoveAsync(endPoints.Select(point => new Destination(new Location(Character.Map, point), distance)), useTownIfOptimal,
                 cancellationToken);
 
         /// <summary>
@@ -2231,7 +2216,7 @@ namespace AL.Client
             float distance = 0,
             bool useTownIfOptimal = true,
             CancellationToken? cancellationToken = null) =>
-            SmartMoveAsync(new[] { new MapCircle(location, distance) }, useTownIfOptimal, cancellationToken);
+            SmartMoveAsync(new[] { new Destination(location, distance) }, useTownIfOptimal, cancellationToken);
 
         /// <summary>
         ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -2247,7 +2232,7 @@ namespace AL.Client
             float distance = 0,
             bool useTownIfOptimal = true,
             CancellationToken? cancellationToken = null) =>
-            SmartMoveAsync(endLocations.Select(l => new MapCircle(l, distance)), useTownIfOptimal, cancellationToken);
+            SmartMoveAsync(endLocations.Select(l => new Destination(l, distance)), useTownIfOptimal, cancellationToken);
 
         /// <summary>
         ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding.
@@ -2265,11 +2250,14 @@ namespace AL.Client
                 throw new ArgumentNullException(nameof(endDestinations));
 
             // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-            Task HandlePathConnectorAsync(IConnector<Point> pathConnector, CancellationToken? innerToken = null) =>
+            Task HandlePathConnectorAsync(GraphEdge pathConnector, CancellationToken? innerToken = null) =>
                 pathConnector.Type switch
                 {
-                    ConnectorType.Walk => MoveAsync(pathConnector.End, innerToken),
-                    ConnectorType.Town => UseTownAsync(innerToken),
+                    EdgeType.Walk      => MoveAsync(pathConnector.End.Vertex, innerToken),
+                    EdgeType.Town      => UseTownAsync(innerToken),
+                    EdgeType.Leave     => LeaveMapAsync(),
+                    EdgeType.Door      => TransportAsync(pathConnector.End.Vertex.Map, ((Exit)pathConnector.Start.Vertex).ToSpawnIndex),
+                    EdgeType.Transport => TransportAsync(pathConnector.End.Vertex.Map, ((Exit)pathConnector.Start.Vertex).ToSpawnIndex),
                     _                  => throw new ArgumentOutOfRangeException($"Unexpected path connectorType: {pathConnector.Type}")
                 };
 
@@ -2278,78 +2266,25 @@ namespace AL.Client
             if (ends.Length == 0)
                 throw new ArgumentNullException(nameof(endDestinations));
 
-            var route = PathFinder.FindRoute(Character.Map,
-                ends.Select(destination => destination.Map).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+            var path = Pathfinder.FindPathAsync(Character.ToLocation(), ends, useTownIfOptimal);
 
-            await foreach (var routeConnector in route.ConfigureAwait(false))
+            await foreach (var edge in path.ConfigureAwait(false))
             {
-                if (cancellationToken?.IsCancellationRequested == true)
-                    return;
+                if (cancellationToken is { IsCancellationRequested: true })
+                    break;
 
-                if (routeConnector.Type == ConnectorType.Leave)
-                {
-                    await LeaveMapAsync().ConfigureAwait(false);
-
-                    continue;
-                }
-
-                var exits = routeConnector.Start.Exits.Where(exit => exit.ToLocation.Map.EqualsI(routeConnector.End.Accessor)).ToArray();
-                var currentPoint = Character.ToPoint();
-                var innerPath = PathFinder.FindPath(Character.Map, currentPoint, exits, useTownIfOptimal: useTownIfOptimal);
-                RecurseWithoutTowning1:
-
-                await foreach (var pathConnector in innerPath.ConfigureAwait(false))
-                {
-                    try
-                    {
-                        await HandlePathConnectorAsync(pathConnector, cancellationToken).ConfigureAwait(false);
-                    } catch (Exception e)
-                    {
-                        if (e.Message.ContainsI("failed to town"))
-                        {
-                            innerPath = PathFinder.FindPath(Character.Map, currentPoint, exits, useTownIfOptimal: false);
-
-                            goto RecurseWithoutTowning1;
-                        }
-
-                        throw;
-                    }
-
-                    currentPoint = pathConnector.End;
-
-                    if (cancellationToken is { IsCancellationRequested: true })
-                        return;
-                }
-
-                var destination = exits.MinBy(exit => exit.Distance(currentPoint))!;
-                await TransportAsync(destination.ToLocation.Map, destination.ToSpawnIndex).ConfigureAwait(false);
-            }
-
-            var path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
-                ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>(), useTownIfOptimal: useTownIfOptimal);
-
-            RecurseWithoutTowning2:
-
-            await foreach (var pathConnector in path.ConfigureAwait(false))
-            {
                 try
                 {
-                    await HandlePathConnectorAsync(pathConnector, cancellationToken).ConfigureAwait(false);
-                } catch (Exception e)
+                    await HandlePathConnectorAsync(edge, cancellationToken).ConfigureAwait(false);
+                } catch (InvalidOperationException e)
                 {
                     if (e.Message.ContainsI("failed to town"))
                     {
-                        path = PathFinder.FindPath(Character.Map, Character.ToPoint(),
-                            ends.Where(destination => destination.Map.EqualsI(Character.Map)).Cast<ICircle>(), useTownIfOptimal: false);
+                        await SmartMoveAsync(ends, false, cancellationToken).ConfigureAwait(false);
 
-                        goto RecurseWithoutTowning2;
+                        break;
                     }
-
-                    throw;
                 }
-
-                if (cancellationToken is { IsCancellationRequested: true })
-                    return;
             }
         }
 
@@ -2998,7 +2933,7 @@ namespace AL.Client
         #endregion
 
         #region Events
-        protected void AttachListeners()
+        protected async ValueTask AttachListenersAsync()
         {
             if (Socket == null)
                 throw new NullReferenceException(nameof(Socket));
@@ -3024,6 +2959,7 @@ namespace AL.Client
             Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
             Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
             Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
+            await PositionManager.AttachListenerAsync().ConfigureAwait(false);
         }
 
         protected async Task<bool> OnChestOpened(ChestOpenedData data)
@@ -3230,9 +3166,9 @@ namespace AL.Client
             if (data.Map.EqualsI("jail"))
             {
                 var standingLocation = Character.ToLocation();
-                var standingOnWall = PathFinder.IsWall(standingLocation);
+                var standingOnWall = Pathfinder.IsWall(standingLocation);
                 var goingLocation = new Location(Character.Map, Character.GoingX, Character.GoingY);
-                var validPath = PathFinder.CanMove(standingLocation, goingLocation);
+                var validPath = Pathfinder.CanMove(standingLocation, goingLocation);
 
                 Logger.Error(
                     $"Sent to jail from {Character.ToLocation()} (IsWall: {standingOnWall}), moving to {goingLocation} (Valid: {validPath})");
@@ -3407,7 +3343,11 @@ namespace AL.Client
             return firstEmptySlot;
         }
 
-        public static async Task InitializeAsync()
+        /// <summary>
+        ///     Serializes game data, initializes caches and pathfinding
+        /// </summary>
+        /// <param name="unlockedDoors"></param>
+        public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null)
         {
             var tasks = new List<Task>
             {
@@ -3421,7 +3361,17 @@ namespace AL.Client
             };
 
             await Task.WhenAll(tasks).ConfigureAwait(false);
-            await PathFinder.InitializeAsync().ConfigureAwait(false);
+
+            if (unlockedDoors != null)
+                foreach (var doorLoc in unlockedDoors)
+                {
+                    var gMap = GameData.Maps[doorLoc.Map];
+                    var door = gMap!.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, doorLoc));
+
+                    door?.Unlock();
+                }
+
+            await Pathfinder.InitializeAsync().ConfigureAwait(false);
         }
 
         protected async ValueTask SetCooldownAsync(string skillName, float? cooldownMS = null)
@@ -3454,41 +3404,20 @@ namespace AL.Client
             }
         }
 
-        protected ValueTask UpdateMonsters(IReadOnlyList<Monster> monsters, string @in, string map, EntitiesUpdateType updateType)
-        {
-            if (updateType == EntitiesUpdateType.All)
-                return Monsters.AssertAsync(dic =>
-                {
-                    //remove extras
-                    foreach (var monsterId in dic.Keys.Except(monsters.Select(monster => monster.Id)))
-                        dic.Remove(monsterId);
-
-                    //merge existing, add new
-                    foreach (var monster in monsters)
-                    {
-                        monster.UpdateMap(@in, map);
-                        monster.CompensateOnce(PingManager.Offset);
-
-                        if (dic.TryGetValue(monster.Id, out var existing))
-                            ShallowMerge<Monster>.Merge(monster, existing);
-                        else
-                        {
-                            monster.SetBoundingBase(monster.GetData().BoundingBase);
-                            dic.Add(monster.Id, monster);
-                        }
-                    }
-                });
-
-            return Monsters.AssertAsync(dic =>
+        protected ValueTask UpdateMonsters(IReadOnlyList<Monster> monsters, string @in, string map, EntitiesUpdateType updateType) =>
+            Monsters.AssertAsync(dic =>
             {
+                if (updateType == EntitiesUpdateType.All)
+                    dic.Clear();
+
                 //update positions
                 foreach (var monster in monsters)
                 {
                     monster.UpdateMap(@in, map);
                     monster.CompensateOnce(PingManager.Offset);
 
-                    if (dic.TryGetValue(monster.Id, out var monsterX))
-                        monsterX.Update(monster);
+                    if (dic.TryGetValue(monster.Id, out var existingMonster))
+                        existingMonster.Update(monster);
                     else
                     {
                         monster.SetBoundingBase(monster.GetData().BoundingBase);
@@ -3496,37 +3425,13 @@ namespace AL.Client
                     }
                 }
             });
-        }
 
-        protected ValueTask UpdatePlayers(IReadOnlyCollection<Player> players, string @in, string map, EntitiesUpdateType updateType)
-        {
-            if (updateType == EntitiesUpdateType.All)
-                return Players.AssertAsync(dic =>
-                {
-                    //remove extras
-                    foreach (var playerId in dic.Keys.Except(players.Select(player => player.Id)))
-                        dic.Remove(playerId);
-
-                    //merge existing, add new
-                    foreach (var player in players)
-                    {
-                        player.UpdateMap(@in, map);
-                        player.CompensateOnce(PingManager.Offset);
-
-                        if (player.Equals(Character))
-                            Character.UpdateLocation(player);
-                        else if (dic.TryGetValue(player.Id, out var existing))
-                            ShallowMerge<Player>.Merge(player, existing);
-                        else
-                        {
-                            player.SetBoundingBase(PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE);
-                            dic.Add(player.Id, player);
-                        }
-                    }
-                });
-
-            return Players.AssertAsync(dic =>
+        protected ValueTask UpdatePlayers(IReadOnlyCollection<Player> players, string @in, string map, EntitiesUpdateType updateType) =>
+            Players.AssertAsync(dic =>
             {
+                if (updateType == EntitiesUpdateType.All)
+                    dic.Clear();
+
                 foreach (var player in players)
                 {
                     player.UpdateMap(@in, map);
@@ -3535,12 +3440,14 @@ namespace AL.Client
                     if (player.Equals(Character))
                         Character.UpdateLocation(player);
                     else if (dic.TryGetValue(player.Id, out var existing))
-                        existing.UpdatePosition(player);
+                        existing.Update(player);
                     else
+                    {
+                        player.SetBoundingBase(PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE);
                         dic.Add(player.Id, player);
+                    }
                 }
             });
-        }
 
         protected async Task WaitForBankAsync()
         {

@@ -7,21 +7,24 @@ using AL.Pathfinding.Interfaces;
 
 namespace AL.Pathfinding.Model
 {
-    public class GraphTriangle : ILocation, ITriangle, IGenericTriangle<GraphNode2>
+    /// <summary>
+    ///     Represents a triangle of graph nodes. This mainly exists as a connection between <see cref="ITriangle" /> and
+    ///     <see cref="IGenericTriangle{TVertex}" />
+    /// </summary>
+    public class GraphTriangle : ILocation, ITriangle, IGenericTriangle<GraphNode>
     {
-        private readonly IReadOnlyList<GraphNode2> _nodeVertices;
+        private readonly IReadOnlyList<GraphNode> _nodeVertices;
         private readonly IReadOnlyList<ILocation> _vertices;
 
         public string Map { get; }
-
         public float X { get; }
         public float Y { get; }
 
-        IReadOnlyList<GraphNode2> IGenericTriangle<GraphNode2>.Vertices => _nodeVertices;
+        IReadOnlyList<GraphNode> IGenericTriangle<GraphNode>.Vertices => _nodeVertices;
 
         IReadOnlyList<IPoint> IPolygon.Vertices => _vertices;
 
-        public GraphTriangle(ILocation centroid, IReadOnlyList<GraphNode2> nodeVertices)
+        public GraphTriangle(ILocation centroid, IReadOnlyList<GraphNode> nodeVertices)
         {
             Map = centroid.Map;
             X = centroid.X;
@@ -34,9 +37,9 @@ namespace AL.Pathfinding.Model
 
         public bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
 
-        public bool Equals(IGenericTriangle<GraphNode2>? other) => other is not null && _nodeVertices.SequenceEqual(other.Vertices);
+        public bool Equals(IGenericTriangle<GraphNode>? other) => other is not null && _nodeVertices.SequenceEqual(other.Vertices);
 
-        IEnumerator<GraphNode2> IEnumerable<GraphNode2>.GetEnumerator() => _nodeVertices.GetEnumerator();
+        IEnumerator<GraphNode> IEnumerable<GraphNode>.GetEnumerator() => _nodeVertices.GetEnumerator();
 
         IEnumerator<IPoint> IEnumerable<IPoint>.GetEnumerator() => _vertices.GetEnumerator();
 

@@ -10,65 +10,21 @@ using AL.Pathfinding.Definitions;
 
 namespace AL.Pathfinding.Model
 {
-    public class DirectedGraph : GraphBase2<NavMesh2, GraphNode2, GraphEdge, ILocation, GraphTriangle>
+    /// <summary>
+    ///     <inheritdoc cref="GraphBase{TMesh,TNode,TEdge}" />
+    /// </summary>
+    public class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
     {
-        public DirectedGraph(Dictionary<string, NavMesh2> navMeshes)
-            : base(navMeshes)
-        {
-            /*
-            //connect all the meshes
-            foreach ((var map, var navMesh) in navMeshes)
-            {
-                var gMap = GameData.Maps[map]!;
+        public DirectedGraph(Dictionary<string, NavMesh> navMeshes)
+            : base(navMeshes) { }
 
-                if (gMap.Irregular)
-                {
-                    ILocation leaveTo = gMap.Exits.FirstOrDefault(e => e.Type == ExitType.Door)?.ToLocation
-                                        ?? new Location("main", GameData.Maps.Main.Spawns[0]);
-
-                    var toNavMesh = navMeshes[leaveTo.Map];
-                    var endNode = toNavMesh.ConstructNode(leaveTo);
-
-                    foreach (var node in navMesh)
-                    {
-                        var leaveEdge = navMesh.ConstructEdge(node, endNode, ConnectorType.Leave);
-                        node.Edges.Add(leaveEdge);
-                    }
-                } else
-                    foreach (var exit in gMap.Exits)
-                    {
-                        NavMesh2 toNavMesh = exit.Map.EqualsI(map) ? navMesh : navMeshes[exit.ToLocation.Map]!;
-
-                        var startNode = navMesh.ConstructNode(exit);
-                        var endNode = toNavMesh.ConstructNode(exit.ToLocation);
-
-                        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                        var edge = navMesh.ConstructEdge(startNode, endNode, exit.Type switch
-                        {
-                            ExitType.Door        => ConnectorType.Door,
-                            ExitType.Transporter => ConnectorType.Transport,
-                            _                    => throw new ArgumentOutOfRangeException()
-                        });
-
-                        startNode.Edges.Add(edge);
-
-                        var startNodeForStartNode = navMesh.FindBestNode(exit);
-                        var endNodeForEndNode = toNavMesh.FindBestNode(exit.ToLocation);
-
-                        var toStartEdge = navMesh.ConstructEdge(startNodeForStartNode, startNode, ConnectorType.Walk);
-                        startNodeForStartNode.Edges.Add(toStartEdge);
-                        var fromEndEdge = toNavMesh.ConstructEdge(endNode, endNodeForEndNode, ConnectorType.Walk);
-                        endNode.Edges.Add(fromEndEdge);
-                    }
-            } */
-        }
-
-        private async IAsyncEnumerable<GraphEdge> EnhancePathAsync(IAsyncEnumerable<GraphEdge> connectors)
+        private async IAsyncEnumerable<GraphEdge> EnhancePathAsync(IAsyncEnumerable<GraphEdge> edges)
         {
             var partitionedPath = new List<GraphEdge>();
 
-            await foreach (var edge in connectors)
-                if (edge.Type != ConnectorType.Walk) //flush the path if we come across a non walk node
+            //for each edge in the path
+            await foreach (var edge in edges)
+                if (edge.Type != EdgeType.Walk) //flush the path (with smoothing) if we come across a non walk node
                 {
                     partitionedPath.Add(edge);
 
@@ -89,35 +45,35 @@ namespace AL.Pathfinding.Model
                 } else
                     partitionedPath.Add(edge);
 
-            //yield anything left over
+            //yield anything left over (with smoothing)
             if (partitionedPath.Count > 0)
                 foreach (var partitionedEdge in SmoothPath(partitionedPath))
                     yield return partitionedEdge;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private IEnumerable<GraphEdge> FindDistanceShortcuts(IEnumerable<GraphEdge> connectors)
+        private IEnumerable<GraphEdge> FindDistanceShortcuts(IEnumerable<GraphEdge> edges)
         {
-            var connectorsArr = connectors.ToArray();
-            var endConnector = connectorsArr.Last();
-            var end = endConnector.End;
+            var edgesArr = edges.ToArray();
+            var endEdge = edgesArr.Last();
+            var end = endEdge.End;
 
             //the end will have a radius, create a destination from it
             var destination = new Destination(end.Vertex, end.Radius);
 
-            foreach (var connector in connectorsArr)
+            foreach (var edge in edgesArr)
             {
-                var current = connector.Start.Vertex;
+                var current = edge.Start.Vertex;
 
-                //if the connector type isnt a walk or isnt on the same map as the current node, there are no shortcuts to find
-                if ((connector.Type != ConnectorType.Walk) || !current.OnSameMapAs(destination))
+                //if the node isnt on the same map as the current node, there are no shortcuts to find
+                if (!current.OnSameMapAs(destination))
                 {
-                    yield return connector;
+                    yield return edge;
 
                     continue;
                 }
 
-                //if the destination already contains this point, we are already at the end of the path
+                //if the destination already contains this point, we can stop here
                 if (destination.Contains(current))
                     yield break;
 
@@ -130,16 +86,31 @@ namespace AL.Pathfinding.Model
                 {
                     var endNode = navMesh.ConstructNode(newDestination);
 
-                    yield return navMesh.ConstructEdge(connector.Start, endNode, ConnectorType.Walk);
+                    yield return navMesh.ConstructEdge(edge.Start, endNode, EdgeType.Walk);
 
                     yield break;
                 }
 
-                yield return connector;
+                //if that didnt work, check if this edge is intersected by the end circle
+                var intersectionPoint = destination.CalculateIntersectionEntryPoint(edge);
+
+                if (intersectionPoint != null)
+                {
+                    var endLoc = new Location(navMesh.Map, intersectionPoint);
+                    var endNode = navMesh.ConstructNode(endLoc);
+
+                    yield return navMesh.ConstructEdge(edge.Start, endNode, EdgeType.Walk);
+
+                    yield break;
+                }
+
+                yield return edge;
             }
         }
 
-        public async IAsyncEnumerable<GraphEdge> FindPathAsync(ILocation start, IEnumerable<Destination> ends, bool useTownIfOptimal = true)
+        /// <inheritdoc cref="GraphBase{TMesh,TNode,TEdge}.FindPathAsync" />
+        public async IAsyncEnumerable<GraphEdge> FindPathAsync<T>(ILocation start, IEnumerable<T> ends, bool useTownIfOptimal = true)
+            where T: ILocation, ICircle
         {
             if (start == null)
                 throw new ArgumentNullException(nameof(start));
@@ -147,7 +118,7 @@ namespace AL.Pathfinding.Model
             if (ends == null)
                 throw new ArgumentNullException(nameof(ends));
 
-            var endsArr = ends.ToArray();
+            var endsArr = ends.Cast<ILocation>().ToArray();
 
             if (!endsArr.Any())
                 yield break;
@@ -157,7 +128,7 @@ namespace AL.Pathfinding.Model
             await foreach (var edge in EnhancePathAsync(path))
                 yield return edge;
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private IEnumerable<GraphEdge> SmoothPath(IReadOnlyList<GraphEdge> connectors)
         {
@@ -173,7 +144,7 @@ namespace AL.Pathfinding.Model
                     var next = connectors[e];
 
                     //can town from anywhere
-                    if (next.Type == ConnectorType.Town)
+                    if (next.Type == EdgeType.Town)
                     {
                         i = e;
 

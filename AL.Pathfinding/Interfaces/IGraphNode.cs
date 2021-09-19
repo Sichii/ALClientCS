@@ -1,51 +1,37 @@
 using System;
 using System.Collections.Generic;
-using AL.Pathfinding.Comparers;
+using AL.Core.Interfaces;
 
 namespace AL.Pathfinding.Interfaces
 {
     /// <summary>
-    ///     Represents a node on a graph intended to be searched via dijkstra algorithm.
+    ///     Represents a point on a graph, with zero or more edges.
     /// </summary>
-    /// <typeparam name="TEdge">The type of the underlying edge.</typeparam>
-    /// <seealso cref="IEquatable{T}" />
-    /// <seealso cref="IComparable{T}" />
-    public interface IGraphNode<TEdge> : IEquatable<IGraphNode<TEdge>>, IComparable<IGraphNode<TEdge>> where TEdge: IEquatable<TEdge>
+    /// <typeparam name="TEdge"></typeparam>
+    public interface IGraphNode<TEdge> : IEquatable<IGraphNode<TEdge>>
     {
         /// <summary>
-        ///     If true, the node and it's neighbors have been searched.
+        ///     Whether or not this node has been fully explored. (do not set)
         /// </summary>
         bool Closed { get; set; }
 
         /// <summary>
-        ///     The index of the parent of this node.
+        ///     The uni-directional connections between this node and other nodes.
         /// </summary>
-        int? Parent { get; set; }
-        static IEqualityComparer<IGraphNode<TEdge>> Comparer { get; } = new GraphNodeComparer<TEdge>();
+        ICollection<TEdge> Edges { get; init; }
 
         /// <summary>
-        ///     The underlying edge data.
+        ///     A node with an edge to this node. (do not set)
         /// </summary>
-        TEdge Edge { get; }
+        TEdge? Parent { get; set; }
 
         /// <summary>
-        ///     The index of this node.
+        ///     The vertex this node represents.
         /// </summary>
-        int Index { get; }
+        ILocation Vertex { get; init; }
 
         /// <summary>
-        ///     The neighboring nodes of this node.
-        /// </summary>
-        List<IGraphNode<TEdge>> Neighbors { get; }
-
-        /// <summary>
-        ///     The priority of this node, as used in a Priority Queue.
-        /// </summary>
-        float Priority { get; }
-
-        /// <summary>
-        ///     Resets this nodes <see cref="Closed" /> and <see cref="Parent" /> to their default values. <br />
-        ///     The containing connection will need to reset the <see cref="Priority" />.
+        ///     Resets this node's <see cref="Closed" /> and <see cref="Parent" /> properties.
         /// </summary>
         void Reset();
     }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using AL.Core.Geometry;
 using AL.Pathfinding;
@@ -14,21 +15,48 @@ namespace AL.Tests.Pathfinding.Tests
     [TestClass]
     public class DirectedGraphTests : PathfindingTestBed
     {
-        private ILog Logger = LogManager.GetLogger<DirectedGraphTests>();
-        
+        private readonly ILog Logger = LogManager.GetLogger<DirectedGraphTests>();
+
         [TestMethod]
-        public async Task FindPathSingleMapTest()
+        public async Task FindPathFromTownNodeTest()
         {
-            var start = new Location("main", -1582, 496);
-            var endLoc = new Location("main", 1891, -47);
+            var start = new Location("bank", 0, -37);
+            var endLoc = new Location("spookytown", 0, 0);
             var end = new Destination(endLoc, 0);
 
-            var path = await Pathfinder2.FindPathAsync(start, new[] { end }).ToArrayAsync();
+            var path = await Pathfinder.FindPathAsync(start, new[] { end }).ToArrayAsync();
 
-            path.Should().ContainSingle(p => p.Type == ConnectorType.Town);
-            path.Should().Contain(p => p.Type == ConnectorType.Door);
-            path.Should().Contain(p => p.Type == ConnectorType.Walk);
-            path.Should().NotContain(p => (p.Type == ConnectorType.Transport) || (p.Type == ConnectorType.Leave));
+            path.Should().NotContain(p => p.Type == EdgeType.Town);
+        }
+
+        [TestMethod]
+        public async Task FindPathMultiMapBenchTest()
+        {
+            var start = new Location("main", -1582, 496);
+            var endLoc = new Location("spookytown", 0, 0);
+            var end = new Destination(endLoc, 0);
+
+            //jit it!
+            // ReSharper disable once RedundantAssignment
+            var path = await Pathfinder.FindPathAsync(start, new[] { end }).ToArrayAsync();
+
+            var timer = Stopwatch.StartNew();
+
+            path = await Pathfinder.FindPathAsync(start, new[] { end }).ToArrayAsync();
+
+            timer.Stop();
+            var elapsed = timer.ElapsedMilliseconds;
+            var builder = new StringBuilder();
+
+            foreach (var edge in path)
+                builder.AppendLine(edge.ToString());
+
+            Logger.Info($"Finding path from {start} to {endLoc}");
+            Logger.Info(builder);
+            Logger.Info($"Found path to sppokytown in {elapsed}ms");
+
+            path.Should().Contain(p => p.Type == EdgeType.Door);
+            path.Should().NotContain(p => p.Type == EdgeType.Leave);
             path.First().Start.Vertex.Should().Be(start);
             path.Last().End.Vertex.Should().Be(end);
         }
@@ -39,39 +67,31 @@ namespace AL.Tests.Pathfinding.Tests
             var start = new Location("main", -1582, 496);
             var endLoc = new Location("winter_cave", -84, 0);
             var end = new Destination(endLoc, 0);
-            
-            var path = await Pathfinder2.FindPathAsync(start, new[] { end }).ToArrayAsync();
 
-            path.Should().ContainSingle(p => p.Type == ConnectorType.Town);
-            path.Should().ContainSingle(p => p.Type == ConnectorType.Transport);
-            path.Should().ContainSingle(p => p.Type == ConnectorType.Door);
-            path.Should().Contain(p => p.Type == ConnectorType.Door);
-            path.Should().NotContain(p => p.Type == ConnectorType.Leave);
+            var path = await Pathfinder.FindPathAsync(start, new[] { end }).ToArrayAsync();
+
+            path.Should().ContainSingle(p => p.Type == EdgeType.Town);
+            path.Should().ContainSingle(p => p.Type == EdgeType.Transport);
+            path.Should().ContainSingle(p => p.Type == EdgeType.Door);
+            path.Should().Contain(p => p.Type == EdgeType.Door);
+            path.Should().NotContain(p => p.Type == EdgeType.Leave);
             path.First().Start.Vertex.Should().Be(start);
             path.Last().End.Vertex.Should().Be(end);
         }
-        
+
         [TestMethod]
-        public async Task FindPathMultiMapBenchTest()
+        public async Task FindPathSingleMapTest()
         {
-            var start = new Location("winter_cave", -84, 0);
-            var endLoc = new Location("halloween", 170, -129);
+            var start = new Location("main", -1582, 496);
+            var endLoc = new Location("main", 1891, -47);
             var end = new Destination(endLoc, 0);
-            
-            //jit it!
-            var path = await Pathfinder2.FindPathAsync(start, new[] { end }).ToArrayAsync();
 
-            var timer = Stopwatch.StartNew();
+            var path = await Pathfinder.FindPathAsync(start, new[] { end }).ToArrayAsync();
 
-            for (var i = 0; i < 1000; i++)
-                path = await Pathfinder2.FindPathAsync(start, new[] { end }).ToArrayAsync();
-
-            timer.Stop();
-            var elapsed = timer.ElapsedMilliseconds;
-            Logger.Info($"Found 1000 paths to halloween in {elapsed}ms");
-
-            path.Should().Contain(p => p.Type == ConnectorType.Door);
-            path.Should().NotContain(p => p.Type == ConnectorType.Leave);
+            path.Should().ContainSingle(p => p.Type == EdgeType.Town);
+            path.Should().Contain(p => p.Type == EdgeType.Door);
+            path.Should().Contain(p => p.Type == EdgeType.Walk);
+            path.Should().NotContain(p => (p.Type == EdgeType.Transport) || (p.Type == EdgeType.Leave));
             path.First().Start.Vertex.Should().Be(start);
             path.Last().End.Vertex.Should().Be(end);
         }

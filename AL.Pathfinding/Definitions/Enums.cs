@@ -9,19 +9,19 @@ namespace AL.Pathfinding.Definitions
     {
         None,
         Wall = 1,
-        Walkable = 2,
-        Inline = 4 | Walkable,
-        Vertex = 8 | Inline,
-        Discovered = 16 | Vertex
+        Walkable = 1 << 1,
+        Inline = (1 << 2) | Walkable,
+        Vertex = (1 << 3) | Inline,
+        Discovered = (1 << 4) | Vertex
     }
 
     [Flags, JsonConverter(typeof(StringEnumConverter))]
-    public enum ConnectorType : byte
+    public enum EdgeType : byte
     {
-        Walk,
-        Town,
-        Transport,
-        Door,
-        Leave
+        Walk = 1,
+        Town = 1 << 1,
+        Transport = 1 << 2,
+        Door = 1 << 3,
+        Leave = 1 << 4
     }
 }

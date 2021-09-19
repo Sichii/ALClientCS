@@ -1,231 +1,271 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using AL.Core.Definitions;
+using AL.Core.Extensions;
+using AL.Core.Geometry;
+using AL.Core.Interfaces;
+using AL.Data;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
-using AL.Pathfinding.Model;
 using Chaos.Core.Extensions;
-using Common.Logging;
 using Priority_Queue;
-
-#nullable enable
+using CONSTANTS = AL.Core.Definitions.CONSTANTS;
 
 namespace AL.Pathfinding.Abstractions
 {
     /// <summary>
-    ///     Provides a basic implementation of djikstra search.
+    ///     Represents a Directed Graph.
     /// </summary>
-    /// <typeparam name="TNode">
-    ///     An implementation of <see cref="IGraphNode{TEdge}" /> inheriting from
-    ///     <see cref="FastPriorityQueueNode" />.
-    /// </typeparam>
-    /// <typeparam name="TEdge">
-    ///     The underlying data type for a node, generally some sort of
-    ///     <see cref="AL.Core.Interfaces.IPoint" />.
-    /// </typeparam>
-    /// <seealso cref="IEnumerable{T}" />
-    public abstract class GraphBase<TNode, TEdge> : IEnumerable<TNode> where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
-                                                                       where TEdge: IEquatable<TEdge>
+    /// <typeparam name="TMesh">An implementation of <see cref="MeshBase{TNode,TEdge}" />.</typeparam>
+    /// <typeparam name="TNode">An implementation of <see cref="IGraphNode{TEdge}" /> and <see cref="FastPriorityQueueNode" />.</typeparam>
+    /// <typeparam name="TEdge">An implementation of <see cref="IGraphEdge{TNode}" />.</typeparam>
+    public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode, TEdge>
+                                                         where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+                                                         where TEdge: IGraphEdge<TNode>, new()
     {
-        private readonly Func<TNode, TNode, float> HeuristicFunc;
-        private readonly FastPriorityQueue<TNode> Opened;
-        private readonly SemaphoreSlim Sync;
-        private readonly Func<TNode, TNode, ConnectorType> TypeFunc;
-        /// <summary>
-        ///     A <see cref="Common.Logging">Common.Logging</see> logger.
-        /// </summary>
-        protected abstract ILog Logger { get; init; }
+        protected internal Dictionary<string, TMesh> NavMeshes { get; }
+        protected FastPriorityQueue<TNode> Opened { get; }
+        protected SemaphoreSlim Sync { get; }
+        private List<TNode> OpenedNodes { get; }
 
-        /// <summary>
-        ///     The connections between the edges.
-        /// </summary>
-        protected internal IConnector<TEdge>?[,] Connectors { get; }
-
-        /// <summary>
-        ///     A list of nodes, index is important.
-        /// </summary>
-        protected internal List<TNode> Nodes { get; }
-
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="GraphBase{TNode,TEdge}" /> class.
-        /// </summary>
-        /// <param name="nodes">
-        ///     The nodes to populate the graph with. <see cref="Connect" /> will be called for every node =>
-        ///     neighbor.
-        /// </param>
-        /// <param name="heuristicFunc">The heuristic to use when connecting nodes.</param>
-        /// <param name="typeFunc">A function to determine the type of connection.</param>
-        /// <exception cref="ArgumentNullException">nodes</exception>
-        /// <exception cref="ArgumentNullException">heuristicFunc</exception>
-        /// <exception cref="ArgumentNullException">typeFunc</exception>
-        protected GraphBase(List<TNode> nodes, Func<TNode, TNode, float> heuristicFunc, Func<TNode, TNode, ConnectorType> typeFunc)
+        protected GraphBase(Dictionary<string, TMesh> navMeshes)
         {
-            Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
-            Connectors = new IConnector<TEdge>[nodes.Count, nodes.Count];
-            Opened = new FastPriorityQueue<TNode>(nodes.Count);
-            HeuristicFunc = heuristicFunc ?? throw new ArgumentNullException(nameof(heuristicFunc));
-            TypeFunc = typeFunc ?? throw new ArgumentNullException(nameof(typeFunc));
+            NavMeshes = navMeshes;
+
+            //guestimating max pq length based on average number of nodes in the 5 most populous meshes
+            var meshes = NavMeshes.Values.DistinctBy(n => n.Map).ToArray();
+            var averageOfTop5 = meshes.Select(m => m.Count()).OrderByDescending(c => c).Take(5).Sum() / 5;
+
+            Opened = new FastPriorityQueue<TNode>(averageOfTop5);
+            OpenedNodes = new List<TNode>(averageOfTop5);
             Sync = new SemaphoreSlim(1, 1);
-
-            foreach (var node in Nodes)
-                foreach (var neighbor in node.Neighbors)
-                    Connect(node, (TNode)neighbor, typeFunc(node, (TNode)neighbor));
+            BuildConnections();
         }
 
-        /// <summary>
-        ///     Connects a start node to an end node. The connection is 1 way.
-        /// </summary>
-        /// <param name="start">The start of the connection/</param>
-        /// <param name="end">The end of the connection.</param>
-        /// <param name="type">If type is specified, the type func will not be called.</param>
-        /// <exception cref="ArgumentNullException">start</exception>
-        /// <exception cref="ArgumentNullException">end</exception>
-        protected void Connect(TNode start, TNode end, ConnectorType? type = default)
+        protected void BuildConnections()
         {
-            if (start == null)
-                throw new ArgumentNullException(nameof(start));
-
-            if (end == null)
-                throw new ArgumentNullException(nameof(end));
-
-            var finalType = type ?? TypeFunc(start, end);
-
-            if (finalType == ConnectorType.Town)
-                start.Neighbors.Add(end);
-
-            Connectors[start.Index, end.Index] = new EdgeConnector<TEdge>
+            //connect all the meshes
+            foreach ((var map, var navMesh) in NavMeshes)
             {
-                Start = start.Edge,
-                End = end.Edge,
-                Heuristic = finalType == ConnectorType.Town ? CONSTANTS.TOWN_HEURISTIC : HeuristicFunc(start, end),
-                Type = finalType
-            };
+                var gMap = GameData.Maps[map]!;
+
+                if (gMap.Irregular)
+                {
+                    ILocation leaveTo = gMap.Exits.FirstOrDefault(e => e.Type == ExitType.Door)?.ToLocation
+                                        ?? new Location("main", GameData.Maps.Main.Spawns[0]);
+
+                    //construct a leave connector
+                    var toNavMesh = NavMeshes[leaveTo.Map];
+                    var leavetoVertex = toNavMesh.ConstructVertex(leaveTo);
+                    var endNode = toNavMesh.ConstructNode(leavetoVertex);
+
+                    //add the leave connector to every node on the map
+                    foreach (var node in navMesh)
+                    {
+                        var leaveEdge = navMesh.ConstructEdge(node, endNode, EdgeType.Leave);
+                        node.Edges.Add(leaveEdge);
+                    }
+                } else
+                    foreach (var exit in gMap.Exits)
+                    {
+                        if (exit.Type == ExitType.Door)
+                        {
+                            var door = gMap.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, exit));
+
+                            //dont add locked doors
+                            //TODO: change in the future, when we add support for entering instances with keys
+                            if (door is { LockType: LockType.Locked })
+                                continue;
+                        }
+
+                        //the navmesh for the map the exit leads to
+                        var toNavMesh = navMesh;
+
+                        if (!exit.Map.EqualsI(exit.ToLocation.Map))
+                            if (!NavMeshes.TryGetValue(exit.ToLocation.Map, out toNavMesh))
+                                toNavMesh = null;
+
+                        if (toNavMesh == null)
+                            continue;
+
+                        //construct an edge from the exit to it's destination
+                        var exitVertex = navMesh.ConstructVertex(exit);
+                        var exitToVertex = toNavMesh.ConstructVertex(exit.ToLocation);
+                        var startNode = navMesh.ConstructNode(exitVertex);
+                        var endNode = toNavMesh.ConstructNode(exitToVertex);
+
+                        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+                        var edge = navMesh.ConstructEdge(startNode, endNode, exit.Type switch
+                        {
+                            ExitType.Door        => EdgeType.Door,
+                            ExitType.Transporter => EdgeType.Transport,
+                            _                    => throw new ArgumentOutOfRangeException()
+                        });
+
+                        //add the edge to the start node
+                        startNode.Edges.Add(edge);
+
+                        //find the closest node to the start node in the current map
+                        var startNodeForStartNode = navMesh.FindBestNode(exitVertex);
+                        //find the closest node to the end node in the current map
+                        var endNodeForEndNode = toNavMesh.FindBestNode(exitToVertex);
+
+                        var toStartEdge = navMesh.ConstructEdge(startNodeForStartNode, startNode, EdgeType.Walk);
+                        startNodeForStartNode.Edges.Add(toStartEdge);
+                        var fromEndEdge = toNavMesh.ConstructEdge(endNode, endNodeForEndNode, EdgeType.Walk);
+                        endNode.Edges.Add(fromEndEdge);
+                    }
+            }
         }
 
         /// <summary>
-        ///     Disconnects a start node and end node. (Order matters, connections are 1 way)
+        ///     Determines whether or not it's possible to move from one location to another.
         /// </summary>
-        /// <param name="start">The start of the connection/</param>
-        /// <param name="end">The end of the connection.</param>
+        /// <param name="map">The map to check against.</param>
+        /// <param name="start">The starting point.</param>
+        /// <param name="end">The ending point.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if you can move from <paramref name="start" /> to <paramref name="end" />, otherwise <c>false</c>.
+        /// </returns>
+        public virtual bool CanMove(string map, IPoint start, IPoint end)
+        {
+            var mesh = NavMeshes[map];
+
+            return mesh.CanMove(start, end);
+        }
+
+        /// <summary>
+        ///     Determines whether or not it's possible to move from one location to another.
+        /// </summary>
+        /// <param name="start">The starting location.</param>
+        /// <param name="end">The ending location.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if you can move from <paramref name="start" /> to <paramref name="end" />, otherwise <c>false</c>.
+        /// </returns>
+        public virtual bool CanMove(ILocation start, ILocation end) => start.OnSameMapAs(end) && CanMove(start.Map, start, end);
+
+        /// <summary>
+        ///     Performs a dijkstra search, returning when reaching any end location.
+        /// </summary>
+        /// <param name="start">The starting location</param>
+        /// <param name="ends">Any number of ending locations</param>
+        /// <param name="useTownIfOptimal">Whether or not to consider using the town skill</param>
+        /// <returns><see cref="IAsyncEnumerable{T}" /> of <see cref="TEdge" /></returns>
         /// <exception cref="ArgumentNullException">start</exception>
-        /// <exception cref="ArgumentNullException">end</exception>
-        protected void Disconnect(TNode start, TNode end)
+        /// <exception cref="ArgumentNullException">ends</exception>
+        /// <exception cref="InvalidOperationException">No mesh found for map {start.Map}</exception>
+        /// <exception cref="InvalidOperationException">No mesh found for map {end.Map}</exception>
+        /// <remarks>If towning is interrupted, this will automatically retry without towning enabled.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        public virtual async IAsyncEnumerable<TEdge> FindPathAsync(
+            ILocation start,
+            IEnumerable<ILocation> ends,
+            bool useTownIfOptimal = true)
         {
             if (start == null)
                 throw new ArgumentNullException(nameof(start));
 
-            if (end == null)
-                throw new ArgumentNullException(nameof(end));
-
-            Connectors[start.Index, end.Index] = null;
-            start.Neighbors.Remove(end);
-        }
-
-        public IEnumerator<TNode> GetEnumerator() => Nodes.AsEnumerable().GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        /// <summary>
-        ///     Performs a djikstra search, given a start node index, and any number of end node indexes.
-        /// </summary>
-        /// <param name="start">The index of a node to start searching from.</param>
-        /// <param name="ends">
-        ///     Any number of indexes of nodes that can be the end of the path. Upon reaching any of the end nodes,
-        ///     that path will be returned.
-        /// </param>
-        /// <param name="synchronizedSetup">
-        ///     A function that can be before the djikstra search begins, but still inside the internal
-        ///     synchronization.
-        /// </param>
-        /// <param name="synchronizedCleanup">
-        ///     A function that can be run after the djikstra search finishes, but still inside the
-        ///     internal synchronization.
-        /// </param>
-        /// <returns>
-        ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="IConnector{TEdge}" /> <br />
-        ///     A lazy enumeration of the first path found that starts with the specified starting node, and ends with any of the
-        ///     specified end nodes.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">ends</exception>
-        /// <exception cref="IndexOutOfRangeException">Invalid start index.</exception>
-        /// <exception cref="IndexOutOfRangeException">Invalid end index.</exception>
-        protected async IAsyncEnumerable<IConnector<TEdge>> Navigate(
-            int start,
-            IEnumerable<int> ends,
-            Action? synchronizedSetup = default,
-            Action? synchronizedCleanup = default)
-        {
             if (ends == null)
                 throw new ArgumentNullException(nameof(ends));
 
-            if ((start < 0) || (start >= Nodes.Count))
-                throw new IndexOutOfRangeException("Invalid start index.");
+            var endsArr = ends.ToArray();
 
-            var endIndexes = ends.Select(index =>
-                {
-                    if ((index < 0) || (index >= Nodes.Count))
-                        throw new IndexOutOfRangeException("Invalid end index.");
-
-                    return index;
-                })
-                .ToArray();
-
-            var path = new Stack<IConnector<TEdge>>();
-            var startNode = Nodes[start];
-            var endNodes = Nodes.ElementsAt(endIndexes).ToHashSet();
-
-            //if we're standing on an end point... yield nothing
-            if (endNodes.Any(endNode => startNode == endNode))
+            if (!endsArr.Any())
                 yield break;
 
-            var current = startNode;
+            if (!NavMeshes.TryGetValue(start.Map, out var startNavMesh))
+                throw new InvalidOperationException($"No mesh found for map {start.Map}");
+
+            var startNode = startNavMesh.ConstructNode(start);
+            var bestStartNode = startNavMesh.FindBestNode(start);
+            var startEdge = startNavMesh.ConstructEdge(startNode, bestStartNode, EdgeType.Walk);
+            bestStartNode.Parent = startEdge;
+
+            var endNodeLookup = endsArr.ToDictionary(end =>
+            {
+                if (!NavMeshes.TryGetValue(end.Map, out var endNavMesh))
+                    throw new InvalidOperationException($"No mesh found for map {end.Map}");
+
+                return endNavMesh.FindBestNode(end);
+            });
+
+            var path = new Stack<TEdge>();
+            var current = bestStartNode;
+
             await Sync.WaitAsync().ConfigureAwait(false);
+            var townConnectors = new List<TEdge>();
 
             try
             {
-                if (endNodes.Count == 0)
-                    yield break;
+                if (useTownIfOptimal && (startNavMesh.TownNode != null))
+                {
+                    var townConnector = startNavMesh.ConstructEdge(bestStartNode, startNavMesh.TownNode);
+                    bestStartNode.Edges.Add(townConnector);
+                    townConnectors.Add(townConnector);
+                }
 
-                synchronizedSetup?.Invoke();
-                Opened.Enqueue(current, 0);
+                OpenNode(current, 0);
 
                 while (Opened.Count > 0)
                 {
                     current = Opened.Dequeue();
 
-                    if (current == null)
+                    if ((current == null) || endNodeLookup.Keys.Contains(current)) //ienumerable contains is faster here
                         break;
 
-                    //if we've reached any of the possible destinations... return that path
-                    if (endNodes.Contains(current))
-                        break;
-
-                    for (var i = 0; i < current.Neighbors.Count; i++)
+                    foreach (var edge in current.Edges)
                     {
-                        var neighbor = current.Neighbors[i];
+                        var neighbor = edge.End;
 
                         if (neighbor.Closed)
                             continue;
 
-                        if (OpenNode((TNode)neighbor, current.Priority + Connectors[current.Index, neighbor.Index]!.Heuristic))
-                            neighbor.Parent = current.Index;
+                        if (OpenNode(neighbor, current.Priority + edge.Heuristic))
+                        {
+                            neighbor.Parent = edge;
+
+                            //this should failfast on type 99% of the time
+                            if (edge.Type is EdgeType.Transport or EdgeType.Leave or EdgeType.Door
+                                && useTownIfOptimal
+                                && !edge.Start.Vertex.OnSameMapAs(edge.End.Vertex)
+                                && NavMeshes.TryGetValue(edge.End.Vertex.Map, out var navMesh)
+                                && (navMesh.TownNode != null))
+                            {
+                                var townConnector = navMesh.ConstructEdge(edge.End, navMesh.TownNode, EdgeType.Town);
+                                edge.End.Edges.Add(townConnector);
+                                townConnectors.Add(townConnector);
+                            }
+                        }
                     }
 
                     current.Closed = true;
                 }
 
-                while (current?.Parent != null)
-                {
-                    var parent = Nodes[current.Parent.Value];
-                    path.Push(Connectors[parent.Index, current.Index]!);
-                    current = parent;
-                }
+                //get the true end node from the lookup, create a node and edge from it and add it to the path
+                var endNav = NavMeshes[current!.Vertex.Map];
+                var endPoint = endNodeLookup[current];
+                var endNode = endNav.ConstructNode(endPoint);
+                var endEdge = endNav.ConstructEdge(current, endNode, EdgeType.Walk);
+                path.Push(endEdge);
 
-                synchronizedCleanup?.Invoke();
+                while (current is { Parent: { } })
+                {
+                    var edge = current.Parent;
+                    var parentNode = edge.Start;
+
+                    path.Push(edge);
+                    current = parentNode;
+                }
             } finally
             {
+                foreach (var townConnector in townConnectors)
+                    townConnector.Start.Edges.Remove(townConnector);
+
                 Reset();
                 Sync.Release();
             }
@@ -234,11 +274,27 @@ namespace AL.Pathfinding.Abstractions
                 yield return path.Pop();
         }
 
-        private bool OpenNode(TNode node, float priority)
+        /// <summary>
+        ///     Checks if a location is a wall.
+        /// </summary>
+        /// <param name="location">The location to check.</param>
+        /// <returns>
+        ///     <see cref="bool" /> <br />
+        ///     <c>true</c> if the location is a wall, otherwise <c>false</c>.
+        /// </returns>
+        public virtual bool IsWall(ILocation location)
+        {
+            var mesh = NavMeshes[location.Map];
+
+            return mesh.IsWall(location);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        protected virtual bool OpenNode(TNode node, float priority)
         {
             if (Opened.Contains(node))
             {
-                if (node.Priority.SignificantlyGreaterThan(priority, Core.Definitions.CONSTANTS.EPSILON))
+                if (node.Priority.SignificantlyGreaterThan(priority, CONSTANTS.EPSILON))
                 {
                     Opened.UpdatePriority(node, priority);
 
@@ -247,6 +303,7 @@ namespace AL.Pathfinding.Abstractions
             } else
             {
                 Opened.Enqueue(node, priority);
+                OpenedNodes.Add(node);
 
                 return true;
             }
@@ -254,18 +311,18 @@ namespace AL.Pathfinding.Abstractions
             return false;
         }
 
-        /// <summary>
-        ///     Clears the opened priority queue, and resets all nodes in the node array.
-        /// </summary>
-        protected void Reset()
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        protected virtual void Reset()
         {
+            foreach (var node in Opened)
+                Opened.ResetNode(node);
+
             Opened.Clear();
 
-            foreach (var node in Nodes)
-            {
-                Opened.ResetNode(node);
+            foreach (var node in OpenedNodes)
                 node.Reset();
-            }
+
+            OpenedNodes.Clear();
         }
     }
 }

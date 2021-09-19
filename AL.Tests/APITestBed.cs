@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using AL.APIClient;
-using AL.APIClient.Interfaces;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests
@@ -11,9 +10,9 @@ namespace AL.Tests
     [TestClass]
     public abstract class APITestBed
     {
-        protected static ALAPIClient APIClient { get; private set; } = null!;
         protected static readonly SemaphoreSlim Sync = new(1, 1);
-        
+        protected static ALAPIClient APIClient { get; private set; } = null!;
+
         [TestInitialize]
         public virtual async Task Init()
         {
@@ -32,7 +31,7 @@ namespace AL.Tests
                     var email = lines[0];
                     var pw = lines[1];
 
-                    APIClient = await AL.APIClient.ALAPIClient.LoginAsync(email, pw);
+                    APIClient = await ALAPIClient.LoginAsync(email, pw);
                 }
             } finally
             {

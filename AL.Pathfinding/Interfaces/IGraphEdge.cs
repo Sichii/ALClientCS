@@ -3,27 +3,27 @@ using AL.Pathfinding.Definitions;
 namespace AL.Pathfinding.Interfaces
 {
     /// <summary>
-    ///     A connection.
+    ///     Represent a uni-directional connection between nodes.
     /// </summary>
     public interface IGraphEdge<TNode>
     {
         /// <summary>
-        ///     The ending edge of this connection.
+        ///     The node at the end of this edge.
         /// </summary>
         TNode End { get; init; }
 
         /// <summary>
-        ///     The heuristic value assigned to this combination of edges. (lower is better)
+        ///     The heuristic value assigned to this uni-directional traversel between edges. (lower is better)
         /// </summary>
         float Heuristic { get; init; }
 
         /// <summary>
-        ///     The starting edge of this connection.
+        ///     The starting node of this edge.
         /// </summary>
         TNode Start { get; init; }
         /// <summary>
-        ///     The type of this connector.
+        ///     The type of this edge.
         /// </summary>
-        ConnectorType Type { get; init; }
+        EdgeType Type { get; init; }
     }
 }

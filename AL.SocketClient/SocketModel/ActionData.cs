@@ -1,4 +1,5 @@
-﻿using AL.Core.Interfaces;
+﻿using AL.Core.Helpers;
+using AL.Core.Interfaces;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
@@ -9,6 +10,11 @@ namespace AL.SocketClient.SocketModel
     /// <seealso cref="IPoint" />
     public record ActionData : IPoint
     {
+        /// <summary>
+        /// The delta time this projectile was created.
+        /// </summary>
+        public long Delta { get; } = DeltaTime.Value;
+        
         /// <summary>
         ///     The id of the entity who attacked.
         /// </summary>

@@ -3,18 +3,16 @@ using AL.APIClient.Definitions;
 using AL.Client;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
-using AL.Tests.Client.Tests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AL.Tests.Integration
 {
     //[TestClass]
-    public class IntegrationTests : ClientTestBed
+    public class IntegrationTests : PathfindingTestBed
     {
         [TestMethod]
         public async Task IdleTest()
         {
-
             await using var client = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, APIClient).ConfigureAwait(false);
 
             //stand still for 1minute

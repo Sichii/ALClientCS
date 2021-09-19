@@ -1,15 +1,25 @@
+using AL.Core.Interfaces;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
 
 namespace AL.Pathfinding.Model
 {
-    public class GraphEdge : IGraphEdge<GraphNode2>
+    /// <summary>
+    ///     <inheritdoc cref="IGraphEdge{TNode}" />
+    /// </summary>
+    public class GraphEdge : IGraphEdge<GraphNode>, ILine
     {
-        public GraphNode2 End { get; init; } = null!;
+        public GraphNode End { get; init; } = null!;
         public float Heuristic { get; init; }
-        public GraphNode2 Start { get; init; } = null!;
-        public ConnectorType Type { get; init; }
+        public GraphNode Start { get; init; } = null!;
+        public EdgeType Type { get; init; }
 
-        public override string ToString() => $"{{ {Start} }} => {{ End: {End} }} (H: {Heuristic}, Type: {Type})";
+        float ILine.Length => Heuristic;
+
+        IPoint ILine.Point1 => Start.Vertex;
+
+        IPoint ILine.Point2 => End.Vertex;
+
+        public override string ToString() => $"{{ {Start} }} => {{ {End} }} T: {Type}, H: {Heuristic}";
     }
 }

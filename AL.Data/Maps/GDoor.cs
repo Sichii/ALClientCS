@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Core.Json.Attributes;
@@ -38,6 +39,18 @@ namespace AL.Data.Maps
         public float Height { get; init; }
 
         /// <summary>
+        ///     The key needed to unlock this door.
+        /// </summary>
+        [JsonProperty, JsonArrayIndex(8)]
+        public KeyType KeyType { get; init; }
+
+        /// <summary>
+        ///     The type of lock on this door.
+        /// </summary>
+        [JsonProperty, JsonArrayIndex(7)]
+        public LockType LockType { get; private set; }
+
+        /// <summary>
         ///     The width of this door.
         /// </summary>
         [JsonProperty, JsonArrayIndex(2)]
@@ -66,9 +79,12 @@ namespace AL.Data.Maps
             new Point(((IRectangle)this).Bottom, ((IRectangle)this).Left),
             new Point(((IRectangle)this).Bottom, ((IRectangle)this).Right)
         };
+
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public void Unlock() => LockType = LockType.Unlocked;
     }
 }

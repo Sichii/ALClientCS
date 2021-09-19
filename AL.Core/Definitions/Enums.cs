@@ -93,7 +93,26 @@ namespace AL.Core.Definitions
         [EnumMember(Value = "s")]
         Sealed,
         [EnumMember(Value = "u")]
-        Unlocked
+        Unlocked,
+        [EnumMember(Value = "protected")]
+        Protected,
+        [EnumMember(Value = "key")]
+        Key,
+        [EnumMember(Value = "ulocked")]
+        AlsoLocked = Locked
+    }
+
+    public enum KeyType
+    {
+        None,
+        [EnumMember(Value = "frozenkey")]
+        FrozenKey,
+        [EnumMember(Value = "tombkey")]
+        TombKey,
+        [EnumMember(Value = "cryptkey")]
+        CryptKey,
+        [EnumMember(Value = "complicated")]
+        Complicated
     }
 
     [JsonConverter(typeof(ALClassConverter))]

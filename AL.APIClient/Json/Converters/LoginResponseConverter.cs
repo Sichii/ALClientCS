@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using AL.APIClient.Response;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -24,9 +25,9 @@ namespace AL.APIClient.Json.Converters
 
             return new LoginResponse
             {
-                Message = arr[0].Value<string>("message"),
-                Type = arr[0].Value<string>("type"),
-                Html = arr[1].Value<string>("html")
+                Message = arr.ElementAtOrDefault(0)?.Value<string>("message"),
+                Type = arr.ElementAtOrDefault(0)?.Value<string>("type"),
+                Html = arr.ElementAtOrDefault(1)?.Value<string>("html")
             };
         }
 
