@@ -166,17 +166,15 @@ namespace AL.Pathfinding.Model
 
             foreach(var polygon in polygons.ToList())
             {
-                var isHole = false;
                 var holesOfThesePolygons = polygons.Where(p => (p != polygon) && p.ContainsPoint(polygon.Points[0])).ToList();
-                
-                if (holesOfThesePolygons.Count == 1)
+
+                if (holesOfThesePolygons.Count == 0)
+                    polygonHierarchy.Add(polygon);
+                else if (holesOfThesePolygons.Count == 1)
                 {
                     var parent = holesOfThesePolygons.First();
                     parent.AddHole(polygon);
-                    
-                    polygonHierarchy.Add(parent);
-                    isHole = true;
-                } else if(holesOfThesePolygons.Count >= 2)
+                } else
                 {
                     Polygon parent = null!;
                     
@@ -193,12 +191,7 @@ namespace AL.Pathfinding.Model
 
                     //we are left with the deepest hole that contains our polygon
                     parent.AddHole(polygon);
-                    isHole = true;
                 }
-                
-                //only add topmost polygons, the rest will be holes
-                if(!isHole)
-                    polygonHierarchy.Add(polygon);
             }
 
             var allHoles = polygons.Where(p => p.Holes?.Count > 0).SelectMany(p => p.Holes);
@@ -216,21 +209,6 @@ namespace AL.Pathfinding.Model
                     //add it to the topmost level
                     polygonHierarchy.Add(hole);
                 }
-
-            /*
-            //find holes that have no holes, but do contain a spawn location... these areas should not be holes
-            foreach(var polygon in polygons)
-                if (!polygonHierarchy.Contains(polygon)
-                    && ((polygon.Holes == null) || (polygon.Holes.Count == 0)))
-                {
-                    //find the polygon this is a hole of
-                    var holeOf = polygons.First(p => (p.Holes != null) && p.Holes.Contains(polygon));
-                    //remove the hole
-                    holeOf.Holes.Remove(polygon);
-                    //add it to the topmost level
-                    polygonHierarchy.Add(polygon);
-                }
-                */
             
             var polySet = new PolygonSet();
 
