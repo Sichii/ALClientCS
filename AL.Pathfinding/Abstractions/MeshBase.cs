@@ -141,7 +141,7 @@ namespace AL.Pathfinding.Abstractions
                     return EdgeType.Door;
             }
 
-            var transport = gMap1.NPCs.FirstOrDefault(npc => npc.Locations.Contains(start) && (npc.Data!.Role == NPCRole.Transport));
+            var transport = gMap1.NPCs.FirstOrDefault(npc => (npc.Data!.Role == NPCRole.Transport) && npc.Locations.Contains(start));
 
             if (transport != null)
                 return EdgeType.Transport;
@@ -246,12 +246,17 @@ namespace AL.Pathfinding.Abstractions
                 return edges;
             
             var opened = new HashSet<TNode>();
-            var node = this.First();
-            opened.Add(node);
-
+            
+            //add all spawns to opened list
+            foreach (var spawn in GameData.Maps[Map]!.Spawns)
+            {
+                var node = FindBestNode(new Location(Map, spawn));
+                opened.Add(node);
+            }
+            
             while (opened.Count > 0)
             {
-                node = opened.First();
+                var node = opened.First();
 
                 foreach (var edge in node.Edges)
                 {
@@ -293,12 +298,17 @@ namespace AL.Pathfinding.Abstractions
                 return nodes;
             
             var opened = new HashSet<TNode>();
-            var node = this.First();
-            opened.Add(node);
+
+            //add all spawns to opened list
+            foreach (var spawn in GameData.Maps[Map]!.Spawns)
+            {
+                var node = FindBestNode(new Location(Map, spawn));
+                opened.Add(node);
+            }
 
             while (opened.Count > 0)
             {
-                node = opened.First();
+                var node = opened.First();
                 nodes.Add(node);
 
                 foreach (var edge in node.Edges)

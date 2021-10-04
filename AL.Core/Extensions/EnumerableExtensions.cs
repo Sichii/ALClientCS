@@ -28,5 +28,16 @@ namespace AL.Core.Extensions
 
             return min;
         }
+
+        public static IEnumerable<T> RecursiveSelectMany<T>(this IEnumerable<T> source, Func<T, IEnumerable<T>> selector)
+        {
+            foreach (var innerItem in source)
+            {
+                yield return innerItem;
+
+                foreach (var recursiveItem in selector(innerItem).RecursiveSelectMany(selector))
+                    yield return recursiveItem;
+            }
+        }
     }
 }

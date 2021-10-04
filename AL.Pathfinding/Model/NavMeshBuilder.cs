@@ -60,7 +60,7 @@ namespace AL.Pathfinding.Model
 
             foreach (var spawn in Map.Spawns)
                 polyVertices.UnionWith(FloodFindVertices(spawn));
-
+            
             var polySet = TracePolygons(polyVertices);
             P2T.Triangulate(polySet);
 
@@ -149,7 +149,7 @@ namespace AL.Pathfinding.Model
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private PolygonSet TracePolygons(ICollection<Point> vertices)
         {
             var polygons = new List<Polygon>();
@@ -159,34 +159,82 @@ namespace AL.Pathfinding.Model
                 //get a polygon via floodfill
                 var polyLine = FloodPolyLine(vertices).Select((point, i) => new PolygonPoint(point.X, point.Y, i)).ToArray();
                 var polygon = new Polygon(polyLine);
+                polygons.Add(polygon);
+            }
+            
+            var polygonHierarchy = new List<Polygon>();
+
+            foreach(var polygon in polygons.ToList())
+            {
                 var isHole = false;
-
-                //for each existing polygon
-                foreach (var existing in polygons.ToArray())
-                    //check if the new polygon is inside of the existing polygon
-                    if (existing.ContainsPoint((float)polyLine[0].X, (float)polyLine[0].Y))
+                var holesOfThesePolygons = polygons.Where(p => (p != polygon) && p.ContainsPoint(polygon.Points[0])).ToList();
+                
+                if (holesOfThesePolygons.Count == 1)
+                {
+                    var parent = holesOfThesePolygons.First();
+                    parent.AddHole(polygon);
+                    
+                    polygonHierarchy.Add(parent);
+                    isHole = true;
+                } else if(holesOfThesePolygons.Count >= 2)
+                {
+                    Polygon parent = null!;
+                    
+                    while (holesOfThesePolygons.Count > 0)
                     {
-                        existing.AddHole(polygon);
-                        isHole = true;
+                        //find the first hole that is not contained by any other hole in the list
+                        var topMost = holesOfThesePolygons.First(hole =>
+                            !holesOfThesePolygons.Any(p => (hole != p) && p.ContainsPoint(hole.Points[0])));
 
-                        break;
-                        //check if any existing polygons are inside of the new polygon    
-                    } else if (polygon.ContainsPoint((float)existing.Points[0].X, (float)existing.Points[0].Y))
-                    {
-                        polygons.Remove(existing);
-                        polygon.AddHole(existing);
-
-                        break;
+                        //remove these holes till there are none left
+                        holesOfThesePolygons.Remove(topMost);
+                        parent = topMost;
                     }
 
-                //if this polygon wasnt inside of another, add it
-                if (!isHole)
-                    polygons.Add(polygon);
+                    //we are left with the deepest hole that contains our polygon
+                    parent.AddHole(polygon);
+                    isHole = true;
+                }
+                
+                //only add topmost polygons, the rest will be holes
+                if(!isHole)
+                    polygonHierarchy.Add(polygon);
             }
 
+            var allHoles = polygons.Where(p => p.Holes?.Count > 0).SelectMany(p => p.Holes);
+            var holesOfHoles = allHoles.Where(p => p.Holes?.Count > 0);
+            
+            //holes of holes, and all their recursive holes
+            foreach(var hole in holesOfHoles.RecursiveSelectMany(hole => hole.Holes ?? Enumerable.Empty<Polygon>()))
+                //if this hole has no holes, and contains a spawn
+                if ((hole.Holes == null) || ((hole.Holes.Count == 0) && Map.Spawns.Any(s => hole.ContainsPoint(s.X, s.Y))))
+                {
+                    //find the polygon this is a hole of
+                    var holeOf = polygons.First(p => (p.Holes != null) && p.Holes.Contains(hole));
+                    //remove the hole
+                    holeOf.Holes.Remove(hole);
+                    //add it to the topmost level
+                    polygonHierarchy.Add(hole);
+                }
+
+            /*
+            //find holes that have no holes, but do contain a spawn location... these areas should not be holes
+            foreach(var polygon in polygons)
+                if (!polygonHierarchy.Contains(polygon)
+                    && ((polygon.Holes == null) || (polygon.Holes.Count == 0)))
+                {
+                    //find the polygon this is a hole of
+                    var holeOf = polygons.First(p => (p.Holes != null) && p.Holes.Contains(polygon));
+                    //remove the hole
+                    holeOf.Holes.Remove(polygon);
+                    //add it to the topmost level
+                    polygonHierarchy.Add(polygon);
+                }
+                */
+            
             var polySet = new PolygonSet();
 
-            foreach (var polygon in polygons)
+            foreach (var polygon in polygonHierarchy)
                 polySet.Add(polygon);
 
             return polySet;

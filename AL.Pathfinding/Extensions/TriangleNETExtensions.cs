@@ -9,6 +9,12 @@ namespace AL.Pathfinding.Extensions
 {
     internal static class TriangleNetExtensions
     {
+        internal static bool ContainsPoint(this Polygon polygon, TriangulationPoint point) =>
+            polygon.ContainsPoint(point.X, point.Y);
+        
+        internal static bool ContainsPoint(this Polygon polygon, double x, double y) =>
+            PolyLineEncircles(polygon.Points, (float)x, (float)y);
+        
         internal static bool ContainsPoint(this Polygon polygon, float x, float y) =>
             PolyLineEncircles(polygon.Points, x, y);
 
