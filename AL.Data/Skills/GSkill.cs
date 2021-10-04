@@ -72,6 +72,12 @@ namespace AL.Data.Skills
         public float? CooldownMultiplier { get; init; }
 
         /// <summary>
+        ///     The damage multiplier of the ability, applied against basic attack damage.
+        /// </summary>
+        [JsonProperty("damage_multiplier")]
+        public float DamageMultiplier { get; set; } = 1.0f;
+
+        /// <summary>
         ///     The type of damage this skill deals.
         /// </summary>
         [JsonProperty("damage_type")]

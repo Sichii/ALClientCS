@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AL.Client.Abstractions;
 using AL.Core.Collections;
@@ -24,7 +25,7 @@ namespace AL.Client.Managers
             : base(client) =>
             Pings = new CyclicBuffer<int?>(50);
 
-        protected override async Task DoWorkAsync()
+        protected override async Task DoWorkAsync(CancellationToken cancellationToken)
         {
             var delta = DeltaTime.Value;
             await Client.PingAsync(PingCount++).ConfigureAwait(false);

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AL.Client.Abstractions;
 using AL.Core.Helpers;
@@ -38,7 +39,7 @@ namespace AL.Client.Managers
             });
         }
 
-        protected override async Task DoWorkAsync()
+        protected override async Task DoWorkAsync(CancellationToken cancellationToken)
         {
             var deltaTime = DeltaTime.Value;
 

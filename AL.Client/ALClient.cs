@@ -2889,7 +2889,7 @@ namespace AL.Client
             if (Character.Bank == null)
                 throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (not in bank)");
 
-            var availableBanks = Utility.GetAvailableBankPacks(Character.Map);
+            var availableBanks = GetAvailableBankPacks();
 
             if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
                 throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
@@ -3305,7 +3305,7 @@ namespace AL.Client
             var itemData = item.GetData();
             var stackSize = itemData?.StackSize ?? 1;
             //an enumerable of acceptable bankpacks or the bankPack the user wants to use
-            var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : Utility.GetAvailableBankPacks(Character.Map);
+            var availableBanks = bankPack.HasValue ? new[] { bankPack.Value } : GetAvailableBankPacks();
             (BankPack, int)? firstEmptySlot = null;
 
             foreach (var bankPackIndex in availableBanks)
@@ -3448,6 +3448,20 @@ namespace AL.Client
                     }
                 }
             });
+        
+        protected IEnumerable<BankPack> GetAvailableBankPacks()
+        {
+            if (string.IsNullOrEmpty(Character.Map))
+                throw new ArgumentNullException(nameof(Character.Map));
+
+            return (Character.Map switch
+            {
+                "bank"   => Enumerable.Range(1, 7),
+                "bank_b" => Enumerable.Range(9, 15),
+                "bank_u" => Enumerable.Range(25, 23),
+                _        => throw new InvalidOperationException("Not in a bank")
+            }).Select(index => (BankPack)index);
+        }
 
         protected async Task WaitForBankAsync()
         {

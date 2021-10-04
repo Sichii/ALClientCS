@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using AL.Core.Extensions;
@@ -9,6 +10,7 @@ using AL.Data.Geometry;
 using AL.Data.Maps;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Extensions;
+using Chaos.Core.Extensions;
 using Poly2Tri;
 using Polygon = Poly2Tri.Polygon;
 

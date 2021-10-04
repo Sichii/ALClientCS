@@ -241,6 +241,10 @@ namespace AL.Pathfinding.Abstractions
         public virtual ICollection<TEdge> TraverseEdges()
         {
             var edges = new HashSet<TEdge>();
+
+            if (!Triangles.Any())
+                return edges;
+            
             var opened = new HashSet<TNode>();
             var node = this.First();
             opened.Add(node);
@@ -284,6 +288,10 @@ namespace AL.Pathfinding.Abstractions
         public virtual ICollection<TNode> TraverseNodes()
         {
             var nodes = new HashSet<TNode>();
+            
+            if (!Triangles.Any())
+                return nodes;
+            
             var opened = new HashSet<TNode>();
             var node = this.First();
             opened.Add(node);

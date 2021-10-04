@@ -47,7 +47,7 @@ namespace AL.Client.Abstractions
         /// <summary>
         ///     A task representing the work to be done on every loop iteration.
         /// </summary>
-        protected abstract Task DoWorkAsync();
+        protected abstract Task DoWorkAsync(CancellationToken cancellationToken);
 
         /// <summary>
         ///     Starts the loop.
@@ -73,7 +73,7 @@ namespace AL.Client.Abstractions
 
                 try
                 {
-                    await DoWorkAsync().ConfigureAwait(false);
+                    await DoWorkAsync(Canceller.Token).ConfigureAwait(false);
                 } catch (Exception ex)
                 {
                     Client.Logger.Error(ex);

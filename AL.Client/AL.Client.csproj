@@ -29,9 +29,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Data\AL.Data.csproj"/>
-        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj"/>
-        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj"/>
+        <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
+        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj" />
+        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>

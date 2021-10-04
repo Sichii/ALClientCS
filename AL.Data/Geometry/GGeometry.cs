@@ -17,6 +17,7 @@ namespace AL.Data.Geometry
         /// <summary>
         ///     The unique accessor for this geometry object.
         /// </summary>
+        [JsonIgnore]
         public string Accessor { get; internal set; } = null!;
 
         /// <summary>
@@ -61,16 +62,22 @@ namespace AL.Data.Geometry
         [JsonProperty("x_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
         public IReadOnlyList<StraightLine> VerticalLines { get; internal set; } = new List<StraightLine>();
 
+        [JsonIgnore]
         public float Bottom => MaxY;
 
+        [JsonIgnore]
         public float Height => MaxY - MinY;
 
+        [JsonIgnore]
         public float Left => MinX;
 
+        [JsonIgnore]
         public float Right => MaxX;
 
+        [JsonIgnore]
         public float Top => MinY;
 
+        [JsonIgnore]
         public IReadOnlyList<IPoint> Vertices => new IPoint[]
         {
             new Point(Left, Top),
@@ -79,6 +86,7 @@ namespace AL.Data.Geometry
             new Point(Left, Bottom)
         };
 
+        [JsonIgnore]
         public float Width => MaxX - MinX;
 
         //public object Points { get; set; }
@@ -86,8 +94,11 @@ namespace AL.Data.Geometry
         //public object Polygons { get; set; }
         //public int[][] Placements { get; set; }
         //public int Default { get; set; }
+        
+        [JsonIgnore]
         public float X => (MaxX + Width) / 2;
 
+        [JsonIgnore]
         public float Y => (MaxY + Height) / 2;
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
         public IEnumerator<IPoint> GetEnumerator() => Vertices.GetEnumerator();
