@@ -1,12 +1,22 @@
 ﻿#nullable disable
 
-namespace AL.Data.Games
+#region
+using Newtonsoft.Json;
+#endregion
+
+namespace AL.Data.Games;
+
+public sealed class GamesDatum
 {
-    public class GamesDatum
-    {
-        public object Dice { get; set; }
-        public Slots Slots { get; set; }
-        public Tarot Tarot { get; set; }
-        public Wheel Wheel { get; set; }
-    }
+    [JsonProperty("dice")]
+    public object Dice { get; init; } = null!;
+
+    [JsonProperty("slots")]
+    public object Slots { get; init; } = null!;
+
+    [JsonProperty("tarot")]
+    public object Tarot { get; init; } = null!;
+
+    [JsonProperty("wheel")]
+    public object Wheel { get; init; } = null!;
 }

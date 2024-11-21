@@ -1,50 +1,55 @@
-﻿using System;
+﻿#region
+using System;
 using System.Text.RegularExpressions;
 using AL.APIClient.Request;
+#endregion
 
-namespace AL.APIClient.Model
+namespace AL.APIClient.Model;
+
+/// <summary>
+///     Represents a logged in user.
+/// </summary>
+public sealed record AuthUser
 {
     /// <summary>
-    ///     Represents a logged in user.
+    ///     The user's authorization key.
     /// </summary>
-    public record AuthUser
+    public string AuthKey { get; }
+
+    /// <summary>
+    ///     When the authorization expires.
+    /// </summary>
+    public DateTime Expires { get; }
+
+    internal LoginInfo LoginInfo { get; }
+
+    /// <summary>
+    ///     The user's id.
+    /// </summary>
+    public long UserID { get; }
+
+    internal AuthUser(LoginInfo loginInfo, string cookie)
     {
-        /// <summary>
-        ///     The user's authorization key.
-        /// </summary>
-        public string AuthKey { get; }
+        LoginInfo = loginInfo;
 
-        /// <summary>
-        ///     When the authorization expires.
-        /// </summary>
-        public DateTime Expires { get; }
+        var match = Regex.Match(cookie, @"^auth=(\d+)-(\w+);");
 
-        /// <summary>
-        ///     The user's id.
-        /// </summary>
-        public long UserID { get; }
-        internal LoginInfo LoginInfo { get; }
-
-        internal AuthUser(LoginInfo loginInfo, string cookie)
+        if (long.TryParse(match.Groups[1].Value, out var userId))
         {
-            LoginInfo = loginInfo;
+            UserID = userId;
+            AuthKey = match.Groups[2].Value;
+        } else
+            throw new Exception($"Unexpected cookie value of {cookie}");
 
-            var match = Regex.Match(cookie, @"^auth=(\d+)-(\w+);");
+        match = Regex.Match(cookie, @"expires=(.+)$");
 
-            if (long.TryParse(match.Groups[1].Value, out var userId))
-            {
-                UserID = userId;
-                AuthKey = match.Groups[2].Value;
-            } else
-                throw new Exception($"Unexpected cookie value of {cookie}");
+        var str = match.Groups[1]
+                       .Value
+                       .Replace("-", " ");
 
-            match = Regex.Match(cookie, @"expires=(.+)$");
-            var str = match.Groups[1].Value.Replace("-", " ");
-
-            if (DateTime.TryParse(str, out var expires))
-                Expires = expires.ToUniversalTime();
-        }
-
-        public override string ToString() => $"{UserID}-{AuthKey}";
+        if (DateTime.TryParse(str, out var expires))
+            Expires = expires.ToUniversalTime();
     }
+
+    public override string ToString() => $"{UserID}-{AuthKey}";
 }

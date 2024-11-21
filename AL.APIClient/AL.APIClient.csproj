@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Title>AL.APIClient</Title>
@@ -33,11 +33,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="106.11.7"/>
+        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="112.1.0"/>
     </ItemGroup>
 
 </Project>

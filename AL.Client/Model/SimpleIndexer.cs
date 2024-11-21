@@ -1,12 +1,13 @@
+#region
 using AL.Client.Interfaces;
 using AL.SocketClient.Model;
+#endregion
 
-namespace AL.Client.Model
+namespace AL.Client.Model;
+
+/// <inheritdoc cref="IIndexer{T}" />
+public sealed class SimpleIndexer : IIndexer<SimpleItem>
 {
-    /// <inheritdoc cref="IIndexer{T}" />
-    public class SimpleIndexer : IIndexer<SimpleItem>
-    {
-        public int Index { get; init; }
-        public SimpleItem Item { get; init; } = null!;
-    }
+    public int Index { get; init; }
+    public SimpleItem Item { get; init; } = null!;
 }

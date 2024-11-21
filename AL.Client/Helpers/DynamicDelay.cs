@@ -1,115 +1,86 @@
+#region
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AL.Core.Extensions;
+using Chaos.Common.Synchronization;
+#endregion
 
-namespace AL.Client.Helpers
+namespace AL.Client.Helpers;
+
+/// <summary>
+///     Represents a delay that lasts a varying amount of time. Can be more OR less.
+/// </summary>
+/// <seealso cref="IDisposable" />
+public sealed class DynamicDelay
 {
+    private readonly FifoAutoReleasingSemaphoreSlim Sync;
+    private CancellationTokenSource Ctx;
+    private TimeSpan? Delay;
+    private bool NewDelay;
+
     /// <summary>
-    ///     Represents a delay that lasts a varying amount of time. Can be more OR less.
+    ///     Initializes a new instance of the <see cref="DynamicDelay" /> class.
     /// </summary>
-    /// <seealso cref="IDisposable" />
-    internal class DynamicDelay : IDisposable
+    internal DynamicDelay()
     {
-        private readonly SemaphoreSlim Sync;
-        private CancellationTokenSource Canceller;
-        private int? Delay;
+        Sync = new FifoAutoReleasingSemaphoreSlim(1, 1);
+        Ctx = new CancellationTokenSource();
+    }
 
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="DynamicDelay" /> class.
-        /// </summary>
-        internal DynamicDelay()
+    /// <summary>
+    ///     Another way of cancelling the delay.
+    /// </summary>
+    internal void RequestCancellation() => Ctx.Cancel();
+
+    /// <summary>
+    ///     Asynchronously sets a new delay by cancelling the previous delay and setting a new one.
+    /// </summary>
+    /// <param name="delay">
+    /// </param>
+    internal async Task SetDelayAsync(TimeSpan delay)
+    {
+        await using var @lock = await Sync.WaitAsync();
+
+        await Ctx.CancelAsync();
+        Delay = delay;
+        NewDelay = true;
+    }
+
+    /// <summary>
+    ///     Asynchronously waits for the specified amount of time. Change that amount by calling <see cref="SetDelayAsync" />.
+    /// </summary>
+    /// <param name="delay">
+    ///     The initial delay to wait for.
+    /// </param>
+    /// <param name="token">
+    ///     A token to cancel the delay.
+    /// </param>
+    internal async Task WaitAsync(TimeSpan delay, CancellationToken? token = null)
+    {
+        while (true)
         {
-            Sync = new SemaphoreSlim(1, 1);
-            Canceller = new CancellationTokenSource();
-        }
+            CancellationTokenSource localCtx;
 
-        public void Dispose()
-        {
-            try
+            await using (await Sync.WaitAsync())
             {
-                GC.SuppressFinalize(this);
-
-                Sync.Dispose();
-
-                var canceller = Canceller;
-                Canceller = null!;
-                // ReSharper disable once ConstantConditionalAccessQualifier
-                canceller?.Dispose();
-            } catch
-            {
-                //ignored
+                localCtx = token.HasValue ? CancellationTokenSource.CreateLinkedTokenSource(token.Value) : new CancellationTokenSource();
+                Ctx = localCtx;
+                Delay ??= delay;
+                NewDelay = false;
             }
-        }
-
-        /// <summary>
-        ///     Another way of cancelling the delay.
-        /// </summary>
-        internal void RequestCancellation()
-        {
-            try
-            {
-                Canceller.CancelWithAsynchronousContinuations();
-            } catch
-            {
-                //ignored
-            }
-        }
-
-        /// <summary>
-        ///     Asynchronously sets a new delay by cancelling the previous delay and setting a new one.
-        /// </summary>
-        /// <param name="delay"></param>
-        internal async Task SetDelayAsync(int delay)
-        {
-            var syncTask = Sync.WaitAsync();
 
             try
             {
-                var canceller = Canceller;
-                canceller.CancelWithAsynchronousContinuations();
-                Canceller = new CancellationTokenSource();
+                await Task.Delay(delay, localCtx.Token);
 
-                await syncTask.ConfigureAwait(false);
-                Delay = delay;
-                canceller.Dispose();
-            } finally
+                break;
+            } catch (TaskCanceledException)
             {
-                Sync.Release();
-            }
-        }
+                await using var @lock = await Sync.WaitAsync();
 
-        /// <summary>
-        ///     Asynchronously waits for the specified amount of time. Change that amount by calling <see cref="SetDelayAsync" />.
-        /// </summary>
-        /// <param name="initialDelay">The initial delay to wait for.</param>
-        /// <param name="token">A token to cancel the delay.</param>
-        internal async Task WaitAsync(int initialDelay, CancellationToken? token = null)
-        {
-            Delay = initialDelay;
-            token?.Register(RequestCancellation);
-
-            while (true)
-            {
-                await Sync.WaitAsync().ConfigureAwait(false);
-
-                try
-                {
-                    if (!Delay.HasValue || token is { IsCancellationRequested: true })
-                        return;
-
-                    try
-                    {
-                        await Task.Delay(Delay.Value, Canceller.Token).ConfigureAwait(false);
-                    } catch
-                    {
-                        //ignored
-                    }
-                } finally
-                {
-                    Delay = null;
-                    Sync.Release();
-                }
+                //if the delay was canceled and no delay was set, we're done
+                if (!NewDelay)
+                    break;
             }
         }
     }

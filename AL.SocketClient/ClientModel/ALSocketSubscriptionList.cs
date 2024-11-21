@@ -1,23 +1,25 @@
+#region
 using System;
 using System.Threading.Tasks;
-using Chaos.Core.Collections.Synchronized.Awaitable;
+using Chaos.Collections.Synchronized;
+#endregion
 
-namespace AL.SocketClient.ClientModel
+namespace AL.SocketClient.ClientModel;
+
+public sealed class ALSocketSubscriptionList : SynchronizedList<ALSocketSubscription>
 {
-    internal class ALSocketSubscriptionList : AwaitableList<ALSocketSubscription>
+    internal Type Type { get; }
+    internal ALSocketSubscriptionList(Type type) => Type = type;
+
+    internal async Task InvokeAsync(object dataObject)
     {
-        internal Type Type { get; }
-        internal ALSocketSubscriptionList(Type type) => Type = type;
-
-        internal async Task InvokeAsync(object dataObject)
+        foreach (var subscription in this)
         {
-            await foreach (var subscription in this.ConfigureAwait(false))
-            {
-                var handled = await subscription.InvokeAsync(dataObject).ConfigureAwait(false);
+            var handled = await subscription.InvokeAsync(dataObject)
+                                            .ConfigureAwait(false);
 
-                if (handled)
-                    return;
-            }
+            if (handled)
+                return;
         }
     }
 }

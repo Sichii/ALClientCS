@@ -1,60 +1,75 @@
+#region
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using AL.Core.Geometry;
 using Common.Logging;
+#endregion
 
-namespace AL.Core.Helpers
+namespace AL.Core.Helpers;
+
+/// <summary>
+///     Provides a set of helper methods for interacting with <see cref="Interfaces.ILine" />.
+/// </summary>
+public static class LineHelper
 {
+    private static readonly ILog Logger = LogManager.GetLogger(typeof(LineHelper).FullName);
+
     /// <summary>
-    ///     Provides a set of helper methods for interacting with <see cref="Interfaces.ILine" />.
+    ///     A helper method for fixing overlapping lines.
     /// </summary>
-    public static class LineHelper
+    /// <param name="lines">
+    ///     The lines to fix.
+    /// </param>
+    /// <param name="isVertical">
+    ///     Whether or not the lines are X lines or not. (X lines are vertical lines)
+    /// </param>
+    /// <returns>
+    ///     <see cref="Array" /> of <see cref="StraightLine" />
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     lines
+    /// </exception>
+    public static StraightLine[] FixLines(IReadOnlyList<StraightLine> lines, bool isVertical)
     {
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(LineHelper).FullName);
+        ArgumentNullException.ThrowIfNull(lines);
 
-        /// <summary>
-        ///     A helper method for fixing overlapping lines.
-        /// </summary>
-        /// <param name="lines">The lines to fix.</param>
-        /// <param name="isVertical">Whether or not the lines are X lines or not. (X lines are vertical lines)</param>
-        /// <returns><see cref="Array" /> of <see cref="StraightLine" /></returns>
-        /// <exception cref="System.ArgumentNullException">lines</exception>
-        public static StraightLine[] FixLines(IReadOnlyList<StraightLine> lines, bool isVertical)
+        if (lines.Count == 0)
+            return [];
+
+        var newLines = new HashSet<StraightLine>();
+
+        for (var i = 0; i < lines.Count; i++)
         {
-            if (lines == null)
-                throw new ArgumentNullException(nameof(lines));
-
-            if (lines.Count == 0)
-                return Array.Empty<StraightLine>();
-
-            var newLines = new HashSet<StraightLine>();
-
-            for (var i = 0; i < lines.Count; i++)
+            var line1 = lines[i] with
             {
-                var line1 = lines[i] with { IsVertical = isVertical };
+                IsVertical = isVertical
+            };
 
-                for (var i2 = 0; i2 < lines.Count; i2++)
+            for (var i2 = 0; i2 < lines.Count; i2++)
+            {
+                var line2 = lines[i2] with
                 {
-                    var line2 = lines[i2] with { IsVertical = isVertical };
+                    IsVertical = isVertical
+                };
 
-                    if ((i != i2) && line1.Overlaps(line2))
-                    {
-                        Logger.Trace($@"Merging lines
+                if ((i != i2) && line1.Overlaps(line2))
+                {
+                    Logger.Trace(
+                        $@"Merging lines
 {line1}
 {lines[i2]}
 ");
 
-                        line1 = line1.Merge(line2);
+                    line1 = line1.Merge(line2);
 
-                        break;
-                    }
+                    break;
                 }
-
-                newLines.Add(line1);
             }
 
-            return newLines.ToArray();
+            newLines.Add(line1);
         }
+
+        return newLines.ToArray();
     }
 }

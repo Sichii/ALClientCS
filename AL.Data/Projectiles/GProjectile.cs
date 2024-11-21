@@ -1,4 +1,8 @@
-﻿namespace AL.Data.Projectiles
+﻿#region
+using AL.Core.Definitions;
+#endregion
+
+namespace AL.Data.Projectiles
 {
     public record GProjectile
     {
@@ -10,7 +14,7 @@
         /// <summary>
         ///     Whether or not this projectile is actually a ray.
         /// </summary>
-        public bool Ray { get; init; }
+        public RayType Ray { get; init; }
 
         /// <summary>
         ///     The speed the projectile moves at.

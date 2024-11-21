@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Nullable>enable</Nullable>
         <Title>AL.Client</Title>
@@ -29,16 +29,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AL.Data\AL.Data.csproj" />
-        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj" />
-        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <ProjectReference Include="..\AL.Data\AL.Data.csproj"/>
+        <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj"/>
+        <ProjectReference Include="..\AL.SocketClient\AL.SocketClient.csproj"/>
     </ItemGroup>
 
 </Project>

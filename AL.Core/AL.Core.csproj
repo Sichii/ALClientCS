@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <Authors>Sichi</Authors>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -29,11 +29,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CM-Chaos.Core" Version="1.0.10"/>
+        <PackageReference Include="Chaos.Extensions.Common" Version="1.7.2-preview-g785ed3cd69"/>
+        <PackageReference Include="Chaos.Time" Version="1.4.8"/>
         <PackageReference Include="Common.Logging.NLogNetStandard" Version="1.0.7072.33966"/>
-        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="5.0.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="System.Linq.Async" Version="6.0.1"/>
     </ItemGroup>
 </Project>

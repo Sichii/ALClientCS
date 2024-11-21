@@ -1,42 +1,40 @@
+#region
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using Chaos.Core.Collections.Synchronized.Awaitable;
+using Chaos.Collections.Synchronized;
+#endregion
 
-namespace AL.SocketClient.ClientModel
+namespace AL.SocketClient.ClientModel;
+
+public abstract class ALSocketSubscription : IDisposable
 {
-    internal abstract class ALSocketSubscription : IAsyncDisposable
+    internal abstract Delegate Callback { get; }
+    protected SynchronizedList<ALSocketSubscription> InvocationList { get; }
+
+    protected ALSocketSubscription(IEnumerable<ALSocketSubscription> invocationList)
+        => InvocationList = new SynchronizedList<ALSocketSubscription>(invocationList);
+
+    public void Dispose()
     {
-        private readonly AwaitableList<ALSocketSubscription> InvocationList;
-        internal abstract Delegate Callback { get; }
+        InvocationList.Remove(this);
 
-        protected ALSocketSubscription(AwaitableList<ALSocketSubscription> invocationList) =>
-            InvocationList = invocationList;
-
-        public async ValueTask DisposeAsync() => await InvocationList.RemoveAsync(this).ConfigureAwait(false);
-
-        internal abstract Task<bool> InvokeAsync(object dataObject);
+        GC.SuppressFinalize(this);
     }
 
-    internal class AlSocketSubscription<T> : ALSocketSubscription
+    internal abstract Task<bool> InvokeAsync(object dataObject);
+}
+
+public sealed class AlSocketSubscription<T> : ALSocketSubscription
+{
+    internal override Delegate Callback { get; }
+
+    internal AlSocketSubscription(IEnumerable<ALSocketSubscription> invocationList, Func<T, Task<bool>> callback)
+        : base(invocationList)
     {
-        internal override Delegate Callback { get; }
-
-        internal AlSocketSubscription(AwaitableList<ALSocketSubscription> invocationList, Func<T, Task<bool>> callback)
-            : base(invocationList) =>
-            Callback = callback;
-
-        internal static ALSocketSubscription Create(AwaitableList<ALSocketSubscription> invocationList, Func<T, Task<bool>> callback)
-        {
-            var subscription = new AlSocketSubscription<T>(invocationList, callback);
-            //dont need to await this because all we care about is that invocationList is synchronized
-            // ReSharper disable once CA2012
- #pragma warning disable CA2012
-            _ = invocationList.AddAsync(subscription);
- #pragma warning restore CA2012
-            return subscription;
-        }
-
-        internal override Task<bool> InvokeAsync(object dataObject) =>
-            ((Func<T, Task<bool>>)Callback)((T)dataObject);
+        Callback = callback;
+        InvocationList.Add(this);
     }
+
+    internal override Task<bool> InvokeAsync(object dataObject) => ((Func<T, Task<bool>>)Callback)((T)dataObject);
 }
