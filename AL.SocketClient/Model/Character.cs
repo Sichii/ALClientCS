@@ -1,7 +1,6 @@
-﻿#region
+#region
 using System;
 using System.Collections.Generic;
-using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Interfaces;
 using AL.SocketClient.Json.Converters;
@@ -62,12 +61,6 @@ public class Character : Player, IEquatable<Character>
     public float CodeCost { get; protected set; }
 
     /// <summary>
-    ///     TODO: not too familiar with this data right now.
-    /// </summary>
-    [JsonProperty("emx")]
-    public IReadOnlyDictionary<Emotion, float> Emotion { get; protected set; } = new Dictionary<Emotion, float>();
-
-    /// <summary>
     ///     The number of empty slots in this character's inventory.
     /// </summary>
     [JsonProperty("esize")]
@@ -87,12 +80,6 @@ public class Character : Player, IEquatable<Character>
     /// </summary>
     [JsonProperty]
     public float Fear { get; protected set; }
-
-    /// <summary>
-    ///     A list of characters on your friend's like TODO: gather more info about this
-    /// </summary>
-    [JsonProperty]
-    public IReadOnlyList<string> Friends { get; protected set; } = new List<string>();
 
     /// <summary>
     ///     The character's inventory.
@@ -119,18 +106,60 @@ public class Character : Player, IEquatable<Character>
     public new int MPCost { get; protected set; }
 
     /// <summary>
-    ///     A collection of all of the cosmetics owned by this character.
-    /// </summary>
-    [JsonProperty("acx")]
-    public IReadOnlyDictionary<string, int> OwnedCosmetics { get; protected set; } = new Dictionary<string, int>();
-
-    /// <summary>
     ///     When you buy or sell an item, there is a fraction of that item's value you pay in taxes.
     ///     <br />
     ///     For merchants, this tax is converted into earned xp.
     /// </summary>
     [JsonProperty]
     public float Tax { get; protected set; }
+
+    /// <summary>
+    ///     The total xp required to reach the next level. (large enough to overflow <see cref="int" /> at high level)
+    /// </summary>
+    [JsonProperty("max_xp")]
+    public long MaxXP { get; protected set; }
+
+    /// <summary>
+    ///     The character's gold-find multiplier (1 + xgold/100).
+    /// </summary>
+    [JsonProperty("goldm")]
+    public float GoldMultiplier { get; protected set; }
+
+    /// <summary>
+    ///     The character's xp multiplier (1 + xxp/100).
+    /// </summary>
+    [JsonProperty("xpm")]
+    public float XPMultiplier { get; protected set; }
+
+    /// <summary>
+    ///     The character's luck multiplier (1 + xluck/100).
+    /// </summary>
+    [JsonProperty("luckm")]
+    public float LuckMultiplier { get; protected set; }
+
+    /// <summary>
+    ///     The account's premium currency (shells) balance.
+    /// </summary>
+    [JsonProperty("cash")]
+    public int Cash { get; protected set; }
+
+    /// <summary>
+    ///     A percentage bonus applied to incoming damage (0 for most classes).
+    /// </summary>
+    [JsonProperty("incdmgamp")]
+    public int IncomingDamageAmp { get; protected set; }
+
+    /// <summary>
+    ///     The number of magical monsters this character can face before gaining fear.
+    /// </summary>
+    [JsonProperty("mcourage")]
+    public int MCourage { get; protected set; }
+
+    /// <summary>
+    ///     The number of pure/physical monsters this character can face before gaining fear.
+    /// </summary>
+    [JsonProperty("pcourage")]
+    public int PCourage { get; protected set; }
 
     public virtual bool Equals(Character? other) => base.Equals(other);
 
@@ -179,5 +208,20 @@ public class Character : Player, IEquatable<Character>
         MapChangeCount = data.MapChangeCount;
         StopMoving();
         UpdateLocation((IInstancedLocation)data);
+    }
+
+    /// <summary>
+    ///     System.Text.Json post-deserialize step: after the base slot fill, size the inventory to
+    ///     <see cref="InventorySize" /> (bound by this point). Reproduces the Newtonsoft CharacterConverter enrich.
+    /// </summary>
+    /// <remarks>
+    ///     A frame that carries no <c>items</c> key leaves <see cref="Inventory" /> null, so the sizing is skipped
+    ///     rather than dereferencing it — there is no inventory to size, and the alternative is a
+    ///     <see cref="NullReferenceException" /> that kills the whole frame.
+    /// </remarks>
+    public override void OnDeserialized()
+    {
+        base.OnDeserialized();
+        Inventory?.SetCapacity(InventorySize);
     }
 }

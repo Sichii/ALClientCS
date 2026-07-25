@@ -1,6 +1,5 @@
 #region
 using System;
-using System.Threading.Tasks;
 using Chaos.Collections.Synchronized;
 #endregion
 
@@ -10,16 +9,4 @@ public sealed class ALSocketSubscriptionList : SynchronizedList<ALSocketSubscrip
 {
     internal Type Type { get; }
     internal ALSocketSubscriptionList(Type type) => Type = type;
-
-    internal async Task InvokeAsync(object dataObject)
-    {
-        foreach (var subscription in this)
-        {
-            var handled = await subscription.InvokeAsync(dataObject)
-                                            .ConfigureAwait(false);
-
-            if (handled)
-                return;
-        }
-    }
 }

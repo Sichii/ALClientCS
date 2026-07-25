@@ -1,10 +1,10 @@
-﻿#region
+#region
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using AL.Core.Helpers;
-using Newtonsoft.Json;
+using NewtonsoftJson = Newtonsoft.Json;
 #endregion
 
 namespace AL.Data;
@@ -14,26 +14,30 @@ namespace AL.Data;
 /// </summary>
 /// <typeparam name="T">
 /// </typeparam>
-[JsonObject]
-public abstract class DatumBase<T> : IEnumerable<KeyValuePair<string, T>>
+public abstract class DatumBase<T>
 {
     private IReadOnlyDictionary<string, T> LookupCache { get; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Gets all property names.
     /// </summary>
+    [NewtonsoftJson.JsonIgnore]
     [JsonIgnore]
     public IEnumerable<string> Keys => LookupCache.Keys;
 
     /// <summary>
     ///     Gets all property values.
     /// </summary>
+    [NewtonsoftJson.JsonIgnore]
     [JsonIgnore]
     public IEnumerable<T> Values => LookupCache.Values;
 
-    public IEnumerator<KeyValuePair<string, T>> GetEnumerator() => LookupCache.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    /// <summary>
+    ///     Gets the backing lookup as a read-only dictionary for enumeration.
+    /// </summary>
+    [NewtonsoftJson.JsonIgnore]
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, T> Entries => LookupCache;
 
     internal virtual void BuildLookupTable()
     {
@@ -60,10 +64,11 @@ public abstract class DatumBase<T> : IEnumerable<KeyValuePair<string, T>>
 
             cache[propertyInfo.Name] = value;
 
-            var jsonPropertyInfo = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>();
+            //the 73 wire names that differ from the CLR name by more than case are only reachable through this alias
+            var jsonPropertyNameInfo = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>();
 
-            if (jsonPropertyInfo?.PropertyName != null)
-                cache[jsonPropertyInfo.PropertyName] = value;
+            if (jsonPropertyNameInfo != null)
+                cache[jsonPropertyNameInfo.Name] = value;
         }
     }
 

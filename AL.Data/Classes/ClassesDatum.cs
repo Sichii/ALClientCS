@@ -1,4 +1,4 @@
-﻿using AL.Core.Definitions;
+using AL.Core.Definitions;
 
 namespace AL.Data.Classes
 {

@@ -6,8 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AL.Client.Abstractions;
 using AL.Core.Collections;
-using AL.Core.Helpers;
-using Chaos.Time;
 #endregion
 
 namespace AL.Client.Managers;
@@ -20,7 +18,7 @@ public sealed class PingManager : AsyncDeltaLoop
     /// <summary>
     ///     The minimum offset value based on ping times.
     /// </summary>
-    internal TimeSpan Offset { get; private set; }
+    internal TimeSpan MinimumOffset { get; private set; }
 
     // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
     protected override float PollingRate { get; } = 1f / 4f; //once per 4 seconds
@@ -36,10 +34,22 @@ public sealed class PingManager : AsyncDeltaLoop
         var elapsed = Stopwatch.GetElapsedTime(ts);
 
         var discarded = Pings.Add(elapsed);
+        
+        if(MinimumOffset == TimeSpan.Zero)
+            MinimumOffset = elapsed;
 
+        //if CyclicBuffer is not full, we keep the smallest of values until it's full
         if (!discarded.HasValue)
-            Offset = new TimeSpan(Math.Min(elapsed.Ticks, Offset.Ticks));
-        else if (discarded.Value == Offset)
-            Offset = Pings.Min()!.Value;
+            MinimumOffset = new TimeSpan(Math.Min(elapsed.Ticks, MinimumOffset.Ticks));
+
+        //if the buffer is full, and elapsed is less than the minimum in the buffer
+        //we update the minimum
+        else if ((elapsed < MinimumOffset))
+            MinimumOffset = elapsed;
+
+        //if the buffer is full and the discarded value is the minimum
+        //we know we need to recalculate the minimum
+        else if (discarded.Value == MinimumOffset)
+            MinimumOffset = Pings.Min()!.Value;
     }
 }

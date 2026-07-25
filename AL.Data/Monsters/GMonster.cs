@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System.Collections.Generic;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;

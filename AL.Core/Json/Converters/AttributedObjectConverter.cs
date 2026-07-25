@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using System.Collections.Generic;
 using AL.Core.Definitions;
@@ -42,9 +42,17 @@ public class AttributedObjectConverter<T> : JsonConverter<T?> where T: IAttribut
 
         serializer.Populate(obj.CreateReader(), value);
 
+        //one cast for the whole object; entities record wire-key presence so a partial delta cannot wipe live
+        //state. G models do not implement the interface, so this is a null-check no-op for them.
+        var presence = value as IKeyPresenceCapturable;
+
         foreach ((var key, var jToken) in obj)
+        {
+            presence?.MarkPresent(key);
+
             if (jToken is { Type: JTokenType.Integer or JTokenType.Float } && EnumHelper.TryParse<ALAttribute>(key, out var attribute))
                 attribs[attribute] = jToken.Value<float>();
+        }
 
         return value;
     }

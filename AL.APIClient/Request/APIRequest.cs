@@ -1,8 +1,10 @@
-﻿#region
+#region
+using System;
+using System.Text.Json;
 using AL.APIClient.Definitions;
+using AL.APIClient.Json.SystemTextJson;
 using AL.APIClient.Model;
 using AL.Core.Helpers;
-using Newtonsoft.Json;
 using RestSharp;
 #endregion
 
@@ -14,20 +16,24 @@ public sealed class APIRequest : RestRequest
         Method method,
         APIMethod apiMethod,
         object? arguments,
-        AuthUser? authUser = null)
+        AuthUser? authUser = null,
+        string? cookieDomain = null)
         : base($"api/{EnumHelper.ToString(apiMethod)}", method)
     {
-        //AddHeader("Content-Type", "application/x-www-form-urlencoded");
-        this.AddParameter("method", EnumHelper.ToString(apiMethod));
+        //the api takes the argument object as a raw json body. the old method/arguments form-field
+        //convention is gone and now fails dispatcher validation with "invalid_field"
+        this.AddStringBody(JsonSerializer.Serialize(arguments ?? new object(), ApiJson.Options), ContentType.Json);
 
-        if (arguments != null)
-            this.AddParameter("arguments", JsonConvert.SerializeObject(arguments));
+        if (authUser == null)
+            return;
 
-        if (authUser != null)
-            this.AddCookie(
-                "auth",
-                authUser.ToString(),
-                string.Empty,
-                string.Empty);
+        //without a domain matching the request uri the cookie is never attached
+        ArgumentNullException.ThrowIfNull(cookieDomain);
+
+        this.AddCookie(
+            "auth",
+            authUser.ToString(),
+            "/",
+            cookieDomain);
     }
 }

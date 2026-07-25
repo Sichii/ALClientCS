@@ -1,4 +1,4 @@
-﻿namespace AL.Data
+namespace AL.Data
 {
     public record Stats
     {

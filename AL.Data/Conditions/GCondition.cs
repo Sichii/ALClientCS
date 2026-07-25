@@ -1,4 +1,4 @@
-﻿#region
+#region
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using Newtonsoft.Json;
@@ -25,9 +25,16 @@ public sealed record GCondition : AttributedRecordBase
     public bool Aura { get; init; }
 
     /// <summary>
-    ///     Whether or not this condition is bad.
+    ///     Whether or not this condition is a debuff (detrimental).
     /// </summary>
-    public bool Bad { get; init; }
+    [JsonProperty("debuff")]
+    public bool Debuff { get; init; }
+
+    /// <summary>
+    ///     If populated, the resistance stat that reduces this condition's chance to apply or its duration.
+    /// </summary>
+    [JsonProperty("defense")]
+    public ALAttribute Defense { get; init; }
 
     /// <summary>
     ///     Whether or not you are blocked from taking actions.
@@ -55,6 +62,12 @@ public sealed record GCondition : AttributedRecordBase
     /// </summary>
     [JsonProperty("duration")]
     public int DurationMs { get; init; }
+
+    /// <summary>
+    ///     If populated, the minimum duration of this condition in milliseconds. (Ms, not minutes.)
+    /// </summary>
+    [JsonProperty("duration_min")]
+    public int DurationMinMs { get; init; }
 
     /// <summary>
     ///     The amount this condition heals. (per interval)

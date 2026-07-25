@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -25,7 +25,7 @@ public class APIClientTests : APITestBed
                                     .ToListAsync();
 
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.Any());
+        Assert.IsTrue(result.Count != 0);
     }
 
     [TestMethod]

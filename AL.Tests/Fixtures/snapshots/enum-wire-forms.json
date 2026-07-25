@@ -1,0 +1,686 @@
+{
+  "Slot": {
+    "None": {
+      "bare": "\"none\"",
+      "inObject": "{\"V\":\"none\"}"
+    },
+    "Amulet": {
+      "bare": "\"amulet\"",
+      "inObject": "{\"V\":\"amulet\"}"
+    },
+    "Belt": {
+      "bare": "\"belt\"",
+      "inObject": "{\"V\":\"belt\"}"
+    },
+    "Cape": {
+      "bare": "\"cape\"",
+      "inObject": "{\"V\":\"cape\"}"
+    },
+    "Chest": {
+      "bare": "\"chest\"",
+      "inObject": "{\"V\":\"chest\"}"
+    },
+    "Earring1": {
+      "bare": "\"earring1\"",
+      "inObject": "{\"V\":\"earring1\"}"
+    },
+    "Earring2": {
+      "bare": "\"earring2\"",
+      "inObject": "{\"V\":\"earring2\"}"
+    },
+    "Elixir": {
+      "bare": "\"elixir\"",
+      "inObject": "{\"V\":\"elixir\"}"
+    },
+    "Gloves": {
+      "bare": "\"gloves\"",
+      "inObject": "{\"V\":\"gloves\"}"
+    },
+    "Helmet": {
+      "bare": "\"helmet\"",
+      "inObject": "{\"V\":\"helmet\"}"
+    },
+    "MainHand": {
+      "bare": "\"mainhand\"",
+      "inObject": "{\"V\":\"mainhand\"}"
+    },
+    "OffHand": {
+      "bare": "\"offhand\"",
+      "inObject": "{\"V\":\"offhand\"}"
+    },
+    "Orb": {
+      "bare": "\"orb\"",
+      "inObject": "{\"V\":\"orb\"}"
+    },
+    "Pants": {
+      "bare": "\"pants\"",
+      "inObject": "{\"V\":\"pants\"}"
+    },
+    "Ring1": {
+      "bare": "\"ring1\"",
+      "inObject": "{\"V\":\"ring1\"}"
+    },
+    "Ring2": {
+      "bare": "\"ring2\"",
+      "inObject": "{\"V\":\"ring2\"}"
+    },
+    "Shoes": {
+      "bare": "\"shoes\"",
+      "inObject": "{\"V\":\"shoes\"}"
+    },
+    "Trade1": {
+      "bare": "\"trade1\"",
+      "inObject": "{\"V\":\"trade1\"}"
+    },
+    "Trade2": {
+      "bare": "\"trade2\"",
+      "inObject": "{\"V\":\"trade2\"}"
+    },
+    "Trade3": {
+      "bare": "\"trade3\"",
+      "inObject": "{\"V\":\"trade3\"}"
+    },
+    "Trade4": {
+      "bare": "\"trade4\"",
+      "inObject": "{\"V\":\"trade4\"}"
+    },
+    "Trade5": {
+      "bare": "\"trade5\"",
+      "inObject": "{\"V\":\"trade5\"}"
+    },
+    "Trade6": {
+      "bare": "\"trade6\"",
+      "inObject": "{\"V\":\"trade6\"}"
+    },
+    "Trade7": {
+      "bare": "\"trade7\"",
+      "inObject": "{\"V\":\"trade7\"}"
+    },
+    "Trade8": {
+      "bare": "\"trade8\"",
+      "inObject": "{\"V\":\"trade8\"}"
+    },
+    "Trade9": {
+      "bare": "\"trade9\"",
+      "inObject": "{\"V\":\"trade9\"}"
+    },
+    "Trade10": {
+      "bare": "\"trade10\"",
+      "inObject": "{\"V\":\"trade10\"}"
+    },
+    "Trade11": {
+      "bare": "\"trade11\"",
+      "inObject": "{\"V\":\"trade11\"}"
+    },
+    "Trade12": {
+      "bare": "\"trade12\"",
+      "inObject": "{\"V\":\"trade12\"}"
+    },
+    "Trade13": {
+      "bare": "\"trade13\"",
+      "inObject": "{\"V\":\"trade13\"}"
+    },
+    "Trade14": {
+      "bare": "\"trade14\"",
+      "inObject": "{\"V\":\"trade14\"}"
+    },
+    "Trade15": {
+      "bare": "\"trade15\"",
+      "inObject": "{\"V\":\"trade15\"}"
+    },
+    "Trade16": {
+      "bare": "\"trade16\"",
+      "inObject": "{\"V\":\"trade16\"}"
+    },
+    "Trade17": {
+      "bare": "\"trade17\"",
+      "inObject": "{\"V\":\"trade17\"}"
+    },
+    "Trade18": {
+      "bare": "\"trade18\"",
+      "inObject": "{\"V\":\"trade18\"}"
+    },
+    "Trade19": {
+      "bare": "\"trade19\"",
+      "inObject": "{\"V\":\"trade19\"}"
+    },
+    "Trade20": {
+      "bare": "\"trade20\"",
+      "inObject": "{\"V\":\"trade20\"}"
+    },
+    "Trade21": {
+      "bare": "\"trade21\"",
+      "inObject": "{\"V\":\"trade21\"}"
+    },
+    "Trade22": {
+      "bare": "\"trade22\"",
+      "inObject": "{\"V\":\"trade22\"}"
+    },
+    "Trade23": {
+      "bare": "\"trade23\"",
+      "inObject": "{\"V\":\"trade23\"}"
+    },
+    "Trade24": {
+      "bare": "\"trade24\"",
+      "inObject": "{\"V\":\"trade24\"}"
+    },
+    "Trade25": {
+      "bare": "\"trade25\"",
+      "inObject": "{\"V\":\"trade25\"}"
+    },
+    "Trade26": {
+      "bare": "\"trade26\"",
+      "inObject": "{\"V\":\"trade26\"}"
+    },
+    "Trade27": {
+      "bare": "\"trade27\"",
+      "inObject": "{\"V\":\"trade27\"}"
+    },
+    "Trade28": {
+      "bare": "\"trade28\"",
+      "inObject": "{\"V\":\"trade28\"}"
+    },
+    "Trade29": {
+      "bare": "\"trade29\"",
+      "inObject": "{\"V\":\"trade29\"}"
+    },
+    "Trade30": {
+      "bare": "\"trade30\"",
+      "inObject": "{\"V\":\"trade30\"}"
+    }
+  },
+  "TradeSlot": {
+    "None": {
+      "bare": "\"none\"",
+      "inObject": "{\"V\":\"none\"}"
+    },
+    "Trade1": {
+      "bare": "\"trade1\"",
+      "inObject": "{\"V\":\"trade1\"}"
+    },
+    "Trade2": {
+      "bare": "\"trade2\"",
+      "inObject": "{\"V\":\"trade2\"}"
+    },
+    "Trade3": {
+      "bare": "\"trade3\"",
+      "inObject": "{\"V\":\"trade3\"}"
+    },
+    "Trade4": {
+      "bare": "\"trade4\"",
+      "inObject": "{\"V\":\"trade4\"}"
+    },
+    "Trade5": {
+      "bare": "\"trade5\"",
+      "inObject": "{\"V\":\"trade5\"}"
+    },
+    "Trade6": {
+      "bare": "\"trade6\"",
+      "inObject": "{\"V\":\"trade6\"}"
+    },
+    "Trade7": {
+      "bare": "\"trade7\"",
+      "inObject": "{\"V\":\"trade7\"}"
+    },
+    "Trade8": {
+      "bare": "\"trade8\"",
+      "inObject": "{\"V\":\"trade8\"}"
+    },
+    "Trade9": {
+      "bare": "\"trade9\"",
+      "inObject": "{\"V\":\"trade9\"}"
+    },
+    "Trade10": {
+      "bare": "\"trade10\"",
+      "inObject": "{\"V\":\"trade10\"}"
+    },
+    "Trade11": {
+      "bare": "\"trade11\"",
+      "inObject": "{\"V\":\"trade11\"}"
+    },
+    "Trade12": {
+      "bare": "\"trade12\"",
+      "inObject": "{\"V\":\"trade12\"}"
+    },
+    "Trade13": {
+      "bare": "\"trade13\"",
+      "inObject": "{\"V\":\"trade13\"}"
+    },
+    "Trade14": {
+      "bare": "\"trade14\"",
+      "inObject": "{\"V\":\"trade14\"}"
+    },
+    "Trade15": {
+      "bare": "\"trade15\"",
+      "inObject": "{\"V\":\"trade15\"}"
+    },
+    "Trade16": {
+      "bare": "\"trade16\"",
+      "inObject": "{\"V\":\"trade16\"}"
+    },
+    "Trade17": {
+      "bare": "\"trade17\"",
+      "inObject": "{\"V\":\"trade17\"}"
+    },
+    "Trade18": {
+      "bare": "\"trade18\"",
+      "inObject": "{\"V\":\"trade18\"}"
+    },
+    "Trade19": {
+      "bare": "\"trade19\"",
+      "inObject": "{\"V\":\"trade19\"}"
+    },
+    "Trade20": {
+      "bare": "\"trade20\"",
+      "inObject": "{\"V\":\"trade20\"}"
+    },
+    "Trade21": {
+      "bare": "\"trade21\"",
+      "inObject": "{\"V\":\"trade21\"}"
+    },
+    "Trade22": {
+      "bare": "\"trade22\"",
+      "inObject": "{\"V\":\"trade22\"}"
+    },
+    "Trade23": {
+      "bare": "\"trade23\"",
+      "inObject": "{\"V\":\"trade23\"}"
+    },
+    "Trade24": {
+      "bare": "\"trade24\"",
+      "inObject": "{\"V\":\"trade24\"}"
+    },
+    "Trade25": {
+      "bare": "\"trade25\"",
+      "inObject": "{\"V\":\"trade25\"}"
+    },
+    "Trade26": {
+      "bare": "\"trade26\"",
+      "inObject": "{\"V\":\"trade26\"}"
+    },
+    "Trade27": {
+      "bare": "\"trade27\"",
+      "inObject": "{\"V\":\"trade27\"}"
+    },
+    "Trade28": {
+      "bare": "\"trade28\"",
+      "inObject": "{\"V\":\"trade28\"}"
+    },
+    "Trade29": {
+      "bare": "\"trade29\"",
+      "inObject": "{\"V\":\"trade29\"}"
+    },
+    "Trade30": {
+      "bare": "\"trade30\"",
+      "inObject": "{\"V\":\"trade30\"}"
+    }
+  },
+  "BankPack": {
+    "None": {
+      "bare": "\"none\"",
+      "inObject": "{\"V\":\"none\"}"
+    },
+    "Items0": {
+      "bare": "\"items0\"",
+      "inObject": "{\"V\":\"items0\"}"
+    },
+    "Items1": {
+      "bare": "\"items1\"",
+      "inObject": "{\"V\":\"items1\"}"
+    },
+    "Items2": {
+      "bare": "\"items2\"",
+      "inObject": "{\"V\":\"items2\"}"
+    },
+    "Items3": {
+      "bare": "\"items3\"",
+      "inObject": "{\"V\":\"items3\"}"
+    },
+    "Items4": {
+      "bare": "\"items4\"",
+      "inObject": "{\"V\":\"items4\"}"
+    },
+    "Items5": {
+      "bare": "\"items5\"",
+      "inObject": "{\"V\":\"items5\"}"
+    },
+    "Items6": {
+      "bare": "\"items6\"",
+      "inObject": "{\"V\":\"items6\"}"
+    },
+    "Items7": {
+      "bare": "\"items7\"",
+      "inObject": "{\"V\":\"items7\"}"
+    },
+    "Items8": {
+      "bare": "\"items8\"",
+      "inObject": "{\"V\":\"items8\"}"
+    },
+    "Items9": {
+      "bare": "\"items9\"",
+      "inObject": "{\"V\":\"items9\"}"
+    },
+    "Items10": {
+      "bare": "\"items10\"",
+      "inObject": "{\"V\":\"items10\"}"
+    },
+    "Items11": {
+      "bare": "\"items11\"",
+      "inObject": "{\"V\":\"items11\"}"
+    },
+    "Items12": {
+      "bare": "\"items12\"",
+      "inObject": "{\"V\":\"items12\"}"
+    },
+    "Items13": {
+      "bare": "\"items13\"",
+      "inObject": "{\"V\":\"items13\"}"
+    },
+    "Items14": {
+      "bare": "\"items14\"",
+      "inObject": "{\"V\":\"items14\"}"
+    },
+    "Items15": {
+      "bare": "\"items15\"",
+      "inObject": "{\"V\":\"items15\"}"
+    },
+    "Items16": {
+      "bare": "\"items16\"",
+      "inObject": "{\"V\":\"items16\"}"
+    },
+    "Items17": {
+      "bare": "\"items17\"",
+      "inObject": "{\"V\":\"items17\"}"
+    },
+    "Items18": {
+      "bare": "\"items18\"",
+      "inObject": "{\"V\":\"items18\"}"
+    },
+    "Items19": {
+      "bare": "\"items19\"",
+      "inObject": "{\"V\":\"items19\"}"
+    },
+    "Items20": {
+      "bare": "\"items20\"",
+      "inObject": "{\"V\":\"items20\"}"
+    },
+    "Items21": {
+      "bare": "\"items21\"",
+      "inObject": "{\"V\":\"items21\"}"
+    },
+    "Items22": {
+      "bare": "\"items22\"",
+      "inObject": "{\"V\":\"items22\"}"
+    },
+    "Items23": {
+      "bare": "\"items23\"",
+      "inObject": "{\"V\":\"items23\"}"
+    },
+    "Items24": {
+      "bare": "\"items24\"",
+      "inObject": "{\"V\":\"items24\"}"
+    },
+    "Items25": {
+      "bare": "\"items25\"",
+      "inObject": "{\"V\":\"items25\"}"
+    },
+    "Items26": {
+      "bare": "\"items26\"",
+      "inObject": "{\"V\":\"items26\"}"
+    },
+    "Items27": {
+      "bare": "\"items27\"",
+      "inObject": "{\"V\":\"items27\"}"
+    },
+    "Items28": {
+      "bare": "\"items28\"",
+      "inObject": "{\"V\":\"items28\"}"
+    },
+    "Items29": {
+      "bare": "\"items29\"",
+      "inObject": "{\"V\":\"items29\"}"
+    },
+    "Items30": {
+      "bare": "\"items30\"",
+      "inObject": "{\"V\":\"items30\"}"
+    },
+    "Items31": {
+      "bare": "\"items31\"",
+      "inObject": "{\"V\":\"items31\"}"
+    },
+    "Items32": {
+      "bare": "\"items32\"",
+      "inObject": "{\"V\":\"items32\"}"
+    },
+    "Items33": {
+      "bare": "\"items33\"",
+      "inObject": "{\"V\":\"items33\"}"
+    },
+    "Items34": {
+      "bare": "\"items34\"",
+      "inObject": "{\"V\":\"items34\"}"
+    },
+    "Items35": {
+      "bare": "\"items35\"",
+      "inObject": "{\"V\":\"items35\"}"
+    },
+    "Items36": {
+      "bare": "\"items36\"",
+      "inObject": "{\"V\":\"items36\"}"
+    },
+    "Items37": {
+      "bare": "\"items37\"",
+      "inObject": "{\"V\":\"items37\"}"
+    },
+    "Items38": {
+      "bare": "\"items38\"",
+      "inObject": "{\"V\":\"items38\"}"
+    },
+    "Items39": {
+      "bare": "\"items39\"",
+      "inObject": "{\"V\":\"items39\"}"
+    },
+    "Items40": {
+      "bare": "\"items40\"",
+      "inObject": "{\"V\":\"items40\"}"
+    },
+    "Items41": {
+      "bare": "\"items41\"",
+      "inObject": "{\"V\":\"items41\"}"
+    },
+    "Items42": {
+      "bare": "\"items42\"",
+      "inObject": "{\"V\":\"items42\"}"
+    },
+    "Items43": {
+      "bare": "\"items43\"",
+      "inObject": "{\"V\":\"items43\"}"
+    },
+    "Items44": {
+      "bare": "\"items44\"",
+      "inObject": "{\"V\":\"items44\"}"
+    },
+    "Items45": {
+      "bare": "\"items45\"",
+      "inObject": "{\"V\":\"items45\"}"
+    },
+    "Items46": {
+      "bare": "\"items46\"",
+      "inObject": "{\"V\":\"items46\"}"
+    },
+    "Items47": {
+      "bare": "\"items47\"",
+      "inObject": "{\"V\":\"items47\"}"
+    }
+  },
+  "Stand": {
+    "None": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Stand": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "CStand": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Stand0": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Stand1": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    }
+  },
+  "ALClass": {
+    "None": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Mage": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Merchant": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Paladin": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Priest": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Ranger": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Rogue": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "Warrior": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    },
+    "NPC": {
+      "bare": "<<throws:System.NotImplementedException>>",
+      "inObject": "<<throws:System.NotImplementedException>>"
+    }
+  },
+  "WeaponType": {
+    "None": {
+      "bare": "\"None\"",
+      "inObject": "{\"V\":\"None\"}"
+    },
+    "Axe": {
+      "bare": "\"Axe\"",
+      "inObject": "{\"V\":\"Axe\"}"
+    },
+    "Basher": {
+      "bare": "\"Basher\"",
+      "inObject": "{\"V\":\"Basher\"}"
+    },
+    "Bow": {
+      "bare": "\"Bow\"",
+      "inObject": "{\"V\":\"Bow\"}"
+    },
+    "Crossbow": {
+      "bare": "\"Crossbow\"",
+      "inObject": "{\"V\":\"Crossbow\"}"
+    },
+    "Dagger": {
+      "bare": "\"Dagger\"",
+      "inObject": "{\"V\":\"Dagger\"}"
+    },
+    "DartGun": {
+      "bare": "\"DartGun\"",
+      "inObject": "{\"V\":\"DartGun\"}"
+    },
+    "Fist": {
+      "bare": "\"Fist\"",
+      "inObject": "{\"V\":\"Fist\"}"
+    },
+    "GreatStaff": {
+      "bare": "\"great_staff\"",
+      "inObject": "{\"V\":\"great_staff\"}"
+    },
+    "GreatSword": {
+      "bare": "\"great_sword\"",
+      "inObject": "{\"V\":\"great_sword\"}"
+    },
+    "Mace": {
+      "bare": "\"Mace\"",
+      "inObject": "{\"V\":\"Mace\"}"
+    },
+    "MiscOffhand": {
+      "bare": "\"misc_offhand\"",
+      "inObject": "{\"V\":\"misc_offhand\"}"
+    },
+    "PMace": {
+      "bare": "\"PMace\"",
+      "inObject": "{\"V\":\"PMace\"}"
+    },
+    "Quiver": {
+      "bare": "\"Quiver\"",
+      "inObject": "{\"V\":\"Quiver\"}"
+    },
+    "Rapier": {
+      "bare": "\"Rapier\"",
+      "inObject": "{\"V\":\"Rapier\"}"
+    },
+    "Rod": {
+      "bare": "\"Rod\"",
+      "inObject": "{\"V\":\"Rod\"}"
+    },
+    "Scythe": {
+      "bare": "\"Scythe\"",
+      "inObject": "{\"V\":\"Scythe\"}"
+    },
+    "Shield": {
+      "bare": "\"Shield\"",
+      "inObject": "{\"V\":\"Shield\"}"
+    },
+    "ShortSword": {
+      "bare": "\"short_sword\"",
+      "inObject": "{\"V\":\"short_sword\"}"
+    },
+    "Source": {
+      "bare": "\"Source\"",
+      "inObject": "{\"V\":\"Source\"}"
+    },
+    "Spear": {
+      "bare": "\"Spear\"",
+      "inObject": "{\"V\":\"Spear\"}"
+    },
+    "Staff": {
+      "bare": "\"Staff\"",
+      "inObject": "{\"V\":\"Staff\"}"
+    },
+    "Stars": {
+      "bare": "\"Stars\"",
+      "inObject": "{\"V\":\"Stars\"}"
+    },
+    "Sword": {
+      "bare": "\"Sword\"",
+      "inObject": "{\"V\":\"Sword\"}"
+    },
+    "Wand": {
+      "bare": "\"Wand\"",
+      "inObject": "{\"V\":\"Wand\"}"
+    },
+    "WBlade": {
+      "bare": "\"WBlade\"",
+      "inObject": "{\"V\":\"WBlade\"}"
+    },
+    "PickAxe": {
+      "bare": "\"PickAxe\"",
+      "inObject": "{\"V\":\"PickAxe\"}"
+    }
+  }
+}

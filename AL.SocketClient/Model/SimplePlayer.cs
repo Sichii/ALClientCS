@@ -1,5 +1,6 @@
 #region
 using AL.Core.Definitions;
+using AL.Core.Json.Converters;
 using AL.SocketClient.Interfaces;
 using Newtonsoft.Json;
 #endregion
@@ -8,6 +9,7 @@ namespace AL.SocketClient.Model;
 
 public sealed record SimplePlayer : ISimplePlayer
 {
+    [JsonConverter(typeof(AfkConverter))]
     public bool AFK { get; init; }
     public int Age { get; init; }
 

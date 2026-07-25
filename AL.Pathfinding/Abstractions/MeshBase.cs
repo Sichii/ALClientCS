@@ -170,7 +170,9 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
                 return EdgeType.Door;
         }
 
-        var transport = gMap1.NPCs.FirstOrDefault(npc => (npc.Data!.Role == NPCRole.Transport) && npc.Locations.Contains(start));
+        //a map can reference an npc id that G.npcs has no entry for, which leaves Data null
+        //after enrichment - one unknown npc must not abort the whole nav mesh build
+        var transport = gMap1.NPCs.FirstOrDefault(npc => (npc.Data?.Role == NPCRole.Transport) && npc.Locations.Contains(start));
 
         if (transport != null)
             return EdgeType.Transport;

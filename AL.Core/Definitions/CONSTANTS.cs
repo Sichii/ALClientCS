@@ -23,5 +23,10 @@ namespace AL.Core.Definitions
         ///     Unknown
         /// </summary>
         public const float TRANSPORTER_RANGE = 150f * 0.975f;
+        
+        /// <summary>
+        ///     The edge-to-edge range for trading
+        /// </summary>
+        public const float TRADE_RANGE = 300;
     }
 }

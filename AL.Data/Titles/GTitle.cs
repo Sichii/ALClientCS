@@ -1,4 +1,5 @@
-﻿#region
+#region
+using AL.Core.Abstractions;
 using AL.Data.Achievements;
 using Newtonsoft.Json;
 #endregion
@@ -7,8 +8,11 @@ namespace AL.Data.Titles;
 
 /// <summary>
 ///     Represents a title that can be applied to an item.
+///     <br />
+///     <inheritdoc cref="AttributedRecordBase" />
 /// </summary>
-public sealed record GTitle
+/// <seealso cref="AttributedRecordBase" />
+public sealed record GTitle : AttributedRecordBase
 {
     /// <summary>
     ///     If populated, the <see cref="GAchievement" /> this title is associated with.

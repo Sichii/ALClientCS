@@ -10,10 +10,12 @@ namespace AL.SocketClient.ClientModel;
 public abstract class ALSocketSubscription : IDisposable
 {
     internal abstract Delegate Callback { get; }
-    protected SynchronizedList<ALSocketSubscription> InvocationList { get; }
+    protected ALSocketSubscriptionList InvocationList { get; }
 
-    protected ALSocketSubscription(IEnumerable<ALSocketSubscription> invocationList)
-        => InvocationList = new SynchronizedList<ALSocketSubscription>(invocationList);
+    //diverges from the list's Type when a later On<T> declared a different T, which is what makes the cast below throw
+    internal abstract Type SubscriptionType { get; }
+
+    protected ALSocketSubscription(ALSocketSubscriptionList invocationList) => InvocationList = invocationList;
 
     public void Dispose()
     {
@@ -28,8 +30,9 @@ public abstract class ALSocketSubscription : IDisposable
 public sealed class AlSocketSubscription<T> : ALSocketSubscription
 {
     internal override Delegate Callback { get; }
+    internal override Type SubscriptionType => typeof(T);
 
-    internal AlSocketSubscription(IEnumerable<ALSocketSubscription> invocationList, Func<T, Task<bool>> callback)
+    internal AlSocketSubscription(ALSocketSubscriptionList invocationList, Func<T, Task<bool>> callback)
         : base(invocationList)
     {
         Callback = callback;

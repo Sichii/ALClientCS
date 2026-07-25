@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System.Collections.Generic;
 using AL.Core.Geometry;
 using AL.Core.Json.Converters;

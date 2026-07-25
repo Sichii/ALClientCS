@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
 using Newtonsoft.Json;

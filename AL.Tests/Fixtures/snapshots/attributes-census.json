@@ -1,0 +1,267 @@
+{
+  "conditions.poisoned": {
+    "count": 3,
+    "attributes": [
+      {
+        "attr": "FrequencyMod",
+        "value": 0.8,
+        "hasProperty": true,
+        "propertyValue": 0.8
+      },
+      {
+        "attr": "HealMod",
+        "value": 0.25,
+        "hasProperty": true,
+        "propertyValue": 0.25
+      },
+      {
+        "attr": "PotionsMod",
+        "value": 0.5,
+        "hasProperty": true,
+        "propertyValue": 0.5
+      }
+    ]
+  },
+  "items.bataxe": {
+    "count": 3,
+    "attributes": [
+      {
+        "attr": "Attack",
+        "value": 41.25,
+        "hasProperty": true,
+        "propertyValue": 41.25
+      },
+      {
+        "attr": "Range",
+        "value": 8.75,
+        "hasProperty": true,
+        "propertyValue": 8.75
+      },
+      {
+        "attr": "Reflection",
+        "value": 4.0,
+        "hasProperty": true,
+        "propertyValue": 4.0
+      }
+    ]
+  },
+  "items.fireblade": {
+    "count": 3,
+    "attributes": [
+      {
+        "attr": "Attack",
+        "value": 21.0,
+        "hasProperty": true,
+        "propertyValue": 21.0
+      },
+      {
+        "attr": "Attr0",
+        "value": 1.5,
+        "hasProperty": false
+      },
+      {
+        "attr": "Range",
+        "value": 7.0,
+        "hasProperty": true,
+        "propertyValue": 7.0
+      }
+    ]
+  },
+  "items.harbringer": {
+    "count": 3,
+    "attributes": [
+      {
+        "attr": "Attack",
+        "value": 42.5,
+        "hasProperty": true,
+        "propertyValue": 42.5
+      },
+      {
+        "attr": "RPiercing",
+        "value": 10.0,
+        "hasProperty": true,
+        "propertyValue": 10.0
+      },
+      {
+        "attr": "Range",
+        "value": 60.5,
+        "hasProperty": true,
+        "propertyValue": 60.5
+      }
+    ]
+  },
+  "monsters.franky": {
+    "count": 8,
+    "attributes": [
+      {
+        "attr": "Attack",
+        "value": 2910.0,
+        "hasProperty": true,
+        "propertyValue": 2910.0
+      },
+      {
+        "attr": "Frequency",
+        "value": 1.6,
+        "hasProperty": true,
+        "propertyValue": 1.6
+      },
+      {
+        "attr": "Hp",
+        "value": 120000000.0,
+        "hasProperty": true,
+        "propertyValue": 120000000.0
+      },
+      {
+        "attr": "Mp",
+        "value": 2400000.0,
+        "hasProperty": true,
+        "propertyValue": 2400000.0
+      },
+      {
+        "attr": "PhysicalResistance",
+        "value": 70.0,
+        "hasProperty": false
+      },
+      {
+        "attr": "Range",
+        "value": 948.0,
+        "hasProperty": true,
+        "propertyValue": 948.0
+      },
+      {
+        "attr": "Speed",
+        "value": 48.0,
+        "hasProperty": true,
+        "propertyValue": 48.0
+      },
+      {
+        "attr": "XP",
+        "value": 200000000.0,
+        "hasProperty": true,
+        "propertyValue": 200000000.0
+      }
+    ]
+  },
+  "monsters.goo": {
+    "count": 7,
+    "attributes": [
+      {
+        "attr": "Attack",
+        "value": 5.0,
+        "hasProperty": true,
+        "propertyValue": 5.0
+      },
+      {
+        "attr": "Frequency",
+        "value": 0.4,
+        "hasProperty": true,
+        "propertyValue": 0.4
+      },
+      {
+        "attr": "Hp",
+        "value": 100.0,
+        "hasProperty": true,
+        "propertyValue": 100.0
+      },
+      {
+        "attr": "Mp",
+        "value": 2.0,
+        "hasProperty": true,
+        "propertyValue": 2.0
+      },
+      {
+        "attr": "Range",
+        "value": 15.0,
+        "hasProperty": true,
+        "propertyValue": 15.0
+      },
+      {
+        "attr": "Speed",
+        "value": 6.0,
+        "hasProperty": true,
+        "propertyValue": 6.0
+      },
+      {
+        "attr": "XP",
+        "value": 100.0,
+        "hasProperty": true,
+        "propertyValue": 100.0
+      }
+    ]
+  },
+  "monsters.phoenix": {
+    "count": 9,
+    "attributes": [
+      {
+        "attr": "Attack",
+        "value": 125.0,
+        "hasProperty": true,
+        "propertyValue": 125.0
+      },
+      {
+        "attr": "Frequency",
+        "value": 1.2,
+        "hasProperty": true,
+        "propertyValue": 1.2
+      },
+      {
+        "attr": "Hp",
+        "value": 160000.0,
+        "hasProperty": true,
+        "propertyValue": 160000.0
+      },
+      {
+        "attr": "Mp",
+        "value": 3200.0,
+        "hasProperty": true,
+        "propertyValue": 3200.0
+      },
+      {
+        "attr": "PhysicalResistance",
+        "value": 40.0,
+        "hasProperty": false
+      },
+      {
+        "attr": "Range",
+        "value": 120.0,
+        "hasProperty": true,
+        "propertyValue": 120.0
+      },
+      {
+        "attr": "Resistance",
+        "value": 160.0,
+        "hasProperty": true,
+        "propertyValue": 160.0
+      },
+      {
+        "attr": "Speed",
+        "value": 50.0,
+        "hasProperty": true,
+        "propertyValue": 50.0
+      },
+      {
+        "attr": "XP",
+        "value": 180000.0,
+        "hasProperty": true,
+        "propertyValue": 180000.0
+      }
+    ]
+  },
+  "npcs.citizen0": {
+    "count": 2,
+    "attributes": [
+      {
+        "attr": "Hp",
+        "value": 3200.0,
+        "hasProperty": true,
+        "propertyValue": 3200.0
+      },
+      {
+        "attr": "Speed",
+        "value": 30.0,
+        "hasProperty": true,
+        "propertyValue": 30.0
+      }
+    ]
+  }
+}

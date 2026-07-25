@@ -18,8 +18,6 @@ public abstract class APITestBed
     [TestInitialize]
     public virtual async Task Init()
     {
-        Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory;
-
         await Sync.WaitAsync();
 
         try

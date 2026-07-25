@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using AL.Core.Abstractions;
 using AL.Core.Interfaces;

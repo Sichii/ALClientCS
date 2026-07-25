@@ -2,10 +2,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AL.Core.Helpers;
 using Chaos.Common.Synchronization;
 using Chaos.Time;
-using Chaos.Time.Abstractions;
 #endregion
 
 namespace AL.Client.Abstractions;
@@ -85,7 +83,7 @@ public abstract class AsyncDeltaLoop
                     Client.Logger.Error(ex);
                 }
             }
-        } catch (Exception e)
+        } catch
         {
             //ignored
         }

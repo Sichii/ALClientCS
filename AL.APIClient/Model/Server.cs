@@ -1,4 +1,4 @@
-﻿#region
+#region
 using AL.APIClient.Definitions;
 using Newtonsoft.Json;
 #endregion
@@ -11,32 +11,32 @@ namespace AL.APIClient.Model;
 public sealed record Server
 {
     /// <summary>
+    ///     The host name of the server. There is no separate port; it is part of the host if non-standard.
+    /// </summary>
+    [JsonProperty("address")]
+    public string Address { get; init; } = null!;
+
+    /// <summary>
     ///     The server identifier.
     /// </summary>
     [JsonProperty("name")]
     public ServerId Identifier { get; set; }
 
     /// <summary>
-    ///     The IP address of the server.
-    /// </summary>
-    [JsonProperty("addr")]
-    public string IPAddress { get; init; } = null!;
-
-    /// <summary>
-    ///     A combination of <see cref="AL.APIClient.Definitions.ServerRegion" /> and
-    ///     <see cref="AL.APIClient.Definitions.ServerId" />
+    ///     The server's "SR_" prefixed unique id.
     /// </summary>
     public string Key { get; init; } = null!;
+
+    /// <summary>
+    ///     The engine.io mount path this server listens on. Configured per server, so it is not always "/socket.io/".
+    /// </summary>
+    [JsonProperty("path")]
+    public string Path { get; init; } = null!;
 
     /// <summary>
     ///     The number of players currently on this server.
     /// </summary>
     public int Players { get; init; }
-
-    /// <summary>
-    ///     The port this server is on. (combine with IP address)
-    /// </summary>
-    public int Port { get; init; }
 
     /// <summary>
     ///     The region this server is for.

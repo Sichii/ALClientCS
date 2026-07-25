@@ -69,10 +69,11 @@ public sealed class Warrior : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                        => false
                 };
 
@@ -127,10 +128,11 @@ public sealed class Warrior : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                        => false
                 };
 
@@ -186,11 +188,12 @@ public sealed class Warrior : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
                     GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (wrong weapon type)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                               => false
                 };
 
@@ -263,10 +266,11 @@ public sealed class Warrior : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                        => false
                 };
 
@@ -362,11 +366,12 @@ public sealed class Warrior : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
                     GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (wrong weapon type)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                               => false
                 };
 
@@ -432,15 +437,17 @@ public sealed class Warrior : ALClient
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.AttackFailed when data.TargetId!.EqualsI(targetId) && data.Place!.EqualsI(SKILL_NAME) =>
+                    //attack_failed carries only an id, never a place
+                    GameResponseType.AttackFailed when targetId.EqualsI(data.TargetId!) =>
                         source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetId!.EqualsI(targetId) && data.Place!.EqualsI(SKILL_NAME) =>
+                    GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) =>
                         source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetId!.EqualsI(targetId) && data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
                     GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                     => false
                 };
 
@@ -489,10 +496,11 @@ public sealed class Warrior : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place!.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
                     _                        => false
                 };
 

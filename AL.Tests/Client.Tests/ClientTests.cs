@@ -10,7 +10,6 @@ using AL.Core.Helpers;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 using PATHFINDING_CONSTANTS = AL.Pathfinding.Definitions.CONSTANTS;
 #endregion
 
@@ -308,7 +307,7 @@ public class ClientTests
       var emptyCharacters = Enumerable.Range(0, 100000)
                                       .Select(_ => new Character())
                                       .ToArray();
-      var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
+      var obj = TestJson.Socket<CharacterData>(CHARACTER_DATA);
 
       var timer = Stopwatch.StartNew();
       var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;

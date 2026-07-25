@@ -56,7 +56,7 @@ public static class ALClientSettings
 
         var fileTarget = new FileTarget("ALClientCSInternalFileTarget")
         {
-            Layout = new SimpleLayout(@"[${date:format=HH\:mm\:ss.fff}][${level:uppercase=true}][${logger:shortName=true}] ${message}"),
+            Layout = new SimpleLayout(@"[${date:format=HH\:mm\:ss.fff}][${level:uppercase=true}][${logger:shortName=true}] ${message}${onexception:inner=${newline}${exception:format=ToString}}"),
             FileName = @"logs\${shortdate}.txt",
             ArchiveFileName = @"logs\old\${shortdate}.txt",
             ArchiveEvery = FileArchivePeriod.Day,
@@ -66,7 +66,7 @@ public static class ALClientSettings
 
         var consoleTarget = new ConsoleTarget("ALClientCSConsoleInternalTarget")
         {
-            Layout = @"[${level:uppercase=true}][${logger:shortName=true}] ${message}"
+            Layout = @"[${level:uppercase=true}][${logger:shortName=true}] ${message}${onexception:inner=${newline}${exception:format=ToString}}"
         };
 
         config.AddTarget(fileTarget);

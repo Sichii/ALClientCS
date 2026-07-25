@@ -1,4 +1,4 @@
-﻿namespace AL.Data.Monsters
+namespace AL.Data.Monsters
 {
     /// <summary>
     ///     Represents a condition that a monster has when it spawns. <br />

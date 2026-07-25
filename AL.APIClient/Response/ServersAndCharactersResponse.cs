@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using AL.APIClient.Model;
 
 namespace AL.APIClient.Response

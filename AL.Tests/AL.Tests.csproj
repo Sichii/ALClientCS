@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
@@ -18,10 +18,28 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
         <PackageReference Include="MSTest.TestAdapter" Version="3.6.3"/>
         <PackageReference Include="MSTest.TestFramework" Version="3.6.3"/>
+        <!-- Frozen Newtonsoft oracle: the characterization suite pins current Newtonsoft behaviour as the
+             STJ migration target. Referenced explicitly here (it reaches the tests transitively today) so the
+             oracle survives production dropping Newtonsoft in STJ Phase 6. -->
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
     </ItemGroup>
 
     <ItemGroup>
         <None Update="TestCredentials.txt">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- offline game-data snapshot, so characterisation tests pin exact values without a network call -->
+        <None Include="..\AL.Core\data.json" Link="Fixtures\data.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <!-- Every snapshot, not just *.json: the non-public-member census is a .txt and was silently absent from
+             the output. Always, not PreserveNewest: a test that writes into the snapshot directory leaves a copy
+             newer than the committed file, which PreserveNewest then refuses to restore - so the drift check keeps
+             reading that stale write forever. Always makes the committed fixture win on every build. -->
+        <None Update="Fixtures\**\*">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
     </ItemGroup>

@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
@@ -78,6 +78,30 @@ public record ActionData : IPoint
 
     [JsonProperty]
     public float Y { get; init; }
+
+    /// <summary>
+    ///     If populated, the conditions this hit applies (e.g. "poisoned", "burned", "woven", "stunned").
+    /// </summary>
+    [JsonProperty]
+    public string[]? Conditions { get; init; }
+
+    /// <summary>
+    ///     True when the projectile is instant, which is why <see cref="ETA" /> is 0.
+    /// </summary>
+    [JsonProperty]
+    public bool Instant { get; init; }
+
+    /// <summary>
+    ///     True when the action is beneficial (heal/buff) rather than damage.
+    /// </summary>
+    [JsonProperty]
+    public bool Positive { get; init; }
+
+    /// <summary>
+    ///     If populated, the reflected damage amount (present only on a reflected projectile).
+    /// </summary>
+    [JsonProperty]
+    public float Reflect { get; init; }
 
     [JsonIgnore]
     public DateTime Created { get; } = DateTime.UtcNow;

@@ -7,6 +7,8 @@ namespace AL.Core.Interfaces
     /// </summary>
     /// <seealso cref="IPolygon" />
     /// <seealso cref="AL.Core.Interfaces.IPoint" />
+    // Newtonsoft-only: forces IRectangle implementers that also implement IEnumerable<IPoint>
+    // (e.g. GTile) to bind as objects, not arrays. STJ ignores it. Load-bearing until Newtonsoft is dropped.
     [JsonObject]
     public interface IRectangle : IPolygon, IPoint
     {

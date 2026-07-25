@@ -1,7 +1,7 @@
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
+using System.Text.Json.Nodes;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AL.SocketClient.SocketModel
 {
@@ -28,7 +28,7 @@ namespace AL.SocketClient.SocketModel
         /// <summary>
         ///     TODO: unknown, always empty? maybe map specific info?
         /// </summary>
-        public JObject? Info { get; init; }
+        public JsonObject? Info { get; init; }
 
         [JsonProperty("name")]
         public string Map { get; init; } = null!;

@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using AL.Core.Geometry;
 using Newtonsoft.Json;
@@ -19,7 +19,10 @@ public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
         bool hasExistingValue,
         JsonSerializer serializer)
     {
-        var tupleConverter = new ArrayToTupleConverter<object, int, int, int, int>();
+        // Coords widen to float so fractional boundaries are no longer rounded to int.
+        // arr[0] is parsed via float.TryParse below (culture-safe round-trip); coords 2-4 flow
+        // through JToken ToObject<float>, which is JSON-numeric and needs no culture handling.
+        var tupleConverter = new ArrayToTupleConverter<object, float, float, float, float>();
 
         //first value could be a mapName or the first x vertice (tuple can be 4 or 5 in length)
         (var obj, var num1, var num2, var num3, var num4) = tupleConverter.ReadJson(

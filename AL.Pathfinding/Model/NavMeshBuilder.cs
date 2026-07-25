@@ -128,11 +128,14 @@ public sealed class NavMeshBuilder
         foreach (var line in Geometry.VerticalLines)
         {
             var x = line.Point1.X + XOffset;
-            var startY = line.Point1.Y + YOffset;
-            var endY = line.Point2.Y + YOffset;
 
-            if ((0 > x) || (x > Width) || (0 > startY) || (startY > Height) || (0 > endY) || (endY > Height))
+            //map bounds come from the tile art, so a wall may overrun them - clamp the span so the in-bounds
+            //part still walls off, but drop a line whose axis is outside entirely
+            if ((0 > x) || (x > Width))
                 continue;
+
+            var startY = Math.Clamp(line.Point1.Y + YOffset, 0f, Height);
+            var endY = Math.Clamp(line.Point2.Y + YOffset, 0f, Height);
 
             //pad sides with half of the width of the bounding base
             //pad the top with the bottom part of the bounding base (characters will walk DOWN into the top of the wall)
@@ -146,11 +149,12 @@ public sealed class NavMeshBuilder
         foreach (var line in Geometry.HorizontalLines)
         {
             var y = line.Point1.Y + YOffset;
-            var startX = line.Point1.X + XOffset;
-            var endX = line.Point2.X + XOffset;
 
-            if ((0 > y) || (y > Height) || (0 > startX) || (startX > Width) || (0 > endX) || (endX > Width))
+            if ((0 > y) || (y > Height))
                 continue;
+
+            var startX = Math.Clamp(line.Point1.X + XOffset, 0f, Width);
+            var endX = Math.Clamp(line.Point2.X + XOffset, 0f, Width);
 
             var tl = new Point(Math.Max(startX - halfWidth, 0), Math.Max(y - verticalNotNorth, 0));
             var br = new Point(Math.Min(endX + halfWidth, Width), Math.Min(y + verticalNorth, Height));
@@ -212,7 +216,8 @@ public sealed class NavMeshBuilder
         var holesOfHoles = allHoles.Where(p => p.Holes?.Count > 0);
 
         //holes of holes, and all their recursive holes
-        foreach (var hole in holesOfHoles.RecursiveSelectMany(hole => hole.Holes ?? Enumerable.Empty<Polygon>()))
+        foreach (var hole in holesOfHoles.RecursiveSelectMany(hole => hole.Holes ?? Enumerable.Empty<Polygon>())
+                                         .ToList())
 
             //if this hole has no holes, and contains a spawn
             if ((hole.Holes == null) || ((hole.Holes.Count == 0) && Map.Spawns.Any(s => hole.ContainsPoint(s.X, s.Y))))

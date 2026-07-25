@@ -1,12 +1,10 @@
 #region
 using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 #endregion
 
 namespace AL.Pathfinding.Definitions;
 
-[Flags, JsonConverter(typeof(StringEnumConverter))]
+[Flags]
 public enum PointType : byte
 {
     None,
@@ -17,7 +15,7 @@ public enum PointType : byte
     Discovered = (1 << 4) | Vertex
 }
 
-[Flags, JsonConverter(typeof(StringEnumConverter))]
+[Flags]
 public enum EdgeType : byte
 {
     Walk = 1,

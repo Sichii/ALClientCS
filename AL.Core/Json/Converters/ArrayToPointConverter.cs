@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using AL.Core.Geometry;
 using Newtonsoft.Json;

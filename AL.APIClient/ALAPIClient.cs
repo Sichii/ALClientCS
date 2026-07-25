@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,15 +7,14 @@ using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.APIClient.Model;
+using AL.APIClient.Json.SystemTextJson;
 using AL.APIClient.Request;
 using AL.APIClient.Response;
-using AL.Core.Json.Converters;
 using Chaos.Extensions.Common;
 using Common.Logging;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using RestSharp;
-using RestSharp.Serializers;
-using RestSharp.Serializers.NewtonsoftJson;
 #endregion
 
 namespace AL.APIClient;
@@ -25,8 +24,18 @@ namespace AL.APIClient;
 /// </summary>
 public sealed class ALAPIClient : IALAPIClient
 {
-    private static readonly IRestClient Client;
-    private static readonly ILog Logger;
+    /// <summary>
+    ///     The public game host. Must be https - the auth cookie is set with the "secure" flag.
+    /// </summary>
+    public const string DEFAULT_BASE_URL = "https://adventure.land";
+
+    private static readonly ILog Logger = LogManager.GetLogger<ALAPIClient>();
+
+    private readonly string BaseUrl;
+
+    //each client owns its cookie jar so several accounts can be logged in side by side
+    private readonly IRestClient Client;
+    private readonly string CookieDomain;
     private readonly SemaphoreSlim Sync;
 
     private DateTime LastUpdate;
@@ -40,20 +49,13 @@ public sealed class ALAPIClient : IALAPIClient
                    .TotalMinutes
            > 1;
 
-    static ALAPIClient()
-    {
-        Logger = LogManager.GetLogger<ALAPIClient>();
-
-        Client = new RestClient(
-            "http://adventure.land",
-            configureSerialization: cfgs => cfgs.UseJson()
-                                                .UseNewtonsoftJson());
-    }
-
-    private ALAPIClient(AuthUser auth)
+    private ALAPIClient(AuthUser auth, IRestClient client, string baseUrl)
     {
         LastUpdate = DateTime.MinValue;
         Auth = auth;
+        Client = client;
+        BaseUrl = baseUrl;
+        CookieDomain = new Uri(baseUrl).Host;
         Sync = new SemaphoreSlim(1, 1);
     }
 
@@ -66,21 +68,24 @@ public sealed class ALAPIClient : IALAPIClient
 
         while (more)
         {
+            //the server reads a lowercase "cursor"; sending "Cursor" pages forever
             var arguments = result == null
                 ? null
                 : new
                 {
-                    result.Cursor
+                    cursor = result.Cursor
                 };
 
             var request = new APIRequest(
                 Method.Post,
                 APIMethod.PullMail,
                 arguments,
-                Auth);
+                Auth,
+                CookieDomain);
 
             var response = await Client.ExecutePostAsync(request);
-            result = JsonConvert.DeserializeObject<MailResponse[]>(response.Content!)![0];
+            result = ReadNotifications(response)
+                .Deserialize<MailResponse[]>(ApiJson.Options)![0];
 
             foreach (var mail in result.Mail)
                 yield return mail;
@@ -97,13 +102,13 @@ public sealed class ALAPIClient : IALAPIClient
             Method.Post,
             APIMethod.PullMerchants,
             null,
-            Auth);
+            Auth,
+            CookieDomain);
 
         var response = await Client.ExecutePostAsync(request);
 
-        (var merchantList, _) = JsonConvert.DeserializeObject<(MerchantList, string)>(
-            response.Content!,
-            new ArrayToTupleConverter<MerchantList, string>());
+        (var merchantList, _) = ReadNotifications(response)
+            .Deserialize<(MerchantList, string)>(ApiJson.Options);
 
         foreach (var merchant in merchantList.Merchants)
             yield return merchant;
@@ -124,11 +129,13 @@ public sealed class ALAPIClient : IALAPIClient
                 Method.Post,
                 APIMethod.ServersAndCharacters,
                 null,
-                Auth);
+                Auth,
+                CookieDomain);
 
             var response = await Client.ExecutePostAsync(request);
 
-            ServersAndCharacters = JsonConvert.DeserializeObject<ServersAndCharactersResponse[]>(response.Content!)![0];
+            ServersAndCharacters = ReadNotifications(response)
+                .Deserialize<ServersAndCharactersResponse[]>(ApiJson.Options)![0];
 
             LastUpdate = DateTime.UtcNow;
 
@@ -149,14 +156,17 @@ public sealed class ALAPIClient : IALAPIClient
 
         Logger.Info($"Marking mail {mail.Id} as read");
 
+        //the server unconditionally prepends "ML_" (api.js:886); mail.Id already carries it, so strip it here or
+        //the lookup misses ("ML_ML_...") and the mail is silently never marked read
         var request = new APIRequest(
             Method.Post,
             APIMethod.ReadMail,
             new
             {
-                mail = mail.Id
+                mail = mail.Id.StartsWith("ML_", StringComparison.Ordinal) ? mail.Id["ML_".Length..] : mail.Id
             },
-            Auth);
+            Auth,
+            CookieDomain);
 
         await Client.ExecutePostAsync(request);
     }
@@ -165,28 +175,61 @@ public sealed class ALAPIClient : IALAPIClient
     {
         Logger.Info("Renewing auth");
 
-        var apiClient = await LoginAsync(Auth.LoginInfo.Email, Auth.LoginInfo.Password);
+        var apiClient = await LoginAsync(Auth.LoginInfo.Email, Auth.LoginInfo.Password, BaseUrl);
         Auth = apiClient.Auth;
     }
+
+    /// <summary>
+    ///     Unwraps an api response into the notification array the payload actually lives in.
+    /// </summary>
+    /// <remarks>
+    ///     Every response is an object of the form <c>{ success|failed, reason?, infs:[...] }</c>. Handlers push
+    ///     their real payload into <c>infs</c> and return only a status on the envelope.
+    /// </remarks>
+    private static JsonArray ReadNotifications(RestResponse response)
+    {
+        if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
+            throw new InvalidOperationException($"API call failed. ({response.StatusCode}) {response.ErrorMessage}");
+
+        var body = JsonNode.Parse(response.Content);
+
+        if (body is not JsonObject envelope)
+            return body as JsonArray ?? new JsonArray();
+
+        if (envelope["failed"]?.GetValue<bool>() ?? false)
+            throw new InvalidOperationException($@"API call failed. {envelope["reason"]?.GetValue<string>() ?? "Unknown"}");
+
+        return envelope["infs"] as JsonArray ?? new JsonArray();
+    }
+
+    private static IRestClient CreateRestClient(string baseUrl) => new RestClient(baseUrl);
 
     /// <summary>
     ///     Asynchronously fetches the "G" data json.
     ///     <br />
     ///     You do not need to be logged in to fetch this data.
     /// </summary>
+    /// <param name="baseUrl">
+    ///     The host to fetch from. Defaults to the public game host.
+    /// </param>
     /// <returns>
     ///     <see cref="string" />
     ///     <br />
     ///     A json string of the "G" data.
     /// </returns>
-    public static async Task<string> GetGameDataAsync()
+    public static async Task<string> GetGameDataAsync(string baseUrl = DEFAULT_BASE_URL)
     {
         Logger.Info("Fetching game data...");
 
+        using var client = CreateRestClient(baseUrl);
         var request = new RestRequest("data.js");
 
-        var response = await Client.ExecuteGetAsync(request);
-        var startBracketIndex = response.Content!.IndexOf('{');
+        var response = await client.ExecuteGetAsync(request);
+
+        if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
+            throw new InvalidOperationException($"Failed to fetch game data. ({response.StatusCode}) {response.ErrorMessage}");
+
+        var startBracketIndex = response.Content.IndexOf('{');
         var endBrackedIndex = response.Content.LastIndexOf('}');
 
         return response.Content.Substring(startBracketIndex, endBrackedIndex - startBracketIndex + 1);
@@ -200,6 +243,9 @@ public sealed class ALAPIClient : IALAPIClient
     /// </param>
     /// <param name="password">
     ///     The user's password.
+    /// </param>
+    /// <param name="baseUrl">
+    ///     The host to log into. Defaults to the public game host.
     /// </param>
     /// <returns>
     ///     <see cref="ALAPIClient" />
@@ -216,9 +262,9 @@ public sealed class ALAPIClient : IALAPIClient
     ///     Failed to log in. No response from server.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    ///     Failed to log in. {data.Message ?? "Unknown"}
+    ///     Failed to log in. {reason}
     /// </exception>
-    public static async Task<ALAPIClient> LoginAsync(string email, string password)
+    public static async Task<ALAPIClient> LoginAsync(string email, string password, string baseUrl = DEFAULT_BASE_URL)
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentNullException(nameof(email));
@@ -232,7 +278,9 @@ public sealed class ALAPIClient : IALAPIClient
             Password = password
         };
 
-        Logger.Info($"Logging in as {email}:{password}");
+        Logger.Info($"Logging in as {email}");
+
+        var client = CreateRestClient(baseUrl);
 
         var request = new APIRequest(
             Method.Post,
@@ -244,19 +292,29 @@ public sealed class ALAPIClient : IALAPIClient
                 only_login = true
             });
 
-        var response = await Client.ExecutePostAsync(request); //.WithTimeout(60000);
-        var setCookieHeader = response.Headers!.FirstOrDefault(header => header.Name.EqualsI("set-cookie"));
-        var data = JsonConvert.DeserializeObject<LoginResponse>(response.Content!);
+        var response = await client.ExecutePostAsync(request);
 
-        Logger.Debug($"Login: Message: {data?.Message}");
-        Logger.Debug($"Login: Set-Cookie: {setCookieHeader?.Value}");
+        //without this a transport failure surfaces as an unrelated null reference further down
+        if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
+            throw new InvalidOperationException($"Failed to log in. ({response.StatusCode}) {response.ErrorMessage}");
+
+        //the response can carry several Set-Cookie headers; only one of them is the auth pair
+        var authCookie = response.Headers
+                                 ?.Where(header => header.Name.EqualsI("set-cookie"))
+                                 .Select(header => header.Value?.ToString())
+                                 .FirstOrDefault(value => value?.StartsWithI("auth=") ?? false);
+
+        var data = JsonSerializer.Deserialize<LoginResponse>(response.Content!, ApiJson.Options);
+
+        Logger.Debug($"Login: Message: {data?.Message}, Reason: {data?.Reason}");
 
         if (data == null)
             throw new InvalidOperationException("Failed to log in. No response from server.");
 
-        if ((setCookieHeader?.Value != null) && data.Message!.EqualsI("Logged In!"))
-            return new ALAPIClient(new AuthUser(loginInfo, setCookieHeader.Value));
+        //the cookie is the only real proof of a successful login; the message text is cosmetic
+        if (data.Failed || string.IsNullOrEmpty(authCookie))
+            throw new InvalidOperationException($@"Failed to log in. {data.Reason ?? data.Message ?? "Unknown"}");
 
-        throw new InvalidOperationException($@"Failed to log in. {data.Message ?? "Unknown"}");
+        return new ALAPIClient(new AuthUser(loginInfo, authCookie), client, baseUrl);
     }
 }

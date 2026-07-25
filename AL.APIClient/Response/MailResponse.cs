@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using AL.APIClient.Model;
+using Newtonsoft.Json;
 
 namespace AL.APIClient.Response
 {
@@ -27,6 +28,7 @@ namespace AL.APIClient.Response
         ///     A list of mails in your inbox.
         /// </summary>
         // ReSharper disable once ReturnTypeCanBeEnumerable.Global
-        public IReadOnlyList<Mail> Mail { get; } = new List<Mail>();
+        [JsonProperty("mail")]
+        public IReadOnlyList<Mail> Mail { get; init; } = new List<Mail>();
     }
 }

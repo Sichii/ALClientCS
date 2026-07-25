@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System.Collections;
 using System.Collections.Generic;
 using AL.Core.Definitions;

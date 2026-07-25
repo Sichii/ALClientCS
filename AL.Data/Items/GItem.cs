@@ -1,10 +1,11 @@
-﻿#region
+#region
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
+using AL.Core.Interfaces;
 using AL.Core.Json.Converters;
 using AL.Data.NPCs;
 using Chaos.Extensions.Common;
@@ -20,7 +21,7 @@ namespace AL.Data.Items;
 ///     Represents the static data for an item.
 /// </summary>
 /// <seealso cref="AttributedRecordBase" />
-public sealed record GItem : AttributedRecordBase
+public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
 {
     /// <summary>
     ///     The unique accessor for this item.
@@ -40,7 +41,7 @@ public sealed record GItem : AttributedRecordBase
     /// <summary>
     ///     If this item is a weapon, this is the damage type of the weapon.
     /// </summary>
-    [JsonProperty("damage")]
+    [JsonProperty("damage_type")]
     public DamageType DamageType { get; init; }
 
     /// <summary>
@@ -93,6 +94,15 @@ public sealed record GItem : AttributedRecordBase
     ///     increases.
     /// </summary>
     public IReadOnlyList<int>? Grades { get; init; }
+
+    /// <summary>
+    ///     The item's price in shells if it is a cash-shop item, otherwise zero.
+    /// </summary>
+    /// <remarks>
+    ///     A nonzero value also changes how the item is valued: the buy-to-sell discount is not applied to
+    ///     cash items, and the second-hands NPC charges a 3x multiplier rather than 2x.
+    /// </remarks>
+    public float Cash { get; init; }
 
     /// <summary>
     ///     If this is true, this is bad/old data that should be ignored.
@@ -192,6 +202,18 @@ public sealed record GItem : AttributedRecordBase
     /// </summary>
     [JsonProperty("wtype")]
     public WeaponType WeaponType { get; init; }
+
+    /// <summary>
+    ///     Recovers the scroll's target stat when the server sends its name in the numeric <c>stat</c> slot. The
+    ///     System.Text.Json attributed-object converter strips that key before binding (the float <see cref="Stat" />
+    ///     would otherwise abort the item) and calls this; it is the deterministic replacement for the Newtonsoft
+    ///     <see cref="OnError" /> path, which threw and scraped the exception message for the same value.
+    /// </summary>
+    public void RecoverScrollStat(string statName)
+    {
+        if (EnumHelper.TryParse(statName, out ALAttribute attribute))
+            ScrollStat = attribute;
+    }
 
     [OnError]
 

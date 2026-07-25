@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using AL.Core.Definitions;
 using AL.SocketClient.Json.Converters;
 using AL.SocketClient.Model;
+using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.SocketModel
@@ -23,15 +25,95 @@ namespace AL.SocketClient.SocketModel
             new Dictionary<string, IReadOnlyDictionary<string, int>>();
 
         /// <summary>
+        ///     The emotions this character has unlocked and their unlock timestamps.
+        /// </summary>
+        /// <remarks>
+        ///     Start-only: sent as <c>emx</c> on join (node/server.js:10577) and never on a <c>player</c> frame.
+        /// </remarks>
+        [JsonProperty("emx")]
+        public IReadOnlyDictionary<Emotion, float> Emotion { get; init; } = new Dictionary<Emotion, float>();
+
+        /// <summary>
         ///     Initial entity load for the map you loaded into.
         /// </summary>
         [JsonProperty]
         public EntitiesData Entities { get; init; } = null!;
 
         /// <summary>
+        ///     The names of the characters on this account's friends list.
+        /// </summary>
+        /// <remarks>
+        ///     Start-only: sent as <c>friends</c> on join (node/server.js:10574) and never on a <c>player</c> frame.
+        /// </remarks>
+        [JsonProperty("friends")]
+        public IReadOnlyList<string> Friends { get; init; } = new List<string>();
+
+        /// <summary>
+        ///     A collection of all of the cosmetics owned by this character.
+        /// </summary>
+        /// <remarks>
+        ///     Start-only: sent as <c>acx</c> on join (node/server.js:10575) and never on a <c>player</c> frame.
+        /// </remarks>
+        [JsonProperty("acx")]
+        public IReadOnlyDictionary<string, int> OwnedCosmetics { get; init; } = new Dictionary<string, int>();
+
+        /// <summary>
         ///     Contains data for ongoing events and bosses for this server.
         /// </summary>
         [JsonProperty("s_info"), JsonConverter(typeof(EventAndBossDataConverter))]
         public EventAndBossInfo EventAndBossInfo { get; init; } = null!;
+
+        /// <summary>
+        ///     A short-lived token used to re-authenticate to the API without the password.
+        /// </summary>
+        /// <remarks>
+        ///     Start-only: sent as <c>ipass</c> on join (node/server.js:10569) and never on a <c>player</c> frame.
+        /// </remarks>
+        [JsonProperty("ipass")]
+        public string? IPass { get; init; }
+
+        /// <summary>
+        ///     The names of this character's exclusive (class-locked) cosmetics.
+        /// </summary>
+        /// <remarks>
+        ///     Start-only: sent as <c>xcx</c> on join (node/server.js:10576). A flat string list, unlike the
+        ///     <c>acx</c> dictionary in <see cref="OwnedCosmetics" />.
+        /// </remarks>
+        [JsonProperty("xcx")]
+        public IReadOnlyList<string> ExclusiveCosmetics { get; init; } = new List<string>();
+
+        /// <summary>
+        ///     The current instance's info blob. Shape depends on the instance type (e.g. duel state); defaults
+        ///     to an empty object.
+        /// </summary>
+        /// <remarks>
+        ///     Start-only: sent as <c>info</c> on join (node/server.js:10578).
+        /// </remarks>
+        [JsonProperty("info")]
+        public JsonObject? InstanceInfo { get; init; }
+
+        /// <summary>
+        ///     If the server is blessed, the character name of the patron who blessed it.
+        /// </summary>
+        [JsonProperty("blessed_by")]
+        public string? BlessedBy { get; init; }
+
+        /// <summary>
+        ///     If the server is blessed, the minutes of blessing remaining.
+        /// </summary>
+        [JsonProperty("blessed_minutes")]
+        public int BlessedMinutes { get; init; }
+
+        /// <summary>
+        ///     If code is running for this character, the slot it is loaded in. Sent as a string.
+        /// </summary>
+        [JsonProperty("code_slot")]
+        public string? CodeSlot { get; init; }
+
+        /// <summary>
+        ///     If code is running for this character, its version number.
+        /// </summary>
+        [JsonProperty("code_version")]
+        public int CodeVersion { get; init; }
     }
 }

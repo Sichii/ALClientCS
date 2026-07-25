@@ -1,4 +1,4 @@
-﻿namespace AL.Data.Achievements
+namespace AL.Data.Achievements
 {
     public record GAchievement
     {

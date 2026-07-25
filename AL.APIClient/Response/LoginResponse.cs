@@ -1,4 +1,4 @@
-﻿#region
+#region
 using AL.APIClient.Json.Converters;
 using Newtonsoft.Json;
 #endregion
@@ -11,6 +11,12 @@ namespace AL.APIClient.Response;
 [JsonConverter(typeof(LoginResponseConverter))]
 public sealed record LoginResponse
 {
+    /// <summary>
+    ///     Set when the server rejected the login. <see cref="Reason" /> says why.
+    /// </summary>
+    [JsonProperty("failed")]
+    public bool Failed { get; init; }
+
     /// <summary>
     ///     The game, even on the electron client, is basically a website.
     ///     <br />
@@ -26,7 +32,13 @@ public sealed record LoginResponse
     public string? Message { get; init; }
 
     /// <summary>
-    ///     TODO: unknown
+    ///     The machine readable failure code. e.g. "wrong_password", "email_not_found", "cant_login_inside_bank".
+    /// </summary>
+    [JsonProperty("reason")]
+    public string? Reason { get; init; }
+
+    /// <summary>
+    ///     The kind of message this is. e.g. "message", "content", "eval", "refresh".
     /// </summary>
     [JsonProperty("type")]
     public string? Type { get; init; }

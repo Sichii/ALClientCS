@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System.Collections.Generic;
 using AL.Core.Definitions;
 using AL.Core.Json.Converters;
@@ -21,9 +21,9 @@ public sealed record Recipe
     /// <summary>
     ///     The name, quantity, and level of the items associated with the recipe.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<int, string, int>))]
-    public IReadOnlyList<(int Quantity, string ItemName, int Level)> Items { get; init; }
-        = new List<(int Quantity, string ItemName, int Level)>();
+    [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<float, string, int>))]
+    public IReadOnlyList<(float Quantity, string ItemName, int Level)> Items { get; init; }
+        = new List<(float Quantity, string ItemName, int Level)>();
 
     /// <summary>
     ///     The NPC this item is crafted or dismantled at.

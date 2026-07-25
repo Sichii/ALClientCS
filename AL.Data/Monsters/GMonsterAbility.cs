@@ -1,4 +1,4 @@
-﻿#region
+#region
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using Newtonsoft.Json;

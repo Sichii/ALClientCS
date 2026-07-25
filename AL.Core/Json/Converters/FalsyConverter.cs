@@ -33,7 +33,9 @@ public sealed class FalsyConverter<T> : JsonConverter<T?>
             case JsonToken.String:
                 if (objectType.IsEnum)
                 {
-                    var strEnumConverter = new StringEnumConverter();
+                    //an unrecognized name degrades to the configured default instead of
+                    //escaping and taking the whole frame with it
+                    var strEnumConverter = new TolerantStringEnumConverter();
 
                     var value = strEnumConverter.ReadJson(
                         reader,
@@ -41,7 +43,7 @@ public sealed class FalsyConverter<T> : JsonConverter<T?>
                         existingValue,
                         serializer);
 
-                    return (T?)value;
+                    return value == null ? Default : (T?)value;
                 }
 
                 return (T?)serializer.Deserialize(reader, typeof(string));

@@ -1,0 +1,146 @@
+field	instance	AL.Data	AL.Data.Conditions.GCondition	_canMove	can_move
+field	instance	AL.Data	AL.Data.Maps.GMapNPC	_name	name
+field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_amount	amount
+field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_damage	damage
+field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_heal	heal
+non-public-property	instance	AL.APIClient	AL.APIClient.Request.LoginInfo	Email	
+non-public-property	instance	AL.APIClient	AL.APIClient.Request.LoginInfo	Password	
+non-public-property	instance	AL.Data	AL.Data.Maps.GMapMonster	_boundaries	boundaries
+non-public-property	instance	AL.Data	AL.Data.Maps.GMapMonster	_boundary	boundary
+non-public-property	instance	AL.Data	AL.Data.Maps.GMapNPC	_position	position
+non-public-property	instance	AL.Data	AL.Data.Maps.GMapNPC	_positions	positions
+non-public-property	instance	AL.Data	AL.Data.Skills.GSkill	ListTargets	list
+non-public-property	instance	AL.Data	AL.Data.Skills.GSkill	ReuseCooldown	reuse_cooldown
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	APiercing	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Armor	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Attack	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Awesomeness	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Blast	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Bling	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Charisma	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Crit	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	CritDamage	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Cuteness	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	DReturn	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Dex	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Evasion	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Explosion	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	FireResistance	firesistance
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	For	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	FreezeResistance	fzresistance
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Frequency	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	FrequencyMod	frequencym
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Gold	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	GoldSteal	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	HP	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	HealMod	healm
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Int	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Lifesteal	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Luck	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	MP	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	MPCost	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	MPReduction	mp_reduction
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	ManaSteal	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Miss	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Output	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	PoisonResistance	pnresistance
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	PotionsMod	potionsm
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	RPiercing	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Range	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Reflection	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Resistance	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Speed	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Stat	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Str	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	StunChance	stun
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Vit	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	XP	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Armor	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Attack	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Frequency	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	HP	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	MP	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Range	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Resistance	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Speed	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	XP	
+non-public-setter	instance	AL.Data	AL.Data.Geometry.GGeometry	HorizontalLines	y_lines
+non-public-setter	instance	AL.Data	AL.Data.Geometry.GGeometry	VerticalLines	x_lines
+non-public-setter	instance	AL.Data	AL.Data.Maps.GDoor	LockType	
+non-public-setter	instance	AL.Data	AL.Data.Skills.GSkill	CooldownMS	cooldown
+non-public-setter	instance	AL.Data	AL.Data.Skills.GSkill	MultiTargeted	multi
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.BossInfo	HP	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.BossInfo	MaxHP	max_hp
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	AggroTargets	targets
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Bank	user
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Cache	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Cash	cash
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Code	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	CodeCost	cc
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	EmptySlots	esize
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	ExtraRange	xrange
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Fear	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	GoldMultiplier	goldm
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	IncomingDamageAmp	incdmgamp
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Inventory	items
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	InventorySize	isize
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	LuckMultiplier	luckm
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	MCourage	mcourage
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	MPCost	mp_cost
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	MapChangeCount	m
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	MaxXP	max_xp
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	PCourage	pcourage
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Tax	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	XPMultiplier	xpm
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	ABS	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Angle	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Conditions	s
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Focus	focus
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	GoingX	going_x
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	GoingY	going_y
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Level	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Map	map
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	MaxHP	max_hp
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	MaxMP	max_mp
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	MoveNum	move_num
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Moving	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Target	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	X	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Y	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	AFK	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Age	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Channeling	c
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Class	ctype
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Code	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Controller	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Cosmetics	cx
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	NPCName	npc
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Owner	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	PDPS	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	PartyLeader	party
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	QueuedActions	q
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	RIP	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Skin	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Slots	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Stand	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Teleporting	tp
+non-public-setter	static	AL.Data	AL.Data.GameData	Achievements	
+non-public-setter	static	AL.Data	AL.Data.GameData	Classes	
+non-public-setter	static	AL.Data	AL.Data.GameData	Conditions	
+non-public-setter	static	AL.Data	AL.Data.GameData	Craft	
+non-public-setter	static	AL.Data	AL.Data.GameData	Dimensions	
+non-public-setter	static	AL.Data	AL.Data.GameData	Dismantle	
+non-public-setter	static	AL.Data	AL.Data.GameData	Events	
+non-public-setter	static	AL.Data	AL.Data.GameData	Games	
+non-public-setter	static	AL.Data	AL.Data.GameData	Geometry	
+non-public-setter	static	AL.Data	AL.Data.GameData	Items	
+non-public-setter	static	AL.Data	AL.Data.GameData	Levels	
+non-public-setter	static	AL.Data	AL.Data.GameData	Maps	
+non-public-setter	static	AL.Data	AL.Data.GameData	Monsters	
+non-public-setter	static	AL.Data	AL.Data.GameData	Multipliers	
+non-public-setter	static	AL.Data	AL.Data.GameData	NPCs	
+non-public-setter	static	AL.Data	AL.Data.GameData	Projectiles	
+non-public-setter	static	AL.Data	AL.Data.GameData	Skills	
+non-public-setter	static	AL.Data	AL.Data.GameData	Titles	
+non-public-setter	static	AL.Data	AL.Data.GameData	Tokens	
+non-public-setter	static	AL.Data	AL.Data.GameData	Version	

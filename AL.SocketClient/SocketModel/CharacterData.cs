@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
 using AL.SocketClient.Json.Converters;
 using AL.SocketClient.Model;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AL.SocketClient.SocketModel
 {
@@ -16,6 +16,6 @@ namespace AL.SocketClient.SocketModel
         ///     to the character data here.
         /// </summary>
         [JsonProperty("hitchhikers")]
-        public IReadOnlyList<JArray> ExtraEvents { get; init; } = new List<JArray>();
+        public IReadOnlyList<JsonArray> ExtraEvents { get; init; } = new List<JsonArray>();
     }
 }

@@ -1,20 +1,23 @@
-﻿#region
+#region
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
-using AL.Core.Json.Converters;
 using AL.SocketClient.ClientModel;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
+using AL.SocketClient.Json.SystemTextJson;
+using AL.SocketClient.SocketModel;
 using Chaos.Extensions.Common;
-using Newtonsoft.Json;
+using SocketIO.Serializer.SystemTextJson;
 using SocketIOClient;
-using SocketIOClient.Newtonsoft.Json;
+using SocketIOClient.Transport;
 #endregion
 
 namespace AL.SocketClient;
@@ -30,12 +33,21 @@ public sealed class ALSocketClient : IALSocketClient
     private readonly IFormattedLogger Logger;
     private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
     private bool Disposed;
-    private SocketIO Socket = null!;
+    private SocketIOClient.SocketIO Socket = null!;
+
+    /// <summary>
+    ///     Whether to connect over TLS. True for the public game host, which sets its auth cookie
+    ///     with the "secure" flag. Set to false to reach a locally hosted server.
+    /// </summary>
+    public static bool UseSecureTransport { get; set; } = true;
 
     /// <summary>
     ///     Whether or not this socket is currently connected.
     /// </summary>
     public bool Connected { get; private set; }
+
+    /// <inheritdoc />
+    public string? LastDisconnectReason { get; private set; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -62,17 +74,77 @@ public sealed class ALSocketClient : IALSocketClient
         if (Disposed)
             throw new ObjectDisposedException(nameof(ALSocketClient));
 
-        var host = $"ws://{server.IPAddress}:{server.Port}";
+        var host = $"{(UseSecureTransport ? "wss" : "ws")}://{server.Address}";
 
-        Logger.Info($"Connecting to {host}");
-        Socket = new SocketIO(host);
-        Socket.JsonSerializer = new NewtonsoftJsonSerializer();
+        var options = new SocketIOOptions
+        {
+            Transport = TransportProtocol.WebSocket,
+
+            //ALClient.ReconnectAsync is the only thing allowed to reconnect; a second
+            //authority races it and leaves an unauthenticated observer session behind
+            Reconnection = false
+        };
+
+        //the engine.io mount path is per-server config, not the socket.io default. the server
+        //publishes it with a trailing slash but the library appends "/?EIO=..." to whatever it
+        //is given, so normalize to the same form as the library's own default
+        if (!string.IsNullOrEmpty(server.Path))
+            options.Path = server.Path.TrimEnd('/');
+
+        Logger.Info($"Connecting to {host}{options.Path}");
+        Socket = new SocketIOClient.SocketIO(host, options);
+        Socket.Serializer = new SystemTextJsonSerializer(SocketJson.Options);
         Socket.OnDisconnected += DisconnectedEvent;
         Socket.OnAny(OnAny);
 
-        await Socket.ConnectAsync()
-                    .ConfigureAwait(false);
+        //the server emits disconnect_reason (and, on a rate-limit kick, limitdcreport) immediately before
+        //it drops the connection. capture them on the underlying socket's own dispatch, which runs inline on
+        //the receive loop - routing through OnAny's Task.Run would race the transport disconnect and let
+        //ReconnectAsync read a null reason. both bodies deserialize server input, so guard them: an unhandled
+        //throw on the receive thread must not take down the loop, and losing the value degrades gracefully.
+        Socket.On(
+            "disconnect_reason",
+            response =>
+            {
+                try
+                {
+                    LastDisconnectReason = response.GetValue<string>(0);
+                } catch (Exception e)
+                {
+                    Logger.Error($"Failed to read disconnect_reason. {e}");
+                }
+            });
+
+        Socket.On(
+            "limitdcreport",
+            response =>
+            {
+                try
+                {
+                    var report = response.GetValue<LimitDcReportData>(0);
+
+                    Logger.Warn(
+                        $"Rate-limited: {report.TotalCalls} total calls, exceeded a call-cost limit of {report.CallLimit} in 4s. {report.Calls}");
+                } catch (Exception e)
+                {
+                    Logger.Error($"Failed to read limitdcreport. {e}");
+                }
+            });
+
+        //the server emits welcome synchronously from its connection handler, so it can be
+        //processed before ConnectAsync returns - the emit guard has to already be open
         Connected = true;
+
+        try
+        {
+            await Socket.ConnectAsync()
+                        .ConfigureAwait(false);
+        } catch
+        {
+            Connected = false;
+
+            throw;
+        }
     }
 
     public async Task DisconnectAsync(bool intentional = true)
@@ -151,62 +223,45 @@ public sealed class ALSocketClient : IALSocketClient
     //private async void EventHandler(object? sender, SocketIO e) => await HandleEventAsync(e.Value);
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to deserialize top level message. See inner exception.
-    ///     <br />
-    ///     RAW JSON:
-    ///     <br />
-    ///     {rawJson}
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Uncaught exception in handler. See inner exception.
-    ///     <br />
-    ///     RAW JSON:
-    ///     <br />
-    ///     {rawJson}
-    /// </exception>
     public async ValueTask HandleEventAsync(string rawJson)
     {
         ALSocketMessage message;
 
         try
         {
-            message = JsonConvert.DeserializeObject<ALSocketMessage>(rawJson, ArrayToObjectConverter<ALSocketMessage>.Singleton)!;
+            message = JsonSerializer.Deserialize<ALSocketMessage>(rawJson, SocketJson.Options)!;
         } catch (Exception ex)
         {
-            var wrapper = new InvalidOperationException(
-                $@"Failed to deserialize top level message. See inner exception.
+            //this runs per hitchhiker inside the player chain, so throwing here would skip the
+            //remaining hitchhikers and every later player subscriber
+            Logger.Error(
+                $@"Failed to deserialize top level message.
 RAW JSON:
-{rawJson}",
-                ex);
+{rawJson}
+{ex}");
 
-            throw wrapper;
+            return;
         }
 
         try
         {
             if (Subscriptions.TryGetValue(message.MessageType, out var subscriptionList))
-                await InvokeAsync(subscriptionList, rawJson, message.Data.CreateReader())
+                await InvokeAsync(message.MessageType, subscriptionList, rawJson, message.Data)
                     .ConfigureAwait(false);
         } catch (Exception ex)
         {
-            var wrapper = new Exception(
-                $@"Uncaught exception in handler. See inner exception.
+            Logger.Error(
+                $@"Uncaught exception in handler.
 RAW JSON:
-{rawJson}",
-                ex);
-
-            throw wrapper;
+{rawJson}
+{ex}");
         }
     }
 
     public IDisposable On<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
     {
-        if (!Subscriptions.TryGetValue(socketMessageType, out var invocationList))
-        {
-            invocationList = new ALSocketSubscriptionList(typeof(T));
-            Subscriptions[socketMessageType] = invocationList;
-        }
+        //check-then-set would let racing first-registrations orphan a list, and its subscribers never fire
+        var invocationList = Subscriptions.GetOrAdd(socketMessageType, _ => new ALSocketSubscriptionList(typeof(T)));
 
         return new AlSocketSubscription<T>(invocationList, callback);
     }
@@ -261,23 +316,45 @@ RAW JSON:
         }
     }
 
-    private async ValueTask InvokeAsync(ALSocketSubscriptionList invocationList, string raw, JsonReader reader)
+    private ValueTask InvokeAsync(
+        ALSocketMessageType messageType,
+        ALSocketSubscriptionList invocationList,
+        string raw,
+        JsonNode data)
     {
         Logger.Trace(raw);
 
-        var dataObject = JsonSerializer.Deserialize(reader, invocationList.Type);
+        var dataObject = data.Deserialize(invocationList.Type, SocketJson.Options);
 
         if (dataObject == null)
         {
             Logger.Error($"Failed to deserialize message. {Environment.NewLine}{raw}");
 
-            return;
+            return default;
         }
 
+        return InvokeAsync(messageType, invocationList, dataObject);
+    }
+
+    private async ValueTask InvokeAsync(ALSocketMessageType messageType, ALSocketSubscriptionList invocationList, object dataObject)
+    {
         foreach (var subscription in invocationList)
         {
-            var handled = await subscription.InvokeAsync(dataObject)
+            bool handled;
+
+            try
+            {
+                handled = await subscription.InvokeAsync(dataObject)
                                             .ConfigureAwait(false);
+            } catch (Exception e)
+            {
+                //one frame can carry several in-flight awaits; a thrower must not starve the rest.
+                //a type mismatch here means a later On<T> disagreed with the list's type
+                Logger.Error(
+                    $"Subscriber for \"{messageType}\" declared as {subscription.SubscriptionType} threw, list type is {invocationList.Type}. {e}");
+
+                continue;
+            }
 
             if (handled)
                 return;
@@ -304,36 +381,18 @@ RAW JSON:
                 {
                     try
                     {
-                        await subscriptionList.InvokeAsync(dataObject)
-                                              .ConfigureAwait(false);
+                        await InvokeAsync(messageType, subscriptionList, dataObject)
+                            .ConfigureAwait(false);
                     } catch (Exception e)
                     {
-                        Logger.Error(e);
+                        Logger.Error($"Handler for \"{eventName}\" threw. {e}");
                     }
                 });
         } catch (Exception e)
         {
-            Logger.Error(e);
+            //a frame dropped here is otherwise indistinguishable from a frame never sent, so
+            //carry the event name and the raw payload - this is how the next drift gets found
+            Logger.Error($"Dropped \"{eventName}\" frame: {response}. {e}");
         }
     }
-
-    #region Do Not ReOrder
-    /// <summary>
-    ///     A default <see cref="JsonSerializerSettings" /> instance, used for serializing Emits and deserializing messages.
-    ///     <br />
-    ///     Caching an instance of this helps with performance.
-    ///     <br />
-    ///     If you replace this instance, you must also replace the <see cref="JsonSerializer" /> instance.
-    /// </summary>
-
-    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
-    public static JsonSerializerSettings JsonSerializerSettings { get; } = new();
-
-    /// <summary>
-    ///     A default <see cref="JsonSerializer" /> instance using the default <see cref="JsonSerializerSettings" /> instance.
-    ///     <br />
-    ///     Caching an instance of this helps with performance.
-    /// </summary>
-    public static JsonSerializer JsonSerializer { get; set; } = JsonSerializer.CreateDefault(JsonSerializerSettings);
-    #endregion
 }

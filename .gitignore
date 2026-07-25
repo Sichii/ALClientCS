@@ -349,3 +349,35 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# JetBrains Rider
+*.sln.iml
+.idea/
+
+# Claude Code state
+.claude/
+
+# Serena MCP server state
+.serena/
+
+# Superpowers brainstorming artifacts
+.superpowers/
+
+# Crash dumps
+*.stackdump
+
+# JVM/tooling crash + replay logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Test credentials (account email + password)
+TestCredentials.txt
+
+# Local, untracked Claude instructions
+CLAUDE.local.md
+
+# Local design specs and implementation plans (AI workflow output)
+docs/
+
+# graphify knowledge-graph output
+graphify-out/

@@ -1,5 +1,6 @@
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
+using AL.Core.Json.Converters;
 using Newtonsoft.Json;
 
 namespace AL.SocketClient.Model
@@ -23,6 +24,21 @@ namespace AL.SocketClient.Model
         /// </summary>
         [JsonProperty("l")]
         public int PartyLimit { get; init; }
+        [JsonProperty("pdps")]
+        public float PDPS { get; init; }
+
+        /// <summary>
+        ///     True when this member is dead. Only sent while the member is dead.
+        /// </summary>
+        [JsonProperty("rip")]
+        [JsonConverter(typeof(AfkConverter))]
+        public bool RIP { get; init; }
+
+        /// <summary>
+        ///     This member's cosmetics; only sent when the member has any.
+        /// </summary>
+        [JsonProperty("cx")]
+        public CosmeticInfo? Cosmetics { get; init; }
         public float Share { get; init; }
         public string Skin { get; init; } = null!;
         public float X { get; init; }

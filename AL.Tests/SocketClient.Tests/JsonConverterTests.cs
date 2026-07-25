@@ -1,11 +1,10 @@
-﻿#region
+#region
 using System.Linq;
 using AL.APIClient.Model;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.SocketClient.SocketModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
@@ -22,7 +21,7 @@ public class JsonConverterTests
    ""needed"":""19975""
 }";
 
-      var obj = JsonConvert.DeserializeObject<AchievementProgressData>(ACHIEVEMENT_PROGRESS_DATA);
+      var obj = TestJson.Socket<AchievementProgressData>(ACHIEVEMENT_PROGRESS_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -44,7 +43,7 @@ public class JsonConverterTests
    ""damage"":25
 }";
 
-      var obj = JsonConvert.DeserializeObject<ActionData>(ACTION_DATA);
+      var obj = TestJson.Socket<ActionData>(ACTION_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -302,7 +301,7 @@ public class JsonConverterTests
    ""cc"":1
 }";
 
-      var obj = JsonConvert.DeserializeObject<CharacterData>(CHARACTER_DATA);
+      var obj = TestJson.Socket<CharacterData>(CHARACTER_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -329,7 +328,7 @@ public class JsonConverterTests
    ""gold"":1655
 }";
 
-      var obj = JsonConvert.DeserializeObject<ChestOpenedData>(CHEST_OPENED_DATA);
+      var obj = TestJson.Socket<ChestOpenedData>(CHEST_OPENED_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -342,7 +341,7 @@ public class JsonConverterTests
    ""y"":792.456,
 }";
 
-      var obj = JsonConvert.DeserializeObject<CorrectionData>(CORRECTION_DATA);
+      var obj = TestJson.Socket<CorrectionData>(CORRECTION_DATA);
 
       Assert.IsNotNull(obj);
       Assert.IsTrue(new Point(64.123f, 792.456f).Distance(obj) < 10);
@@ -355,9 +354,116 @@ public class JsonConverterTests
    ""id"":""43923109""
 }";
 
-      var obj = JsonConvert.DeserializeObject<DeathData>(DEATH_DATA);
+      var obj = TestJson.Socket<DeathData>(DEATH_DATA);
 
       Assert.IsNotNull(obj);
+   }
+
+   [TestMethod]
+   public void DeserializeCooperativeDeathTest()
+   {
+      // a cooperative-boss death sends 'points' as a per-contributor OBJECT, not a scalar
+      const string DEATH_DATA = @"{
+   ""id"":""12345"",
+   ""luckm"":1,
+   ""points"":{""alice"":500,""bob"":300}
+}";
+
+      var obj = TestJson.Socket<DeathData>(DEATH_DATA);
+
+      Assert.IsNotNull(obj);
+      Assert.IsNotNull(obj!.Points);
+      Assert.AreEqual(2, obj.Points!.Count);
+      Assert.AreEqual(500f, obj.Points["alice"]);
+   }
+
+   [TestMethod]
+   public void DeserializeTradeHistoryTest()
+   {
+      // the giveaway row's 4th element is null on the wire (giveaways carry no price) - the real payload shape
+      const string TRADE_HISTORY = @"[
+   [""sell"",""Bob"",{""name"":""hppot"",""q"":5},1000],
+   [""giveaway"",""Alice"",{""name"":""hpamulet""},null]
+]";
+
+      var obj = TestJson.Socket<TradeHistoryEntry[]>(TRADE_HISTORY);
+
+      Assert.IsNotNull(obj);
+      Assert.AreEqual(2, obj!.Length);
+      Assert.AreEqual("sell", obj[0].Event);
+      Assert.AreEqual("Bob", obj[0].PartnerName);
+      Assert.AreEqual(1000L, obj[0].Price);
+      Assert.IsNotNull(obj[0].Item);
+      Assert.AreEqual("giveaway", obj[1].Event);
+      Assert.IsNull(obj[1].Price, "a giveaway entry carries a null price");
+   }
+
+   [TestMethod]
+   public void DeserializePartyUpdateLeaveTest()
+   {
+      const string PARTY_UPDATE = @"{
+   ""message"":""Bob left the party"",
+   ""leave"":1
+}";
+
+      var obj = TestJson.Socket<PartyUpdateData>(PARTY_UPDATE);
+
+      Assert.IsNotNull(obj);
+      Assert.IsTrue(obj!.Leave);
+   }
+
+   [TestMethod]
+   public void DeserializeTrackDataArrayTest()
+   {
+      const string TRACK = @"[
+   {""sound"":""rr"",""dist"":12.5,""invis"":true},
+   {""sound"":""wmp"",""dist"":200.0}
+]";
+
+      var obj = TestJson.Socket<System.Collections.Generic.List<TrackData>>(TRACK);
+
+      Assert.IsNotNull(obj);
+      Assert.AreEqual(2, obj!.Count);
+      Assert.AreEqual("rr", obj[0].Sound);
+      Assert.IsTrue(obj[0].Invis);
+      Assert.IsFalse(obj[1].Invis);
+   }
+
+   [TestMethod]
+   public void DeserializePredictionFailureTest()
+   {
+      // the server sends 'failure' as boolean true (not a numeric level) on a revealed-fail prediction
+      const string PREDICTION = @"{
+   ""name"":""hpamulet"",
+   ""level"":7,
+   ""chance"":0.4,
+   ""scroll"":""scroll0"",
+   ""failure"":true,
+   ""nums"":[1,2]
+}";
+
+      var obj = TestJson.Socket<AL.SocketClient.Model.Prediction>(PREDICTION);
+
+      Assert.IsNotNull(obj);
+      Assert.AreEqual(true, obj!.Failure);
+   }
+
+   [TestMethod]
+   public void DeserializeMailItemStringAndObjectTest()
+   {
+      // the mail item is polymorphic: a JSON object, or a JSON-stringified object (simplify_item)
+      const string MAIL_OBJECT = @"{ ""item"": { ""name"":""hpamulet"", ""level"":2, ""q"":3 } }";
+      const string MAIL_STRING = @"{ ""item"": ""{\""name\"":\""hpamulet\"",\""level\"":2}"" }";
+
+      var fromObject = TestJson.Api<Mail>(MAIL_OBJECT);
+      var fromString = TestJson.Api<Mail>(MAIL_STRING);
+
+      Assert.IsNotNull(fromObject!.Item);
+      Assert.AreEqual("hpamulet", fromObject.Item!.Name);
+      Assert.AreEqual(3, fromObject.Item.Quantity);
+      Assert.IsNotNull(fromString!.Item);
+      Assert.AreEqual("hpamulet", fromString.Item!.Name);
+      Assert.AreEqual(2, fromString.Item.Level);
    }
 
    [TestMethod]
@@ -375,8 +481,8 @@ public class JsonConverterTests
    ""s"":[5, 10, 1]
 }";
 
-      var obj = JsonConvert.DeserializeObject<DisappearData>(DISAPPEAR_DATA);
-      var obj2 = JsonConvert.DeserializeObject<DisappearData>(DISAPPEAR_DATA2);
+      var obj = TestJson.Socket<DisappearData>(DISAPPEAR_DATA);
+      var obj2 = TestJson.Socket<DisappearData>(DISAPPEAR_DATA2);
 
       Assert.IsNotNull(obj);
       Assert.IsNotNull(obj2);
@@ -396,7 +502,7 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = JsonConvert.DeserializeObject<DisappearingTextData>(DISAPPEARING_TEXT_DATA);
+      var obj = TestJson.Socket<DisappearingTextData>(DISAPPEARING_TEXT_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -413,7 +519,7 @@ public class JsonConverterTests
    ""map"":""main""
 }";
 
-      var obj = JsonConvert.DeserializeObject<DropData>(DROP_DATA);
+      var obj = TestJson.Socket<DropData>(DROP_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -572,7 +678,7 @@ public class JsonConverterTests
         ""map"": ""main""
     }";
 
-      var obj = JsonConvert.DeserializeObject<EntitiesData>(ENTITIES_DATA);
+      var obj = TestJson.Socket<EntitiesData>(ENTITIES_DATA);
 
       Assert.IsNotNull(obj);
       Assert.IsTrue(obj.Players.Any());
@@ -586,7 +692,7 @@ public class JsonConverterTests
    ""code"":""skill_timeout('attack',1096.1809388171202)""
 }";
 
-      var obj = JsonConvert.DeserializeObject<EvalData>(EVAL_DATA);
+      var obj = TestJson.Socket<EvalData>(EVAL_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -621,7 +727,7 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = JsonConvert.DeserializeObject<EventAndBossData>(EVENT_AND_BOSS_DATA);
+      var obj = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -631,7 +737,7 @@ public class JsonConverterTests
    {
       const string GAME_LOG_DATA = "\"Stored 37,500,711 gold\"";
 
-      var obj = JsonConvert.DeserializeObject<string>(GAME_LOG_DATA);
+      var obj = TestJson.Socket<string>(GAME_LOG_DATA);
 
       Assert.AreEqual("Stored 37,500,711 gold", obj);
    }
@@ -646,10 +752,10 @@ public class JsonConverterTests
    ""name"":""charging""
 }";
 
-      var obj = JsonConvert.DeserializeObject<GameResponseData>(GAME_RESPONSE_DATA);
+      var obj = TestJson.Socket<GameResponseData>(GAME_RESPONSE_DATA);
       Assert.IsNotNull(obj);
       Assert.IsNotNull(obj.Name);
-      obj = JsonConvert.DeserializeObject<GameResponseData>(STRING_GAME_RESPONSE_DATA);
+      obj = TestJson.Socket<GameResponseData>(STRING_GAME_RESPONSE_DATA);
       Assert.IsNotNull(obj);
    }
 
@@ -670,7 +776,7 @@ public class JsonConverterTests
    ""damage"":25
 }";
 
-      var obj = JsonConvert.DeserializeObject<HitData>(HIT_DATA);
+      var obj = TestJson.Socket<HitData>(HIT_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -682,7 +788,7 @@ public class JsonConverterTests
    ""name"":""earthMer""
 }";
 
-      var obj = JsonConvert.DeserializeObject<InviteData>(INVITE_DATA);
+      var obj = TestJson.Socket<InviteData>(INVITE_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -943,19 +1049,7 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = JsonConvert.DeserializeObject<NewMapData>(NEW_MAP_DATA);
-
-      Assert.IsNotNull(obj);
-   }
-
-   [TestMethod]
-   public void DeserializeNotThereDataTest()
-   {
-      const string NOT_THERE_DATA = @"{
-   ""place"":""attack""
-}";
-
-      var obj = JsonConvert.DeserializeObject<NotThereData>(NOT_THERE_DATA);
+      var obj = TestJson.Socket<NewMapData>(NEW_MAP_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -1030,7 +1124,7 @@ public class JsonConverterTests
    ""message"":""sichi joined the party""
 }";
 
-      var obj = JsonConvert.DeserializeObject<PartyUpdateData>(PARTY_UPDATE_DATA);
+      var obj = TestJson.Socket<PartyUpdateData>(PARTY_UPDATE_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -1042,7 +1136,7 @@ public class JsonConverterTests
    ""id"":""aKHAz""
 }";
 
-      var obj = JsonConvert.DeserializeObject<PingAckData>(PING_ACK_DATA);
+      var obj = TestJson.Socket<PingAckData>(PING_ACK_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -1071,7 +1165,7 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = JsonConvert.DeserializeObject<QueuedActionData>(QUEUED_ACTION_DATA);
+      var obj = TestJson.Socket<QueuedActionData>(QUEUED_ACTION_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -1084,7 +1178,7 @@ public class JsonConverterTests
    ""success"":1
 }";
 
-      var obj = JsonConvert.DeserializeObject<QueuedActionResultData>(QUEUED_ACTION_RESULT_DATA);
+      var obj = TestJson.Socket<QueuedActionResultData>(QUEUED_ACTION_RESULT_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -1868,7 +1962,7 @@ public class JsonConverterTests
    }
 ]";
 
-      var obj = JsonConvert.DeserializeObject<TradeItem[]>(SECONDHANDS_DATA);
+      var obj = TestJson.Socket<TradeItem[]>(SECONDHANDS_DATA);
 
       Assert.IsNotNull(obj);
       Assert.IsTrue(obj.Length != 0);
@@ -3138,7 +3232,7 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = JsonConvert.DeserializeObject<StartData>(START_DATA);
+      var obj = TestJson.Socket<StartData>(START_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -3156,7 +3250,7 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = JsonConvert.DeserializeObject<UIData>(UI_DATA);
+      var obj = TestJson.Socket<UIData>(UI_DATA);
 
       Assert.IsNotNull(obj);
    }
@@ -3178,7 +3272,7 @@ public class JsonConverterTests
    ""in"":""desertland""
 }";
 
-      var obj = JsonConvert.DeserializeObject<WelcomeData>(WELCOME_DATA);
+      var obj = TestJson.Socket<WelcomeData>(WELCOME_DATA);
 
       Assert.IsNotNull(obj);
     }

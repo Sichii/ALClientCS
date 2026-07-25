@@ -1,0 +1,759 @@
+{
+  "EnumCount": 41,
+  "Value": {
+    "AL.APIClient.Definitions.APIMethod": {
+      "ZeroMember": "PullMail",
+      "SampleMember": "ReadMail",
+      "AliasMember": "PullMail",
+      "AliasValue": "pull_mail",
+      "Cells": {
+        "1_exactName": "ReadMail = 1",
+        "2_lowercase": "ReadMail = 1",
+        "3_UPPERCASE": "ReadMail = 1",
+        "4_enumMemberAlias": "PullMail = 0",
+        "5_unknownString": "PullMail = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "PullMail = 0",
+        "8_fractional_1_5": "PullMail = 0",
+        "9_boolTrue": "PullMail = 0"
+      }
+    },
+    "AL.APIClient.Definitions.ServerId": {
+      "ZeroMember": "None",
+      "SampleMember": "Hardcore",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Hardcore = 1",
+        "2_lowercase": "Hardcore = 1",
+        "3_UPPERCASE": "Hardcore = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.APIClient.Definitions.ServerRegion": {
+      "ZeroMember": "None",
+      "SampleMember": "Asia",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Asia = 1",
+        "2_lowercase": "Asia = 1",
+        "3_UPPERCASE": "Asia = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.ALAttribute": {
+      "ZeroMember": "None",
+      "SampleMember": "Armor",
+      "AliasMember": "FreezeResistance",
+      "AliasValue": "fzresistance",
+      "Cells": {
+        "1_exactName": "Armor = 1",
+        "2_lowercase": "Armor = 1",
+        "3_UPPERCASE": "Armor = 1",
+        "4_enumMemberAlias": "FreezeResistance = 3",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Crit = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.AchievementRewardType": {
+      "ZeroMember": "None",
+      "SampleMember": "Stat",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Stat = 1",
+        "2_lowercase": "Stat = 1",
+        "3_UPPERCASE": "Stat = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.ArmorSet": {
+      "ZeroMember": "None",
+      "SampleMember": "Bunny",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Bunny = 1",
+        "2_lowercase": "Bunny = 1",
+        "3_UPPERCASE": "Bunny = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Tiger = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.BankPack": {
+      "ZeroMember": "None",
+      "SampleMember": "Items0",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Items0 = 1",
+        "2_lowercase": "Items0 = 1",
+        "3_UPPERCASE": "Items0 = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Items16 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.ChestType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "Chest1",
+      "AliasMember": "ChestP",
+      "AliasValue": "chestp",
+      "Cells": {
+        "1_exactName": "Chest1 = 1",
+        "2_lowercase": "Chest1 = 1",
+        "3_UPPERCASE": "Chest1 = 1",
+        "4_enumMemberAlias": "ChestP = 9",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.Core.Definitions.Condition": {
+      "ZeroMember": "None",
+      "SampleMember": "Anger",
+      "AliasMember": "CurseAura",
+      "AliasValue": "curse_aura",
+      "Cells": {
+        "1_exactName": "Anger = 1",
+        "2_lowercase": "Anger = 1",
+        "3_UPPERCASE": "Anger = 1",
+        "4_enumMemberAlias": "CurseAura = 11",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Dash = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.DamageType": {
+      "ZeroMember": "None",
+      "SampleMember": "Magical",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Magical = 1",
+        "2_lowercase": "Magical = 1",
+        "3_UPPERCASE": "Magical = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.Direction": {
+      "ZeroMember": "Down",
+      "SampleMember": "Left",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Left = 1",
+        "2_lowercase": "Left = 1",
+        "3_UPPERCASE": "Left = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "Down = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Down = 0",
+        "8_fractional_1_5": "Down = 0",
+        "9_boolTrue": "Down = 0"
+      }
+    },
+    "AL.Core.Definitions.DisappearEffect": {
+      "ZeroMember": "None",
+      "SampleMember": "Town",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Town = 1",
+        "2_lowercase": "Town = 1",
+        "3_UPPERCASE": "Town = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.DropType": {
+      "ZeroMember": "None",
+      "SampleMember": "Mining1",
+      "AliasMember": "Mining1",
+      "AliasValue": "m1",
+      "Cells": {
+        "1_exactName": "Mining1 = 1",
+        "2_lowercase": "Mining1 = 1",
+        "3_UPPERCASE": "Mining1 = 1",
+        "4_enumMemberAlias": "Mining1 = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.Emotion": {
+      "ZeroMember": "None",
+      "SampleMember": "DropEgg",
+      "AliasMember": "DropEgg",
+      "AliasValue": "drop_egg",
+      "Cells": {
+        "1_exactName": "DropEgg = 1",
+        "2_lowercase": "DropEgg = 1",
+        "3_UPPERCASE": "DropEgg = 1",
+        "4_enumMemberAlias": "DropEgg = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.EntitiesUpdateType": {
+      "ZeroMember": "None",
+      "SampleMember": "All",
+      "AliasMember": "Partial",
+      "AliasValue": "xy",
+      "Cells": {
+        "1_exactName": "All = 1",
+        "2_lowercase": "All = 1",
+        "3_UPPERCASE": "All = 1",
+        "4_enumMemberAlias": "Partial = 2",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.EquipmentSlot": {
+      "ZeroMember": "None",
+      "SampleMember": "Amulet",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Amulet = 1",
+        "2_lowercase": "Amulet = 1",
+        "3_UPPERCASE": "Amulet = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.ExitType": {
+      "ZeroMember": "None",
+      "SampleMember": "Door",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Door = 1",
+        "2_lowercase": "Door = 1",
+        "3_UPPERCASE": "Door = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.GamePlayMode": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "Normal",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Normal = 1",
+        "2_lowercase": "Normal = 1",
+        "3_UPPERCASE": "Normal = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.Core.Definitions.ItemType": {
+      "ZeroMember": "Activator",
+      "SampleMember": "Amulet",
+      "AliasMember": "BankKey",
+      "AliasValue": "bank_key",
+      "Cells": {
+        "1_exactName": "Amulet = 1",
+        "2_lowercase": "Amulet = 1",
+        "3_UPPERCASE": "Amulet = 1",
+        "4_enumMemberAlias": "BankKey = 2",
+        "5_unknownString": "Activator = 0",
+        "6_numericString17": "Gem = 17",
+        "7_jsonNull": "Activator = 0",
+        "8_fractional_1_5": "Activator = 0",
+        "9_boolTrue": "Activator = 0"
+      }
+    },
+    "AL.Core.Definitions.KeyType": {
+      "ZeroMember": "None",
+      "SampleMember": "FrozenKey",
+      "AliasMember": "FrozenKey",
+      "AliasValue": "frozenkey",
+      "Cells": {
+        "1_exactName": "FrozenKey = 1",
+        "2_lowercase": "FrozenKey = 1",
+        "3_UPPERCASE": "FrozenKey = 1",
+        "4_enumMemberAlias": "FrozenKey = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.LockType": {
+      "ZeroMember": "None",
+      "SampleMember": "Locked",
+      "AliasMember": "Locked",
+      "AliasValue": "l",
+      "Cells": {
+        "1_exactName": "Locked = 1",
+        "2_lowercase": "Locked = 1",
+        "3_UPPERCASE": "Locked = 1",
+        "4_enumMemberAlias": "Locked = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.NPCRole": {
+      "ZeroMember": "None",
+      "SampleMember": "Announcer",
+      "AliasMember": "DailyEvents",
+      "AliasValue": "daily_events",
+      "Cells": {
+        "1_exactName": "Announcer = 1",
+        "2_lowercase": "Announcer = 1",
+        "3_UPPERCASE": "Announcer = 1",
+        "4_enumMemberAlias": "DailyEvents = 9",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Jailer = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.ObtainType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "Craft",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Craft = 1",
+        "2_lowercase": "Craft = 1",
+        "3_UPPERCASE": "Craft = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.Core.Definitions.Projectile": {
+      "ZeroMember": "None",
+      "SampleMember": "Burst",
+      "AliasMember": "StoneK",
+      "AliasValue": "stone_k",
+      "Cells": {
+        "1_exactName": "Burst = 1",
+        "2_lowercase": "Burst = 1",
+        "3_UPPERCASE": "Burst = 1",
+        "4_enumMemberAlias": "StoneK = 3",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "FrostArrow = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.Quest": {
+      "ZeroMember": "None",
+      "SampleMember": "MCollector",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "MCollector = 1",
+        "2_lowercase": "MCollector = 1",
+        "3_UPPERCASE": "MCollector = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.QueuedActionType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "Compound",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Compound = 1",
+        "2_lowercase": "Compound = 1",
+        "3_UPPERCASE": "Compound = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.Core.Definitions.RayType": {
+      "ZeroMember": "None",
+      "SampleMember": "TilingBurst",
+      "AliasMember": "TilingBurst",
+      "AliasValue": "tiling_burst",
+      "Cells": {
+        "1_exactName": "TilingBurst = 1",
+        "2_lowercase": "TilingBurst = 1",
+        "3_UPPERCASE": "TilingBurst = 1",
+        "4_enumMemberAlias": "TilingBurst = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.SkillType": {
+      "ZeroMember": "None",
+      "SampleMember": "Ability",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Ability = 1",
+        "2_lowercase": "Ability = 1",
+        "3_UPPERCASE": "Ability = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.Slot": {
+      "ZeroMember": "None",
+      "SampleMember": "Amulet",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Amulet = 1",
+        "2_lowercase": "Amulet = 1",
+        "3_UPPERCASE": "Amulet = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Trade1 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.SpawnType": {
+      "ZeroMember": "Normal",
+      "SampleMember": "Random",
+      "AliasMember": "Random",
+      "AliasValue": "randomrespawn",
+      "Cells": {
+        "1_exactName": "Random = 1",
+        "2_lowercase": "Random = 1",
+        "3_UPPERCASE": "Random = 1",
+        "4_enumMemberAlias": "Random = 1",
+        "5_unknownString": "Normal = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Normal = 0",
+        "8_fractional_1_5": "Normal = 0",
+        "9_boolTrue": "Normal = 0"
+      }
+    },
+    "AL.Core.Definitions.TargetType": {
+      "ZeroMember": "NotSingleTarget",
+      "SampleMember": "PlayersOnly",
+      "AliasMember": "PlayersOnly",
+      "AliasValue": "player",
+      "Cells": {
+        "1_exactName": "PlayersOnly = 1",
+        "2_lowercase": "PlayersOnly = 1",
+        "3_UPPERCASE": "PlayersOnly = 1",
+        "4_enumMemberAlias": "PlayersOnly = 1",
+        "5_unknownString": "NotSingleTarget = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "NotSingleTarget = 0",
+        "8_fractional_1_5": "NotSingleTarget = 0",
+        "9_boolTrue": "NotSingleTarget = 0"
+      }
+    },
+    "AL.Core.Definitions.Token": {
+      "ZeroMember": "None",
+      "SampleMember": "FriendToken",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "FriendToken = 1",
+        "2_lowercase": "FriendToken = 1",
+        "3_UPPERCASE": "FriendToken = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.TradeSlot": {
+      "ZeroMember": "None",
+      "SampleMember": "Trade1",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Trade1 = 17",
+        "2_lowercase": "Trade1 = 17",
+        "3_UPPERCASE": "Trade1 = 17",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Trade1 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.TrapType": {
+      "ZeroMember": "None",
+      "SampleMember": "Debuff",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Debuff = 1",
+        "2_lowercase": "Debuff = 1",
+        "3_UPPERCASE": "Debuff = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.UIDataType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "FishingFail",
+      "AliasMember": "FishingFail",
+      "AliasValue": "fishing_fail",
+      "Cells": {
+        "1_exactName": "FishingFail = 1",
+        "2_lowercase": "FishingFail = 1",
+        "3_UPPERCASE": "FishingFail = 1",
+        "4_enumMemberAlias": "FishingFail = 1",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.Core.Definitions.WeaponType": {
+      "ZeroMember": "None",
+      "SampleMember": "Axe",
+      "AliasMember": "GreatStaff",
+      "AliasValue": "great_staff",
+      "Cells": {
+        "1_exactName": "Axe = 1",
+        "2_lowercase": "Axe = 1",
+        "3_UPPERCASE": "Axe = 1",
+        "4_enumMemberAlias": "GreatStaff = 128",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "Axe, Dagger = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.WorldType": {
+      "ZeroMember": "None",
+      "SampleMember": "Dungeon",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Dungeon = 1",
+        "2_lowercase": "Dungeon = 1",
+        "3_UPPERCASE": "Dungeon = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.Core.Definitions.ZoneType": {
+      "ZeroMember": "None",
+      "SampleMember": "Fishing",
+      "AliasMember": null,
+      "AliasValue": null,
+      "Cells": {
+        "1_exactName": "Fishing = 1",
+        "2_lowercase": "Fishing = 1",
+        "3_UPPERCASE": "Fishing = 1",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
+    "AL.SocketClient.Definitions.ALSocketEmitType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "Attack",
+      "AliasMember": "Command",
+      "AliasValue": "cm",
+      "Cells": {
+        "1_exactName": "Attack = 1",
+        "2_lowercase": "Attack = 1",
+        "3_UPPERCASE": "Attack = 1",
+        "4_enumMemberAlias": "Command = 6",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "Magiport = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.SocketClient.Definitions.ALSocketMessageType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "Invite",
+      "AliasMember": "Character",
+      "AliasValue": "player",
+      "Cells": {
+        "1_exactName": "Invite = 1",
+        "2_lowercase": "Invite = 1",
+        "3_UPPERCASE": "Invite = 1",
+        "4_enumMemberAlias": "Character = 3",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "Drop = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    },
+    "AL.SocketClient.Definitions.GameResponseType": {
+      "ZeroMember": "Unknown",
+      "SampleMember": "BuyCantNPC",
+      "AliasMember": "BuyCantNPC",
+      "AliasValue": "buy_cant_npc",
+      "Cells": {
+        "1_exactName": "BuyCantNPC = 1",
+        "2_lowercase": "BuyCantNPC = 1",
+        "3_UPPERCASE": "BuyCantNPC = 1",
+        "4_enumMemberAlias": "BuyCantNPC = 1",
+        "5_unknownString": "Unknown = 0",
+        "6_numericString17": "CompoundIncompatibleScroll = 17",
+        "7_jsonNull": "Unknown = 0",
+        "8_fractional_1_5": "Unknown = 0",
+        "9_boolTrue": "Unknown = 0"
+      }
+    }
+  },
+  "DictionaryKey": {
+    "AL.Core.Definitions.BankPack": {
+      "AliasMember": null,
+      "Cells": {
+        "1_exactName": "count=1 [Items0 = 1]",
+        "2_lowercase": "count=1 [Items0 = 1]",
+        "3_UPPERCASE": "count=1 [Items0 = 1]",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "THROW JsonSerializationException",
+        "6_numericString17": "count=1 [Items16 = 17]"
+      }
+    },
+    "AL.Core.Definitions.Condition": {
+      "AliasMember": "CurseAura",
+      "Cells": {
+        "1_exactName": "count=1 [Anger = 1]",
+        "2_lowercase": "count=1 [Anger = 1]",
+        "3_UPPERCASE": "count=1 [Anger = 1]",
+        "4_enumMemberAlias": "count=1 [CurseAura = 11]",
+        "5_unknownString": "THROW JsonSerializationException",
+        "6_numericString17": "count=1 [Dash = 17]"
+      }
+    },
+    "AL.Core.Definitions.Slot": {
+      "AliasMember": null,
+      "Cells": {
+        "1_exactName": "count=1 [Amulet = 1]",
+        "2_lowercase": "count=1 [Amulet = 1]",
+        "3_UPPERCASE": "count=1 [Amulet = 1]",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "THROW JsonSerializationException",
+        "6_numericString17": "count=1 [Trade1 = 17]"
+      }
+    },
+    "AL.Core.Definitions.TradeSlot": {
+      "AliasMember": null,
+      "Cells": {
+        "1_exactName": "count=1 [Trade1 = 17]",
+        "2_lowercase": "count=1 [Trade1 = 17]",
+        "3_UPPERCASE": "count=1 [Trade1 = 17]",
+        "4_enumMemberAlias": "<no-enum-member>",
+        "5_unknownString": "THROW JsonSerializationException",
+        "6_numericString17": "count=1 [Trade1 = 17]"
+      }
+    },
+    "AL.Core.Definitions.WeaponType": {
+      "AliasMember": "GreatStaff",
+      "Cells": {
+        "1_exactName": "count=1 [Axe = 1]",
+        "2_lowercase": "count=1 [Axe = 1]",
+        "3_UPPERCASE": "count=1 [Axe = 1]",
+        "4_enumMemberAlias": "count=1 [GreatStaff = 128]",
+        "5_unknownString": "THROW JsonSerializationException",
+        "6_numericString17": "count=1 [Axe, Dagger = 17]"
+      }
+    }
+  }
+}

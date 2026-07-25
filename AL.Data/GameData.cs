@@ -1,11 +1,15 @@
-﻿#region
+#region
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
+using AL.Core.Json;
 using AL.Data.Achievements;
 using AL.Data.Classes;
 using AL.Data.Conditions;
@@ -18,6 +22,7 @@ using AL.Data.Geometry;
 using AL.Data.Items;
 using AL.Data.Maps;
 using AL.Data.Monsters;
+using AL.Data.Multipliers;
 using AL.Data.NPCs;
 using AL.Data.Projectiles;
 using AL.Data.Skills;
@@ -65,9 +70,6 @@ public record GameData
     public static GeometryDatum Geometry { get; private set; }
 
     [JsonProperty]
-    public static int Inflation { get; private set; }
-
-    [JsonProperty]
     public static ItemsDatum Items { get; private set; }
 
     [JsonProperty]
@@ -79,6 +81,10 @@ public record GameData
     [JsonProperty]
     public static MonstersDatum Monsters { get; private set; }
 
+    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing
+    [JsonProperty]
+    public static GMultipliers Multipliers { get; private set; } = new();
+
     [JsonProperty]
     public static NPCsDatum NPCs { get; private set; }
 
@@ -88,8 +94,8 @@ public record GameData
     [JsonIgnore]
     public static IReadOnlyDictionary<Quest, GNPC> Quests { get; private set; }
 
-    [JsonProperty("shells_to_gold")]
-    public static int ShellsToGold { get; private set; }
+    [JsonIgnore]
+    public static int ShellsToGold => Multipliers.ShellsToGold;
 
     [JsonProperty]
     public static SkillsDatum Skills { get; private set; }
@@ -157,7 +163,7 @@ public record GameData
     {
         Log.Debug("Building monster bounding bases");
 
-        foreach ((var accessor, var monster) in Monsters.DistinctBy(kvp => kvp.Value.Accessor))
+        foreach ((var accessor, var monster) in Monsters.Entries.DistinctBy(kvp => kvp.Value.Accessor))
         {
             var dimensions = Dimensions[accessor] ?? Array.Empty<float>();
             float h;
@@ -193,7 +199,7 @@ public record GameData
 
         //--CONNECT ITEM DATA--
         //connect item recipes
-        foreach ((var itemName, var recipe) in Craft)
+        foreach ((var itemName, var recipe) in Craft.Entries)
         {
             var item = Items[itemName];
 
@@ -254,7 +260,7 @@ public record GameData
                 item.ExchangeAtNPC = Quests[item.Quest.Value];
         }
 
-        foreach ((var tokenName, var buyableItems) in Tokens)
+        foreach ((var tokenName, var buyableItems) in Tokens.Entries)
             foreach (var itemName in buyableItems.Keys)
             {
                 var item = Items[itemName];
@@ -481,12 +487,35 @@ public record GameData
         }
     }
 
+    //System.Text.Json cannot bind static members, so drive the G-data statics from the wire by reflection:
+    //for each [JsonProperty] static, deserialize the matching (case-insensitively, as Newtonsoft matched) wire
+    //key through the shared options. An absent key leaves the member's initializer (Levels/Multipliers) intact.
+    private static void Bind(string json)
+    {
+        var root = JsonNode.Parse(json)?.AsObject()
+                   ?? throw new InvalidOperationException("Game data is not a JSON object.");
+
+        var members = typeof(GameData).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                                      .Where(property => (property.GetCustomAttribute<JsonPropertyAttribute>() is not null)
+                                                         && (property.GetSetMethod(nonPublic: true) is not null));
+
+        foreach (var member in members)
+        {
+            var wireName = member.GetCustomAttribute<JsonPropertyAttribute>()!.PropertyName ?? member.Name;
+            var node = root.FirstOrDefault(pair => string.Equals(pair.Key, wireName, StringComparison.OrdinalIgnoreCase))
+                           .Value;
+
+            if (node is not null)
+                member.SetValue(null, node.Deserialize(member.PropertyType, ALJson.Options));
+        }
+    }
+
     public static void Populate(string json)
     {
         var stopwatch = Stopwatch.StartNew();
 
         Log.Info("Deserializing game data");
-        JsonConvert.DeserializeObject<GameData>(json);
+        Bind(json);
 
         Log.Info("Constructing data lookups");
         Achievements.BuildLookupTable();

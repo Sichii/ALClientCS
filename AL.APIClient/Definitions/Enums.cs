@@ -1,10 +1,10 @@
 using System.Runtime.Serialization;
+using AL.Core.Json.Converters;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
 namespace AL.APIClient.Definitions
 {
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(TolerantStringEnumConverter))]
     public enum ServerId
     {
         None,
@@ -12,10 +12,12 @@ namespace AL.APIClient.Definitions
         I,
         II,
         III,
-        PvP
+        PvP,
+        Test,
+        Dungeon
     }
 
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(TolerantStringEnumConverter))]
     public enum ServerRegion
     {
         None,
@@ -24,7 +26,7 @@ namespace AL.APIClient.Definitions
         EU
     }
 
-    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonConverter(typeof(TolerantStringEnumConverter))]
     internal enum APIMethod
     {
         [EnumMember(Value = "pull_mail")]

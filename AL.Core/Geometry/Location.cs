@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using AL.Core.Interfaces;
 
 // ReSharper disable ConstantConditionalAccessQualifier

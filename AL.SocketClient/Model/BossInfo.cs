@@ -1,4 +1,4 @@
-﻿using AL.Core.Definitions;
+using AL.Core.Definitions;
 using AL.Core.Interfaces;
 using AL.Core.Model;
 using Newtonsoft.Json;

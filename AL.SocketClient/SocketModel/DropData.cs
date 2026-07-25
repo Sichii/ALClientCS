@@ -33,6 +33,13 @@ namespace AL.SocketClient.SocketModel
         ///     If populated, this is the party this chest dropped for.
         /// </summary>
         public string? Party { get; set; }
+
+        /// <summary>
+        ///     Account owner-ids permitted to loot this chest. Opening a chest whose owners exclude your owner-id
+        ///     trips a server-side "SEVERE - Cross Loot" flag (node/server.js:10084).
+        /// </summary>
+        [JsonProperty("owners")]
+        public string[] Owners { get; set; } = [];
         public float X { get; set; }
         public float Y { get; set; }
         public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);

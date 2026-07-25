@@ -1,4 +1,5 @@
 #region
+using AL.Core.Definitions;
 using AL.Core.Json.Converters;
 using AL.Core.Json.Interfaces;
 using AL.SocketClient.Definitions;
@@ -16,12 +17,24 @@ namespace AL.SocketClient.SocketModel;
 public sealed record GameResponseData : IOptionalObject
 {
     /// <summary>
+    ///     A client-event tag. The server sends either <c>true</c> or a name, so this is a string either way.
+    /// </summary>
+    [JsonProperty("cevent")]
+    public string? CEvent { get; init; }
+
+    /// <summary>
     ///     The chance of the item to be upgraded/compounded successfully.
     /// </summary>
     public float Chance { get; init; }
 
+    /// <summary>
+    ///     Whether the monster hunt was turned in.
+    /// </summary>
+    [JsonProperty("completed")]
+    public bool Completed { get; init; }
+
     [JsonIgnore]
-    public bool ContainsData { get; init; }
+    public bool ContainsData { get; set; }
 
     /// <summary>
     ///     If populated, contains the cooldown of the skill used.
@@ -41,10 +54,23 @@ public sealed record GameResponseData : IOptionalObject
     public float Distance { get; init; }
 
     /// <summary>
-    ///     The amount of gold sent or received.
+    ///     The duration of the condition being applied, in milliseconds.
+    /// </summary>
+    [JsonProperty("duration")]
+    public float Duration { get; init; }
+
+    /// <summary>
+    ///     Whether the operation failed. Set by every <c>fail_response</c>, so it is the one universal failure
+    ///     discriminator; the failing operation is named by <see cref="Place" />.
+    /// </summary>
+    [JsonProperty("failed")]
+    public bool Failed { get; init; }
+
+    /// <summary>
+    ///     The amount of gold sent or received. Fractional for alchemy, which scales gold by a rate.
     /// </summary>
     [JsonProperty("gold")]
-    public int Gold { get; init; }
+    public float Gold { get; init; }
 
     /// <summary>
     ///     The grace of the item to be upgrade/compounded successfully.
@@ -52,10 +78,28 @@ public sealed record GameResponseData : IOptionalObject
     public float Grace { get; init; }
 
     /// <summary>
+    ///     The ids of the entities affected by an area skill.
+    /// </summary>
+    [JsonProperty("ids")]
+    public string[]? Ids { get; init; }
+
+    /// <summary>
+    ///     Whether the operation has started and will be finished by a later frame.
+    /// </summary>
+    [JsonProperty("in_progress")]
+    public bool InProgress { get; init; }
+
+    /// <summary>
     ///     The item you calculated chance for.
     /// </summary>
     [JsonConverter(typeof(StringOrObjectConverter<ResponseItem>), nameof(ResponseItem.Name))]
     public ResponseItem? Item { get; init; } = null!;
+
+    /// <summary>
+    ///     The level of the item that was upgraded, compounded, or dismantled.
+    /// </summary>
+    [JsonProperty("level")]
+    public int Level { get; init; }
 
     /// <summary>
     ///     The name of the monster that defeated the player.
@@ -78,6 +122,12 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     [JsonProperty("name")]
     public string? Name { get; init; }
+
+    /// <summary>
+    ///     The projectile ids of a multi-target skill, one per target, in the same order as <see cref="Targets" />.
+    /// </summary>
+    [JsonProperty("pids")]
+    public string[]? Pids { get; init; }
 
     /// <summary>
     ///     Extra information about the response. Often the name of a skill or action.
@@ -114,6 +164,25 @@ public sealed record GameResponseData : IOptionalObject
     public int SlotNum { get; init; }
 
     /// <summary>
+    ///     Whether this frame is a replay of an already-settled operation. A stale frame must not complete an await.
+    /// </summary>
+    [JsonProperty("stale")]
+    public bool Stale { get; init; }
+
+    /// <summary>
+    ///     The attribute a stat scroll granted.
+    /// </summary>
+    [JsonProperty("stat_type")]
+    public ALAttribute StatType { get; init; }
+
+    /// <summary>
+    ///     Whether the operation succeeded. Not set by the skills that answer with a collapsed action frame -
+    ///     see <see cref="Place" />.
+    /// </summary>
+    [JsonProperty("success")]
+    public bool Success { get; init; }
+
+    /// <summary>
     ///     TODO: something to do with seashells
     /// </summary>
     public string? Suffix { get; init; }
@@ -127,6 +196,12 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     [JsonProperty("id")]
     public string? TargetId { get; init; }
+
+    /// <summary>
+    ///     The ids of the entities a multi-target skill actually hit.
+    /// </summary>
+    [JsonProperty("targets")]
+    public string[]? Targets { get; init; }
 
     /// <summary>
     ///     The amount of XP lost from being defeated by a monster.

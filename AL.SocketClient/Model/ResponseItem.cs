@@ -1,6 +1,7 @@
 #region
 using AL.APIClient.Interfaces;
 using AL.Core.Json.Interfaces;
+using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -15,7 +16,7 @@ public sealed record ResponseItem : ISimpleItem, IOptionalObject
     /// </summary>
     public float? Chance { get; init; }
 
-    public bool ContainsData { get; init; }
+    public bool ContainsData { get; set; }
 
     /// <summary>
     ///     The current grace of the item.
@@ -30,5 +31,6 @@ public sealed record ResponseItem : ISimpleItem, IOptionalObject
     public string Name { get; init; } = null!;
 
     // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
+    [JsonProperty("q")]
     public int Quantity { get; } = 1;
 }

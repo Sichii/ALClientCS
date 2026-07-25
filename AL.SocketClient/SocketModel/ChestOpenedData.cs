@@ -47,4 +47,17 @@ public sealed record ChestOpenedData
     ///     Whether or not the contents of the chest will be distributed to the party.
     /// </summary>
     public bool Party { get; set; }
+
+    /// <summary>
+    ///     True when the chest was too far away (distance &gt; 400) to loot fully; the server forces
+    ///     <see cref="GoldMod" /> to 1 (the gold-find bonus is dropped, but base gold and items still pay).
+    /// </summary>
+    [JsonProperty("dry")]
+    public bool Dry { get; set; }
+
+    /// <summary>
+    ///     True when the chest was older than 8 minutes; the server forces <see cref="GoldMod" /> to 1.
+    /// </summary>
+    [JsonProperty("stale")]
+    public bool Stale { get; set; }
 }

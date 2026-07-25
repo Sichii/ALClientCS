@@ -1,4 +1,4 @@
-﻿#region
+#region
 using AL.Core.Definitions;
 #endregion
 

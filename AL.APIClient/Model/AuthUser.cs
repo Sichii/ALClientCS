@@ -1,5 +1,6 @@
-﻿#region
+#region
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using AL.APIClient.Request;
 #endregion
@@ -24,31 +25,35 @@ public sealed record AuthUser
     internal LoginInfo LoginInfo { get; }
 
     /// <summary>
-    ///     The user's id.
+    ///     The user's id. A "US_" prefixed alphanumeric string.
     /// </summary>
-    public long UserID { get; }
+    public string UserID { get; }
 
     internal AuthUser(LoginInfo loginInfo, string cookie)
     {
         LoginInfo = loginInfo;
 
-        var match = Regex.Match(cookie, @"^auth=(\d+)-(\w+);");
+        //the server strips quotes and then splits the value on the first '-'
+        //so neither the id nor the token can itself contain one
+        var match = Regex.Match(cookie.Replace("\"", string.Empty), @"^auth=([^-;]+)-([^;]+)(?:;|$)", RegexOptions.IgnoreCase);
 
-        if (long.TryParse(match.Groups[1].Value, out var userId))
-        {
-            UserID = userId;
-            AuthKey = match.Groups[2].Value;
-        } else
-            throw new Exception($"Unexpected cookie value of {cookie}");
+        //never put the cookie value itself in the message, it is a live credential
+        if (!match.Success)
+            throw new InvalidOperationException($"Unexpected auth cookie format. (length {cookie.Length})");
 
-        match = Regex.Match(cookie, @"expires=(.+)$");
+        UserID = match.Groups[1].Value;
+        AuthKey = match.Groups[2].Value;
 
-        var str = match.Groups[1]
-                       .Value
-                       .Replace("-", " ");
+        match = Regex.Match(cookie, "expires=([^;]+)", RegexOptions.IgnoreCase);
 
-        if (DateTime.TryParse(str, out var expires))
-            Expires = expires.ToUniversalTime();
+        //the header is always RFC-1123 in English regardless of the machine's locale
+        if (match.Success
+            && DateTime.TryParse(
+                match.Groups[1].Value,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+                out var expires))
+            Expires = expires;
     }
 
     public override string ToString() => $"{UserID}-{AuthKey}";

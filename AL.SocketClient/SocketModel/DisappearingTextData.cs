@@ -1,5 +1,5 @@
 #region
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -12,7 +12,7 @@ public sealed record DisappearingTextData
     /// <summary>
     ///     If populated, contains various UI datas
     /// </summary>
-    public JToken? Args { get; init; }
+    public JsonNode? Args { get; init; }
 
     /// <summary>
     ///     The id of the entity this text appears over.

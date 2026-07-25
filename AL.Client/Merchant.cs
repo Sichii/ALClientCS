@@ -162,11 +162,13 @@ public class Merchant : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.SkillSuccess when data.Name.EqualsI(SKILL_NAME) => source.TrySetResult(Expectation.Success),
+                    GameResponseType.Data when SKILL_NAME.EqualsI(data.Place!) && data.Success => source.TrySetResult(Expectation.Success),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}'. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -203,11 +205,13 @@ public class Merchant : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
                     GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.SkillSuccess when data.Name.EqualsI(SKILL_NAME) => source.TrySetResult(Expectation.Success),
+                    GameResponseType.Data when SKILL_NAME.EqualsI(data.Place!) && data.Success => source.TrySetResult(Expectation.Success),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}'. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -449,7 +453,11 @@ public class Merchant : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.SlotOccupied => source.TrySetResult($"Failed to post item {itemName} to buy. (slot occupied)"),
-                    _                             => false
+
+                    //fail_response defaults "place" to the name of the socket method that failed
+                    _ when data.Failed && "trade_wishlist".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to post item {itemName} to buy. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -537,6 +545,10 @@ public class Merchant : ALClient
                 {
                     GameResponseType.SlotOccupied => source.TrySetResult(
                         $"Failed to list item {item.Name} for sale. (trade slot occupied)"),
+
+                    //fail_response defaults "place" to the name of the socket method that failed
+                    _ when data.Failed && "equip".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to list item {item.Name} for sale. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 

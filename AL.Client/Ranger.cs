@@ -1,7 +1,6 @@
 #region
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AL.APIClient.Definitions;
@@ -76,11 +75,8 @@ public class Ranger : ALClient
     /// <exception cref="ArgumentNullException">
     ///     targetId#
     /// </exception>
-    /// <exception cref="AggregateException">
-    ///     If all hits failed independently, this is a collection of exceptions with the cause of those failures
-    /// </exception>
     /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'revive' on targets. ({reason})
+    ///     Failed to use '5shot' on targets. ({reason})
     /// </exception>
     public async Task<List<ActionData>> FiveShotAsync(
         string targetId1,
@@ -101,8 +97,8 @@ public class Ranger : ALClient
         if (string.IsNullOrEmpty(targetId4))
             throw new ArgumentNullException(nameof(targetId4));
 
-        if (string.IsNullOrEmpty(targetId4))
-            throw new ArgumentNullException(nameof(targetId4));
+        if (string.IsNullOrEmpty(targetId5))
+            throw new ArgumentNullException(nameof(targetId5));
 
         const string SKILL_NAME = "5shot";
 
@@ -117,7 +113,6 @@ public class Ranger : ALClient
             targetId4,
             targetId5
         };
-        var errors = new List<string>();
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
@@ -126,36 +121,23 @@ public class Ranger : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on targets. (on cooldown)"),
                     GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (level too low)"),
                     GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (no mp)"),
                     GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (wrong weapon type)"),
+
+                    //the server collapses the whole volley into the first hit's action object, which carries no "success"
+                    GameResponseType.Data when !data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(Expectation.Success),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}' on targets. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                               => false
                 };
-
-                //accumulate errors, only throw an exception if everything is a failure
-                if (data.ResponseType == GameResponseType.AttackFailed)
-                {
-                    if (targetIds.ContainsI(data.TargetId) && data.Place.EqualsI(SKILL_NAME))
-                    {
-                        errors.Add($"Failed to use '{SKILL_NAME}' on {data.TargetId}. (failed)");
-                        result = true;
-                    }
-                } else if (data.ResponseType == GameResponseType.TooFar)
-                    if (targetIds.ContainsI(data.TargetId) && data.Place.EqualsI(SKILL_NAME))
-                    {
-                        errors.Add($"Failed to use '{SKILL_NAME}' on {data.TargetId}. (too far)");
-                        result = true;
-                    }
-
-                if (errors.Count >= 5)
-                    throw new AggregateException(errors.Select(error => new InvalidOperationException(error)));
 
                 return Task.FromResult(result);
             });
 
-        //3shot will hit a bunch of targets, and we'll receive them 1 at a time
+        //5shot will hit a bunch of targets, and we'll receive them 1 at a time
         using var actionCallback = Socket.On<ActionData>(
             ALSocketMessageType.Action,
             data =>
@@ -166,23 +148,6 @@ public class Ranger : ALClient
 
                     return TaskCache.TRUE;
                 }
-
-                return TaskCache.FALSE;
-            });
-
-        //eval comes after we receive all the actions
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
 
                 return TaskCache.FALSE;
             });
@@ -371,15 +336,18 @@ public class Ranger : ALClient
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.AttackFailed when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
+                    //attack_failed names only the target, never the skill, so it cannot be narrowed any further
+                    GameResponseType.AttackFailed when targetId.EqualsI(data.TargetId!) =>
                         source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
                     GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}' on {targetId}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                     => false
                 };
 
@@ -447,15 +415,18 @@ public class Ranger : ALClient
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.AttackFailed when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
+                    //attack_failed names only the target, never the skill, so it cannot be narrowed any further
+                    GameResponseType.AttackFailed when targetId.EqualsI(data.TargetId!) =>
                         source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
                     GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}' on {targetId}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                     => false
                 };
 
@@ -561,15 +532,18 @@ public class Ranger : ALClient
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.AttackFailed when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) =>
+                    //attack_failed names only the target, never the skill, so it cannot be narrowed any further
+                    GameResponseType.AttackFailed when targetId.EqualsI(data.TargetId!) =>
                         source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
                     GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}' on {targetId}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                     => false
                 };
 
@@ -617,9 +591,6 @@ public class Ranger : ALClient
     /// <exception cref="ArgumentNullException">
     ///     targetId#
     /// </exception>
-    /// <exception cref="AggregateException">
-    ///     If all hits failed independently, this is a collection of exceptions with the cause of those failures
-    /// </exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use '3shot' on targets. ({reason})
     /// </exception>
@@ -645,7 +616,6 @@ public class Ranger : ALClient
             targetId2,
             targetId3
         };
-        var errors = new List<string>();
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
@@ -654,31 +624,18 @@ public class Ranger : ALClient
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to use '{SKILL_NAME}' on targets. (on cooldown)"),
                     GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (level too low)"),
                     GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (no mp)"),
                     GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}' on targets. (wrong weapon type)"),
+
+                    //the server collapses the whole volley into the first hit's action object, which carries no "success"
+                    GameResponseType.Data when !data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(Expectation.Success),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}' on targets. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                               => false
                 };
-
-                //accumulate errors, only throw an exception if everything is a failure
-                if (data.ResponseType == GameResponseType.AttackFailed)
-                {
-                    if (targetIds.ContainsI(data.TargetId) && data.Place.EqualsI(SKILL_NAME))
-                    {
-                        errors.Add($"Failed to use '{SKILL_NAME}' on {data.TargetId}. (failed)");
-                        result = true;
-                    }
-                } else if (data.ResponseType == GameResponseType.TooFar)
-                    if (targetIds.ContainsI(data.TargetId) && data.Place.EqualsI(SKILL_NAME))
-                    {
-                        errors.Add($"Failed to use '{SKILL_NAME}' on {data.TargetId}. (too far)");
-                        result = true;
-                    }
-
-                if (errors.Count >= 3)
-                    throw new AggregateException(errors.Select(error => new InvalidOperationException(error)));
 
                 return Task.FromResult(result);
             });
@@ -698,23 +655,6 @@ public class Ranger : ALClient
                 return TaskCache.FALSE;
             });
 
-        //eval comes after we receive all the actions
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
         await Socket.EmitAsync(
             ALSocketEmitType.Skill,
             new
@@ -729,5 +669,58 @@ public class Ranger : ALClient
         return actions;
     }
 
-    //TODO: Track (see scratch), need to implement dtos for it and figure out wtf the sounds are
+    /// <summary>
+    ///     Uses the 'track' skill and returns the players it locates within range, nearest first
+    ///     (node/server.js:9499).
+    /// </summary>
+    /// <returns>
+    ///     <see cref="IReadOnlyList{T}" /> of <see cref="TrackData" />
+    ///     <br />
+    ///     The tracked players, sorted ascending by distance.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'track'. ({reason})
+    /// </exception>
+    public async Task<IReadOnlyList<TrackData>> TrackAsync()
+    {
+        const string SKILL_NAME = "track";
+
+        var source = new TaskCompletionSource<Expectation<IReadOnlyList<TrackData>>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
+                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
+                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
+                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to use '{SKILL_NAME}'. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        using var trackCallback = Socket.On<TrackData[]>(
+            ALSocketMessageType.Track,
+            data =>
+            {
+                source.TrySetResult(data);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Skill,
+            new
+            {
+                name = SKILL_NAME
+            });
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
 }

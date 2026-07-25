@@ -22,11 +22,13 @@ namespace AL.Pathfinding;
 /// </summary>
 public static class Pathfinder
 {
+    //compared against datum keys at Initialize, so these are accessors, not display names - the three
+    //staging maps carry neither Ignore nor Unlist, so the flag filter below does not catch them
     private static readonly string[] IGNORED_MAPS =
     [
-        "A/B Testing",
-        "New Town!",
-        "Test"
+        "abtesting",
+        "shellsisland",
+        "test"
     ];
 
     private static readonly ILog Logger = LogManager.GetLogger(typeof(Pathfinder).FullName);
@@ -121,6 +123,7 @@ public static class Pathfinder
         var navMeshes = new ConcurrentDictionary<GMap, NavMesh>();
 
         var maps = GameData.Maps
+                           .Entries
                            .DistinctBy(kvp => kvp.Value.Accessor)
                            .Where(kvp => kvp.Value.Ignore == false)
                            .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))

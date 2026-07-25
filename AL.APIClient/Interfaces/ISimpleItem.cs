@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace AL.APIClient.Interfaces
 {
     /// <summary>
@@ -15,7 +13,6 @@ namespace AL.APIClient.Interfaces
         /// <summary>
         ///     The quantity of the item.
         /// </summary>
-        [JsonProperty("q")]
         int Quantity { get; }
     }
 }

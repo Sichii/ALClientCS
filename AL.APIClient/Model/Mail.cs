@@ -1,4 +1,5 @@
-﻿#region
+#region
+using AL.APIClient.Json.Converters;
 using Newtonsoft.Json;
 #endregion
 
@@ -16,23 +17,27 @@ public sealed record Mail
     public string From { get; init; } = null!;
 
     /// <summary>
-    ///     A unique identifier for this piece of mail.
+    ///     A unique identifier for this piece of mail (carries an <c>ML_</c> prefix).
     /// </summary>
     public string Id { get; init; } = null!;
 
     /// <summary>
-    ///     If populated, there is an item in this mail.
-    ///     <br />
-    ///     This is the name of the item.
+    ///     If populated, the simplified item attached to this mail.
     /// </summary>
-    public string? Item { get; init; }
+    [JsonProperty("item"), JsonConverter(typeof(StringOrObjectMailItemConverter))]
+    public MailItem? Item { get; init; }
 
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    ///     Whether or not this user sent this mail.
+    ///     When the mail was created, as the server's raw date string (a JS <c>Date.toString()</c>, not ISO-8601).
     /// </summary>
-    public bool Sent { get; init; }
+    public string? Sent { get; init; }
+
+    /// <summary>
+    ///     The subject line. Empty string when the mail has no subject.
+    /// </summary>
+    public string Subject { get; init; } = string.Empty;
 
     /// <summary>
     ///     Whether or not the item was taken from this mail.

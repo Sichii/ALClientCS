@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System.Collections.Generic;
 using AL.Core.Definitions;
 using Newtonsoft.Json;
@@ -95,7 +95,44 @@ public sealed record GClass
     /// <summary>
     ///     The amount of mp this class's basic attack costs by default.
     /// </summary>
+    [JsonProperty("mp_cost")]
     public int MpCost { get; init; }
+
+    /// <summary>
+    ///     The base damage output of this class as a percentage. (attack is scaled by output/100)
+    /// </summary>
+    [JsonProperty("output")]
+    public int Output { get; init; }
+
+    /// <summary>
+    ///     Base impact resistance. (resists stuns and physical status effects)
+    /// </summary>
+    [JsonProperty("phresistance")]
+    public int PhysicalResistance { get; init; }
+
+    /// <summary>
+    ///     Base status resistance. (shortens debuff durations)
+    /// </summary>
+    [JsonProperty("stresistance")]
+    public int StunResistance { get; init; }
+
+    /// <summary>
+    ///     Base black-magic resistance. (resists curse, stone, etc.)
+    /// </summary>
+    [JsonProperty("bmresistance")]
+    public int BlackMagicResistance { get; init; }
+
+    /// <summary>
+    ///     Base cold resistance.
+    /// </summary>
+    [JsonProperty("fzresistance")]
+    public int FreezeResistance { get; init; }
+
+    /// <summary>
+    ///     Base poison resistance.
+    /// </summary>
+    [JsonProperty("pnresistance")]
+    public int PoisonResistance { get; init; }
 
     /// <summary>
     ///     The offhand weapons this class can use, and the stat modifications that apply when wielding them.

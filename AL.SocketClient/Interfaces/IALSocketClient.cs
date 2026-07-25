@@ -18,6 +18,13 @@ public interface IALSocketClient : IAsyncDisposable
     bool Connected { get; }
 
     /// <summary>
+    ///     The application-level reason the server gave for the last disconnect (e.g. <c>"limitdc"</c>,
+    ///     <c>"limits"</c>), captured from the <c>disconnect_reason</c> event just before the socket dropped.
+    ///     <c>null</c> if the server sent none. Reconnect policy branches on this.
+    /// </summary>
+    string? LastDisconnectReason { get; }
+
+    /// <summary>
     ///     Asynchronously connects to an Adventure Land server.
     /// </summary>
     /// <param name="server">

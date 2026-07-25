@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,7 +9,9 @@ using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
+using AL.Core.Json.Converters;
 using AL.Core.Model;
+using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
 using Newtonsoft.Json;
@@ -35,9 +37,18 @@ public abstract class EntityBase : AttributedObjectBase,
                                    IDeltaUpdatable,
                                    IPingCompensated,
                                    IMutable<Mutation>,
+                                   IKeyPresenceCapturable,
                                    IEquatable<EntityBase>
 {
     protected BoundingBase BoundingBase = null!;
+
+    /// <summary>
+    ///     Which wire keys the frame this entity was deserialized from actually carried. Set by
+    ///     <see cref="MarkPresent" /> during deserialization; consumed by <see cref="Update(EntityBase)" /> so a
+    ///     partial delta never overwrites a field the server omitted.
+    /// </summary>
+    [JsonIgnore]
+    public EntityUpdateField PresentFields { get; private set; }
 
     /// <summary>
     ///     TODO: what's this?
@@ -59,6 +70,7 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     </b>
     /// </summary>
     [JsonProperty("s")]
+    [JsonConverter(typeof(TolerantEnumKeyDictionaryConverter<Core.Definitions.Condition, Condition>))]
     public ConcurrentDictionary<Core.Definitions.Condition, Condition> Conditions { get; protected set; } = new();
 
     /// <summary>
@@ -99,6 +111,15 @@ public abstract class EntityBase : AttributedObjectBase,
 
     [JsonProperty("max_hp")]
     public float MaxHP { get; protected set; }
+
+    [JsonProperty("max_mp")]
+    public float MaxMP { get; protected set; }
+
+    /// <summary>
+    ///     If populated, the <see cref="Id" /> of the entity this one is focused on.
+    /// </summary>
+    [JsonProperty("focus")]
+    public string? Focus { get; protected set; }
 
     /// <summary>
     ///     The number of individual movements this entity has done.
@@ -219,31 +240,177 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </param>
     public void SetBoundingBase(BoundingBase boundingBase) => BoundingBase = boundingBase;
 
+    /// <summary>
+    ///     Records that <paramref name="key" /> was present on the wire. Allocation-free: it only ORs a flag.
+    ///     Unlisted keys (bank data, cosmetics, etc.) are not mergeable through <see cref="Update(EntityBase)" />
+    ///     and are ignored here.
+    /// </summary>
+    public void MarkPresent(string key)
+        => PresentFields |= key switch
+        {
+            "abs"        => EntityUpdateField.ABS,
+            "angle"      => EntityUpdateField.Angle,
+            "armor"      => EntityUpdateField.Armor,
+            "attack"     => EntityUpdateField.Attack,
+            "s"          => EntityUpdateField.Conditions,
+            "focus"      => EntityUpdateField.Focus,
+            "frequency"  => EntityUpdateField.Frequency,
+            "going_x"    => EntityUpdateField.GoingX,
+            "going_y"    => EntityUpdateField.GoingY,
+            "hp"         => EntityUpdateField.HP,
+            "level"      => EntityUpdateField.Level,
+            "max_hp"     => EntityUpdateField.MaxHP,
+            "max_mp"     => EntityUpdateField.MaxMP,
+            "move_num"   => EntityUpdateField.MoveNum,
+            "moving"     => EntityUpdateField.Moving,
+            "mp"         => EntityUpdateField.MP,
+            "resistance" => EntityUpdateField.Resistance,
+            "speed"      => EntityUpdateField.Speed,
+            "target"     => EntityUpdateField.Target,
+            "x"          => EntityUpdateField.X,
+            "xp"         => EntityUpdateField.XP,
+            "y"          => EntityUpdateField.Y,
+            _            => EntityUpdateField.None
+        };
+
+    /// <summary>
+    ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame actually
+    ///     carried. Mirrors the browser's received-key merge (<c>js/game.js:786</c>) - a bare <c>{id,x,y}</c>
+    ///     delta leaves hp/speed/etc. untouched instead of zeroing them.
+    /// </summary>
     public void Update(EntityBase @new)
     {
         if (Id != @new.Id)
             throw new InvalidOperationException($"Attempting to update entity with ID: {Id}, with data for entity with ID: {@new.Id}");
 
-        ABS = @new.ABS;
-        Angle = @new.Angle;
-        Armor = @new.Armor;
-        GoingX = @new.GoingX;
-        GoingY = @new.GoingY;
-        HP = @new.HP;
-        MaxHP = @new.MaxHP;
-        Level = @new.Level;
-        MoveNum = @new.MoveNum;
-        Moving = @new.Moving;
-        Speed = @new.Speed;
-        X = @new.X;
-        Y = @new.Y;
-        XP = @new.XP;
-        Attack = @new.Attack;
-        Frequency = @new.Frequency;
-        MP = @new.MP;
-        Resistance = @new.Resistance;
-        Target = @new.Target;
-        Conditions = @new.Conditions;
+        var present = @new.PresentFields;
+
+        if ((present & EntityUpdateField.ABS) != 0)
+            ABS = @new.ABS;
+
+        if ((present & EntityUpdateField.Angle) != 0)
+            Angle = @new.Angle;
+
+        if ((present & EntityUpdateField.Armor) != 0)
+            Armor = @new.Armor;
+
+        if ((present & EntityUpdateField.GoingX) != 0)
+            GoingX = @new.GoingX;
+
+        if ((present & EntityUpdateField.GoingY) != 0)
+            GoingY = @new.GoingY;
+
+        if ((present & EntityUpdateField.HP) != 0)
+            HP = @new.HP;
+
+        if ((present & EntityUpdateField.MaxHP) != 0)
+            MaxHP = @new.MaxHP;
+
+        if ((present & EntityUpdateField.MaxMP) != 0)
+            MaxMP = @new.MaxMP;
+
+        if ((present & EntityUpdateField.Focus) != 0)
+            Focus = @new.Focus;
+
+        if ((present & EntityUpdateField.Level) != 0)
+            Level = @new.Level;
+
+        if ((present & EntityUpdateField.MoveNum) != 0)
+            MoveNum = @new.MoveNum;
+
+        if ((present & EntityUpdateField.Moving) != 0)
+            Moving = @new.Moving;
+
+        if ((present & EntityUpdateField.Speed) != 0)
+            Speed = @new.Speed;
+
+        if ((present & EntityUpdateField.X) != 0)
+            X = @new.X;
+
+        if ((present & EntityUpdateField.Y) != 0)
+            Y = @new.Y;
+
+        if ((present & EntityUpdateField.XP) != 0)
+            XP = @new.XP;
+
+        if ((present & EntityUpdateField.Attack) != 0)
+            Attack = @new.Attack;
+
+        if ((present & EntityUpdateField.Frequency) != 0)
+            Frequency = @new.Frequency;
+
+        if ((present & EntityUpdateField.MP) != 0)
+            MP = @new.MP;
+
+        if ((present & EntityUpdateField.Resistance) != 0)
+            Resistance = @new.Resistance;
+
+        if ((present & EntityUpdateField.Target) != 0)
+            Target = @new.Target;
+
+        if ((present & EntityUpdateField.Conditions) != 0)
+            Conditions = @new.Conditions;
+    }
+
+    /// <summary>
+    ///     Seeds a soft property from its G default, but only if the frame this entity was deserialized from did
+    ///     not already carry it. The server omits a soft property that equals the G default, so a freshly-sighted
+    ///     monster reports 0 for those until they are backfilled - mirrors the browser's <c>adopt_soft_properties</c>
+    ///     (<c>js/game.js:766-771</c>). Only the numeric soft properties the encoder can omit are handled.
+    /// </summary>
+    public void BackfillSoftDefault(EntityUpdateField field, float value)
+    {
+        //the frame carried a real value for this field; never override it with the def
+        if ((PresentFields & field) != 0)
+            return;
+
+        switch (field)
+        {
+            case EntityUpdateField.HP:
+                HP = value;
+
+                break;
+            case EntityUpdateField.MaxHP:
+                MaxHP = value;
+
+                break;
+            case EntityUpdateField.MP:
+                MP = value;
+
+                break;
+            case EntityUpdateField.MaxMP:
+                MaxMP = value;
+
+                break;
+            case EntityUpdateField.Attack:
+                Attack = value;
+
+                break;
+            case EntityUpdateField.Speed:
+                Speed = value;
+
+                break;
+            case EntityUpdateField.XP:
+                XP = value;
+
+                break;
+            case EntityUpdateField.Frequency:
+                Frequency = value;
+
+                break;
+            case EntityUpdateField.Armor:
+                Armor = value;
+
+                break;
+            case EntityUpdateField.Resistance:
+                Resistance = value;
+
+                break;
+            case EntityUpdateField.Level:
+                Level = (int)value;
+
+                break;
+        }
     }
 
     /// <summary>

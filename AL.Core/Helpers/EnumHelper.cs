@@ -1,4 +1,4 @@
-﻿#region
+#region
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -83,42 +83,72 @@ public static class EnumHelper
         if (string.IsNullOrEmpty(str))
             return false;
 
-        var type = typeof(T);
-
-        // ReSharper disable once InconsistentlySynchronizedField
-        if (!EnumValues.TryGetValue(type, out var valueLookup))
-            lock (Sync)
-                if (!EnumValues.TryGetValue(type, out valueLookup))
-                {
-                    valueLookup = new Dictionary<string, Enum>(StringComparer.OrdinalIgnoreCase);
-                    var members = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-
-                    foreach (var member in members)
-                    {
-                        var name = member.Name;
-                        var value = (T?)member.GetRawConstantValue();
-
-                        if (value == null)
-                            continue;
-
-                        valueLookup.Add(name, value);
-
-                        var enumMember = member.GetCustomAttribute<EnumMemberAttribute>();
-
-                        if ((enumMember?.Value == null) || enumMember.Value.EqualsI(name))
-                            continue;
-
-                        valueLookup.Add(enumMember.Value, value);
-                    }
-
-                    EnumValues[type] = valueLookup;
-                }
-
-        if (!valueLookup.TryGetValue(str, out var enumValue))
+        if (!GetLookup(typeof(T)).TryGetValue(str, out var enumValue))
             return false;
 
         result = (T)enumValue;
 
         return true;
+    }
+
+    /// <summary>
+    ///     Non-generic <see cref="TryParse{T}(string?, out T?)" />, for callers that only know the enum type at
+    ///     runtime (e.g. a converter over an open generic). Honours <see cref="EnumMemberAttribute" /> the same way.
+    /// </summary>
+    public static bool TryParse(Type enumType, string? str, out object? result)
+    {
+        result = null;
+
+        if (string.IsNullOrEmpty(str))
+            return false;
+
+        if (!GetLookup(enumType).TryGetValue(str, out var enumValue))
+            return false;
+
+        result = enumValue;
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Builds (once, cached) the case-insensitive name/<see cref="EnumMemberAttribute" />-alias -&gt; value
+    ///     lookup for an enum type. Shared by both <c>TryParse</c> overloads so their behaviour cannot drift.
+    /// </summary>
+    private static Dictionary<string, Enum> GetLookup(Type type)
+    {
+        // ReSharper disable once InconsistentlySynchronizedField
+        if (EnumValues.TryGetValue(type, out var valueLookup))
+            return valueLookup;
+
+        lock (Sync)
+        {
+            if (EnumValues.TryGetValue(type, out valueLookup))
+                return valueLookup;
+
+            valueLookup = new Dictionary<string, Enum>(StringComparer.OrdinalIgnoreCase);
+            var members = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+            foreach (var member in members)
+            {
+                var raw = member.GetRawConstantValue();
+
+                if (raw == null)
+                    continue;
+
+                var value = (Enum)Enum.ToObject(type, raw);
+                valueLookup.Add(member.Name, value);
+
+                var enumMember = member.GetCustomAttribute<EnumMemberAttribute>();
+
+                if ((enumMember?.Value == null) || enumMember.Value.EqualsI(member.Name))
+                    continue;
+
+                valueLookup.Add(enumMember.Value, value);
+            }
+
+            EnumValues[type] = valueLookup;
+
+            return valueLookup;
+        }
     }
 }

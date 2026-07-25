@@ -1,4 +1,4 @@
-﻿using AL.APIClient.Definitions;
+using AL.APIClient.Definitions;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
 using Newtonsoft.Json;

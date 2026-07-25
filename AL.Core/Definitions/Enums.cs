@@ -1,14 +1,15 @@
-﻿#region
+#region
 using System;
 using System.Runtime.Serialization;
 using AL.Core.Json.Converters;
+using AL.Core.Json.NamingStrategies;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 #endregion
 
 namespace AL.Core.Definitions;
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum RayType
 {
     None,
@@ -23,6 +24,7 @@ public enum RayType
     TilingBurstG
 }
 
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum TargetType
 {
     NotSingleTarget,
@@ -37,7 +39,7 @@ public enum TargetType
     Any
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ALAttribute
 {
     None,
@@ -91,6 +93,7 @@ public enum ALAttribute
     StunChance,
     XP,
     Gold,
+    Heal,
 
     [EnumMember(Value = "healm")]
     HealMod,
@@ -122,7 +125,7 @@ public enum ALAttribute
     Breaks
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum LockType
 {
     None,
@@ -146,6 +149,7 @@ public enum LockType
     AlsoLocked = Locked
 }
 
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum KeyType
 {
     None,
@@ -158,6 +162,9 @@ public enum KeyType
 
     [EnumMember(Value = "cryptkey")]
     CryptKey,
+
+    [EnumMember(Value = "spiderkey")]
+    SpiderKey,
 
     [EnumMember(Value = "complicated")]
     Complicated
@@ -177,7 +184,7 @@ public enum ALClass
     NPC
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum Projectile
 {
     None,
@@ -217,7 +224,7 @@ public enum Projectile
     WMomentum
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ArmorSet
 {
     None,
@@ -242,7 +249,8 @@ public enum ArmorSet
     Legends
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+//the server keys bank packs as "items0", "items1", ... - the PascalCase name matches nothing
+[JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
 public enum BankPack
 {
     None,
@@ -392,40 +400,63 @@ public enum BankPack
     Items47
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum WorldType
 {
     None,
     Dungeon
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum Condition
 {
     None,
+    Anger,
     Authfail,
     Blink,
+    Block,
     Burned,
     Charging,
     Charmed,
     Citizen0Aura,
     Citizen4Aura,
     CoOp,
+
+    [EnumMember(Value = "curse_aura")]
+    CurseAura,
     Cursed,
+
+    [EnumMember(Value = "damage_received")]
+    DamageReceived,
     Dampened,
+
+    [EnumMember(Value = "dampening_aura")]
+    DampeningAura,
     DarkBlessing,
+    Dash,
+    DeepFreeze,
+    Deepfreezed,
+    Degen,
     EasterLuck,
     EBurn,
     EHeal,
     Energized,
+    Ethereal,
+    Filter,
     Fingered,
     Fishing,
     Frozen,
     FullGuard,
     FullguardX,
+    Halloween0,
+    Halloween1,
+    Halloween2,
     HardShell,
-    HolidaySpirit,
     Heal,
+    Healed,
+    Healing,
+    HolidaySpirit,
+    HopSickness,
     Invincible,
     Invis,
 
@@ -433,27 +464,38 @@ public enum Condition
     Licensed,
     Magiport,
     Marked,
+    MassExchange,
+    MassExchangePP,
     MassProduction,
     MassProductionPP,
     MCourage,
-    MLifeSteal,
-    MLuck,
     MFrenzy,
+    MLifeSteal,
+    MLight,
+    MLuck,
+    Mining,
     MonsterHunt,
     MShield,
     MTangle,
 
+    [EnumMember(Value = "multi_burn")]
+    MultiBurn,
+
     [EnumMember(Value = "multi_freeze")]
     MultiFreeze,
+    Mute,
     NewcomersBlessing,
     NotVerified,
+    PatronsGrace,
 
     [EnumMember(Value = "penalty_cd")]
     PenaltyCooldown,
     PhasedOut,
+    PickPocket,
     Poisoned,
     Poisonous,
     Power,
+    Purifier,
     Reflection,
     RSpeed,
     Sanguine,
@@ -461,28 +503,34 @@ public enum Condition
     [EnumMember(Value = "self_healing")]
     SelfHealing,
     Shocked,
+    Sleeping,
     Slowness,
 
     [EnumMember(Value = "stack")]
     Stacked,
+    Stone,
     Stoned,
     Stunned,
     SugarRush,
+    Tangle,
     Tangled,
     Town,
     Typing,
     WarCry,
+    WarpStomp,
     Weakness,
 
     [EnumMember(Value = "weakness_aura")]
     WeaknessAura,
     Withdrawal,
+    Woven,
     XPower,
     XShotted,
-    Young
+    Young,
+    Zap
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum DamageType
 {
     None,
@@ -492,7 +540,7 @@ public enum DamageType
     Heal
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ItemType
 {
     Activator,
@@ -557,7 +605,7 @@ public enum ItemType
     XP
 }
 
-[Flags, JsonConverter(typeof(StringEnumConverter))]
+[Flags, JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum WeaponType : ulong
 {
     None = 0,
@@ -597,7 +645,7 @@ public enum WeaponType : ulong
     PickAxe = 1 << 25
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum EquipmentSlot
 {
     None,
@@ -619,7 +667,8 @@ public enum EquipmentSlot
     Shoes
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+//the server keys trade slots as "trade1".."trade30"
+[JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
 public enum TradeSlot
 {
     None,
@@ -655,7 +704,8 @@ public enum TradeSlot
     Trade30
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+//the server keys equipment slots as "mainhand", "offhand", "ring1", ...
+[JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
 public enum Slot
 {
     None,
@@ -708,7 +758,7 @@ public enum Slot
     Trade30
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum DisappearEffect
 {
     None,
@@ -717,7 +767,7 @@ public enum DisappearEffect
     MagiPort
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum Direction
 {
     Down,
@@ -733,9 +783,11 @@ public enum Stand
     None,
     Stand,
     CStand,
-    Stand0
+    Stand0,
+    Stand1
 }
 
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum DropType
 {
     None,
@@ -750,7 +802,7 @@ public enum DropType
     Fishing1
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum SpawnType
 {
     Normal,
@@ -759,7 +811,7 @@ public enum SpawnType
     Random
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum TrapType
 {
     None,
@@ -767,7 +819,7 @@ public enum TrapType
     Spikes
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ZoneType
 {
     None,
@@ -775,14 +827,14 @@ public enum ZoneType
     Mining
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum AchievementRewardType
 {
     None,
     Stat
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum Quest
 {
     None,
@@ -799,7 +851,7 @@ public enum Quest
     Mistletoe
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum Token
 {
     None,
@@ -809,7 +861,7 @@ public enum Token
     PvPToken
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum NPCRole
 {
     None,
@@ -865,7 +917,7 @@ public enum NPCRole
     Witch
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum SkillType
 {
     None,
@@ -877,7 +929,7 @@ public enum SkillType
     Utility
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum Emotion
 {
     None,
@@ -889,7 +941,7 @@ public enum Emotion
     HeartsSingle
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ExitType
 {
     None,
@@ -897,7 +949,7 @@ public enum ExitType
     Transporter
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum EntitiesUpdateType
 {
     None,
@@ -907,16 +959,21 @@ public enum EntitiesUpdateType
     Partial
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum QueuedActionType
 {
     Unknown,
     Compound,
     Upgrade,
-    Exchange
+    Exchange,
+    FunTokens,
+    PvPTokens,
+    FriendTokens,
+    MonsterTokens,
+    Poof
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum UIDataType
 {
     Unknown,
@@ -949,7 +1006,7 @@ public enum UIDataType
     LoseMoney
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ObtainType
 {
     Unknown,
@@ -959,7 +1016,7 @@ public enum ObtainType
     Quest
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum ChestType
 {
     Unknown,
@@ -968,13 +1025,20 @@ public enum ChestType
     Chest3,
     Chest4,
     Chest5,
-    Chest6
+    Chest6,
+    Chest7,
+    Chest8,
+
+    [EnumMember(Value = "chestp")]
+    ChestP
 }
 
-[JsonConverter(typeof(StringEnumConverter))]
+[JsonConverter(typeof(TolerantStringEnumConverter))]
 public enum GamePlayMode
 {
     Unknown,
     Normal,
-    Hardcore
+    Hardcore,
+    Test,
+    Dungeon
 }

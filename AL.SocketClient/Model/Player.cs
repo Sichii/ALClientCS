@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using AL.Core.Definitions;
 using AL.Core.Json.Converters;
 using AL.SocketClient.Interfaces;
 using Newtonsoft.Json;
+using IJsonOnDeserialized = System.Text.Json.Serialization.IJsonOnDeserialized;
 
 namespace AL.SocketClient.Model
 {
@@ -14,7 +15,7 @@ namespace AL.SocketClient.Model
     /// <seealso cref="ISimplePlayer" />
     /// <seealso cref="IEquatable{T}" />
     [JsonConverter(typeof(AttributedObjectConverter<Player>))]
-    public class Player : EntityBase, ISimplePlayer, IEquatable<Player>
+    public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDeserialized
     {
         [JsonProperty, JsonConverter(typeof(AfkConverter))]
         public bool AFK { get; protected set; }
@@ -55,16 +56,6 @@ namespace AL.SocketClient.Model
         public CosmeticInfo Cosmetics { get; protected set; } = null!;
 
         /// <summary>
-        ///     If populated, this player is targeting another player. <br />
-        ///     This is the player's name they are targeting.
-        /// </summary>
-        [JsonProperty]
-        public string? Focus { get; protected set; }
-
-        [JsonProperty("max_mp")]
-        public float MaxMP { get; protected set; }
-
-        /// <summary>
         ///     If populated, this player is actually an NPC. <br />
         ///     You can also check <see cref="IsNPC" />.
         /// </summary>
@@ -79,6 +70,7 @@ namespace AL.SocketClient.Model
         [JsonProperty]
         public string? Owner { get; protected set; }
 
+        [JsonProperty("party")]
         public string? PartyLeader { get; protected set; }
 
         /// <summary>
@@ -97,7 +89,13 @@ namespace AL.SocketClient.Model
         /// <summary>
         ///     Whether or not you are dead.
         /// </summary>
+        /// <remarks>
+        ///     The server sends <c>true</c> or, once a gravestone cosmetic is chosen, the cosmetic's name -
+        ///     which is the same true-or-string shape AFK has, so it reuses that converter. The cosmetic
+        ///     name itself is of no use to a headless client.
+        /// </remarks>
         [JsonProperty]
+        [JsonConverter(typeof(AfkConverter))]
         public bool RIP { get; protected set; }
 
         /// <summary>
@@ -170,6 +168,19 @@ namespace AL.SocketClient.Model
             }
 
             base.Update(other);
+        }
+
+        /// <summary>
+        ///     System.Text.Json post-deserialize step: the wire only carries the equipment slots that are
+        ///     populated, so fill every missing <see cref="Slot" /> with null. This reproduces the Newtonsoft
+        ///     PlayerConverter enrich; unlike that converter it also runs for a bare <see cref="Player" />.
+        /// </summary>
+        public virtual void OnDeserialized()
+        {
+            var playerSlots = (Dictionary<Slot, SlotItem?>)Slots;
+
+            foreach (var slot in Enum.GetValues<Slot>())
+                playerSlots.TryAdd(slot, null);
         }
     }
 }

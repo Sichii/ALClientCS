@@ -1,4 +1,4 @@
-﻿using AL.Core.Interfaces;
+using AL.Core.Interfaces;
 using Newtonsoft.Json;
 
 namespace AL.APIClient.Model
@@ -28,9 +28,15 @@ namespace AL.APIClient.Model
         public string Name { get; init; } = null!;
 
         /// <summary>
-        ///     Whether or not the character is already logged in.
+        ///     Milliseconds since the character was last seen online; 0 when it is not currently logged in.
         /// </summary>
-        public bool Online { get; init; }
+        public long Online { get; init; }
+
+        /// <summary>
+        ///     Whether the character is currently logged in.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsOnline => Online != 0;
 
         /// <summary>
         ///     TODO: unknown
@@ -38,7 +44,7 @@ namespace AL.APIClient.Model
         public string? Secret { get; init; }
 
         /// <summary>
-        ///     If the character is <see cref="Online" />, this is the <see cref="AL.APIClient.Definitions.ServerRegion" /> and
+        ///     If the character is <see cref="IsOnline" />, this is the <see cref="AL.APIClient.Definitions.ServerRegion" /> and
         ///     <see cref="AL.APIClient.Definitions.ServerId" />
         /// </summary>
         [JsonProperty("server")]

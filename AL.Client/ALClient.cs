@@ -34,6 +34,7 @@ using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
+using Chaos.Common.Synchronization;
 using Chaos.Extensions.Common;
 using Chaos.Time.Abstractions;
 using Common.Logging;
@@ -51,11 +52,11 @@ namespace AL.Client;
 ///     Provides the ability to interact with the Adventure.Land socket server.
 /// </summary>
 /// <seealso cref="IAsyncDisposable" />
-public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
+public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 {
     private readonly EntityManager EntityManager;
     private readonly PingManager PingManager;
-    private readonly SemaphoreSlim Sync = new(1, 1);
+    private readonly FifoAutoReleasingSemaphoreSlim Sync = new(1, 1);
 
     /// <summary>
     ///     This will be populated and persist after the first time this character enters the bank.
@@ -72,9 +73,33 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
 
     /// <summary>
+    ///     The emotions this character has unlocked and their unlock timestamps. Populated from <c>start</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Start-only data (node/server.js:10577); the server never re-sends it on a <c>player</c> frame.
+    /// </remarks>
+    public IReadOnlyDictionary<Emotion, float> Emotion { get; private set; }
+
+    /// <summary>
     ///     This will be populated upon connecting. The bosses and events currently active on this <see cref="Server" />.
     /// </summary>
     public EventAndBossInfo EventsAndBosses { get; private set; }
+
+    /// <summary>
+    ///     The names of the characters on this account's friends list. Populated from <c>start</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Start-only data (node/server.js:10574); the server never re-sends it on a <c>player</c> frame.
+    /// </remarks>
+    public IReadOnlyList<string> Friends { get; private set; }
+
+    /// <summary>
+    ///     A collection of all of the cosmetics owned by this character. Populated from <c>start</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Start-only data (node/server.js:10575); the server never re-sends it on a <c>player</c> frame.
+    /// </remarks>
+    public IReadOnlyDictionary<string, int> OwnedCosmetics { get; private set; }
 
     /// <summary>
     ///     The <see cref="Character" />'s unique identifier, as fetched via the <see cref="API" />.
@@ -206,7 +231,10 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         Projectiles = new ConcurrentDictionary<string, ActionData>();
         BaseGold = new Dictionary<string, IReadOnlyDictionary<string, int>>();
         Cooldowns = new ConcurrentDictionary<string, CooldownInfo>(StringComparer.OrdinalIgnoreCase);
+        Emotion = new Dictionary<Emotion, float>();
         EventsAndBosses = new EventAndBossInfo();
+        Friends = new List<string>();
+        OwnedCosmetics = new Dictionary<string, int>();
         Chests = new ConcurrentDictionary<string, DropData>();
         Socket = socketClient ?? throw new ArgumentNullException(nameof(socketClient));
         Server = null!;
@@ -244,6 +272,34 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     // ReSharper disable once EventNeverSubscribedTo.Global
     public event EventHandler<InviteData>? OnPartyInvite;
+
+    /// <summary>
+    ///     An event fired when another character requests to join your party (the counterpart of
+    ///     <see cref="OnPartyInvite" />).
+    /// </summary>
+    public event EventHandler<RequestData>? OnPartyRequest;
+
+    /// <summary>
+    ///     An event fired when a code-manager message is received - the channel AL bots use to coordinate a
+    ///     multi-character party.
+    /// </summary>
+    public event EventHandler<CmData>? OnCodeMessage;
+
+    /// <summary>
+    ///     An event fired when a mage offers this character a magiport. Pass <see cref="MagiportData.Name" /> to
+    ///     <see cref="AcceptMagiportAsync" /> to accept.
+    /// </summary>
+    public event EventHandler<MagiportData>? OnMagiport;
+
+    /// <summary>
+    ///     An event fired when a boss/holiday event spawns on the server.
+    /// </summary>
+    public event EventHandler<GameEventData>? OnGameEvent;
+
+    /// <summary>
+    ///     An event fired when this character is credited with a monster kill.
+    /// </summary>
+    public event EventHandler<KillCreditData>? OnKillCredit;
 
     #region Checks
     /// <summary>
@@ -286,10 +342,11 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data == null)
             return false;
 
-        var price = data.Gold;
+        //"g" is the item's value; "gold" on an item is the gold-find stat and is 0 for almost everything
+        var price = data.GoldValue;
 
         if (fromPonty)
-            price *= CONSTANTS.PONTY_MARKUP;
+            price *= data.Cash > 0 ? CONSTANTS.PONTY_CASH_MARKUP : CONSTANTS.PONTY_MARKUP;
 
         if (price > Character.Gold)
             return false;
@@ -358,8 +415,8 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             return false;
 
         foreach ((var quantity, var name, var level) in data.Recipe!.Items)
-            if (Character.Inventory.FindItem(name, level, quantity) == null)
-                if (!includeBank || (Bank?.FindItem(name, level, quantity) == null))
+            if (Character.Inventory.FindItem(name, level, (int?)quantity) == null)
+                if (!includeBank || (Bank?.FindItem(name, level, (int?)quantity) == null))
                     return false;
 
         return !distanceCheck
@@ -605,6 +662,23 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Checks if a target is within trade range
+    /// </summary>
+    public bool WithinTradeRange(Player player) => Character.EdgeToEdgeDistance(player) < CORE_CONSTANTS.TRADE_RANGE;
+
+    /// <summary>
+    ///     Checks if a target is within range
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public bool WithinRange(IRectangle target, float range, DistanceType distanceType) => distanceType switch
+    {
+        DistanceType.CenterToCenter => Character.Distance(target) < range,
+        DistanceType.EdgeToCenter   => Character.EdgeToCenterDistance(target) < range,
+        DistanceType.EdgeToEdge     => Character.EdgeToEdgeDistance(target) < range,
+        _                           => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
+    };
+
+    /// <summary>
     ///     Checks if a target is within range of a skill.
     /// </summary>
     /// <param name="target">
@@ -634,7 +708,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     target
     /// </exception>
-    public bool WithinSkillRange(IRectangle target, string skillName, DistanceType distanceType = DistanceType.CenterToCenter)
+    public bool WithinSkillRange(IRectangle target, string skillName, DistanceType distanceType = DistanceType.EdgeToEdge)
     {
         if (string.IsNullOrEmpty(skillName))
             throw new ArgumentNullException(nameof(skillName));
@@ -658,6 +732,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             range *= data.RangeMultiplier.Value;
 
         range += data.RangeBonus;
+        range *= 0.95f; //for safety
 
         return distanceType switch
         {
@@ -698,7 +773,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (nData.Role == NPCRole.Transport)
             range = CORE_CONSTANTS.TRANSPORTER_RANGE;
 
-        return Character.Distance(npc)
+        return Character.EdgeToEdgeDistance(npc)
                         .IsLess(range, CORE_CONSTANTS.EPSILON);
     }
     #endregion
@@ -739,15 +814,8 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         Identifier = charInfo.Id;
         Server = serverInfo ?? throw new InvalidOperationException($@"Server {region} {identifier} not found.");
 
-        await Sync.WaitAsync();
-
-        try
-        {
-            await InternalConnectAsync();
-        } finally
-        {
-            Sync.Release();
-        }
+        await using var @lock = await Sync.WaitAsync();
+        await InternalConnectAsync();
     }
 
     protected async Task InternalConnectAsync()
@@ -759,6 +827,27 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         using var gameErrorCallback = Socket.On<GameMessageData>(
             ALSocketMessageType.GameError,
             data => Task.FromResult(source.TrySetResult(data.Message)));
+
+        using var gameLogCallback = Socket.On<GameMessageData>(
+            ALSocketMessageType.GameLog,
+            data =>
+            {
+                //the auth handler answers two rejection paths with game_log, not game_error (node/server.js:
+                //10307,10310,10313). Fail the handshake fast on exactly those so the reconnect loop reacts at
+                //once rather than waiting out the login timeout. game_log is also the channel for benign in-game
+                //notices (loot, kills, purchases), so match the specific messages - never abort login on any
+                //game_log. "Authorization in progress." is transient (dc_players clears within ~24s and a retry
+                //succeeds); "Wrong passphrase!" is terminal.
+                if (data.Message.EqualsI("Authorization in progress."))
+                    source.TrySetResult(data.Message);
+                else if (data.Message.EqualsI("Wrong passphrase!"))
+                {
+                    FatalError = "wrong_passphrase";
+                    source.TrySetResult(data.Message);
+                }
+
+                return TaskCache.FALSE;
+            });
 
         using var welcomeCallback = Socket.On<WelcomeData>(
             ALSocketMessageType.Welcome,
@@ -776,7 +865,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                         no_html = "1",
                         passphrase = string.Empty,
                         scale = 2,
-                        user = API.Auth.UserID.ToString(),
+                        user = API.Auth.UserID,
                         width = 1920
                     });
 
@@ -802,8 +891,20 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         PingManager.Start();
     }
 
+    /// <summary>
+    ///     Set when the client has stopped and will not reconnect on its own: the server rejected this
+    ///     character terminally (<c>"limits"</c> / <c>"wrong_passphrase"</c>) or every reconnect attempt was
+    ///     exhausted. A bot script should poll this and stop its loops - unlike a transient drop, the client
+    ///     will not recover without being recreated. <c>null</c> while the client is healthy.
+    /// </summary>
+    public string? FatalError { get; private set; }
+
     protected async Task ReconnectAsync()
     {
+        //read the server's parting reason off the old socket before disposing it - dispose does not clear
+        //the captured value, but the field must be read before Socket is reassigned below.
+        var reason = Socket.LastDisconnectReason;
+
         try
         {
             await Socket.DisposeAsync();
@@ -812,7 +913,37 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             //ignored
         }
 
+        //"limits": the server refused this character for this session (node/server.js:10564). Retrying
+        //cannot help, so surface it and stop rather than hammering the connection.
+        if (reason.EqualsI("limits"))
+        {
+            Logger.Fatal("Server refused this character (\"limits\"); not reconnecting.");
+            FatalError = "limits";
+
+            return;
+        }
+
+        //a terminal auth failure (e.g. wrong passphrase) may already have been flagged during a prior
+        //handshake - do not attempt to reconnect into it.
+        if (FatalError != null)
+        {
+            Logger.Fatal($"Not reconnecting ({FatalError}).");
+
+            return;
+        }
+
         var logger = new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>());
+
+        //"limitdc": a rate-limit kick. An immediate reconnect re-enters the kick condition at 4x sensitivity
+        //while unauthenticated (node/server.js:4330) and dc_players is only cleared roughly every 24s
+        //(:14883), so honor a cooldown before the first attempt - the browser waits ~20s (rc_delay 16 plus a
+        //3-4s base, js/game.js:2779 + :224-249).
+        if (reason.EqualsI("limitdc"))
+        {
+            Logger.Warn("Rate-limit disconnect (\"limitdc\"); waiting 20s before reconnecting.");
+
+            await Task.Delay(1000 * 20);
+        }
 
         var reconnectCount = 0;
 
@@ -820,20 +951,31 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             try
             {
                 Socket = new ALSocketClient(logger);
-                Logger.Info($"Attemping to reconnect. (Retry: {++reconnectCount})");
+                Logger.Info($"Attempting to reconnect. (Retry: {++reconnectCount})");
 
                 await InternalConnectAsync();
 
                 return;
             } catch
             {
-                Logger.Error("Reconnect failed, waiting 10s to retry...");
+                //a terminal failure discovered during the handshake must not be retried
+                if (FatalError != null)
+                {
+                    Logger.Fatal($"Not reconnecting ({FatalError}).");
 
-                await Task.Delay(1000 * 10);
+                    return;
+                }
+
+                //the browser's base reconnect delay is a 3-4s wait (js/game.js:224-249), not the flat 10s this
+                //used - which, stacked on the 10s login timeout, cost 20s on every transient drop.
+                Logger.Error("Reconnect failed, waiting 4s to retry...");
+
+                await Task.Delay(1000 * 4);
             }
 
+        //a library must not kill the host process; surface the terminal state and let the bot decide.
         Logger.Fatal("Reconnect attempts failed.");
-        Environment.Exit(-1);
+        FatalError = "reconnect_failed";
     }
 
     /// <summary>
@@ -841,17 +983,11 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public async Task DisconnectAsync()
     {
-        await Sync.WaitAsync();
+        await using var @lock = await Sync.WaitAsync();
+        
+        Logger.Warn("Disconnecting");
 
-        try
-        {
-            Logger.Warn("Disconnecting");
-
-            await Socket.DisconnectAsync();
-        } finally
-        {
-            Sync.Release();
-        }
+        await Socket.DisconnectAsync();
     }
     #endregion
 
@@ -1059,26 +1195,34 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.Disabled when data.TargetId!.EqualsI(targetId) => source.TrySetResult(
+                    GameResponseType.Disabled when targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"Attack on {targetId} failed. (disabled)"),
-                    GameResponseType.AttackFailed when data.TargetId!.EqualsI(targetId) => source.TrySetResult(
+                    GameResponseType.AttackFailed when targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"Attack on {targetId} failed. (attack failed)"),
-                    GameResponseType.TooFar when data.TargetId!.EqualsI(targetId) => source.TrySetResult(
+                    GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"Attack on {targetId} failed. (too far: {data.Distance:N2})"),
-                    GameResponseType.Cooldown when data.TargetId!.EqualsI(targetId) => source.TrySetResult(
+                    GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS:N2}"),
-                    GameResponseType.NoMP when data.Place == "attack" => source.TrySetResult(
+
+                    //attack has no mp cost in the game data, so its no_mp frame is bare;
+                    //skills that do have one are rejected earlier and carry a place
+                    GameResponseType.NoMP when string.IsNullOrEmpty(data.Place) || "attack".EqualsI(data.Place) => source.TrySetResult(
                         $"Attack on {targetId} failed. (not enough mp)"),
+                    _ when data.Failed && "attack".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Attack on {targetId} failed. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
                 return Task.FromResult(result);
             });
 
-        using var notThereCallback = Socket.On<NotThereData>(
-            ALSocketMessageType.NotThere,
+        //the server folded the old "notthere" event into disappear
+        using var disappearCallback = Socket.On<DisappearData>(
+            ALSocketMessageType.Disappear,
             data => Task.FromResult(
-                data.Source.EqualsI("attack") && source.TrySetResult($"Attack on {targetId} failed. (invalid target)")));
+                data.Id.EqualsI(targetId)
+                && data.Reason.EqualsI("not_there")
+                && source.TrySetResult($"Attack on {targetId} failed. (target not there)")));
 
         using var actionCallback = Socket.On<ActionData>(
             ALSocketMessageType.Action,
@@ -1154,7 +1298,9 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.BuyCantNPC   => source.TrySetResult($"Failed to buy {itemName}. (wrong npc)"),
                     GameResponseType.BuyCantSpace => source.TrySetResult($"Failed to buy {itemName}. (not enough space)"),
                     GameResponseType.BuyCost      => source.TrySetResult($"Failed to buy {itemName}. (not enough gold)"),
-                    GameResponseType.BuyGetCloser => source.TrySetResult($"Failed to buy {itemName}. (get closer: {data.Distance:N2})"),
+                    GameResponseType.Distance when "buy".EqualsI(data.Place!) => source.TrySetResult($"Failed to buy {itemName}. (get closer)"),
+                    _ when data.Failed && "buy".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to buy {itemName}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                             => false
                 };
 
@@ -1243,8 +1389,10 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = false;
 
-                if (data.ResponseType == GameResponseType.TradeGetCloser)
+                if ((data.ResponseType == GameResponseType.Distance) && "trade_buy".EqualsI(data.Place!))
                     result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (get closer)");
+                else if (data.Failed && "trade_buy".EqualsI(data.Place!))
+                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({data.Reason ?? data.ResponseType.ToString()})");
 
                 return Task.FromResult(result);
             });
@@ -1394,6 +1542,43 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         return await source.Task.WithNetworkTimeout();
     }
 
+    public async Task<bool> DismantleAsync(int inventorySlot)
+    {
+        var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.Dismantle when data.Success => source.TrySetResult(true),
+
+                    //the server folds "no item" into dismantle_cant - there is no dedicated no-item code
+                    GameResponseType.DismantleCant => source.TrySetResult(false),
+                    _ when data.Failed && "dismantle".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to dismantle. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Dismantle,
+            new
+            {
+                num = inventorySlot,
+            });
+
+        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
+        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        var expectation = await source.Task.WithTimeout(60000);
+        expectation.ThrowIfUnsuccessful();
+
+        return expectation.Result ?? false;
+    }
+    
     /// <summary>
     ///     Attempts to compound 3 items of the same level/name.
     /// </summary>
@@ -1447,7 +1632,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                         "Failed to compound. (misc, more than 1 issue)"),
 
                     //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
-                    GameResponseType.CompoundNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
+                    GameResponseType.NoItem                     => source.TrySetResult("Failed to compound. (items not the same)"),
                     GameResponseType.CompoundInProgress         => source.TrySetResult("Failed to compound. (already compounding)"),
                     GameResponseType.CompoundIncompatibleScroll => source.TrySetResult("Failed to compound. (wrong scroll)"),
                     GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
@@ -1455,10 +1640,17 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
                     GameResponseType.Exception when data.Place!.EqualsI("compound") => source.TrySetResult(
                         "Failed to compound. (exception, major issues)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to compound. (can't compound from bank)"),
-                    GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to compound. (get closer)"),
-                    GameResponseType.CompoundSuccess  => source.TrySetResult(true),
-                    GameResponseType.CompoundFail     => source.TrySetResult(false),
+                    GameResponseType.CantInBank       => source.TrySetResult("Failed to compound. (can't compound from bank)"),
+                    GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult("Failed to compound. (get closer)"),
+
+                    //arrives as a bare string, so it carries neither Failed nor Place and the default arm cannot see it
+                    GameResponseType.CompoundNoScroll => source.TrySetResult("Failed to compound. (no scroll)"),
+
+                    //a stale frame is the completion of an await that died with the previous session
+                    GameResponseType.CompoundSuccess when !data.Stale => source.TrySetResult(true),
+                    GameResponseType.CompoundFail when !data.Stale => source.TrySetResult(false),
+                    _ when data.Failed && "compound".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to compound. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                                 => false
                 };
 
@@ -1480,7 +1672,12 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 offering_num = offeringIndex
             });
 
-        return await source.Task.WithTimeout(60000);
+        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
+        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        var expectation = await source.Task.WithTimeout(60000);
+        expectation.ThrowIfUnsuccessful();
+
+        return expectation.Result ?? false;
     }
 
     /// <summary>
@@ -1529,7 +1726,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                         "Failed to compound. (misc, more than 1 issue)"),
 
                     //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
-                    GameResponseType.CompoundNoItem             => source.TrySetResult("Failed to compound. (items not the same)"),
+                    GameResponseType.NoItem                     => source.TrySetResult("Failed to compound. (items not the same)"),
                     GameResponseType.CompoundInProgress         => source.TrySetResult("Failed to compound. (already compounding)"),
                     GameResponseType.CompoundIncompatibleScroll => source.TrySetResult("Failed to compound. (wrong scroll)"),
                     GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
@@ -1537,14 +1734,19 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
                     GameResponseType.Exception when data.Place!.EqualsI("compound") => source.TrySetResult(
                         "Failed to compound. (exception, major issues)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to compound. (can't compound from bank)"),
-                    GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to compound. (get closer)"),
+                    GameResponseType.CantInBank       => source.TrySetResult("Failed to compound. (can't compound from bank)"),
+                    GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult("Failed to compound. (get closer)"),
+
+                    //arrives as a bare string, so it carries neither Failed nor Place and the default arm cannot see it
+                    GameResponseType.CompoundNoScroll => source.TrySetResult("Failed to compound. (no scroll)"),
                     GameResponseType.CompoundChance when data.Item?.Name.EqualsI(item?.Name!) ?? false => source.TrySetResult(
                         data.Item with
                         {
                             Grace = data.Grace,
                             Chance = data.Chance
                         }),
+                    _ when data.Failed && "compound".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to compound. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -1604,7 +1806,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         foreach ((var quantity, var name, var level) in recipe.Items)
         {
-            var result = Character.Inventory.FindItem(name, level, quantity);
+            var result = Character.Inventory.FindItem(name, level, (int?)quantity);
 
             if (result == null)
                 throw new InvalidOperationException($"Failed to craft {itemName}. (missing component)");
@@ -1622,7 +1824,9 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     GameResponseType.NoItem        => source.TrySetResult($"Failed to craft {itemName}. (missing component)"),
-                    GameResponseType.NotEnoughGold => source.TrySetResult($"Failed to craft {itemName}. (not enough gold"),
+                    GameResponseType.GoldNotEnough => source.TrySetResult($"Failed to craft {itemName}. (not enough gold"),
+                    _ when data.Failed && "craft".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to craft {itemName}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                              => false
                 };
 
@@ -1645,14 +1849,19 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
+        //the server reads x[1] as the inventory slot and x[0] as the position in the craft grid,
+        //and it reads them off an "items" property rather than a bare array
         await Socket.EmitAsync(
             ALSocketEmitType.Craft,
-            slots.Select(
-                (index, slot) => new[]
-                {
-                    index,
-                    slot
-                }));
+            new
+            {
+                items = slots.Select(
+                    (inventorySlot, gridPosition) => new[]
+                    {
+                        gridPosition,
+                        inventorySlot
+                    })
+            });
 
         return await source.Task.WithNetworkTimeout();
     }
@@ -1910,9 +2119,11 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 {
                     GameResponseType.ExchangeNotEnough => source.TrySetResult(
                         $"Failed to exchange. (youd to not have {itemData.ExchangeCount})"),
-                    GameResponseType.ECUGetCloser     => source.TrySetResult("Failed to exchange. (get closer)"),
+                    GameResponseType.Distance when "exchange".EqualsI(data.Place!) => source.TrySetResult("Failed to exchange. (get closer)"),
                     GameResponseType.ExchangeExisting => source.TrySetResult("Failed to exchange. (already exchanging)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to exchange. (can't exchange from bank)"),
+                    GameResponseType.CantInBank       => source.TrySetResult("Failed to exchange. (can't exchange from bank)"),
+                    _ when data.Failed && "exchange".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to exchange. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                                 => false
                 };
 
@@ -1976,6 +2187,8 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     GameResponseType.CantEscape => source.TrySetResult("Failed to leave map. (can't escape)"),
+                    _ when data.Failed && "leave".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to leave map. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                           => false
                 };
 
@@ -2043,9 +2256,14 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.ECUGetCloser        => source.TrySetResult("Failed to monsterhunt. (get closer)"),
+                    GameResponseType.Distance when "monsterhunt".EqualsI(data.Place!) => source.TrySetResult("Failed to monsterhunt. (get closer)"),
                     GameResponseType.MonsterHuntStarted  => source.TrySetResult(true),
                     GameResponseType.MonsterHuntMerchant => source.TrySetResult("Failed to monsterhunt. (merchants can't monsterhunt)"),
+
+                    //turning in a finished hunt answers with this instead of monsterhunt_started
+                    GameResponseType.Data when data.Success && "monsterhunt".EqualsI(data.Place!) => source.TrySetResult(true),
+                    _ when data.Failed && "monsterhunt".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to monsterhunt. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                                    => false
                 };
 
@@ -2120,7 +2338,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                     }
 
                     //if we should have reasonably received correct movement data
-                    if (elapsed > (PingManager.Offset * 3))
+                    if (elapsed > (PingManager.MinimumOffset * 3))
                     {
                         //request new movement data from the server
                         Logger.Debug("Correcting position");
@@ -2389,7 +2607,9 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to get ponty items. (get closer)"),
+                    GameResponseType.Distance     => source.TrySetResult("Failed to get ponty items. (get closer)"),
+                    _ when data.Failed && "secondhands".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to get ponty items. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                             => false
                 };
 
@@ -2406,6 +2626,100 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             });
 
         await Socket.EmitAsync(ALSocketEmitType.SecondHands);
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
+
+    /// <summary>
+    ///     Asynchronously fetches the lost-and-found stock, mirroring <see cref="RequestPontyItemsAsync" />
+    ///     (node/server.js:7334). Requires a prior 1,000,000+ gold donation server-side; without it the server
+    ///     replies with an unmodelled <c>lostandfound_donate</c> response and this call faults on timeout.
+    /// </summary>
+    /// <returns>
+    ///     <see cref="IReadOnlyList{T}" /> of <see cref="TradeItem" />
+    ///     <br />
+    ///     The items currently in lost-and-found.
+    /// </returns>
+    public async Task<IReadOnlyList<TradeItem>> RequestLostAndFoundItemsAsync()
+    {
+        var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.Distance => source.TrySetResult("Failed to get lost-and-found items. (get closer)"),
+                    _                         => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        using var lostAndFoundCallback = Socket.On<TradeItem[]>(
+            ALSocketMessageType.LostAndFound,
+            data =>
+            {
+                source.TrySetResult(data);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(ALSocketEmitType.LostAndFound);
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
+
+    /// <summary>
+    ///     Asynchronously fetches this character's merchant trade history (node/server.js:8292).
+    /// </summary>
+    /// <returns>
+    ///     <see cref="IReadOnlyList{T}" /> of <see cref="TradeHistoryEntry" />
+    ///     <br />
+    ///     The most recent trades, oldest first.
+    /// </returns>
+    public async Task<IReadOnlyList<TradeHistoryEntry>> RequestTradeHistoryAsync()
+    {
+        var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeHistoryEntry>>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var tradeHistoryCallback = Socket.On<TradeHistoryEntry[]>(
+            ALSocketMessageType.TradeHistory,
+            data =>
+            {
+                source.TrySetResult(data);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(ALSocketEmitType.TradeHistory);
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
+
+    /// <summary>
+    ///     Asynchronously fetches the monster/drop tracker snapshot (node/server.js:4987). Requires the tracker
+    ///     item server-side; without it the server replies nothing and this call faults on timeout.
+    /// </summary>
+    /// <returns>
+    ///     <see cref="TrackerData" />
+    ///     <br />
+    ///     Kill counts, exchange counts and drop tables.
+    /// </returns>
+    public async Task<TrackerData> RequestTrackerAsync()
+    {
+        var source = new TaskCompletionSource<Expectation<TrackerData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var trackerCallback = Socket.On<TrackerData>(
+            ALSocketMessageType.Tracker,
+            data =>
+            {
+                source.TrySetResult(data);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(ALSocketEmitType.Tracker);
 
         return (await source.Task.WithNetworkTimeout()).Result;
     }
@@ -2482,8 +2796,10 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.BankRestrictions => source.TrySetResult($"Failed to sell item {item.Name}. (can't sell from bank)"),
-                    GameResponseType.SellGetCloser    => source.TrySetResult($"Failed to sell item {item.Name}. (get closer)"),
+                    GameResponseType.CantInBank => source.TrySetResult($"Failed to sell item {item.Name}. (can't sell from bank)"),
+                    GameResponseType.Distance when "sell".EqualsI(data.Place!) => source.TrySetResult($"Failed to sell item {item.Name}. (get closer)"),
+                    _ when data.Failed && "sell".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to sell item {item.Name}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _                                 => false
                 };
 
@@ -2547,7 +2863,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (!Players.TryGetValue(toPlayerId, out var player))
                 throw new InvalidOperationException($"Failed to send {amount} gold to {toPlayerId}. (get closer)");
 
-            if (Character.DistanceWithMapCheck(player) > CORE_CONSTANTS.NPC_RANGE)
+            if (Character.DistanceWithMapCheck(player) > CORE_CONSTANTS.TRADE_RANGE)
                 throw new InvalidOperationException($"Failed to send {amount} gold to {toPlayerId}. (get closer)");
         }
 
@@ -2560,10 +2876,10 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.OperationUnavailable => source.TrySetResult(
-                        $"Failed to send {amount} gold to {toPlayerId}. (target not online)"),
-                    GameResponseType.TradeGetCloser => source.TrySetResult($"Failed to send {amount} gold to {toPlayerId}. (get closer)"),
-                    _                               => false
+                    GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult($"Failed to send {amount} gold to {toPlayerId}. (get closer)"),
+                    _ when data.Failed && "send".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to send {amount} gold to {toPlayerId}. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -2642,7 +2958,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (!Players.TryGetValue(toPlayerId, out var toPlayer))
                 throw new InvalidOperationException($"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)");
 
-            if (Character.DistanceWithMapCheck(toPlayer) > CORE_CONSTANTS.NPC_RANGE)
+            if (Character.DistanceWithMapCheck(toPlayer) > CORE_CONSTANTS.TRADE_RANGE)
                 throw new InvalidOperationException($"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)");
         }
 
@@ -2658,15 +2974,15 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (no item)"),
                     GameResponseType.SendNoSpace => source.TrySetResult(
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (target no space)"),
-                    GameResponseType.TradeGetCloser => source.TrySetResult(
+                    GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)"),
-                    GameResponseType.OperationUnavailable => source.TrySetResult(
-                        $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (target not online)"),
 
                     //this is ok because it happens after we receive new player data
-                    GameResponseType.ItemSent when data.Name!.EqualsI(toPlayerId)
+                    GameResponseType.ItemSent when toPlayerId.EqualsI(data.Name!)
                                                    && (data.Item?.Name.EqualsI(item.Name) == true)
                                                    && (data.Quantity == quantity) => source.TrySetResult(Expectation.Success),
+                    _ when data.Failed && "send".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -2798,6 +3114,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     locations
     /// </exception>
+    [OverloadResolutionPriority(1)]
     public Task SmartMoveAsync(
         ILocation location,
         float distance = 0,
@@ -2881,14 +3198,15 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             try
             {
                 await HandlePathConnectorAsync(edge, cancellationToken);
+            } catch (OperationCanceledException)
+            {
+                break;
             } catch (InvalidOperationException e)
             {
                 if (e.Message.ContainsI("failed to town"))
-                {
                     await SmartMoveAsync(ends, false, cancellationToken);
 
-                    break;
-                }
+                break;
             }
         }
     }
@@ -3025,6 +3343,17 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             cancellationToken);
     }
 
+
+    public Task SmartMoveNearAreaAsync(
+        InscribedBoundary boundary,
+        bool usetownIfOptimal = true,
+        CancellationToken? cancellationToken = null)
+        => SmartMoveAsync(
+            boundary,
+            boundary.Radius,
+            usetownIfOptimal,
+            cancellationToken);
+    
     /// <summary>
     ///     Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
     /// </summary>
@@ -3175,8 +3504,12 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.BankOperation when data.Reason!.EqualsI("mounted") => source.TrySetResult(
-                        "Transport failed. (character already in bank)"),
+                    GameResponseType.TransportFailed    => source.TrySetResult("Transport failed. (can't walk, or jailed)"),
+                    GameResponseType.CantEnter          => source.TrySetResult("Transport failed. (can't enter)"),
+                    GameResponseType.CantEscape         => source.TrySetResult("Transport failed. (can't escape)"),
+                    GameResponseType.TransportCantReach => source.TrySetResult("Transport failed. (can't reach)"),
+                    _ when data.Failed && "transport".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Transport failed. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -3316,10 +3649,17 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.UpgradeMismatch => source.TrySetResult("Failed to upgrade. (unknown, this seems to be a catch-all)"),
                     GameResponseType.UpgradeCant => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
                     GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to upgrade. (offering is not an offering)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
-                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to upgrade. (get closer)"),
-                    GameResponseType.UpgradeSuccess => source.TrySetResult(true),
-                    GameResponseType.UpgradeFail => source.TrySetResult(false),
+                    GameResponseType.CantInBank => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
+                    GameResponseType.Distance when "upgrade".EqualsI(data.Place!) => source.TrySetResult("Failed to upgrade. (get closer)"),
+
+                    //this frame carries neither Failed nor Place, so the default arm cannot see it
+                    GameResponseType.UpgradeScrollQ => source.TrySetResult("Failed to upgrade. (not enough scrolls)"),
+
+                    //a stale frame is the completion of an await that died with the previous session
+                    GameResponseType.UpgradeSuccess when !data.Stale => source.TrySetResult(true),
+                    GameResponseType.UpgradeFail when !data.Stale => source.TrySetResult(false),
+                    _ when data.Failed && "upgrade".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to upgrade. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -3336,7 +3676,12 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 clevel = item?.Level ?? 0
             });
 
-        return await source.Task.WithTimeout(60000);
+        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
+        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        var expectation = await source.Task.WithTimeout(60000);
+        expectation.ThrowIfUnsuccessful();
+
+        return expectation.Result ?? false;
     }
 
     /// <summary>
@@ -3377,14 +3722,19 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.UpgradeMismatch => source.TrySetResult("Failed to upgrade. (unknown, this seems to be a catch-all)"),
                     GameResponseType.UpgradeCant => source.TrySetResult("Failed to upgrade. (item not upgradable)"),
                     GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to upgrade. (offering is not an offering)"),
-                    GameResponseType.BankRestrictions => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
-                    GameResponseType.ECUGetCloser => source.TrySetResult("Failed to upgrade. (get closer)"),
+                    GameResponseType.CantInBank => source.TrySetResult("Failed to upgrade. (can't upgrade from bank)"),
+                    GameResponseType.Distance when "upgrade".EqualsI(data.Place!) => source.TrySetResult("Failed to upgrade. (get closer)"),
+
+                    //this frame carries neither Failed nor Place, so the default arm cannot see it
+                    GameResponseType.UpgradeScrollQ => source.TrySetResult("Failed to upgrade. (not enough scrolls)"),
                     GameResponseType.UpgradeChance when data.Item?.Name.EqualsI(item?.Name!) ?? false => source.TrySetResult(
                         data.Item with
                         {
                             Grace = data.Grace,
                             Chance = data.Chance
                         }),
+                    _ when data.Failed && "upgrade".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to upgrade. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -3398,7 +3748,11 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 item_num = inventorySlot,
                 scroll_num = scrollIndex,
                 offering_num = offeringIndex,
-                clevel = item?.Level ?? 0
+                clevel = item?.Level ?? 0,
+
+                //without this the server performs the upgrade for real - consuming the scroll and
+                //possibly destroying the item - and never sends upgrade_chance
+                calculate = 1
             });
 
         return await source.Task.WithTimeout(60000);
@@ -3764,6 +4118,12 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         Socket.On<HitData>(ALSocketMessageType.Hit, OnHitAsync);
         Socket.On<NewMapData>(ALSocketMessageType.NewMap, OnNewMapAsync);
         Socket.On<EventAndBossData>(ALSocketMessageType.ServerInfo, OnServerInfo);
+        Socket.On<SkillTimeoutData>(ALSocketMessageType.SkillTimeout, OnSkillTimeoutAsync);
+        Socket.On<RequestData>(ALSocketMessageType.Request, OnPartyRequested);
+        Socket.On<CmData>(ALSocketMessageType.Cm, OnCodeMessageReceived);
+        Socket.On<MagiportData>(ALSocketMessageType.Magiport, OnMagiportOffered);
+        Socket.On<GameEventData>(ALSocketMessageType.GameEvent, OnGameEventReceived);
+        Socket.On<KillCreditData>(ALSocketMessageType.KillCredit, OnKillCredited);
 
         EntityManager.AttachListener();
     }
@@ -3778,6 +4138,41 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
     protected Task<bool> OnPartyInvited(InviteData data)
     {
         OnPartyInvite?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    protected Task<bool> OnPartyRequested(RequestData data)
+    {
+        OnPartyRequest?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    protected Task<bool> OnCodeMessageReceived(CmData data)
+    {
+        OnCodeMessage?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    protected Task<bool> OnMagiportOffered(MagiportData data)
+    {
+        OnMagiport?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    protected Task<bool> OnGameEventReceived(GameEventData data)
+    {
+        OnGameEvent?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    protected Task<bool> OnKillCredited(KillCreditData data)
+    {
+        OnKillCredit?.Invoke(this, data);
 
         return TaskCache.FALSE;
     }
@@ -3799,7 +4194,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected async Task<bool> OnCharacterAsync(CharacterData data)
     {
-        data.CompensateOnce(PingManager.Offset);
+        data.CompensateOnce(PingManager.MinimumOffset);
         ShallowMerge<Character>.Merge(data, Character);
 
         //keep a copy of the bank data
@@ -3809,9 +4204,16 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data.ExtraEvents.Count > 0)
             foreach (var jArr in data.ExtraEvents)
             {
-                var raw = jArr.ToString();
+                var raw = jArr.ToJsonString();
 
-                await Socket.HandleEventAsync(raw);
+                //one bad hitchhiker must not skip the rest of the batch - upgrade results arrive here in pairs
+                try
+                {
+                    await Socket.HandleEventAsync(raw);
+                } catch (Exception e)
+                {
+                    Logger.Error($"Failed to handle hitchhiked event. ({raw}){Environment.NewLine}{e}");
+                }
             }
 
         return false;
@@ -3819,7 +4221,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnCorrectionAsync(CorrectionData data)
     {
-        Character.CorrectAndCompensate(data, PingManager.Offset);
+        Character.CorrectAndCompensate(data, PingManager.MinimumOffset);
 
         return TaskCache.FALSE;
     }
@@ -3847,6 +4249,15 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnEntitiesAsync(EntitiesData data)
     {
+        //a transport races new_map against in-flight entities for the previous instance (node/server.js:4177):
+        //a frame whose instance no longer matches ours is stale and would corrupt the current map's entity
+        //state, so drop it (mirrors js/game.js:2948). EntityBase.In is unbound under Newtonsoft (decision S21),
+        //so a start/player frame does NOT carry the instance - this handler is what keeps Character.In current.
+        //That is why the instance is stamped only AFTER the staleness check passes: a stale frame must never be
+        //allowed to move the character's instance. The first frame after login (In still null) seeds it.
+        if (!string.IsNullOrEmpty(Character.In) && !data.In.EqualsI(Character.In))
+            return TaskCache.FALSE;
+
         UpdateMonsters(
             data.Monsters,
             data.In,
@@ -3929,10 +4340,11 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 break;
             }
 
-            case GameResponseType.SkillSuccess:
+            //the generic skill success is {response:"data", place:<skill>, success:true} - no skill, no name
+            case GameResponseType.Data when data.Success && !string.IsNullOrEmpty(data.Place):
             {
-                if (IsOffCooldown(data.SkillName ?? data.Name!))
-                    SetCooldown(data.SkillName ?? data.Name!);
+                if (IsOffCooldown(data.Place))
+                    SetCooldown(data.Place);
 
                 break;
             }
@@ -3971,7 +4383,9 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         if (data.Reflect != 0)
         {
-            var sourceEntity = GetEntity(data.Source);
+            //the reflect shape omits "source", and "source" is the attack type rather than an id anyway.
+            //"hid" is the attacker, which is who takes the reflected damage.
+            var sourceEntity = GetEntity(data.HitId);
             sourceEntity?.Mutate(new Mutation(ALAttribute.Hp, -data.Reflect));
         }
 
@@ -4033,10 +4447,25 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         return TaskCache.FALSE;
     }
 
+    protected Task<bool> OnSkillTimeoutAsync(SkillTimeoutData data)
+    {
+        //the name is already resolved to the shared skill and the ms already multiplied, so this must not
+        //go through SetCooldown. the attack_ms correction can be negative, which the browser clamps to 0.
+        var cooldownInfo = new CooldownInfo(Math.Max(0f, data.TimeoutMs));
+        cooldownInfo.CompensateOnce(PingManager.MinimumOffset);
+
+        Cooldowns.AddOrUpdate(data.SkillName, cooldownInfo, (_, _) => cooldownInfo);
+
+        return TaskCache.FALSE;
+    }
+
     protected async Task<bool> OnStartAsync(StartData data)
     {
         BaseGold = data.BaseGold;
         EventsAndBosses = data.EventAndBossInfo;
+        Emotion = data.Emotion;
+        Friends = data.Friends;
+        OwnedCosmetics = data.OwnedCosmetics;
 
         await OnCharacterAsync(data);
 
@@ -4233,7 +4662,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
                 cooldownMs ??= data.CooldownMS;
 
             var cooldownInfo = new CooldownInfo(cooldownMs.Value * cooldownMultiplier);
-            cooldownInfo.CompensateOnce(PingManager.Offset);
+            cooldownInfo.CompensateOnce(PingManager.MinimumOffset);
 
             Cooldowns.AddOrUpdate(skillName, cooldownInfo, (_, _) => cooldownInfo);
         }
@@ -4251,12 +4680,14 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         foreach (var monster in monsters)
         {
             monster.UpdateMap(@in, map);
-            monster.CompensateOnce(PingManager.Offset);
+            monster.CompensateOnce(PingManager.MinimumOffset);
 
             if (Monsters.TryGetValue(monster.Id, out var existingMonster))
                 existingMonster.Update(monster);
             else
             {
+                //a freshly-sighted monster carries only the soft properties that differ from its def; fill the rest
+                monster.BackfillSoftDefaults();
                 monster.SetBoundingBase(
                     monster.GetData()
                            .BoundingBase);
@@ -4277,7 +4708,7 @@ public abstract class ALClient : IAsyncDisposable, IDeltaUpdatable
         foreach (var player in players)
         {
             player.UpdateMap(@in, map);
-            player.CompensateOnce(PingManager.Offset);
+            player.CompensateOnce(PingManager.MinimumOffset);
 
             if (player.Equals(Character))
                 Character.UpdateLocation(player);

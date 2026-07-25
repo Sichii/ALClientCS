@@ -9,6 +9,6 @@ namespace AL.Core.Json.Interfaces
         ///     Whether or not the object was a scalar value.
         /// </summary>
         /// <value><c>true</c> if object was not a scalar value.; otherwise, <c>false</c>.</value>
-        bool ContainsData { get; init; }
+        bool ContainsData { get; set; }
     }
 }
