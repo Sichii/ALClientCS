@@ -1,9 +1,8 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Geometry;
-using AL.Core.Json.Converters;
 using AL.Data.NPCs;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Maps;
@@ -19,7 +18,6 @@ public sealed record GMapNPC
     ///     </b>
     ///     . If populated, this is the area in which this NPC roams.
     /// </summary>
-    [JsonConverter(typeof(MapRectangleConverter))]
     public MapRectangle? Boundary { get; init; }
 
     /// <summary>
@@ -55,18 +53,25 @@ public sealed record GMapNPC
     /// <summary>
     ///     The name of this NPC as displayed on the GUI. Sometimes different than the Id.
     /// </summary>
+
+    //the annotated backing field owns the "name" wire key; without this the accessor claims it too and the
+    //type throws on resolution. Newtonsoft keeps binding it as before - it reads its own attributes.
+    [JsonIgnore]
     public string Name => _name ?? Id;
 
     #pragma warning disable 0649
-    [JsonProperty("name")]
+    [JsonPropertyName("name")]
+    [JsonInclude]
     private string? _name;
 
-    [JsonProperty("position"), JsonConverter(typeof(ArrayToObjectConverter<Orientation>))]
+    [JsonPropertyName("position")]
+    [JsonInclude]
 
     // ReSharper disable once InconsistentNaming
     internal Orientation? _position { get; init; }
 
-    [JsonProperty("positions", ItemConverterType = typeof(ArrayToObjectConverter<Orientation>))]
+    [JsonPropertyName("positions")]
+    [JsonInclude]
 
     // ReSharper disable once InconsistentNaming
     internal IReadOnlyList<Orientation>? _positions { get; init; }

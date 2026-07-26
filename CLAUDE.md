@@ -6,6 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ALClientCS is a headless C# client library for the browser MMO **Adventure.Land**. It is deliberately *not* a 1:1 port of the official client — objects, properties, and methods are renamed to be more descriptive, and because the original game is weakly typed, a single API/Socket/Data type here often merges the fields of several original objects. Nine projects, all net10.0. The libraries build on each other and can be consumed separately; each ships as a NuGet package (`GeneratePackageOnBuild`, symbols as `.snupkg`).
 
+### The server is open source — use it as the spec
+
+Adventure.Land's server is published at **<https://github.com/kaansoral/adventureland_mongodb>** (cloned locally at `D:\repos\kaansoral\adventureland_mongodb`). It is the live game's actual source, not a reimplementation, so for any protocol question it is an exact answer rather than an approximation. Never guess at a payload shape or a `game_response` code — read the handler.
+
+| File | What |
+|---|---|
+| `node/server.js` | Every `socket.on` handler plus the game logic (~14.5k lines) |
+| `node/server_functions.js` | Shared server helpers |
+| `api.js` | REST surface |
+| `js/functions.js`, `js/game.js` | The official browser client |
+| `node/precomputed_map_data.js` | 13MB of G data — never read whole |
+
+Two things that will waste your time if you don't know them:
+
+- **The published repo is incomplete.** `/common` is not in it, and `api_call` lives there. Fetch it from `https://adventure.land/js/common_functions.js` — the REST calling convention changed and the repo cannot tell you that.
+- **Not every emit is a `socket.emit`.** Helpers `xy_emit`, `party_emit`, `instance_emit`, and `notify_friends_emit` carry events like `hit`, `action`, `chat_log`, and `ui`. Grep the quoted event name, not `emit(`.
+
+<https://github.com/earthiverse/ALClient> is a maintained TypeScript client; its `source/definitions/*.d.ts` is a useful cross-check, but it is a third-party client — where it disagrees with the server, the server wins.
+
 ## Build Commands
 
 ```powershell

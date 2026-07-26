@@ -5,7 +5,7 @@ using System;
 namespace AL.Core.Json.Attributes;
 
 /// <summary>
-///     Provides an index to a property or field for use with <see cref="Json.Converters.ArrayToObjectConverter{T}" />.
+///     Provides an index to a property or field for use with <see cref="Json.SystemTextJson.ArrayToObjectConverter{T}" />.
 /// </summary>
 /// <seealso cref="System.Attribute" />
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]

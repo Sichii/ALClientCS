@@ -9,52 +9,55 @@ using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 using PATHFINDING_CONSTANTS = AL.Pathfinding.Definitions.CONSTANTS;
 #endregion
 
 namespace AL.Tests.Client.Tests;
 
-[TestClass]
 public class ClientTests
 {
-   [TestMethod]
-   public void CalculateDamageMultiplierTest()
-   {
-      var defense = -160;
-      var points = new List<Point>();
+    [Test]
+    public void CalculateDamageMultiplierTest()
+    {
+        var defense = -160;
+        var points = new List<Point>();
 
-      for (; defense < 2000; defense += 5)
-      {
-         var damageMult = Utilities.CalculateDamageMultiplier(defense);
-         points.Add(new Point(defense, Convert.ToInt32(damageMult * 100f)));
-      }
+        for (; defense < 2000; defense += 5)
+        {
+            var damageMult = Utilities.CalculateDamageMultiplier(defense);
+            points.Add(new Point(defense, Convert.ToInt32(damageMult * 100f)));
+        }
 
-      Assert.IsTrue(points[0] == new Point(-160, 112));
-      Assert.IsTrue(points.Last() == new Point(1995, 5));
-   }
+        (points[0] == new Point(-160, 112)).Should()
+                                           .BeTrue();
 
-   [TestMethod]
-   public async Task DynamicDelayTest()
-   {
-      var delay = new DynamicDelay();
+        (points.Last() == new Point(1995, 5)).Should()
+                                             .BeTrue();
+    }
 
-      var delayTask = delay.WaitAsync(TimeSpan.FromMilliseconds(5000));
+    [Test]
+    public async Task DynamicDelayTest()
+    {
+        var delay = new DynamicDelay();
 
-      await Task.Delay(2000);
-      await delay.SetDelayAsync(TimeSpan.FromMilliseconds(10000));
+        var delayTask = delay.WaitAsync(TimeSpan.FromMilliseconds(5000));
 
-      var ts = Stopwatch.GetTimestamp();
-      await delayTask;
-      var elapsed = Stopwatch.GetElapsedTime(ts);
+        await Task.Delay(2000);
+        await delay.SetDelayAsync(TimeSpan.FromMilliseconds(10000));
 
-      Assert.IsTrue(elapsed.TotalMilliseconds > 9000);
-   }
+        var ts = Stopwatch.GetTimestamp();
+        await delayTask;
+        var elapsed = Stopwatch.GetElapsedTime(ts);
 
-   [TestMethod]
-   public void ShallowMergeIntoTest()
-   {
-      const string CHARACTER_DATA = @"{
+        (elapsed.TotalMilliseconds > 9000).Should()
+                                          .BeTrue();
+    }
+
+    [Test]
+    public void ShallowMergeIntoTest()
+    {
+        const string CHARACTER_DATA = @"{
    ""hp"":7826,
    ""max_hp"":7826,
    ""mp"":2020,
@@ -304,28 +307,41 @@ public class ClientTests
    ""cc"":1
 }";
 
-      var emptyCharacters = Enumerable.Range(0, 100000)
-                                      .Select(_ => new Character())
-                                      .ToArray();
-      var obj = TestJson.Socket<CharacterData>(CHARACTER_DATA);
+        var emptyCharacters = Enumerable.Range(0, 100000)
+                                        .Select(_ => new Character())
+                                        .ToArray();
+        var obj = TestJson.Socket<CharacterData>(CHARACTER_DATA);
 
-      var timer = Stopwatch.StartNew();
-      var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;
+        var timer = Stopwatch.StartNew();
+        var defaultBase = PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE;
 
-      foreach (var emptyChar in emptyCharacters)
-      {
-         emptyChar.SetBoundingBase(defaultBase);
-         ShallowMerge<Character>.Merge(obj!, emptyChar);
-         Assert.AreEqual(obj, emptyChar);
-         Assert.AreEqual(emptyChar.HalfWidth, defaultBase.HalfWidth);
-         Assert.AreEqual(emptyChar.VerticalNorth, defaultBase.VerticalNorth);
-         Assert.AreEqual(emptyChar.VerticalNotNorth, defaultBase.VerticalNotNorth);
-      }
+        foreach (var emptyChar in emptyCharacters)
+        {
+            emptyChar.SetBoundingBase(defaultBase);
+            ShallowMerge<Character>.Merge(obj!, emptyChar);
 
-      timer.Stop();
-      var elapsed = timer.ElapsedMilliseconds;
+            //cast to object: Character is IEnumerable<IPoint>, so an uncast Should() binds to collection assertions
+            ((object)emptyChar).Should()
+                               .Be(obj);
 
-      //this takes like 60ms on my machine. if this goes above 500 on any machine, there must be a problem.
-      Assert.IsTrue(elapsed < 500);
+            defaultBase.HalfWidth
+                       .Should()
+                       .Be(emptyChar.HalfWidth);
+
+            defaultBase.VerticalNorth
+                       .Should()
+                       .Be(emptyChar.VerticalNorth);
+
+            defaultBase.VerticalNotNorth
+                       .Should()
+                       .Be(emptyChar.VerticalNotNorth);
+        }
+
+        timer.Stop();
+        var elapsed = timer.ElapsedMilliseconds;
+
+        //this takes like 60ms on my machine. if this goes above 500 on any machine, there must be a problem.
+        (elapsed < 500).Should()
+                       .BeTrue();
     }
 }

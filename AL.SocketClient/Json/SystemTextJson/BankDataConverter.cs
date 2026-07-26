@@ -13,9 +13,16 @@ using AL.SocketClient.Model;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     Deserializes <see cref="BankInfo" /> from a flat object: the <c>gold</c> key -&gt; Gold, every other key
-///     that parses to a <see cref="BankPack" /> -&gt; an item array for that pack. The System.Text.Json
-///     replacement for the Newtonsoft <c>BankDataConverter</c>.
+///     Deserializes <see cref="BankInfo" /> from a flat object: the
+///     <c>
+///         gold
+///     </c>
+///     key -&gt; Gold, every other key that parses to a <see cref="BankPack" /> -&gt; an item array for that pack. The
+///     System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         BankDataConverter
+///     </c>
+///     .
 /// </summary>
 public sealed class BankDataConverter : JsonConverter<BankInfo>
 {
@@ -24,7 +31,8 @@ public sealed class BankDataConverter : JsonConverter<BankInfo>
         if (reader.TokenType == JsonTokenType.Null)
             return null;
 
-        var obj = JsonNode.Parse(ref reader)?.AsObject();
+        var obj = JsonNode.Parse(ref reader)
+                          ?.AsObject();
 
         if (obj is null)
             return null;
@@ -36,8 +44,7 @@ public sealed class BankDataConverter : JsonConverter<BankInfo>
             if (key == "gold")
                 gold = node!.GetValue<long>();
             else if (EnumHelper.TryParse(key, out BankPack bankPack))
-                dic[bankPack] = node!.Deserialize<Item[]>(options)
-                                ?? throw new InvalidOperationException("Failed to deserialize items.");
+                dic[bankPack] = node!.Deserialize<Item[]>(options) ?? throw new InvalidOperationException("Failed to deserialize items.");
 
         return new BankInfo
         {

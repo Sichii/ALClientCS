@@ -1,40 +1,64 @@
 #region
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
-using AL.Core.Json.Converters;
 using AL.Data.Conditions;
 using AL.Data.Items;
 using AL.Data.Monsters;
 using AL.Data.NPCs;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins the single highest-risk semantic change in the STJ migration:
-///     <see cref="AttributedObjectConverter{T}" /> harvests <b>every</b> numeric key that parses to an
-///     <see cref="ALAttribute" /> into <see cref="IAttributed.Attributes" /> — including keys that also bind
-///     to a declared property, so both <c>GItem.Attack</c> and <c>Attributes[ALAttribute.Attack]</c> hold the
-///     value. The migration's <c>[JsonExtensionData]</c> replacement only sees keys with <b>no</b> matching
-///     property, so the naive port silently drops every property-backed entry. This suite fixes the current
-///     Newtonsoft counts, key sets and values as the target that port must reproduce.
+///     Pins the single highest-risk semantic change in the STJ migration: the attributed-object converter harvests
+///     <b>
+///         every
+///     </b>
+///     numeric key that parses to an <see cref="ALAttribute" /> into <see cref="IAttributed.Attributes" /> — including
+///     keys that also bind to a declared property, so both
+///     <c>
+///         GItem.Attack
+///     </c>
+///     and
+///     <c>
+///         Attributes[ALAttribute.Attack]
+///     </c>
+///     hold the value. A naive
+///     <c>
+///         [JsonExtensionData]
+///     </c>
+///     replacement only sees keys with
+///     <b>
+///         no
+///     </b>
+///     matching property and silently drops every property-backed entry. The counts, key sets and values here are the
+///     frozen baseline the System.Text.Json converter must reproduce.
 /// </summary>
-[TestClass]
 public class AttributesCensusCharacterization
 {
     private const string SNAPSHOT_FILE = "attributes-census.json";
 
+    //reproduces Newtonsoft's Formatting.Indented for the census: 2-space indent, and no \uXXXX escaping of
+    //< > & + so the rendered text stays byte-comparable against the frozen fixture
+    private static readonly JsonSerializerOptions CensusOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     /// <summary>
-    ///     Real objects with rich stat blocks spanning all four <see cref="IAttributed" /> record types. Includes
-    ///     the four the plan names plus extras that carry property-less attributes (PhysicalResistance, Reflection,
-    ///     RPiercing) and renamed ones (frequencym/healm/potionsm), so the census exercises both harvest paths.
+    ///     Real objects with rich stat blocks spanning all four <see cref="IAttributed" /> record types. Includes the four the
+    ///     plan names plus extras that carry property-less attributes (PhysicalResistance, Reflection, RPiercing) and renamed
+    ///     ones (frequencym/healm/potionsm), so the census exercises both harvest paths.
     /// </summary>
     private static readonly (string Section, string Key)[] Targets =
     [
@@ -48,18 +72,151 @@ public class AttributesCensusCharacterization
         ("npcs", "citizen0")
     ];
 
-    [TestMethod]
-    public void T2_RequiredObjectsHaveExpectedAttributeCounts()
+    private static JsonObject BuildCensus()
     {
-        //every one of these keys also binds to a declared property, so [JsonExtensionData] would see far fewer -
-        //goo drops from 7 to 0, fireblade from 3 to 1 (only Attr0 has no property). These counts are the target.
-        Assert.AreEqual(3, Deserialize("items", "fireblade").Attributes.Count);
-        Assert.AreEqual(7, Deserialize("monsters", "goo").Attributes.Count);
-        Assert.AreEqual(2, Deserialize("npcs", "citizen0").Attributes.Count);
-        Assert.AreEqual(3, Deserialize("conditions", "poisoned").Attributes.Count);
+        var root = new JsonObject();
+
+        foreach ((var section, var key) in Targets.OrderBy(target => $"{target.Section}.{target.Key}", StringComparer.Ordinal))
+        {
+            var attributed = Deserialize(section, key);
+            var attributes = new JsonArray();
+
+            foreach ((var attribute, var value) in attributed.Attributes.OrderBy(pair => pair.Key.ToString(), StringComparer.Ordinal))
+            {
+                var entry = new JsonObject
+                {
+                    ["attr"] = attribute.ToString(),
+                    ["value"] = Number(value)
+                };
+
+                var property = MatchingProperty(attributed.GetType(), attribute);
+
+                if (property != null)
+                {
+                    entry["hasProperty"] = true;
+                    entry["propertyValue"] = Number((float)property.GetValue(attributed)!);
+                } else
+                    entry["hasProperty"] = false;
+
+                attributes.Add(entry);
+            }
+
+            root[$"{section}.{key}"] = new JsonObject
+            {
+                ["count"] = attributed.Attributes.Count,
+                ["attributes"] = attributes
+            };
+        }
+
+        return root;
     }
 
-    [TestMethod]
+    /// <summary>
+    ///     One entry through the production System.Text.Json options, whose
+    ///     <c>
+    ///         AttributedObjectConverterFactory
+    ///     </c>
+    ///     claims every <see cref="IAttributed" />.
+    /// </summary>
+    private static IAttributed Deserialize(string section, string key)
+    {
+        var json = Fixture.Entry(section, key)
+                          .ToJsonString();
+
+        return section switch
+        {
+            "items"      => TestJson.Data<GItem>(json)!,
+            "monsters"   => TestJson.Data<GMonster>(json)!,
+            "npcs"       => TestJson.Data<GNPC>(json)!,
+            "conditions" => TestJson.Data<GCondition>(json)!,
+            _            => throw new InvalidOperationException($@"Unhandled section ""{section}"".")
+        };
+    }
+
+    /// <summary>
+    ///     The float stat property whose CLR name matches the attribute's member name case-insensitively (Hp -> HP, Mp -> MP,
+    ///     MpCost -> MPCost), or null for attributes with no declared property (PhysicalResistance, Attr0, ...).
+    /// </summary>
+    private static PropertyInfo? MatchingProperty(Type type, ALAttribute attribute)
+    {
+        var name = Enum.GetName(attribute);
+
+        if (name == null)
+            return null;
+
+        var property = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+
+        return property?.PropertyType == typeof(float) ? property : null;
+    }
+
+    private static string Normalize(string text) => text.Replace("\r\n", "\n");
+
+    /// <summary>
+    ///     Renders a float exactly as the frozen snapshot holds it: round-trip format, plus a trailing
+    ///     <c>
+    ///         .0
+    ///     </c>
+    ///     when the text carries no decimal point or exponent (
+    ///     <c>
+    ///         4
+    ///     </c>
+    ///     ->
+    ///     <c>
+    ///         4.0
+    ///     </c>
+    ///     ). Parsed back into a node so the writer emits that text verbatim rather than applying its own shortest-round-trip
+    ///     policy, which drops the
+    ///     <c>
+    ///         .0
+    ///     </c>
+    ///     and would turn every integral stat into a false diff.
+    /// </summary>
+    private static JsonNode Number(float value)
+    {
+        var text = value.ToString("R", CultureInfo.InvariantCulture);
+
+        if (text.IndexOfAny(
+                [
+                    '.',
+                    'E',
+                    'e'
+                ])
+            < 0)
+            text += ".0";
+
+        return JsonNode.Parse(text)!;
+    }
+
+    /// <summary>
+    ///     The migration's proof for this suite: the census built through the production System.Text.Json options must equal
+    ///     the committed Newtonsoft-era snapshot, byte for byte. The rendering is held formatting-neutral by
+    ///     <see cref="CensusOptions" /> and <see cref="Number" />, so any difference is a real value difference.
+    /// </summary>
+    /// <remarks>
+    ///     A missing snapshot is a hard failure with no bootstrap: the committed text
+    ///     <b>
+    ///         is
+    ///     </b>
+    ///     the frozen oracle, and regenerating it from the engine under test would make this comparison pass vacuously
+    ///     forever.
+    /// </remarks>
+    [Test]
+    public void T2_AttributesCensusMatchesCommittedSnapshot()
+    {
+        var generated = BuildCensus()
+            .ToJsonString(CensusOptions);
+
+        var committed = Fixture.ReadCommittedSnapshot(SNAPSHOT_FILE);
+
+        committed.Should()
+                 .NotBeNull($@"Committed snapshot ""{SNAPSHOT_FILE}"" is missing.");
+
+        Normalize(generated)
+            .Should()
+            .Be(Normalize(committed), "the System.Text.Json attributed-object path does not reproduce the pinned Newtonsoft census");
+    }
+
+    [Test]
     public void T2_PropertyAndAttributeValuesAgreeWhereBothExist()
     {
         var mismatches = new List<string>();
@@ -77,164 +234,45 @@ public class AttributesCensusCharacterization
 
                 var propertyValue = (float)property.GetValue(attributed)!;
 
+                //exact: both sides bound from the same JSON token, so any difference at all is a real divergence
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
                 if (propertyValue != dictionaryValue)
                     mismatches.Add($"{section}.{key} {attribute}: property={propertyValue} dictionary={dictionaryValue}");
             }
         }
 
-        Assert.AreEqual(0, mismatches.Count, $"Property/dictionary disagreement: {string.Join("; ", mismatches)}");
+        mismatches.Count
+                  .Should()
+                  .Be(0, $"Property/dictionary disagreement: {string.Join("; ", mismatches)}");
     }
 
-    [TestMethod]
-    public void T2_AttributesCensusMatchesCommittedSnapshot()
+    [Test]
+    public void T2_RequiredObjectsHaveExpectedAttributeCounts()
     {
-        var generated = BuildCensus(Deserialize)
-            .ToString(Formatting.Indented);
+        //every one of these keys also binds to a declared property, so [JsonExtensionData] would see far fewer -
+        //goo drops from 7 to 0, fireblade from 3 to 1 (only Attr0 has no property). These counts are the target.
+        Deserialize("items", "fireblade")
+            .Attributes
+            .Count
+            .Should()
+            .Be(3);
 
-        //read BEFORE writing: WriteSnapshot and ReadCommittedSnapshot resolve to the same output path, so a
-        //write-then-read would defeat both the missing guard and drift detection. Only bootstrap when absent.
-        var committed = Fixture.ReadCommittedSnapshot(SNAPSHOT_FILE);
+        Deserialize("monsters", "goo")
+            .Attributes
+            .Count
+            .Should()
+            .Be(7);
 
-        if (committed == null)
-        {
-            //bootstrap under a sidecar name, never the committed one: writing the committed name would leave a
-            //copy the next run reads back as its own baseline, and the comparison would pass vacuously forever
-            var path = Fixture.WriteSnapshot($"{SNAPSHOT_FILE}.generated", generated);
+        Deserialize("npcs", "citizen0")
+            .Attributes
+            .Count
+            .Should()
+            .Be(2);
 
-            Assert.Fail(
-                $@"Committed snapshot ""{SNAPSHOT_FILE}"" is missing. A fresh copy was generated at ""{path}""; "
-                + "copy it into AL.Tests/Fixtures/snapshots and commit it.");
-        }
-
-        Assert.AreEqual(
-            Normalize(committed),
-            Normalize(generated),
-            "Attributes census drifted from the committed Newtonsoft baseline.");
+        Deserialize("conditions", "poisoned")
+            .Attributes
+            .Count
+            .Should()
+            .Be(3);
     }
-
-    /// <summary>
-    ///     The migration's actual proof for this suite: the census regenerated through the production
-    ///     System.Text.Json options must equal the <b>same</b> committed Newtonsoft snapshot, byte for byte.
-    ///     Only the deserializer is swapped — the rendering stays on <see cref="JObject" /> so any difference
-    ///     is a real value difference and never a formatting one.
-    /// </summary>
-    [TestMethod]
-    public void T2_AttributesCensus_StjPath_ReproducesCommittedSnapshot()
-    {
-        var generated = BuildCensus(DeserializeStj)
-            .ToString(Formatting.Indented);
-
-        var committed = Fixture.ReadCommittedSnapshot(SNAPSHOT_FILE);
-
-        Assert.IsNotNull(committed, $@"Committed snapshot ""{SNAPSHOT_FILE}"" is missing.");
-
-        Assert.AreEqual(
-            Normalize(committed),
-            Normalize(generated),
-            "the System.Text.Json attributed-object path does not reproduce the pinned Newtonsoft census");
-    }
-
-    private static JObject BuildCensus(Func<string, string, IAttributed> deserialize)
-    {
-        var root = new JObject();
-
-        foreach ((var section, var key) in Targets.OrderBy(target => $"{target.Section}.{target.Key}", StringComparer.Ordinal))
-        {
-            var attributed = deserialize(section, key);
-            var attributes = new JArray();
-
-            foreach ((var attribute, var value) in attributed.Attributes.OrderBy(pair => pair.Key.ToString(), StringComparer.Ordinal))
-            {
-                var entry = new JObject
-                {
-                    ["attr"] = attribute.ToString(),
-                    ["value"] = value
-                };
-
-                var property = MatchingProperty(attributed.GetType(), attribute);
-
-                if (property != null)
-                {
-                    entry["hasProperty"] = true;
-                    entry["propertyValue"] = (float)property.GetValue(attributed)!;
-                } else
-                    entry["hasProperty"] = false;
-
-                attributes.Add(entry);
-            }
-
-            root[$"{section}.{key}"] = new JObject
-            {
-                ["count"] = attributed.Attributes.Count,
-                ["attributes"] = attributes
-            };
-        }
-
-        return root;
-    }
-
-    private static IAttributed Deserialize(string section, string key)
-    {
-        var token = Fixture.Entry(section, key);
-
-        return section switch
-        {
-            "items"      => Convert<GItem>(token),
-            "monsters"   => Convert<GMonster>(token),
-            "npcs"       => Convert<GNPC>(token),
-            "conditions" => Convert<GCondition>(token),
-            _            => throw new InvalidOperationException($@"Unhandled section ""{section}"".")
-        };
-    }
-
-    /// <summary>
-    ///     The same entry through the production System.Text.Json options, whose
-    ///     <c>AttributedObjectConverterFactory</c> claims every <see cref="IAttributed" />.
-    /// </summary>
-    private static IAttributed DeserializeStj(string section, string key)
-    {
-        var json = Fixture.Entry(section, key)
-                          .ToString(Formatting.None);
-
-        return section switch
-        {
-            "items"      => TestJson.Data<GItem>(json)!,
-            "monsters"   => TestJson.Data<GMonster>(json)!,
-            "npcs"       => TestJson.Data<GNPC>(json)!,
-            "conditions" => TestJson.Data<GCondition>(json)!,
-            _            => throw new InvalidOperationException($@"Unhandled section ""{section}"".")
-        };
-    }
-
-    /// <summary>
-    ///     Deserializes one entry through the exact converter its datum applies via
-    ///     <c>[JsonObject(ItemConverterType = ...)]</c>, reproducing <c>GameData.Populate</c>'s default-serializer
-    ///     path (<c>JsonConvert.DeserializeObject&lt;GameData&gt;</c> uses no custom settings) for a single object.
-    /// </summary>
-    private static T Convert<T>(JToken token) where T: IAttributed, new()
-    {
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new AttributedObjectConverter<T>());
-
-        return token.ToObject<T>(serializer)!;
-    }
-
-    /// <summary>
-    ///     The float stat property whose CLR name matches the attribute's member name case-insensitively
-    ///     (Hp -> HP, Mp -> MP, MpCost -> MPCost), or null for attributes with no declared property
-    ///     (PhysicalResistance, Attr0, ...).
-    /// </summary>
-    private static PropertyInfo? MatchingProperty(Type type, ALAttribute attribute)
-    {
-        var name = Enum.GetName(attribute);
-
-        if (name == null)
-            return null;
-
-        var property = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
-
-        return property?.PropertyType == typeof(float) ? property : null;
-    }
-
-    private static string Normalize(string text) => text.Replace("\r\n", "\n");
 }

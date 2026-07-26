@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using AL.Core.Helpers;
-using NewtonsoftJson = Newtonsoft.Json;
 #endregion
 
 namespace AL.Data;
@@ -19,25 +18,22 @@ public abstract class DatumBase<T>
     private IReadOnlyDictionary<string, T> LookupCache { get; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    ///     Gets the backing lookup as a read-only dictionary for enumeration.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, T> Entries => LookupCache;
+
+    /// <summary>
     ///     Gets all property names.
     /// </summary>
-    [NewtonsoftJson.JsonIgnore]
     [JsonIgnore]
     public IEnumerable<string> Keys => LookupCache.Keys;
 
     /// <summary>
     ///     Gets all property values.
     /// </summary>
-    [NewtonsoftJson.JsonIgnore]
     [JsonIgnore]
     public IEnumerable<T> Values => LookupCache.Values;
-
-    /// <summary>
-    ///     Gets the backing lookup as a read-only dictionary for enumeration.
-    /// </summary>
-    [NewtonsoftJson.JsonIgnore]
-    [JsonIgnore]
-    public IReadOnlyDictionary<string, T> Entries => LookupCache;
 
     internal virtual void BuildLookupTable()
     {
@@ -59,6 +55,8 @@ public abstract class DatumBase<T>
 
             var value = (T?)propertyInfo.GetValue(this);
 
+            //every T is a reference type, and a datum property is null when its key is absent from the payload
+            // ReSharper disable once CompareNonConstrainedGenericWithNull
             if (value == null)
                 continue;
 

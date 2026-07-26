@@ -14,11 +14,18 @@ using AL.Core.Interfaces;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Produces the System.Text.Json converter for every <see cref="IAttributed" /> type. Registered in the
-///     shared options (NOT applied as a <c>[JsonConverter]</c> attribute) so the inner declared-member fill can
-///     run under a copy of the options whose factory excludes only the type being filled — that type cannot
-///     re-enter its own converter, yet a NESTED <see cref="IAttributed" /> member is still routed through the
-///     factory and gets its attribute harvest (matching Newtonsoft's per-element <c>ItemConverterType</c>).
+///     Produces the System.Text.Json converter for every <see cref="IAttributed" /> type. Registered in the shared options
+///     (NOT applied as a
+///     <c>
+///         [JsonConverter]
+///     </c>
+///     attribute) so the inner declared-member fill can run under a copy of the options whose factory excludes only the
+///     type being filled — that type cannot re-enter its own converter, yet a NESTED <see cref="IAttributed" /> member is
+///     still routed through the factory and gets its attribute harvest (matching Newtonsoft's per-element
+///     <c>
+///         ItemConverterType
+///     </c>
+///     ).
 /// </summary>
 public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 {
@@ -32,28 +39,32 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
         => (typeToConvert != Excluded)
            && typeof(IAttributed).IsAssignableFrom(typeToConvert)
            && !typeToConvert.IsAbstract
-           && (typeToConvert.GetConstructor(Type.EmptyTypes) is not null);
+           && typeToConvert.GetConstructor(Type.EmptyTypes) is not null;
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        => (JsonConverter)Activator.CreateInstance(
-            typeof(AttributedObjectStjConverter<>).MakeGenericType(typeToConvert),
-            new object[] { options })!;
+        => (JsonConverter)Activator.CreateInstance(typeof(AttributedObjectStjConverter<>).MakeGenericType(typeToConvert), options)!;
 
     /// <summary>
-    ///     A copy that also excludes <paramref name="type" /> — used by the inner options so the type being
-    ///     filled cannot re-enter its own converter, while nested <see cref="IAttributed" /> members still match.
+    ///     A copy that also excludes <paramref name="type" /> — used by the inner options so the type being filled cannot
+    ///     re-enter its own converter, while nested <see cref="IAttributed" /> members still match.
     /// </summary>
     internal AttributedObjectConverterFactory Excluding(Type type) => new(type);
 }
 
 /// <summary>
-///     The System.Text.Json replacement for the Newtonsoft <c>AttributedObjectConverter</c>. Fills T's declared
-///     members via a recursion-safe inner deserialize, then walks every top-level wire key to (1) mark it present
-///     (<see cref="IKeyPresenceCapturable" />) and (2) harvest numeric <see cref="ALAttribute" /> keys into the
-///     <see cref="IAttributed.Attributes" /> dictionary. Read-only.
+///     The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         AttributedObjectConverter
+///     </c>
+///     . Fills T's declared members via a recursion-safe inner deserialize, then walks every top-level wire key to (1)
+///     mark it present (<see cref="IKeyPresenceCapturable" />) and (2) harvest numeric <see cref="ALAttribute" /> keys
+///     into the <see cref="IAttributed.Attributes" /> dictionary. Read-only.
 /// </summary>
 public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: class, IAttributed, new()
 {
+    //per-T by necessity: the cached inner options exclude typeof(T) from the attributed factory, so one shared
+    //table would hand a converter for the wrong T's exclusion and let a type re-enter its own converter
+    // ReSharper disable once StaticMemberInGenericType
     private static readonly ConditionalWeakTable<JsonSerializerOptions, JsonSerializerOptions> InnerCache = new();
 
     private static readonly bool RecoversScrollStat = typeof(IScrollStatRecoverable).IsAssignableFrom(typeof(T));
@@ -93,24 +104,25 @@ public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: 
         //which resumes binding; System.Text.Json cannot, so the wire key is removed and re-handled explicitly.
         string? scrollStatName = null;
 
-        if (RecoversScrollStat
-            && obj.TryGetPropertyValue("stat", out var statNode)
-            && (statNode?.GetValueKind() == JsonValueKind.String))
+        if (RecoversScrollStat && obj.TryGetPropertyValue("stat", out var statNode) && (statNode?.GetValueKind() == JsonValueKind.String))
         {
             var raw = statNode.GetValue<string>();
 
             //a numeric string ("5") still binds to Stat via coercion; only a name ("int") needs recovery
-            if (!float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+            if (!float.TryParse(
+                    raw,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out _))
             {
                 scrollStatName = raw;
                 obj.Remove("stat");
             }
         }
 
-        var value = obj.Deserialize<T>(InnerOptions)
-                    ?? throw new JsonException($"Failed to deserialize {typeof(T).Name}.");
+        var value = obj.Deserialize<T>(InnerOptions) ?? throw new JsonException($"Failed to deserialize {typeof(T).Name}.");
 
-        if ((scrollStatName is not null) && value is IScrollStatRecoverable recoverable)
+        if (scrollStatName is not null && value is IScrollStatRecoverable recoverable)
             recoverable.RecoverScrollStat(scrollStatName);
 
         //the base ctor allocated a concrete Dictionary behind the IReadOnlyDictionary facade; harvest into it
@@ -123,7 +135,7 @@ public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: 
 
             //Number covers Newtonsoft's Integer|Float; a non-numeric ALAttribute-named G key (heal=true,
             //courage=[...]) falls through the guard and never calls GetValue<float>, so it does not throw
-            if ((attributes is not null)
+            if (attributes is not null
                 && (child?.GetValueKind() == JsonValueKind.Number)
                 && EnumHelper.TryParse<ALAttribute>(key, out var attribute))
                 attributes[attribute] = child.GetValue<float>();

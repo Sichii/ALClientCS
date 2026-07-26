@@ -1,8 +1,7 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
-using AL.Core.Json.Converters;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Maps;
@@ -26,6 +25,6 @@ public sealed record GZone
     ///     A polygon representing the bounds of the zone.
     ///     <br />
     /// </summary>
-    [JsonProperty("polygon", ItemConverterType = typeof(ArrayToPointConverter))]
+    [JsonPropertyName("polygon")]
     public Polygon Vertices { get; init; } = null!;
 }

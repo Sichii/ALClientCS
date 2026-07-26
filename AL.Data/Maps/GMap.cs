@@ -1,11 +1,10 @@
 #region
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
-using AL.Core.Json.Converters;
 using AL.Data.Geometry;
 using Chaos.Extensions.Common;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Maps;
@@ -24,19 +23,18 @@ public sealed record GMap
     /// <summary>
     ///     If true, the map has no walls.
     /// </summary>
-    [JsonProperty("no_bounds")]
+    [JsonPropertyName("no_bounds")]
     public bool Boundless { get; init; }
 
     /// <summary>
     ///     Certain maps have a multiplier for the chance for <see cref="Condition.Burned" /> to apply.
     /// </summary>
-    [JsonProperty("burn_multiplier")]
+    [JsonPropertyName("burn_multiplier")]
     public float BurnMultiplier { get; init; }
 
     /// <summary>
     ///     A list of doors on this map,
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GDoor>))]
     public IReadOnlyList<GDoor> Doors { get; init; } = new List<GDoor>();
 
     /// <summary>
@@ -46,7 +44,7 @@ public sealed record GMap
     ///     <br />
     ///     A value used to determine how often items drop.
     /// </summary>
-    [JsonProperty("drop_norm")]
+    [JsonPropertyName("drop_norm")]
     public float DropNorm { get; init; }
 
     /// <summary>
@@ -66,7 +64,7 @@ public sealed record GMap
     /// <summary>
     ///     Certain maps have a multiplier for the chance for <see cref="Condition.Frozen" /> to apply.
     /// </summary>
-    [JsonProperty("freeze_multiplier")]
+    [JsonPropertyName("freeze_multiplier")]
     public float FreezeMultiplier { get; init; }
 
     /// <summary>
@@ -129,7 +127,7 @@ public sealed record GMap
     /// <summary>
     ///     The map accessor and spawn id for that map that you will go to if you die on this map.
     /// </summary>
-    [JsonProperty("on_death"), JsonConverter(typeof(ArrayToTupleConverter<string, float>))]
+    [JsonPropertyName("on_death")]
     public (string Map, float Spawn) OnDeath { get; init; }
 
     /// <summary>
@@ -138,7 +136,7 @@ public sealed record GMap
     ///     Wizard - "for example when you reload inside the bank or an instance, it specifies which map/spawn you'll spawn at
     ///     (in case that instance is no longer alive, you can't re-enter etc.)"
     /// </summary>
-    [JsonProperty("on_exit"), JsonConverter(typeof(ArrayToTupleConverter<string, float>))]
+    [JsonPropertyName("on_exit")]
     public (string Map, float Spawn) OnExit { get; init; }
 
     /// <summary>
@@ -154,13 +152,12 @@ public sealed record GMap
     /// <summary>
     ///     TODO: Unknown
     /// </summary>
-    [JsonProperty("safe_pvp")]
+    [JsonPropertyName("safe_pvp")]
     public bool SafePvP { get; init; }
 
     /// <summary>
     ///     A list of spawns on this map.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GSpawn>))]
     public IReadOnlyList<GSpawn> Spawns { get; init; } = new List<GSpawn>();
 
     /// <summary>

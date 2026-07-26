@@ -1,150 +1,148 @@
 {
-        "players": [
-            {
-                "hp": 5245,
-                "max_hp": 5271,
-                "mp": 1885,
-                "max_mp": 1885,
-                "xp": 15962472,
-                "attack": 48,
-                "frequency": 0.6679415892373209,
-                "speed": 72,
-                "range": 20,
-                "armor": 54,
-                "resistance": 119,
-                "level": 56,
-                "party": "MrDeePs",
-                "rip": false,
-                "code": true,
-                "afk": true,
-                "target": null,
-                "focus": "kouin",
-                "s": {},
-                "c": {},
-                "q": {},
-                "age": 338,
-                "pdps": 17.218536885677565,
-                "id": "Moneybaggers",
-                "x": 412.4300917824425,
-                "y": 991.1029095899681,
-                "moving": true,
-                "going_x": 211,
-                "going_y": 876,
-                "abs": false,
-                "move_num": 17329060,
-                "angle": -150.2551187030578,
-                "cid": 7822,
-                "stand": false,
-                "skin": "marmor12a",
-                "cx": {
-                    "hair": "hairdo520",
-                    "head": "fmakeup01",
-                    "hat": "hat404"
-                },
-                "slots": {
-                    "ring1": {
-                        "name": "vitring",
-                        "level": 0
-                    },
-                    "ring2": {
-                        "level": 3,
-                        "name": "vitring"
-                    },
-                    "earring1": {
-                        "name": "vitearring",
-                        "level": 0
-                    },
-                    "earring2": null,
-                    "belt": {
-                        "name": "hpbelt",
-                        "level": 4
-                    },
-                    "mainhand": null,
-                    "offhand": null,
-                    "helmet": {
-                        "name": "helmet",
-                        "gift": 1,
-                        "level": 0
-                    },
-                    "chest": null,
-                    "pants": null,
-                    "shoes": {
-                        "stat_type": "dex",
-                        "name": "shoes",
-                        "level": 7
-                    },
-                    "gloves": null,
-                    "amulet": {
-                        "name": "hpamulet",
-                        "level": 4
-                    },
-                    "orb": {
-                        "name": "test_orb",
-                        "level": 0
-                    },
-                    "elixir": null,
-                    "cape": null,
-                    "trade1": null,
-                    "trade2": null,
-                    "trade3": null,
-                    "trade4": null
-                },
-                "ctype": "merchant",
-                "owner": "6314512450322432"
-            }
-        ],
-        "monsters": [
-            {
-               "speed":25.92,
-               "hp":85016,
-               "mp":96,
-               "attack":640,
-               "xp":131200,
-               "frequency":1.072,
-               "max_hp":86400,
-               "id":"1869105",
-               "x":335.4667740677073,
-               "y":-2011.3367167663876,
-               "moving":true,
-               "going_x":363.95981679423096,
-               "going_y":-1874.8896953933113,
-               "abs":false,
-               "move_num":22612448,
-               "angle":78.20491891313337,
-               "type":"wolfie",
-               "cid":8,
-               "s":{
-                  
-               },
-               "level":8
-            },
-            {
-               "speed":53.92,
-               "hp":85092,
-               "mp":96,
-               "attack":640,
-               "xp":131200,
-               "frequency":1.072,
-               "max_hp":86400,
-               "id":"1869147",
-               "x":253.47654407885798,
-               "y":-1916.635392105144,
-               "moving":true,
-               "going_x":232,
-               "going_y":-1888,
-               "abs":false,
-               "move_num":22612446,
-               "angle":126.86989764584402,
-               "type":"wolfie",
-               "cid":10,
-               "target":"makiz",
-               "s":{
-                  
-               },
-               "level":8
-            }
-         ],
-        "type": "xy",
-        "in": "main",
-        "map": "main"
+  "players": [
+    {
+      "hp": 5245,
+      "max_hp": 5271,
+      "mp": 1885,
+      "max_mp": 1885,
+      "xp": 15962472,
+      "attack": 48,
+      "frequency": 0.6679415892373209,
+      "speed": 72,
+      "range": 20,
+      "armor": 54,
+      "resistance": 119,
+      "level": 56,
+      "party": "MrDeePs",
+      "rip": false,
+      "code": true,
+      "afk": true,
+      "target": null,
+      "focus": "kouin",
+      "s": {},
+      "c": {},
+      "q": {},
+      "age": 338,
+      "pdps": 17.218536885677565,
+      "id": "Moneybaggers",
+      "x": 412.4300917824425,
+      "y": 991.1029095899681,
+      "moving": true,
+      "going_x": 211,
+      "going_y": 876,
+      "abs": false,
+      "move_num": 17329060,
+      "angle": -150.2551187030578,
+      "cid": 7822,
+      "stand": false,
+      "skin": "marmor12a",
+      "cx": {
+        "hair": "hairdo520",
+        "head": "fmakeup01",
+        "hat": "hat404"
+      },
+      "slots": {
+        "ring1": {
+          "name": "vitring",
+          "level": 0
+        },
+        "ring2": {
+          "level": 3,
+          "name": "vitring"
+        },
+        "earring1": {
+          "name": "vitearring",
+          "level": 0
+        },
+        "earring2": null,
+        "belt": {
+          "name": "hpbelt",
+          "level": 4
+        },
+        "mainhand": null,
+        "offhand": null,
+        "helmet": {
+          "name": "helmet",
+          "gift": 1,
+          "level": 0
+        },
+        "chest": null,
+        "pants": null,
+        "shoes": {
+          "stat_type": "dex",
+          "name": "shoes",
+          "level": 7
+        },
+        "gloves": null,
+        "amulet": {
+          "name": "hpamulet",
+          "level": 4
+        },
+        "orb": {
+          "name": "test_orb",
+          "level": 0
+        },
+        "elixir": null,
+        "cape": null,
+        "trade1": null,
+        "trade2": null,
+        "trade3": null,
+        "trade4": null
+      },
+      "ctype": "merchant",
+      "owner": "6314512450322432"
     }
+  ],
+  "monsters": [
+    {
+      "speed": 25.92,
+      "hp": 85016,
+      "mp": 96,
+      "attack": 640,
+      "xp": 131200,
+      "frequency": 1.072,
+      "max_hp": 86400,
+      "id": "1869105",
+      "x": 335.4667740677073,
+      "y": -2011.3367167663876,
+      "moving": true,
+      "going_x": 363.95981679423096,
+      "going_y": -1874.8896953933113,
+      "abs": false,
+      "move_num": 22612448,
+      "angle": 78.20491891313337,
+      "type": "wolfie",
+      "cid": 8,
+      "s": {
+      },
+      "level": 8
+    },
+    {
+      "speed": 53.92,
+      "hp": 85092,
+      "mp": 96,
+      "attack": 640,
+      "xp": 131200,
+      "frequency": 1.072,
+      "max_hp": 86400,
+      "id": "1869147",
+      "x": 253.47654407885798,
+      "y": -1916.635392105144,
+      "moving": true,
+      "going_x": 232,
+      "going_y": -1888,
+      "abs": false,
+      "move_num": 22612446,
+      "angle": 126.86989764584402,
+      "type": "wolfie",
+      "cid": 10,
+      "target": "makiz",
+      "s": {
+      },
+      "level": 8
+    }
+  ],
+  "type": "xy",
+  "in": "main",
+  "map": "main"
+}

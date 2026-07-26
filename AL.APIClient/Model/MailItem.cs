@@ -1,5 +1,5 @@
 #region
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 namespace AL.APIClient.Model;
@@ -10,18 +10,18 @@ namespace AL.APIClient.Model;
 public sealed record MailItem
 {
     /// <summary>
-    ///     The item's name.
-    /// </summary>
-    public string Name { get; init; } = null!;
-
-    /// <summary>
     ///     The item's level.
     /// </summary>
     public int Level { get; init; }
 
     /// <summary>
+    ///     The item's name.
+    /// </summary>
+    public string Name { get; init; } = null!;
+
+    /// <summary>
     ///     The quantity, for stackable items.
     /// </summary>
-    [JsonProperty("q")]
+    [JsonPropertyName("q")]
     public int Quantity { get; init; } = 1;
 }

@@ -2,189 +2,326 @@
 using AL.Core.Definitions;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.SocketModel;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
-///     Covers the response/completion contract - the discriminators an awaiting method uses to tell success from
-///     failure. Every frame here is authored from the server source; there is no captured game_response corpus.
+///     Covers the response/completion contract - the discriminators an awaiting method uses to tell success from failure.
+///     Every frame here is authored from the server source; there is no captured game_response corpus.
 /// </summary>
-[TestClass]
 public class ResponseContractTests
 {
-   [TestMethod]
-   public void CEventParsesBothTheBooleanAndTheNamedShape()
-   {
-      //cevent is true on dismantle/upgrade but a name on sell/buy/respawn - one shape must not throw the other away
-      var flag = TestJson.Socket<GameResponseData>(@"{ ""response"":""dismantle"", ""cevent"":true }");
-      var named = TestJson.Socket<GameResponseData>(@"{ ""response"":""gold_received"", ""cevent"":""sell"" }");
+    [Test]
+    public void AlchemyGoldIsFractional()
+    {
+        var data = TestJson.Socket<GameResponseData>(@"{ ""response"":""data"", ""gold"":1290.6 }");
 
-      Assert.IsNotNull(flag);
-      Assert.IsNotNull(flag.CEvent);
-      Assert.IsNotNull(named);
-      Assert.AreEqual("sell", named.CEvent);
-   }
+        data.Should()
+            .NotBeNull();
 
-   [TestMethod]
-   public void FailedAndSuccessAreIndependentSoAnExplicitFalseSurvives()
-   {
-      //success_response only defaults success to true when it is not already false, so in_progress frames keep it
-      const string IN_PROGRESS = @"{ ""response"":""data"", ""place"":""fishing"", ""success"":false, ""in_progress"":true }";
+        data.Gold
+            .Should()
+            .BeApproximately(1290.6f, 0.001f);
+    }
 
-      var data = TestJson.Socket<GameResponseData>(IN_PROGRESS);
+    /// <summary>
+    ///     Nine distance emits, plus not_ready/inv_size and others, arrive as a bare JSON string rather than an object. Only
+    ///     the code survives, so no guard may require an object-only field to recognise them.
+    /// </summary>
+    [Test]
+    public void BareStringFrameYieldsTheCodeAndLeavesEveryDiscriminatorFalse()
+    {
+        var data = TestJson.Socket<GameResponseData>(@"""distance""");
 
-      Assert.IsNotNull(data);
-      Assert.IsFalse(data.Success);
-      Assert.IsFalse(data.Failed);
-      Assert.IsTrue(data.InProgress);
-   }
+        data.Should()
+            .NotBeNull();
 
-   [TestMethod]
-   public void SkillSuccessIsCarriedByPlaceAndSuccess()
-   {
-      const string RESPONSE = @"{ ""response"":""data"", ""place"":""massproduction"", ""success"":true }";
+        data.Failed
+            .Should()
+            .BeFalse();
 
-      var data = TestJson.Socket<GameResponseData>(RESPONSE);
+        data.Success
+            .Should()
+            .BeFalse();
 
-      Assert.IsNotNull(data);
-      Assert.AreEqual(GameResponseType.Data, data.ResponseType);
-      Assert.IsTrue(data.Success);
-      Assert.IsFalse(data.Failed);
-      Assert.AreEqual("massproduction", data.Place);
-   }
+        data.Place
+            .Should()
+            .BeNull();
+    }
 
-   [TestMethod]
-   public void SkillFailureIsCarriedByFailedAndReason()
-   {
-      const string RESPONSE = @"{ ""response"":""data"", ""failed"":true, ""reason"":""no_target"", ""place"":""3shot"" }";
+    [Test]
+    public void CEventParsesBothTheBooleanAndTheNamedShape()
+    {
+        //cevent is true on dismantle/upgrade but a name on sell/buy/respawn - one shape must not throw the other away
+        var flag = TestJson.Socket<GameResponseData>(@"{ ""response"":""dismantle"", ""cevent"":true }");
+        var named = TestJson.Socket<GameResponseData>(@"{ ""response"":""gold_received"", ""cevent"":""sell"" }");
 
-      var data = TestJson.Socket<GameResponseData>(RESPONSE);
+        flag.Should()
+            .NotBeNull();
 
-      Assert.IsNotNull(data);
-      Assert.IsTrue(data.Failed);
-      Assert.IsFalse(data.Success);
-      Assert.AreEqual("no_target", data.Reason);
-      Assert.AreEqual("3shot", data.Place);
-   }
+        flag.CEvent
+            .Should()
+            .NotBeNull();
 
-   /// <summary>
-   ///     The multishot success frame is the collapsed action object, which never carries success. Identifying it
-   ///     by Place is the only thing that works - gating on Success here would leave the skill permanently broken.
-   /// </summary>
-   [TestMethod]
-   public void MultishotSuccessIsIdentifiedByPlaceBecauseItCarriesNoSuccessFlag()
-   {
-      const string RESPONSE = @"{
+        named.Should()
+             .NotBeNull();
+
+        named.CEvent
+             .Should()
+             .Be("sell");
+    }
+
+    /// <summary>
+    ///     A distance frame names the operation that was too far away. Un-gated, one in-flight call resolves on another's
+    ///     failure and short-circuits the frame before the real caller sees it.
+    /// </summary>
+    [Test]
+    public void DistanceFrameNamesTheOperationThatWasTooFar()
+    {
+        var sell = TestJson.Socket<GameResponseData>(@"{ ""response"":""distance"", ""place"":""sell"", ""failed"":true }");
+
+        sell.Should()
+            .NotBeNull();
+
+        sell.ResponseType
+            .Should()
+            .Be(GameResponseType.Distance);
+
+        sell.Place
+            .Should()
+            .Be("sell");
+
+        sell.Place
+            .Should()
+            .NotBe("buy");
+    }
+
+    [Test]
+    public void FailedAndSuccessAreIndependentSoAnExplicitFalseSurvives()
+    {
+        //success_response only defaults success to true when it is not already false, so in_progress frames keep it
+        const string IN_PROGRESS = @"{ ""response"":""data"", ""place"":""fishing"", ""success"":false, ""in_progress"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(IN_PROGRESS);
+
+        data.Should()
+            .NotBeNull();
+
+        data.Success
+            .Should()
+            .BeFalse();
+
+        data.Failed
+            .Should()
+            .BeFalse();
+
+        data.InProgress
+            .Should()
+            .BeTrue();
+    }
+
+    /// <summary>
+    ///     Turning in a finished monster hunt answers with this instead of monsterhunt_started, and it is the only
+    ///     game_response on that path - so nothing else can complete the await.
+    /// </summary>
+    [Test]
+    public void MonsterHuntTurnInIsIdentifiedBySuccessAndPlace()
+    {
+        const string RESPONSE = @"{ ""response"":""data"", ""place"":""monsterhunt"", ""success"":true, ""completed"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.Data);
+
+        data.Success
+            .Should()
+            .BeTrue();
+
+        data.Failed
+            .Should()
+            .BeFalse();
+
+        data.Completed
+            .Should()
+            .BeTrue();
+
+        data.Place
+            .Should()
+            .Be("monsterhunt");
+    }
+
+    /// <summary>
+    ///     The multishot success frame is the collapsed action object, which never carries success. Identifying it by Place is
+    ///     the only thing that works - gating on Success here would leave the skill permanently broken.
+    /// </summary>
+    [Test]
+    public void MultishotSuccessIsIdentifiedByPlaceBecauseItCarriesNoSuccessFlag()
+    {
+        const string RESPONSE = @"{
    ""response"":""data"",
    ""place"":""3shot"",
    ""pids"":[""aB3dEf"",""Gh7jKl""],
    ""targets"":[""someMonster"",""otherMonster""]
 }";
 
-      var data = TestJson.Socket<GameResponseData>(RESPONSE);
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
 
-      Assert.IsNotNull(data);
-      Assert.AreEqual(GameResponseType.Data, data.ResponseType);
-      Assert.IsFalse(data.Success);
-      Assert.IsFalse(data.Failed);
-      Assert.AreEqual("3shot", data.Place);
-      Assert.IsNotNull(data.Targets);
-      Assert.AreEqual(2, data.Targets.Length);
-      Assert.IsNotNull(data.Pids);
-      Assert.AreEqual(2, data.Pids.Length);
-   }
+        data.Should()
+            .NotBeNull();
 
-   [TestMethod]
-   public void StaleUpgradeFrameIsFlaggedSoItCanBeRefused()
-   {
-      const string RESPONSE = @"{ ""response"":""upgrade_success"", ""stale"":true, ""level"":5, ""num"":3, ""stat_type"":""int"" }";
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.Data);
 
-      var data = TestJson.Socket<GameResponseData>(RESPONSE);
+        data.Success
+            .Should()
+            .BeFalse();
 
-      Assert.IsNotNull(data);
-      Assert.IsTrue(data.Stale);
-      Assert.AreEqual(5, data.Level);
-      Assert.AreEqual(ALAttribute.Int, data.StatType);
-   }
+        data.Failed
+            .Should()
+            .BeFalse();
 
-   /// <summary>
-   ///     Nine distance emits, plus not_ready/inv_size and others, arrive as a bare JSON string rather than an
-   ///     object. Only the code survives, so no guard may require an object-only field to recognise them.
-   /// </summary>
-   [TestMethod]
-   public void BareStringFrameYieldsTheCodeAndLeavesEveryDiscriminatorFalse()
-   {
-      var data = TestJson.Socket<GameResponseData>(@"""distance""");
+        data.Place
+            .Should()
+            .Be("3shot");
 
-      Assert.IsNotNull(data);
-      Assert.IsFalse(data.Failed);
-      Assert.IsFalse(data.Success);
-      Assert.IsNull(data.Place);
-   }
+        data.Targets
+            .Should()
+            .NotBeNull();
 
-   /// <summary>
-   ///     Turning in a finished monster hunt answers with this instead of monsterhunt_started, and it is the only
-   ///     game_response on that path - so nothing else can complete the await.
-   /// </summary>
-   [TestMethod]
-   public void MonsterHuntTurnInIsIdentifiedBySuccessAndPlace()
-   {
-      const string RESPONSE = @"{ ""response"":""data"", ""place"":""monsterhunt"", ""success"":true, ""completed"":true }";
+        data.Targets
+            .Length
+            .Should()
+            .Be(2);
 
-      var data = TestJson.Socket<GameResponseData>(RESPONSE);
+        data.Pids
+            .Should()
+            .NotBeNull();
 
-      Assert.IsNotNull(data);
-      Assert.AreEqual(GameResponseType.Data, data.ResponseType);
-      Assert.IsTrue(data.Success);
-      Assert.IsFalse(data.Failed);
-      Assert.IsTrue(data.Completed);
-      Assert.AreEqual("monsterhunt", data.Place);
-   }
+        data.Pids
+            .Length
+            .Should()
+            .Be(2);
+    }
 
-   /// <summary>
-   ///     Both arrive as bare strings, so they carry no Failed and no Place and the shared default failure arm
-   ///     cannot see them. They need an arm keyed on the code alone or the call runs to its 60s timeout.
-   /// </summary>
-   [TestMethod]
-   public void ScrollShortageCodesArriveWithNothingButTheCode()
-   {
-      var noScroll = TestJson.Socket<GameResponseData>(@"""compound_no_scroll""");
-      var scrollQ = TestJson.Socket<GameResponseData>(@"""upgrade_scroll_q""");
+    /// <summary>
+    ///     Both arrive as bare strings, so they carry no Failed and no Place and the shared default failure arm cannot see
+    ///     them. They need an arm keyed on the code alone or the call runs to its 60s timeout.
+    /// </summary>
+    [Test]
+    public void ScrollShortageCodesArriveWithNothingButTheCode()
+    {
+        var noScroll = TestJson.Socket<GameResponseData>(@"""compound_no_scroll""");
+        var scrollQ = TestJson.Socket<GameResponseData>(@"""upgrade_scroll_q""");
 
-      Assert.IsNotNull(noScroll);
-      Assert.AreEqual(GameResponseType.CompoundNoScroll, noScroll.ResponseType);
-      Assert.IsFalse(noScroll.Failed);
-      Assert.IsNull(noScroll.Place);
+        noScroll.Should()
+                .NotBeNull();
 
-      Assert.IsNotNull(scrollQ);
-      Assert.AreEqual(GameResponseType.UpgradeScrollQ, scrollQ.ResponseType);
-      Assert.IsFalse(scrollQ.Failed);
-   }
+        noScroll.ResponseType
+                .Should()
+                .Be(GameResponseType.CompoundNoScroll);
 
-   /// <summary>
-   ///     A distance frame names the operation that was too far away. Un-gated, one in-flight call resolves on
-   ///     another's failure and short-circuits the frame before the real caller sees it.
-   /// </summary>
-   [TestMethod]
-   public void DistanceFrameNamesTheOperationThatWasTooFar()
-   {
-      var sell = TestJson.Socket<GameResponseData>(
-         @"{ ""response"":""distance"", ""place"":""sell"", ""failed"":true }");
+        noScroll.Failed
+                .Should()
+                .BeFalse();
 
-      Assert.IsNotNull(sell);
-      Assert.AreEqual(GameResponseType.Distance, sell.ResponseType);
-      Assert.AreEqual("sell", sell.Place);
-      Assert.AreNotEqual("buy", sell.Place);
-   }
+        noScroll.Place
+                .Should()
+                .BeNull();
 
-   [TestMethod]
-   public void AlchemyGoldIsFractional()
-   {
-      var data = TestJson.Socket<GameResponseData>(@"{ ""response"":""data"", ""gold"":1290.6 }");
+        scrollQ.Should()
+               .NotBeNull();
 
-      Assert.IsNotNull(data);
-      Assert.AreEqual(1290.6f, data.Gold, 0.001f);
-   }
+        scrollQ.ResponseType
+               .Should()
+               .Be(GameResponseType.UpgradeScrollQ);
+
+        scrollQ.Failed
+               .Should()
+               .BeFalse();
+    }
+
+    [Test]
+    public void SkillFailureIsCarriedByFailedAndReason()
+    {
+        const string RESPONSE = @"{ ""response"":""data"", ""failed"":true, ""reason"":""no_target"", ""place"":""3shot"" }";
+
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
+
+        data.Should()
+            .NotBeNull();
+
+        data.Failed
+            .Should()
+            .BeTrue();
+
+        data.Success
+            .Should()
+            .BeFalse();
+
+        data.Reason
+            .Should()
+            .Be("no_target");
+
+        data.Place
+            .Should()
+            .Be("3shot");
+    }
+
+    [Test]
+    public void SkillSuccessIsCarriedByPlaceAndSuccess()
+    {
+        const string RESPONSE = @"{ ""response"":""data"", ""place"":""massproduction"", ""success"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.Data);
+
+        data.Success
+            .Should()
+            .BeTrue();
+
+        data.Failed
+            .Should()
+            .BeFalse();
+
+        data.Place
+            .Should()
+            .Be("massproduction");
+    }
+
+    [Test]
+    public void StaleUpgradeFrameIsFlaggedSoItCanBeRefused()
+    {
+        const string RESPONSE = @"{ ""response"":""upgrade_success"", ""stale"":true, ""level"":5, ""num"":3, ""stat_type"":""int"" }";
+
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
+
+        data.Should()
+            .NotBeNull();
+
+        data.Stale
+            .Should()
+            .BeTrue();
+
+        data.Level
+            .Should()
+            .Be(5);
+
+        data.StatType
+            .Should()
+            .Be(ALAttribute.Int);
+    }
 }

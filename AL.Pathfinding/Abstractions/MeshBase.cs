@@ -152,9 +152,8 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
         var endOffset = ApplyOffset(end);
 
         return !startOffset.RayTraceTo(endOffset)
-                           .Any(
-                               p => PointMap[Convert.ToInt32(p.X), Convert.ToInt32(p.Y)]
-                                   .HasFlag(PointType.Wall));
+                           .Any(p => PointMap[Convert.ToInt32(p.X), Convert.ToInt32(p.Y)]
+                               .HasFlag(PointType.Wall));
     }
 
     protected internal virtual EdgeType ConnectorTypeSelector(ILocation start, ILocation end)

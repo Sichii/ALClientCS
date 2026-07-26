@@ -1,11 +1,9 @@
 #region
 using System;
-using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Extensions;
 using AL.Core.Interfaces;
-using AL.SocketClient.Json.Converters;
 using AL.SocketClient.SocketModel;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -18,13 +16,13 @@ namespace AL.SocketClient.Model;
 /// </remarks>
 /// <seealso cref="Player" />
 /// <seealso cref="IMutable{TMutator}" />
-[JsonConverter(typeof(CharacterConverter<Character>))]
 public class Character : Player, IEquatable<Character>
 {
     /// <summary>
     ///     The number of entities currently targeting this player.
     /// </summary>
-    [JsonProperty("targets")]
+    [JsonPropertyName("targets")]
+    [JsonInclude]
     public int AggroTargets { get; protected set; }
 
     /// <summary>
@@ -33,19 +31,27 @@ public class Character : Player, IEquatable<Character>
     ///     This property only populates while you are inside of a bank, and hold information about gold and items this
     ///     character has in the bank.
     /// </summary>
-    [JsonProperty("user"), JsonConverter(typeof(BankDataConverter))]
+    [JsonPropertyName("user")]
+    [JsonInclude]
     public BankInfo? Bank { get; protected set; }
 
     /// <summary>
     ///     TODO: unknown
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public int Cache { get; protected set; }
+
+    /// <summary>
+    ///     The account's premium currency (shells) balance.
+    /// </summary>
+    [JsonPropertyName("cash")]
+    [JsonInclude]
+    public int Cash { get; protected set; }
 
     /// <summary>
     ///     If populated, this contains all of the code executing for this character.
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public new string? Code { get; protected set; }
 
     /// <summary>
@@ -57,19 +63,22 @@ public class Character : Player, IEquatable<Character>
     ///         If this number goes above 200, you will be disconnected.
     ///     </b>
     /// </summary>
-    [JsonProperty("cc")]
+    [JsonPropertyName("cc")]
+    [JsonInclude]
     public float CodeCost { get; protected set; }
 
     /// <summary>
     ///     The number of empty slots in this character's inventory.
     /// </summary>
-    [JsonProperty("esize")]
+    [JsonPropertyName("esize")]
+    [JsonInclude]
     public int EmptySlots { get; protected set; }
 
     /// <summary>
     ///     While you are not attacking, your range increases by 5/second, up to a max of 25.
     /// </summary>
-    [JsonProperty("xrange")]
+    [JsonPropertyName("xrange")]
+    [JsonInclude]
     public float ExtraRange { get; protected set; }
 
     /// <summary>
@@ -78,94 +87,117 @@ public class Character : Player, IEquatable<Character>
     ///     <br />
     ///     This value is the number of monsters you are exceeding your courage by.
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public float Fear { get; protected set; }
+
+    /// <summary>
+    ///     The character's gold-find multiplier (1 + xgold/100).
+    /// </summary>
+    [JsonPropertyName("goldm")]
+    [JsonInclude]
+    public float GoldMultiplier { get; protected set; }
+
+    /// <summary>
+    ///     A percentage bonus applied to incoming damage (0 for most classes).
+    /// </summary>
+    [JsonPropertyName("incdmgamp")]
+    [JsonInclude]
+    public int IncomingDamageAmp { get; protected set; }
 
     /// <summary>
     ///     The character's inventory.
     /// </summary>
-    [JsonProperty("items")]
+    [JsonPropertyName("items")]
+    [JsonInclude]
     public Inventory Inventory { get; internal set; } = null!;
 
     /// <summary>
     ///     The maximum size of this character's inventory.
     /// </summary>
-    [JsonProperty("isize")]
+    [JsonPropertyName("isize")]
+    [JsonInclude]
     public int InventorySize { get; protected set; }
+
+    /// <summary>
+    ///     The character's luck multiplier (1 + xluck/100).
+    /// </summary>
+    [JsonPropertyName("luckm")]
+    [JsonInclude]
+    public float LuckMultiplier { get; protected set; }
 
     /// <summary>
     ///     The number of times this character has changed maps.
     /// </summary>
-    [JsonProperty("m")]
+    [JsonPropertyName("m")]
+    [JsonInclude]
     public ulong MapChangeCount { get; protected set; }
+
+    /// <summary>
+    ///     The total xp required to reach the next level. (large enough to overflow <see cref="int" /> at high level)
+    /// </summary>
+    [JsonPropertyName("max_xp")]
+    [JsonInclude]
+    public long MaxXP { get; protected set; }
+
+    /// <summary>
+    ///     The number of magical monsters this character can face before gaining fear.
+    /// </summary>
+    [JsonPropertyName("mcourage")]
+    [JsonInclude]
+    public int MCourage { get; protected set; }
 
     /// <summary>
     ///     The mp cost of the character's basic attack.
     /// </summary>
-    [JsonProperty("mp_cost")]
+    [JsonPropertyName("mp_cost")]
+    [JsonInclude]
     public new int MPCost { get; protected set; }
+
+    /// <summary>
+    ///     The number of pure/physical monsters this character can face before gaining fear.
+    /// </summary>
+    [JsonPropertyName("pcourage")]
+    [JsonInclude]
+    public int PCourage { get; protected set; }
 
     /// <summary>
     ///     When you buy or sell an item, there is a fraction of that item's value you pay in taxes.
     ///     <br />
     ///     For merchants, this tax is converted into earned xp.
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public float Tax { get; protected set; }
-
-    /// <summary>
-    ///     The total xp required to reach the next level. (large enough to overflow <see cref="int" /> at high level)
-    /// </summary>
-    [JsonProperty("max_xp")]
-    public long MaxXP { get; protected set; }
-
-    /// <summary>
-    ///     The character's gold-find multiplier (1 + xgold/100).
-    /// </summary>
-    [JsonProperty("goldm")]
-    public float GoldMultiplier { get; protected set; }
 
     /// <summary>
     ///     The character's xp multiplier (1 + xxp/100).
     /// </summary>
-    [JsonProperty("xpm")]
+    [JsonPropertyName("xpm")]
+    [JsonInclude]
     public float XPMultiplier { get; protected set; }
-
-    /// <summary>
-    ///     The character's luck multiplier (1 + xluck/100).
-    /// </summary>
-    [JsonProperty("luckm")]
-    public float LuckMultiplier { get; protected set; }
-
-    /// <summary>
-    ///     The account's premium currency (shells) balance.
-    /// </summary>
-    [JsonProperty("cash")]
-    public int Cash { get; protected set; }
-
-    /// <summary>
-    ///     A percentage bonus applied to incoming damage (0 for most classes).
-    /// </summary>
-    [JsonProperty("incdmgamp")]
-    public int IncomingDamageAmp { get; protected set; }
-
-    /// <summary>
-    ///     The number of magical monsters this character can face before gaining fear.
-    /// </summary>
-    [JsonProperty("mcourage")]
-    public int MCourage { get; protected set; }
-
-    /// <summary>
-    ///     The number of pure/physical monsters this character can face before gaining fear.
-    /// </summary>
-    [JsonProperty("pcourage")]
-    public int PCourage { get; protected set; }
 
     public virtual bool Equals(Character? other) => base.Equals(other);
 
     public override bool Equals(object? obj) => Equals(obj as Character);
 
     public override int GetHashCode() => base.GetHashCode();
+
+    /// <summary>
+    ///     System.Text.Json post-deserialize step: after the base slot fill, size the inventory to
+    ///     <see cref="InventorySize" /> (bound by this point). Reproduces the Newtonsoft CharacterConverter enrich.
+    /// </summary>
+    /// <remarks>
+    ///     A frame that carries no
+    ///     <c>
+    ///         items
+    ///     </c>
+    ///     key leaves <see cref="Inventory" /> null, so the sizing is skipped rather than dereferencing it — there is no
+    ///     inventory to size, and the alternative is a <see cref="NullReferenceException" /> that kills the whole frame.
+    /// </remarks>
+    public override void OnDeserialized()
+    {
+        base.OnDeserialized();
+        Inventory?.SetCapacity(InventorySize);
+    }
 
     /// <summary>
     ///     Sets this character as moving to a point.
@@ -208,20 +240,5 @@ public class Character : Player, IEquatable<Character>
         MapChangeCount = data.MapChangeCount;
         StopMoving();
         UpdateLocation((IInstancedLocation)data);
-    }
-
-    /// <summary>
-    ///     System.Text.Json post-deserialize step: after the base slot fill, size the inventory to
-    ///     <see cref="InventorySize" /> (bound by this point). Reproduces the Newtonsoft CharacterConverter enrich.
-    /// </summary>
-    /// <remarks>
-    ///     A frame that carries no <c>items</c> key leaves <see cref="Inventory" /> null, so the sizing is skipped
-    ///     rather than dereferencing it — there is no inventory to size, and the alternative is a
-    ///     <see cref="NullReferenceException" /> that kills the whole frame.
-    /// </remarks>
-    public override void OnDeserialized()
-    {
-        base.OnDeserialized();
-        Inventory?.SetCapacity(InventorySize);
     }
 }

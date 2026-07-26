@@ -1,6 +1,6 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -9,21 +9,23 @@ namespace AL.SocketClient.SocketModel;
 ///     Represents the data received when an entity is hit.
 /// </summary>
 /// <remarks>
-///     The server emits six mutually incompatible shapes on this event (normal, reflect, evade, miss, avoid and
-///     burn tick), so every field below the near-universal hid/id/source is optional.
+///     The server emits six mutually incompatible shapes on this event (normal, reflect, evade, miss, avoid and burn
+///     tick), so every field below the near-universal hid/id/source is optional.
 /// </remarks>
 public sealed record HitData
 {
     /// <summary>
     ///     GUI related. If populated, name of the animation played for this hit.
     /// </summary>
-    [JsonProperty("anim")]
+    [JsonPropertyName("anim")]
     public string? Animation { get; init; }
 
     /// <summary>
     ///     Whether or not this hit was part of an area-of-effect attack such as cleave or shadowstrike.
     /// </summary>
-    [JsonProperty("aoe")]
+    [JsonPropertyName("aoe")]
+
+    // ReSharper disable once InconsistentNaming
     public bool? AOE { get; init; }
 
     /// <summary>
@@ -45,7 +47,7 @@ public sealed record HitData
     /// <summary>
     ///     If populated, the type of damage this hit dealt.
     /// </summary>
-    [JsonProperty("damage_type")]
+    [JsonPropertyName("damage_type")]
     public DamageType? DamageType { get; init; }
 
     /// <summary>
@@ -62,10 +64,10 @@ public sealed record HitData
     public bool Evade { get; init; }
 
     /// <summary>
-    ///     If populated, the amount of gold moved by this hit. Positive when the attacker stole it, negative when the
-    ///     target gained it.
+    ///     If populated, the amount of gold moved by this hit. Positive when the attacker stole it, negative when the target
+    ///     gained it.
     /// </summary>
-    [JsonProperty("goldsteal")]
+    [JsonPropertyName("goldsteal")]
     public float? GoldSteal { get; init; }
 
     /// <summary>
@@ -76,7 +78,7 @@ public sealed record HitData
     /// <summary>
     ///     The ID of the entity that dealt the hit, not an identifier for the hit itself.
     /// </summary>
-    [JsonProperty("hid")]
+    [JsonPropertyName("hid")]
     public string HitId { get; init; } = null!;
 
     /// <summary>
@@ -112,10 +114,10 @@ public sealed record HitData
     public int? Mobbing { get; init; }
 
     /// <summary>
-    ///     If populated, the portion of this hit's damage absorbed by the target's mana shield, taken from their mana
-    ///     instead of their health.
+    ///     If populated, the portion of this hit's damage absorbed by the target's mana shield, taken from their mana instead
+    ///     of their health.
     /// </summary>
-    [JsonProperty("mp_damage")]
+    [JsonPropertyName("mp_damage")]
     public float? MPDamage { get; init; }
 
     /// <summary>
@@ -126,7 +128,7 @@ public sealed record HitData
     /// <summary>
     ///     If populated, the unique id of the projectile that caused this hit.
     /// </summary>
-    [JsonProperty("pid")]
+    [JsonPropertyName("pid")]
     public string? ProjectileId { get; init; }
 
     /// <summary>

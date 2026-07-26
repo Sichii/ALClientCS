@@ -1,10 +1,9 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
-using AL.Core.Json.Converters;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Monsters;
@@ -20,13 +19,12 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     If true, all attacks will do only 1 damage to this monster.
     /// </summary>
-    [JsonProperty("1hp")]
+    [JsonPropertyName("1hp")]
     public bool _1hp { get; init; }
 
     /// <summary>
     ///     The abilities this monster has, indexed by the name of the ability.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(AttributedObjectConverter<GMonsterAbility>))]
     public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } = new Dictionary<string, GMonsterAbility>();
 
     /// <summary>
@@ -40,7 +38,6 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     A list of the achievements associated with this monster.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GKillAchievement>))]
     public IReadOnlyList<GKillAchievement> Achievements { get; init; } = new List<GKillAchievement>();
 
     /// <summary>
@@ -68,7 +65,7 @@ public sealed record GMonster : AttributedRecordBase
     ///     </see>
     ///     onto you, it will move at this speed.
     /// </summary>
-    [JsonProperty("charge")]
+    [JsonPropertyName("charge")]
     public float ChargeSpeed { get; init; }
 
     /// <summary>
@@ -84,7 +81,7 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     The type of damage this monster deals.
     /// </summary>
-    [JsonProperty("damage_type")]
+    [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
     /// <summary>
@@ -115,14 +112,14 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     Some monsters will spawn with effects on them by default.
     /// </summary>
-    [JsonProperty("s")]
+    [JsonPropertyName("s")]
     public IReadOnlyDictionary<Condition, GInitialCondition> InitialConditions { get; init; }
         = new Dictionary<Condition, GInitialCondition>();
 
     /// <summary>
     ///     The direction this monster will face when it spawns.
     /// </summary>
-    [JsonProperty("orientation")]
+    [JsonPropertyName("orientation")]
     public Direction InitialDirection { get; init; }
 
     /// <summary>
@@ -166,13 +163,13 @@ public sealed record GMonster : AttributedRecordBase
     ///     <br />
     ///     Wizard: For >200 second respawn monsters, the variance is from 0.6 to 2.2 of their base time
     /// </summary>
-    [JsonProperty("respawn")]
+    [JsonPropertyName("respawn")]
     public float Respawn { get; init; }
 
     /// <summary>
     ///     When this monster is killed, it gives this buff.
     /// </summary>
-    [JsonProperty("rbuff")]
+    [JsonPropertyName("rbuff")]
     public Condition RewardBuff { get; init; }
 
     /// <summary>
@@ -201,7 +198,6 @@ public sealed record GMonster : AttributedRecordBase
     ///     <br />
     ///     This list contains the delay between spawns, and the name of the monster is spawns on that delay.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<float, string>))]
     public IReadOnlyList<(float SpawnDelay, string MonsterName)>? Spawns { get; init; }
 
     /// <summary>

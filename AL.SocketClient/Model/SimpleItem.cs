@@ -1,6 +1,6 @@
 #region
+using System.Text.Json.Serialization;
 using AL.APIClient.Interfaces;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -11,6 +11,6 @@ public sealed record SimpleItem : ISimpleItem
 {
     public string Name { get; init; } = null!;
 
-    [JsonProperty("q")]
+    [JsonPropertyName("q")]
     public int Quantity { get; init; } = 1;
 }

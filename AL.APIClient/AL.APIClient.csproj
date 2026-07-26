@@ -33,7 +33,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="112.1.0"/>
+        <!-- RestSharp arrived transitively via RestSharp.Serializers.NewtonsoftJson until Phase 6b; the
+             serializer package is dead (AddStringBody bypasses it) but the client itself is still used. -->
+        <PackageReference Include="RestSharp" Version="112.1.0"/>
     </ItemGroup>
 
 </Project>

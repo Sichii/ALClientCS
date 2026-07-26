@@ -1,16 +1,17 @@
+#region
 using System.Collections.Generic;
+#endregion
 
-namespace AL.Core.Interfaces
+namespace AL.Core.Interfaces;
+
+/// <summary>
+///     Represents a polygon, concave or convex.
+/// </summary>
+/// <seealso cref="IEnumerable{T}" />
+public interface IPolygon : IEnumerable<IPoint>
 {
     /// <summary>
-    ///     Represents a polygon, concave or convex.
+    ///     The vertices of the polygon. Must be ordered in a way that you could draw the polygon with them.
     /// </summary>
-    /// <seealso cref="IEnumerable{T}" />
-    public interface IPolygon : IEnumerable<IPoint>
-    {
-        /// <summary>
-        ///     The vertices of the polygon. Must be ordered in a way that you could draw the polygon with them.
-        /// </summary>
-        IReadOnlyList<IPoint> Vertices { get; }
-    }
+    IReadOnlyList<IPoint> Vertices { get; }
 }

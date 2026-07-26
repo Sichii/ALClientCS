@@ -12,9 +12,10 @@ namespace AL.Client.Helpers;
 ///     Generic static helper for doing a shallow copy from one object to another.
 /// </summary>
 /// <typeparam name="T">
-///     The type of the object.
+///     The type of the object. Must be a reference type;
+///     a struct target would be assigned by value and the merge discarded.
 /// </typeparam>
-public static class ShallowMerge<T>
+public static class ShallowMerge<T> where T : class
 {
     private static readonly Action<T, T> AssignmentDelegate;
 
@@ -31,8 +32,9 @@ public static class ShallowMerge<T>
             //.Where(p => p.CanRead && p.CanWrite)
             //.ToArray();
 
-            var assignmentExpressions
-                = properties.Select(p => Expression.Assign(Expression.Property(targetEx, p), Expression.Property(fromEx, p)));
+            var assignmentExpressions = properties.Select(p => Expression.Assign(
+                Expression.Property(targetEx, p),
+                Expression.Property(fromEx, p)));
 
             AssignmentDelegate = Expression.Lambda<Action<T, T>>(Expression.Block(assignmentExpressions), fromEx, targetEx)
                                            .Compile();
@@ -71,11 +73,8 @@ public static class ShallowMerge<T>
     /// </exception>
     public static void Merge(T fromObj, T targetObj)
     {
-        if (fromObj == null)
-            throw new ArgumentNullException(nameof(fromObj));
-
-        if (targetObj == null)
-            throw new ArgumentNullException(nameof(targetObj));
+        ArgumentNullException.ThrowIfNull(fromObj);
+        ArgumentNullException.ThrowIfNull(targetObj);
 
         AssignmentDelegate(fromObj, targetObj);
     }

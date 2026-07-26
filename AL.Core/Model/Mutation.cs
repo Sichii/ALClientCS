@@ -1,25 +1,27 @@
+#region
 using AL.Core.Definitions;
+#endregion
 
-namespace AL.Core.Model
+namespace AL.Core.Model;
+
+/// <summary>
+///     Represents a mutation on an <see cref="Interfaces.IMutable" /> object that involves an <see cref="ALAttribute" />.
+/// </summary>
+public readonly struct Mutation
 {
     /// <summary>
-    ///     Represents a mutation on an <see cref="Interfaces.IMutable" /> object that involves an <see cref="ALAttribute" />.
+    ///     The attribute being mutated.
     /// </summary>
-    public readonly struct Mutation
-    {
-        /// <summary>
-        ///     The attribute being mutated.
-        /// </summary>
-        public ALAttribute Attribute { get; }
-        /// <summary>
-        ///     How much it is being mutated by.
-        /// </summary>
-        public float Mutator { get; }
+    public ALAttribute Attribute { get; }
 
-        public Mutation(ALAttribute attribute, float mutator)
-        {
-            Attribute = attribute;
-            Mutator = mutator;
-        }
+    /// <summary>
+    ///     How much it is being mutated by.
+    /// </summary>
+    public float Mutator { get; }
+
+    public Mutation(ALAttribute attribute, float mutator)
+    {
+        Attribute = attribute;
+        Mutator = mutator;
     }
 }

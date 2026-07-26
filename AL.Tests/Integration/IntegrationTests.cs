@@ -4,15 +4,18 @@ using AL.APIClient.Definitions;
 using AL.Client;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.Integration;
 
-//[TestClass]
+//these drive a real character against the live server and IdleTest alone sleeps a minute, so they are
+//run by hand, never in the suite. Under MSTest that was done by commenting out [TestClass]; TUnit
+//discovers by [Test] alone, so the exclusion has to be explicit or they silently start running.
+[Skip("manual integration test - logs in to the live server")]
 public class IntegrationTests : PathfindingTestBed
 {
-    [TestMethod]
+    [Test]
     public async Task IdleTest()
     {
         await using var client = await Warrior.StartAsync(
@@ -24,10 +27,11 @@ public class IntegrationTests : PathfindingTestBed
         //stand still for 1minute
         await Task.Delay(1000 * 60);
 
-        Assert.IsTrue(true);
+        true.Should()
+            .BeTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task PathfindTest()
     {
         var client = await Warrior.StartAsync(
@@ -43,6 +47,7 @@ public class IntegrationTests : PathfindingTestBed
         await client.SmartMoveAsync(location2);
 
         //we made it yay
-        Assert.IsTrue(client.Character.DistanceWithMapCheck(location2) < 10);
+        (client.Character.DistanceWithMapCheck(location2) < 10).Should()
+                                                               .BeTrue();
     }
 }

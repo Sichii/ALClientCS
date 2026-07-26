@@ -73,10 +73,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
 
     /// <summary>
-    ///     The emotions this character has unlocked and their unlock timestamps. Populated from <c>start</c>.
+    ///     The emotions this character has unlocked and their unlock timestamps. Populated from
+    ///     <c>
+    ///         start
+    ///     </c>
+    ///     .
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10577); the server never re-sends it on a <c>player</c> frame.
+    ///     Start-only data (node/server.js:10577); the server never re-sends it on a
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame.
     /// </remarks>
     public IReadOnlyDictionary<Emotion, float> Emotion { get; private set; }
 
@@ -86,25 +94,41 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public EventAndBossInfo EventsAndBosses { get; private set; }
 
     /// <summary>
-    ///     The names of the characters on this account's friends list. Populated from <c>start</c>.
+    ///     The names of the characters on this account's friends list. Populated from
+    ///     <c>
+    ///         start
+    ///     </c>
+    ///     .
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10574); the server never re-sends it on a <c>player</c> frame.
+    ///     Start-only data (node/server.js:10574); the server never re-sends it on a
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame.
     /// </remarks>
     public IReadOnlyList<string> Friends { get; private set; }
-
-    /// <summary>
-    ///     A collection of all of the cosmetics owned by this character. Populated from <c>start</c>.
-    /// </summary>
-    /// <remarks>
-    ///     Start-only data (node/server.js:10575); the server never re-sends it on a <c>player</c> frame.
-    /// </remarks>
-    public IReadOnlyDictionary<string, int> OwnedCosmetics { get; private set; }
 
     /// <summary>
     ///     The <see cref="Character" />'s unique identifier, as fetched via the <see cref="API" />.
     /// </summary>
     public string? Identifier { get; private set; }
+
+    /// <summary>
+    ///     A collection of all of the cosmetics owned by this character. Populated from
+    ///     <c>
+    ///         start
+    ///     </c>
+    ///     .
+    /// </summary>
+    /// <remarks>
+    ///     Start-only data (node/server.js:10575); the server never re-sends it on a
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame.
+    /// </remarks>
+    public IReadOnlyDictionary<string, int> OwnedCosmetics { get; private set; }
 
     /// <summary>
     ///     Contains information about the party.
@@ -134,7 +158,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     The connection to the Adventure.Land API. Also contains information about the currently logged in user.
     /// </summary>
-    public IALAPIClient API { get; }
+    public IAlApiClient API { get; }
 
     /// <summary>
     ///     This will be populated upon connecting. The character this client is for.
@@ -217,7 +241,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     socketClient
     /// </exception>
-    protected ALClient(string characterName, IALAPIClient apiClient, IALSocketClient socketClient)
+    protected ALClient(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
     {
         if (string.IsNullOrEmpty(characterName))
             throw new ArgumentNullException(nameof(characterName));
@@ -267,29 +291,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     An event fired when a party invite is received.
-    /// </summary>
-
-    // ReSharper disable once EventNeverSubscribedTo.Global
-    public event EventHandler<InviteData>? OnPartyInvite;
-
-    /// <summary>
-    ///     An event fired when another character requests to join your party (the counterpart of
-    ///     <see cref="OnPartyInvite" />).
-    /// </summary>
-    public event EventHandler<RequestData>? OnPartyRequest;
-
-    /// <summary>
-    ///     An event fired when a code-manager message is received - the channel AL bots use to coordinate a
-    ///     multi-character party.
+    ///     An event fired when a code-manager message is received - the channel AL bots use to coordinate a multi-character
+    ///     party.
     /// </summary>
     public event EventHandler<CmData>? OnCodeMessage;
-
-    /// <summary>
-    ///     An event fired when a mage offers this character a magiport. Pass <see cref="MagiportData.Name" /> to
-    ///     <see cref="AcceptMagiportAsync" /> to accept.
-    /// </summary>
-    public event EventHandler<MagiportData>? OnMagiport;
 
     /// <summary>
     ///     An event fired when a boss/holiday event spawns on the server.
@@ -300,6 +305,25 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     An event fired when this character is credited with a monster kill.
     /// </summary>
     public event EventHandler<KillCreditData>? OnKillCredit;
+
+    /// <summary>
+    ///     An event fired when a mage offers this character a magiport. Pass <see cref="MagiportData.Name" /> to
+    ///     <see cref="AcceptMagiportAsync" /> to accept.
+    /// </summary>
+    public event EventHandler<MagiportData>? OnMagiport;
+
+    /// <summary>
+    ///     An event fired when a party invite is received.
+    /// </summary>
+
+    // ReSharper disable once EventNeverSubscribedTo.Global
+    public event EventHandler<InviteData>? OnPartyInvite;
+
+    /// <summary>
+    ///     An event fired when another character requests to join your party (the counterpart of <see cref="OnPartyInvite" />
+    ///     ).
+    /// </summary>
+    public event EventHandler<RequestData>? OnPartyRequest;
 
     #region Checks
     /// <summary>
@@ -355,8 +379,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return true;
 
         if (fromPonty)
-            return GameData.NPCs["secondhands"]!.Locations.Any(
-                location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
+            return GameData.NPCs["secondhands"]!.Locations.Any(location
+                => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
 
         // ReSharper disable once ConvertIfStatementToReturnStatement
         if (data.ObtainType != ObtainType.Buy)
@@ -669,14 +693,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Checks if a target is within range
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public bool WithinRange(IRectangle target, float range, DistanceType distanceType) => distanceType switch
-    {
-        DistanceType.CenterToCenter => Character.Distance(target) < range,
-        DistanceType.EdgeToCenter   => Character.EdgeToCenterDistance(target) < range,
-        DistanceType.EdgeToEdge     => Character.EdgeToEdgeDistance(target) < range,
-        _                           => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
-    };
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// </exception>
+    public bool WithinRange(IRectangle target, float range, DistanceType distanceType)
+        => distanceType switch
+        {
+            DistanceType.CenterToCenter => Character.Distance(target) < range,
+            DistanceType.EdgeToCenter => Character.EdgeToCenterDistance(target) < range,
+            DistanceType.EdgeToEdge => Character.EdgeToEdgeDistance(target) < range,
+            _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
+        };
 
     /// <summary>
     ///     Checks if a target is within range of a skill.
@@ -892,10 +918,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Set when the client has stopped and will not reconnect on its own: the server rejected this
-    ///     character terminally (<c>"limits"</c> / <c>"wrong_passphrase"</c>) or every reconnect attempt was
-    ///     exhausted. A bot script should poll this and stop its loops - unlike a transient drop, the client
-    ///     will not recover without being recreated. <c>null</c> while the client is healthy.
+    ///     Set when the client has stopped and will not reconnect on its own: the server rejected this character terminally (
+    ///     <c>
+    ///         "limits"
+    ///     </c>
+    ///     /
+    ///     <c>
+    ///         "wrong_passphrase"
+    ///     </c>
+    ///     ) or every reconnect attempt was exhausted. A bot script should poll this and stop its loops - unlike a transient
+    ///     drop, the client will not recover without being recreated.
+    ///     <c>
+    ///         null
+    ///     </c>
+    ///     while the client is healthy.
     /// </summary>
     public string? FatalError { get; private set; }
 
@@ -915,7 +951,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //"limits": the server refused this character for this session (node/server.js:10564). Retrying
         //cannot help, so surface it and stop rather than hammering the connection.
-        if (reason.EqualsI("limits"))
+        if ("limits".EqualsI(reason!))
         {
             Logger.Fatal("Server refused this character (\"limits\"); not reconnecting.");
             FatalError = "limits";
@@ -938,7 +974,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //while unauthenticated (node/server.js:4330) and dc_players is only cleared roughly every 24s
         //(:14883), so honor a cooldown before the first attempt - the browser waits ~20s (rc_delay 16 plus a
         //3-4s base, js/game.js:2779 + :224-249).
-        if (reason.EqualsI("limitdc"))
+        if ("limitdc".EqualsI(reason!))
         {
             Logger.Warn("Rate-limit disconnect (\"limitdc\"); waiting 20s before reconnecting.");
 
@@ -984,7 +1020,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public async Task DisconnectAsync()
     {
         await using var @lock = await Sync.WaitAsync();
-        
+
         Logger.Warn("Disconnecting");
 
         await Socket.DisconnectAsync();
@@ -1298,10 +1334,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.BuyCantNPC   => source.TrySetResult($"Failed to buy {itemName}. (wrong npc)"),
                     GameResponseType.BuyCantSpace => source.TrySetResult($"Failed to buy {itemName}. (not enough space)"),
                     GameResponseType.BuyCost      => source.TrySetResult($"Failed to buy {itemName}. (not enough gold)"),
-                    GameResponseType.Distance when "buy".EqualsI(data.Place!) => source.TrySetResult($"Failed to buy {itemName}. (get closer)"),
+                    GameResponseType.Distance when "buy".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to buy {itemName}. (get closer)"),
                     _ when data.Failed && "buy".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to buy {itemName}. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                             => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -1392,7 +1429,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if ((data.ResponseType == GameResponseType.Distance) && "trade_buy".EqualsI(data.Place!))
                     result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. (get closer)");
                 else if (data.Failed && "trade_buy".EqualsI(data.Place!))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from {playerName}. ({data.Reason ?? data.ResponseType.ToString()})");
+                    result = source.TrySetResult(
+                        $"Failed to buy {item.Name} from {playerName}. ({data.Reason ?? data.ResponseType.ToString()})");
 
                 return Task.FromResult(result);
             });
@@ -1568,7 +1606,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketEmitType.Dismantle,
             new
             {
-                num = inventorySlot,
+                num = inventorySlot
             });
 
         //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
@@ -1578,7 +1616,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         return expectation.Result ?? false;
     }
-    
+
     /// <summary>
     ///     Attempts to compound 3 items of the same level/name.
     /// </summary>
@@ -1640,18 +1678,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
                     GameResponseType.Exception when data.Place!.EqualsI("compound") => source.TrySetResult(
                         "Failed to compound. (exception, major issues)"),
-                    GameResponseType.CantInBank       => source.TrySetResult("Failed to compound. (can't compound from bank)"),
-                    GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult("Failed to compound. (get closer)"),
+                    GameResponseType.CantInBank => source.TrySetResult("Failed to compound. (can't compound from bank)"),
+                    GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult(
+                        "Failed to compound. (get closer)"),
 
                     //arrives as a bare string, so it carries neither Failed nor Place and the default arm cannot see it
                     GameResponseType.CompoundNoScroll => source.TrySetResult("Failed to compound. (no scroll)"),
 
                     //a stale frame is the completion of an await that died with the previous session
                     GameResponseType.CompoundSuccess when !data.Stale => source.TrySetResult(true),
-                    GameResponseType.CompoundFail when !data.Stale => source.TrySetResult(false),
+                    GameResponseType.CompoundFail when !data.Stale    => source.TrySetResult(false),
                     _ when data.Failed && "compound".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to compound. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                                 => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -1734,8 +1773,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
                     GameResponseType.Exception when data.Place!.EqualsI("compound") => source.TrySetResult(
                         "Failed to compound. (exception, major issues)"),
-                    GameResponseType.CantInBank       => source.TrySetResult("Failed to compound. (can't compound from bank)"),
-                    GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult("Failed to compound. (get closer)"),
+                    GameResponseType.CantInBank => source.TrySetResult("Failed to compound. (can't compound from bank)"),
+                    GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult(
+                        "Failed to compound. (get closer)"),
 
                     //arrives as a bare string, so it carries neither Failed nor Place and the default arm cannot see it
                     GameResponseType.CompoundNoScroll => source.TrySetResult("Failed to compound. (no scroll)"),
@@ -1827,7 +1867,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.GoldNotEnough => source.TrySetResult($"Failed to craft {itemName}. (not enough gold"),
                     _ when data.Failed && "craft".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to craft {itemName}. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                              => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -1837,11 +1877,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.Character,
             data =>
             {
-                var craftedItem = Enumerable.FirstOrDefault<InventoryIndexer>(
-                    data.Inventory
-                        .AsIndexed()
-                        .Except(previousInventory),
-                    indexed => indexed.Item.Name.EqualsI(itemName));
+                var craftedItem = data.Inventory
+                                      .AsIndexed()
+                                      .Except(previousInventory)
+                                      .FirstOrDefault(indexed => indexed.Item.Name.EqualsI(itemName));
 
                 if (craftedItem != null)
                     source.TrySetResult(craftedItem);
@@ -1855,12 +1894,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketEmitType.Craft,
             new
             {
-                items = slots.Select(
-                    (inventorySlot, gridPosition) => new[]
-                    {
-                        gridPosition,
-                        inventorySlot
-                    })
+                items = slots.Select((inventorySlot, gridPosition) => new[]
+                {
+                    gridPosition,
+                    inventorySlot
+                })
             });
 
         return await source.Task.WithNetworkTimeout();
@@ -1985,8 +2023,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     source.TrySetResult($"Failed to deposit item {item.Name}. (not in bank)");
                 else if ((data.Inventory[inventorySlot] == null) && data.Bank.TryGetValue(bankPack.Value, out var bankedItems))
                 {
-                    var probableIndex = bankedItems.FindIndex(
-                        b => (b != null) && b.Name.EqualsI(item.Name) && (b.Level == item.Level) && (b.Quantity >= item.Quantity));
+                    var probableIndex = bankedItems.FindIndex(b
+                        => (b != null) && b.Name.EqualsI(item.Name) && (b.Level == item.Level) && (b.Quantity >= item.Quantity));
 
                     if (probableIndex == -1)
                         return TaskCache.FALSE;
@@ -2119,12 +2157,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 {
                     GameResponseType.ExchangeNotEnough => source.TrySetResult(
                         $"Failed to exchange. (youd to not have {itemData.ExchangeCount})"),
-                    GameResponseType.Distance when "exchange".EqualsI(data.Place!) => source.TrySetResult("Failed to exchange. (get closer)"),
+                    GameResponseType.Distance when "exchange".EqualsI(data.Place!) => source.TrySetResult(
+                        "Failed to exchange. (get closer)"),
                     GameResponseType.ExchangeExisting => source.TrySetResult("Failed to exchange. (already exchanging)"),
                     GameResponseType.CantInBank       => source.TrySetResult("Failed to exchange. (can't exchange from bank)"),
                     _ when data.Failed && "exchange".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to exchange. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                                 => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -2189,7 +2228,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CantEscape => source.TrySetResult("Failed to leave map. (can't escape)"),
                     _ when data.Failed && "leave".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to leave map. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                           => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -2256,7 +2295,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.Distance when "monsterhunt".EqualsI(data.Place!) => source.TrySetResult("Failed to monsterhunt. (get closer)"),
+                    GameResponseType.Distance when "monsterhunt".EqualsI(data.Place!) => source.TrySetResult(
+                        "Failed to monsterhunt. (get closer)"),
                     GameResponseType.MonsterHuntStarted  => source.TrySetResult(true),
                     GameResponseType.MonsterHuntMerchant => source.TrySetResult("Failed to monsterhunt. (merchants can't monsterhunt)"),
 
@@ -2264,7 +2304,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.Data when data.Success && "monsterhunt".EqualsI(data.Place!) => source.TrySetResult(true),
                     _ when data.Failed && "monsterhunt".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to monsterhunt. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                                    => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -2293,7 +2333,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">
     ///     Failed to move to {point}. ({reason})
     /// </exception>
-    [SuppressMessage("ReSharper", "AccessToModifiedClosure"), SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+    [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
+    [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
     public async Task MoveAsync(IPoint point, CancellationToken? token = null)
     {
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -2607,10 +2648,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.Distance     => source.TrySetResult("Failed to get ponty items. (get closer)"),
+                    GameResponseType.Distance => source.TrySetResult("Failed to get ponty items. (get closer)"),
                     _ when data.Failed && "secondhands".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to get ponty items. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                             => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -2632,8 +2673,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     Asynchronously fetches the lost-and-found stock, mirroring <see cref="RequestPontyItemsAsync" />
-    ///     (node/server.js:7334). Requires a prior 1,000,000+ gold donation server-side; without it the server
-    ///     replies with an unmodelled <c>lostandfound_donate</c> response and this call faults on timeout.
+    ///     (node/server.js:7334). Requires a prior 1,000,000+ gold donation server-side; without it the server replies with an
+    ///     unmodelled
+    ///     <c>
+    ///         lostandfound_donate
+    ///     </c>
+    ///     response and this call faults on timeout.
     /// </summary>
     /// <returns>
     ///     <see cref="IReadOnlyList{T}" /> of <see cref="TradeItem" />
@@ -2681,7 +2726,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task<IReadOnlyList<TradeHistoryEntry>> RequestTradeHistoryAsync()
     {
-        var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeHistoryEntry>>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeHistoryEntry>>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var tradeHistoryCallback = Socket.On<TradeHistoryEntry[]>(
             ALSocketMessageType.TradeHistory,
@@ -2698,8 +2744,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously fetches the monster/drop tracker snapshot (node/server.js:4987). Requires the tracker
-    ///     item server-side; without it the server replies nothing and this call faults on timeout.
+    ///     Asynchronously fetches the monster/drop tracker snapshot (node/server.js:4987). Requires the tracker item
+    ///     server-side; without it the server replies nothing and this call faults on timeout.
     /// </summary>
     /// <returns>
     ///     <see cref="TrackerData" />
@@ -2797,10 +2843,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     GameResponseType.CantInBank => source.TrySetResult($"Failed to sell item {item.Name}. (can't sell from bank)"),
-                    GameResponseType.Distance when "sell".EqualsI(data.Place!) => source.TrySetResult($"Failed to sell item {item.Name}. (get closer)"),
+                    GameResponseType.Distance when "sell".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to sell item {item.Name}. (get closer)"),
                     _ when data.Failed && "sell".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to sell item {item.Name}. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _                                 => false
+                    _ => false
                 };
 
                 return Task.FromResult(result);
@@ -2876,7 +2923,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult($"Failed to send {amount} gold to {toPlayerId}. (get closer)"),
+                    GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to send {amount} gold to {toPlayerId}. (get closer)"),
                     _ when data.Failed && "send".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to send {amount} gold to {toPlayerId}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
@@ -3343,7 +3391,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             cancellationToken);
     }
 
-
     public Task SmartMoveNearAreaAsync(
         InscribedBoundary boundary,
         bool usetownIfOptimal = true,
@@ -3353,7 +3400,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             boundary.Radius,
             usetownIfOptimal,
             cancellationToken);
-    
+
     /// <summary>
     ///     Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
     /// </summary>
@@ -3584,8 +3631,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     var inventoryItem = Character.Inventory
                                                  .AsIndexed()
                                                  .Except(previousInventory)
-                                                 .FirstOrDefault(
-                                                     indexed => indexed.Item.Name.EqualsI(item.Name) && (indexed.Item.Level == item.Level));
+                                                 .FirstOrDefault(indexed
+                                                     => indexed.Item.Name.EqualsI(item.Name) && (indexed.Item.Level == item.Level));
 
                     if (inventoryItem != null)
                         source.TrySetResult(inventoryItem);
@@ -3657,7 +3704,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                     //a stale frame is the completion of an await that died with the previous session
                     GameResponseType.UpgradeSuccess when !data.Stale => source.TrySetResult(true),
-                    GameResponseType.UpgradeFail when !data.Stale => source.TrySetResult(false),
+                    GameResponseType.UpgradeFail when !data.Stale    => source.TrySetResult(false),
                     _ when data.Failed && "upgrade".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to upgrade. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
@@ -3943,18 +3990,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
 
-        token?.Register(
-            () =>
-            {
-                _ = Socket.EmitAsync(
-                    ALSocketEmitType.Stop,
-                    new
-                    {
-                        action = "town"
-                    });
-                Logger.Info("Town recall canceled");
-                source.TrySetResult(Expectation.Success);
-            });
+        token?.Register(() =>
+        {
+            _ = Socket.EmitAsync(
+                ALSocketEmitType.Stop,
+                new
+                {
+                    action = "town"
+                });
+            Logger.Info("Town recall canceled");
+            source.TrySetResult(Expectation.Success);
+        });
 
         var expectation = await source.Task.WithTimeout(5000);
         expectation.ThrowIfUnsuccessful();
@@ -4616,12 +4662,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         {
             Task.Run(() => RuntimeHelpers.RunClassConstructor(typeof(RegexCache).TypeHandle)),
             Task.Run(() => RuntimeHelpers.RunClassConstructor(typeof(TaskCache).TypeHandle)),
-            Task.Run(
-                async () =>
-                {
-                    var jData = await ALAPIClient.GetGameDataAsync();
-                    GameData.Populate(jData);
-                })
+            Task.Run(async () =>
+            {
+                var jData = await AlApiClient.GetGameDataAsync();
+                GameData.Populate(jData);
+            })
         };
 
         await Task.WhenAll(tasks);
@@ -4688,6 +4733,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 //a freshly-sighted monster carries only the soft properties that differ from its def; fill the rest
                 monster.BackfillSoftDefaults();
+
                 monster.SetBoundingBase(
                     monster.GetData()
                            .BoundingBase);

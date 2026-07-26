@@ -57,6 +57,8 @@ public sealed class DynamicDelay
     /// </param>
     internal async Task WaitAsync(TimeSpan delay, CancellationToken? token = null)
     {
+        var currentDelay = delay;
+
         while (true)
         {
             CancellationTokenSource localCtx;
@@ -65,13 +67,16 @@ public sealed class DynamicDelay
             {
                 localCtx = token.HasValue ? CancellationTokenSource.CreateLinkedTokenSource(token.Value) : new CancellationTokenSource();
                 Ctx = localCtx;
-                Delay ??= delay;
+
+                //consume any delay set while we were waiting, so each iteration restarts from now
+                currentDelay = Delay ?? currentDelay;
+                Delay = null;
                 NewDelay = false;
             }
 
             try
             {
-                await Task.Delay(delay, localCtx.Token);
+                await Task.Delay(currentDelay, localCtx.Token);
 
                 break;
             } catch (TaskCanceledException)

@@ -1,7 +1,6 @@
-namespace AL.Data.Events
+namespace AL.Data.Events;
+
+public record GEvent
 {
-    public record GEvent
-    {
-        public int Duration { get; init; }
-    }
+    public int Duration { get; init; }
 }

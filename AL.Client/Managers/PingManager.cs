@@ -34,8 +34,8 @@ public sealed class PingManager : AsyncDeltaLoop
         var elapsed = Stopwatch.GetElapsedTime(ts);
 
         var discarded = Pings.Add(elapsed);
-        
-        if(MinimumOffset == TimeSpan.Zero)
+
+        if (MinimumOffset == TimeSpan.Zero)
             MinimumOffset = elapsed;
 
         //if CyclicBuffer is not full, we keep the smallest of values until it's full
@@ -44,7 +44,7 @@ public sealed class PingManager : AsyncDeltaLoop
 
         //if the buffer is full, and elapsed is less than the minimum in the buffer
         //we update the minimum
-        else if ((elapsed < MinimumOffset))
+        else if (elapsed < MinimumOffset)
             MinimumOffset = elapsed;
 
         //if the buffer is full and the discarded value is the minimum

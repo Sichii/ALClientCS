@@ -198,8 +198,8 @@ public sealed class NavMeshBuilder
                 while (holesOfThesePolygons.Count > 0)
                 {
                     //find the first hole that is not contained by any other hole in the list
-                    var topMost = holesOfThesePolygons.First(
-                        hole => !holesOfThesePolygons.Any(p => (hole != p) && p.ContainsPoint(hole.Points[0])));
+                    var topMost = holesOfThesePolygons.First(hole
+                        => !holesOfThesePolygons.Any(p => (hole != p) && p.ContainsPoint(hole.Points[0])));
 
                     //remove these holes till there are none left
                     holesOfThesePolygons.Remove(topMost);

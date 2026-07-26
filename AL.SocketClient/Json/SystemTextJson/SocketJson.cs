@@ -6,16 +6,33 @@ using AL.Core.Json;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     The socket transport's System.Text.Json configuration: the canonical <see cref="ALJson.Options" />
-///     layered with the socket-only converters that AL.Core cannot reference (they target types in this
-///     assembly). Used by the SocketIO serializer, <c>HandleEventAsync</c>, and every message deserialize.
+///     The socket transport's System.Text.Json configuration: the canonical <see cref="ALJson.Options" /> layered with the
+///     socket-only converters that AL.Core cannot reference (they target types in this assembly). Used by the SocketIO
+///     serializer,
+///     <c>
+///         HandleEventAsync
+///     </c>
+///     , and every message deserialize.
 /// </summary>
 /// <remarks>
-///     The socket converters are inserted at the front so they win the first-CanConvert-wins resolution over
-///     the base factories. This is not merely cosmetic for <see cref="BankDataConverter" />: <c>BankInfo</c>
-///     is an <c>IReadOnlyDictionary</c> carrying <c>[JsonObject]</c>, which the base options' trailing
-///     <c>ForcedObjectConverterFactory</c> would otherwise claim and bind by named member — wrong for its flat
-///     gold/pack shape.
+///     The socket converters are inserted at the front so they win the first-CanConvert-wins resolution over the base
+///     factories. This is not merely cosmetic for <see cref="BankDataConverter" />:
+///     <c>
+///         BankInfo
+///     </c>
+///     is an
+///     <c>
+///         IReadOnlyDictionary
+///     </c>
+///     carrying
+///     <c>
+///         [JsonForcedObject]
+///     </c>
+///     , which the base options' trailing
+///     <c>
+///         ForcedObjectConverterFactory
+///     </c>
+///     would otherwise claim and bind by named member — wrong for its flat gold/pack shape.
 /// </remarks>
 public static class SocketJson
 {

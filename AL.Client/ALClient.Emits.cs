@@ -9,17 +9,32 @@ using AL.SocketClient.Definitions;
 namespace AL.Client;
 
 /// <summary>
-///     Phase 9 - emit surface coverage (tier 1). Thin senders for server handlers a parity client needs but
-///     could not previously reach. These emit the action; any confirmation arrives as a separate inbound event
-///     (Phase 10). <see cref="Slot" />/<see cref="TradeSlot" /> serialize lowercase via their own converters,
-///     so they can be placed straight into the payload.
+///     Phase 9 - emit surface coverage (tier 1). Thin senders for server handlers a parity client needs but could not
+///     previously reach. These emit the action; any confirmation arrives as a separate inbound event (Phase 10).
+///     <see cref="Slot" />/<see cref="TradeSlot" /> serialize lowercase via their own converters, so they can be placed
+///     straight into the payload.
 /// </summary>
 public abstract partial class ALClient
 {
+    #region Misc
+    /// <summary>
+    ///     Places a tavern bet (roulette/dice) (node/server.js:11241).
+    /// </summary>
+    public Task BetAsync(string type, long gold, string? odds = null)
+        => Socket.EmitAsync(
+            ALSocketEmitType.Bet,
+            new
+            {
+                type,
+                gold,
+                odds
+            });
+    #endregion
+
     #region Chat
     /// <summary>
-    ///     Sends a public chat message. <paramref name="code" /> flags it as code-manager output, which the
-    ///     server rate-limits to once per 15 seconds (node/server.js:4514).
+    ///     Sends a public chat message. <paramref name="code" /> flags it as code-manager output, which the server rate-limits
+    ///     to once per 15 seconds (node/server.js:4514).
     /// </summary>
     public Task SayAsync(string message, int? code = null)
         => Socket.EmitAsync(
@@ -55,8 +70,8 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Sends a code-manager message to one or more characters - the channel AL bots use to coordinate a
-    ///     multi-character party (node/server.js:4338, :4499).
+    ///     Sends a code-manager message to one or more characters - the channel AL bots use to coordinate a multi-character
+    ///     party (node/server.js:4338, :4499).
     /// </summary>
     public Task SendCmAsync(IEnumerable<string> to, object message)
         => Socket.EmitAsync(
@@ -81,8 +96,8 @@ public abstract partial class ALClient
 
     #region Movement / instances
     /// <summary>
-    ///     Enters instanced content (crypt, tomb, winter/spider instance, duelland, ...). This is the only path
-    ///     that creates an instance; <see cref="TransportAsync" /> covers static doors only (node/server.js:5526).
+    ///     Enters instanced content (crypt, tomb, winter/spider instance, duelland, ...). This is the only path that creates
+    ///     an instance; <see cref="TransportAsync" /> covers static doors only (node/server.js:5526).
     /// </summary>
     public Task EnterAsync(string place, string? instanceName = null)
         => Socket.EmitAsync(
@@ -105,11 +120,10 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Sets the character's home point to the current server (node/server.js:5070). Rate-limited to once
-    ///     per 36 hours server-side.
+    ///     Sets the character's home point to the current server (node/server.js:5070). Rate-limited to once per 36 hours
+    ///     server-side.
     /// </summary>
-    public Task SetHomeAsync()
-        => Socket.EmitAsync(ALSocketEmitType.SetHome);
+    public Task SetHomeAsync() => Socket.EmitAsync(ALSocketEmitType.SetHome);
 
     /// <summary>
     ///     Triggers a seasonal map-object interaction by type (newyear_tree, redorb, ...) (node/server.js:9892).
@@ -125,23 +139,21 @@ public abstract partial class ALClient
 
     #region Inventory
     /// <summary>
-    ///     Equips up to 15 items in a single call (node/server.js:6989). A null slot lets the server pick the
-    ///     item's default slot. Directly supports the weapon-swap pattern.
+    ///     Equips up to 15 items in a single call (node/server.js:6989). A null slot lets the server pick the item's default
+    ///     slot. Directly supports the weapon-swap pattern.
     /// </summary>
     public Task EquipBatchAsync(IEnumerable<(int InventorySlot, Slot? Slot)> equips)
         => Socket.EmitAsync(
             ALSocketEmitType.EquipBatch,
-            equips.Select(
-                      equip => new
-                      {
-                          num = equip.InventorySlot,
-                          slot = equip.Slot
-                      })
+            equips.Select(equip => new
+                  {
+                      num = equip.InventorySlot,
+                      slot = equip.Slot
+                  })
                   .ToArray());
 
     /// <summary>
-    ///     Splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot
-    ///     (node/server.js:7350).
+    ///     Splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot (node/server.js:7350).
     /// </summary>
     public Task SplitAsync(int inventorySlot, int quantity)
         => Socket.EmitAsync(
@@ -165,8 +177,8 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Buys-and-exchanges a token/quest item atomically (node/server.js:6108). <paramref name="quantity" />
-    ///     is a safety check against the current stack size.
+    ///     Buys-and-exchanges a token/quest item atomically (node/server.js:6108). <paramref name="quantity" /> is a safety
+    ///     check against the current stack size.
     /// </summary>
     public Task ExchangeBuyAsync(int inventorySlot, string name, int quantity)
         => Socket.EmitAsync(
@@ -193,10 +205,14 @@ public abstract partial class ALClient
 
     #region Merchant / trade
     /// <summary>
-    ///     Sells an item into another player's standing buy-order (node/server.js:8072) - the merchant-loop
-    ///     counterpart to buying from a stand.
+    ///     Sells an item into another player's standing buy-order (node/server.js:8072) - the merchant-loop counterpart to
+    ///     buying from a stand.
     /// </summary>
-    public Task TradeSellAsync(string buyerId, TradeSlot slot, int quantity, string? rid = null)
+    public Task TradeSellAsync(
+        string buyerId,
+        TradeSlot slot,
+        int quantity,
+        string? rid = null)
         => Socket.EmitAsync(
             ALSocketEmitType.TradeSell,
             new
@@ -234,10 +250,14 @@ public abstract partial class ALClient
 
     #region Mail
     /// <summary>
-    ///     Sends mail to a character, optionally attaching the item in inventory slot 0 (node/server.js:5184).
-    ///     Costs gold server-side.
+    ///     Sends mail to a character, optionally attaching the item in inventory slot 0 (node/server.js:5184). Costs gold
+    ///     server-side.
     /// </summary>
-    public Task MailAsync(string to, string? subject = null, string? message = null, bool sendItem = false)
+    public Task MailAsync(
+        string to,
+        string? subject = null,
+        string? message = null,
+        bool sendItem = false)
         => Socket.EmitAsync(
             ALSocketEmitType.Mail,
             new
@@ -290,34 +310,20 @@ public abstract partial class ALClient
     /// <summary>
     ///     Spawns the character's active pet (node/server.js:11376).
     /// </summary>
-    public Task SpawnPetAsync()
-        => Socket.EmitAsync(ALSocketEmitType.Pet);
+    public Task SpawnPetAsync() => Socket.EmitAsync(ALSocketEmitType.Pet);
 
     /// <summary>
     ///     Recalls (whistles) the character's pet to their location (node/server.js:11392).
     /// </summary>
-    public Task WhistlePetAsync()
-        => Socket.EmitAsync(ALSocketEmitType.Whistle);
+    public Task WhistlePetAsync() => Socket.EmitAsync(ALSocketEmitType.Whistle);
 
     /// <summary>
-    ///     Requests the character's owned pets; the result arrives as a <c>players</c> event (node/server.js:11450).
+    ///     Requests the character's owned pets; the result arrives as a
+    ///     <c>
+    ///         players
+    ///     </c>
+    ///     event (node/server.js:11450).
     /// </summary>
-    public Task RequestPetsAsync()
-        => Socket.EmitAsync(ALSocketEmitType.Pets);
-    #endregion
-
-    #region Misc
-    /// <summary>
-    ///     Places a tavern bet (roulette/dice) (node/server.js:11241).
-    /// </summary>
-    public Task BetAsync(string type, long gold, string? odds = null)
-        => Socket.EmitAsync(
-            ALSocketEmitType.Bet,
-            new
-            {
-                type,
-                gold,
-                odds
-            });
+    public Task RequestPetsAsync() => Socket.EmitAsync(ALSocketEmitType.Pets);
     #endregion
 }

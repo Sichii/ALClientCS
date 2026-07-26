@@ -1,15 +1,30 @@
+#region
 using System;
+#endregion
 
 namespace AL.SocketClient.Definitions;
 
 /// <summary>
-///     Which wire keys an <c>entities</c> frame carried, captured during deserialization so a delta only
-///     overwrites the fields it actually contained. The server's entity encoders are sparse
-///     (<c>node/server.js:878-928</c>): a soft property equal to the G default is omitted, and a state field is
-///     sent only when defined. The browser merges the same way - it iterates the received keys
-///     (<c>js/game.js:786</c>), never a fixed whitelist - so a bare <c>{id,x,y}</c> position delta must not zero
-///     a live monster's hp/speed. Stored as a single value on the entity, so tracking presence adds no heap
-///     allocation on this several-times-per-second-per-character hot path.
+///     Which wire keys an
+///     <c>
+///         entities
+///     </c>
+///     frame carried, captured during deserialization so a delta only overwrites the fields it actually contained. The
+///     server's entity encoders are sparse (
+///     <c>
+///         node/server.js:878-928
+///     </c>
+///     ): a soft property equal to the G default is omitted, and a state field is sent only when defined. The browser
+///     merges the same way - it iterates the received keys (
+///     <c>
+///         js/game.js:786
+///     </c>
+///     ), never a fixed whitelist - so a bare
+///     <c>
+///         {id,x,y}
+///     </c>
+///     position delta must not zero a live monster's hp/speed. Stored as a single value on the entity, so tracking
+///     presence adds no heap allocation on this several-times-per-second-per-character hot path.
 /// </summary>
 [Flags]
 public enum EntityUpdateField : uint

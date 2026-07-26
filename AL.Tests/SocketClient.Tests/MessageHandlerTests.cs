@@ -7,28 +7,32 @@ using AL.SocketClient.Definitions;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Common.Logging;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 using SocketIOClient;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
 
-[TestClass]
+[NotInParallel(ParallelKeys.SOCKET_MESSAGE_HANDLER)]
 public class MessageHandlerTests
 {
     public static ALSocketClient Socket { get; set; } = null!;
 
-    [TestMethod]
+    [After(Class)]
+    public static async Task Cleanup() => await Socket.DisposeAsync();
+
+    [Test]
     public void CreateLambdaTest()
     {
-        Func<SocketIOResponse, int, object> InternalCreateLambda<T>() => ALSocketClient.CreateLambda(typeof(T));
+        static Func<SocketIOResponse, int, object> InternalCreateLambda<T>() => ALSocketClient.CreateLambda(typeof(T));
 
         var lambda = InternalCreateLambda<SlotItem[]>();
 
-        Assert.IsNotNull(lambda);
+        lambda.Should()
+              .NotBeNull();
     }
 
-    [TestMethod]
+    [Test]
     public async Task HandleMessageTest()
     {
         var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -38,6 +42,7 @@ public class MessageHandlerTests
             obj =>
             {
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
                 var result = obj != null;
                 source.TrySetResult(result);
 
@@ -62,10 +67,10 @@ public class MessageHandlerTests
    }
 ]");
 
-        Assert.IsTrue(await source.Task);
+        (await source.Task).Should()
+                           .BeTrue();
     }
 
-    [ClassInitialize]
-    public static void Init(TestContext context)
-        => Socket = new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
+    [Before(Class)]
+    public static void Init() => Socket = new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
 }

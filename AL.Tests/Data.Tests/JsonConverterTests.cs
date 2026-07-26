@@ -1,17 +1,25 @@
+#region
 using AL.Data;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
+#endregion
 
-namespace AL.Tests.Data.Tests
+namespace AL.Tests.Data.Tests;
+
+public class JsonConverterTests : GameDataTestBed
 {
-    [TestClass]
-    public class JsonConverterTests : GameDataTestBed
+    [Test]
+    public void GameDataTest()
     {
-        [TestMethod]
-        public void GameDataTest()
-        {
-            Assert.IsNotNull(GameData.Classes);
-            Assert.IsNotNull(GameData.Achievements);
-            Assert.IsNotNull(GameData.Maps);
-        }
+        GameData.Classes
+                .Should()
+                .NotBeNull();
+
+        GameData.Achievements
+                .Should()
+                .NotBeNull();
+
+        GameData.Maps
+                .Should()
+                .NotBeNull();
     }
 }

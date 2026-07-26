@@ -6,12 +6,12 @@ using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.SocketModel;
 using Common.Logging;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
 
-[TestClass]
+[NotInParallel(ParallelKeys.SOCKET_DISPATCH)]
 public class DispatchTests
 {
     private const string ACTION_FRAME = @"[
@@ -33,7 +33,10 @@ public class DispatchTests
 
     public static ALSocketClient Socket { get; set; } = null!;
 
-    [TestMethod]
+    [After(Class)]
+    public static async Task Cleanup() => await Socket.DisposeAsync();
+
+    [Test]
     public async Task HandledSubscriberStillShortCircuitsTest()
     {
         var laterRan = false;
@@ -51,10 +54,14 @@ public class DispatchTests
 
         await Socket.HandleEventAsync(ACTION_FRAME);
 
-        Assert.IsFalse(laterRan);
+        laterRan.Should()
+                .BeFalse();
     }
 
-    [TestMethod]
+    [Before(Class)]
+    public static void Init() => Socket = new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
+
+    [Test]
     public async Task ThrowingSubscriberDoesNotStarveLaterSubscribersTest()
     {
         var laterRan = false;
@@ -74,10 +81,7 @@ public class DispatchTests
 
         await Socket.HandleEventAsync(ACTION_FRAME);
 
-        Assert.IsTrue(laterRan);
+        laterRan.Should()
+                .BeTrue();
     }
-
-    [ClassInitialize]
-    public static void Init(TestContext context)
-        => Socket = new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
 }

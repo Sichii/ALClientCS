@@ -1,8 +1,8 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.SocketClient.Model;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -17,27 +17,23 @@ public sealed record EntitiesData
     ///     <br />
     ///     If you are in a dungeon, it's a unique ID, otherwise it's the map you are in
     /// </summary>
-    [JsonProperty]
     public string In { get; init; } = null!;
 
-    [JsonProperty]
     public string Map { get; init; } = null!;
 
     /// <summary>
     ///     The monsters you can see.
     /// </summary>
-    [JsonProperty]
     public IReadOnlyList<Monster> Monsters { get; init; } = new List<Monster>();
 
     /// <summary>
     ///     The players you can see
     /// </summary>
-    [JsonProperty]
     public IReadOnlyList<Player> Players { get; init; } = new List<Player>();
 
     /// <summary>
     ///     The type of entity update. (full load or positional)
     /// </summary>
-    [JsonProperty("type")]
+    [JsonPropertyName("type")]
     public EntitiesUpdateType UpdateType { get; init; }
 }

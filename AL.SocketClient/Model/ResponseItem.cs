@@ -1,7 +1,8 @@
 #region
+using System.Text.Json.Serialization;
 using AL.APIClient.Interfaces;
+using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -9,6 +10,11 @@ namespace AL.SocketClient.Model;
 /// <summary>
 ///     Represents an item received via <see cref="AL.SocketClient.SocketModel.GameResponseData" />.
 /// </summary>
+
+//Newtonsoft applies string-or-object at the one member that holds a ResponseItem
+//(GameResponseData.Item); System.Text.Json's factory reads a type-level marker, and without this a bare-string
+//"item" would throw on the System.Text.Json path while Newtonsoft bound it to Name.
+[JsonStringOrObject(nameof(Name))]
 public sealed record ResponseItem : ISimpleItem, IOptionalObject
 {
     /// <summary>
@@ -31,6 +37,6 @@ public sealed record ResponseItem : ISimpleItem, IOptionalObject
     public string Name { get; init; } = null!;
 
     // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
-    [JsonProperty("q")]
+    [JsonPropertyName("q")]
     public int Quantity { get; } = 1;
 }

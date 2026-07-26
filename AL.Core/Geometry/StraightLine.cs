@@ -2,10 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using AL.Core.Extensions;
 using AL.Core.Interfaces;
 using AL.Core.Json.Attributes;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Core.Geometry;
@@ -19,7 +19,7 @@ public sealed record StraightLine : ILine
     /// <summary>
     ///     The X or Y coordinate the line ends on.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(2)]
+    [JsonArrayIndex(2)]
     public int End { get; init; }
 
     /// <summary>
@@ -43,13 +43,13 @@ public sealed record StraightLine : ILine
     /// <summary>
     ///     The X or Y coordinate the line exists on.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(0)]
+    [JsonArrayIndex(0)]
     public int On { get; init; }
 
     /// <summary>
     ///     The X or Y coordinate the line starts on.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(1)]
+    [JsonArrayIndex(1)]
     public int Start { get; init; }
 
     /// <summary>

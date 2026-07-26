@@ -245,14 +245,13 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
         var startEdge = startNavMesh.ConstructEdge(startNode, bestStartNode, EdgeType.Walk);
         bestStartNode.Parent = startEdge;
 
-        var endNodeLookup = endsArr.ToDictionary(
-            end =>
-            {
-                if (!NavMeshes.TryGetValue(end.Map, out var endNavMesh))
-                    throw new InvalidOperationException($"No mesh found for map {end.Map}");
+        var endNodeLookup = endsArr.ToDictionary(end =>
+        {
+            if (!NavMeshes.TryGetValue(end.Map, out var endNavMesh))
+                throw new InvalidOperationException($"No mesh found for map {end.Map}");
 
-                return endNavMesh.FindBestNode(end);
-            });
+            return endNavMesh.FindBestNode(end);
+        });
 
         var path = new Stack<TEdge>();
         var current = bestStartNode;

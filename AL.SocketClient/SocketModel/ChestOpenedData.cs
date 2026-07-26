@@ -1,7 +1,7 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.SocketClient.Model;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -12,6 +12,13 @@ namespace AL.SocketClient.SocketModel;
 public sealed record ChestOpenedData
 {
     /// <summary>
+    ///     True when the chest was too far away (distance &gt; 400) to loot fully; the server forces <see cref="GoldMod" /> to
+    ///     1 (the gold-find bonus is dropped, but base gold and items still pay).
+    /// </summary>
+    [JsonPropertyName("dry")]
+    public bool Dry { get; set; }
+
+    /// <summary>
     ///     The amount of gold received from opening the chest.
     /// </summary>
     public int Gold { get; set; }
@@ -19,7 +26,7 @@ public sealed record ChestOpenedData
     /// <summary>
     ///     The modifier applied to the amount of gold in the chest.
     /// </summary>
-    [JsonProperty("goldm")]
+    [JsonPropertyName("goldm")]
     public float GoldMod { get; set; }
 
     /// <summary>
@@ -40,7 +47,7 @@ public sealed record ChestOpenedData
     /// <summary>
     ///     The name of the player that opened the chest.
     /// </summary>
-    [JsonProperty("opener")]
+    [JsonPropertyName("opener")]
     public string OpenerName { get; set; } = null!;
 
     /// <summary>
@@ -49,15 +56,8 @@ public sealed record ChestOpenedData
     public bool Party { get; set; }
 
     /// <summary>
-    ///     True when the chest was too far away (distance &gt; 400) to loot fully; the server forces
-    ///     <see cref="GoldMod" /> to 1 (the gold-find bonus is dropped, but base gold and items still pay).
-    /// </summary>
-    [JsonProperty("dry")]
-    public bool Dry { get; set; }
-
-    /// <summary>
     ///     True when the chest was older than 8 minutes; the server forces <see cref="GoldMod" /> to 1.
     /// </summary>
-    [JsonProperty("stale")]
+    [JsonPropertyName("stale")]
     public bool Stale { get; set; }
 }

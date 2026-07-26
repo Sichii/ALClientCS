@@ -4,17 +4,17 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
-using AL.Core.Json.Converters;
 using AL.Core.Model;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
-using Newtonsoft.Json;
+using StjConverters = AL.Core.Json.SystemTextJson;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -26,7 +26,7 @@ namespace AL.SocketClient.Model;
 /// <seealso cref="IBounding" />
 /// <seealso cref="IRectangle" />
 /// <seealso cref="IInstancedLocation" />
-/// <seealso cref="IDeltaUpdateable" />
+/// <seealso cref="IDeltaUpdatable" />
 /// <seealso cref="IPingCompensated" />
 /// <seealso cref="IMutable{TMutator}" />
 /// <seealso cref="IEquatable{T}" />
@@ -43,23 +43,15 @@ public abstract class EntityBase : AttributedObjectBase,
     protected BoundingBase BoundingBase = null!;
 
     /// <summary>
-    ///     Which wire keys the frame this entity was deserialized from actually carried. Set by
-    ///     <see cref="MarkPresent" /> during deserialization; consumed by <see cref="Update(EntityBase)" /> so a
-    ///     partial delta never overwrites a field the server omitted.
-    /// </summary>
-    [JsonIgnore]
-    public EntityUpdateField PresentFields { get; private set; }
-
-    /// <summary>
     ///     TODO: what's this?
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public bool ABS { get; protected set; }
 
     /// <summary>
     ///     If moving, this is the angle they are moving at. (in degrees +/- 180)
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public float Angle { get; protected set; }
 
     /// <summary>
@@ -69,8 +61,9 @@ public abstract class EntityBase : AttributedObjectBase,
     ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
     ///     </b>
     /// </summary>
-    [JsonProperty("s")]
-    [JsonConverter(typeof(TolerantEnumKeyDictionaryConverter<Core.Definitions.Condition, Condition>))]
+    [JsonPropertyName("s")]
+    [JsonInclude]
+    [JsonConverter(typeof(StjConverters.TolerantEnumKeyDictionaryConverter<Core.Definitions.Condition, Condition>))]
     public ConcurrentDictionary<Core.Definitions.Condition, Condition> Conditions { get; protected set; } = new();
 
     /// <summary>
@@ -78,68 +71,82 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     <br />
     ///     This number starts at 0 and iterates by 1 every time a new version of this entity's data is sent.
     /// </summary>
-    [JsonProperty("cid")]
+    [JsonPropertyName("cid")]
     public int ContinuousId { get; init; }
+
+    /// <summary>
+    ///     If populated, the <see cref="Id" /> of the entity this one is focused on.
+    /// </summary>
+    [JsonPropertyName("focus")]
+    [JsonInclude]
+    public string? Focus { get; protected set; }
 
     /// <summary>
     ///     If this entity is moving, this is the X coordinate they are moving to.
     /// </summary>
-    [JsonProperty("going_x")]
+    [JsonPropertyName("going_x")]
+    [JsonInclude]
     public float GoingX { get; protected set; }
 
     /// <summary>
     ///     If this entity is moving, this is the Y coordinate they are moving to.
     /// </summary>
-    [JsonProperty("going_y")]
+    [JsonPropertyName("going_y")]
+    [JsonInclude]
     public float GoingY { get; protected set; }
 
     /// <summary>
     ///     <see cref="Player" /> name, or <see cref="Monster" /> unique id.
     /// </summary>
-    [JsonProperty]
     public string Id { get; init; } = null!;
 
     public string? In { get; protected set; }
 
     public bool IsCompensated { get; private set; }
 
-    [JsonProperty]
+    [JsonInclude]
     public int Level { get; protected set; }
 
-    [JsonProperty("map")]
+    [JsonPropertyName("map")]
+    [JsonInclude]
     public string Map { get; protected set; } = null!;
 
-    [JsonProperty("max_hp")]
+    [JsonPropertyName("max_hp")]
+    [JsonInclude]
     public float MaxHP { get; protected set; }
 
-    [JsonProperty("max_mp")]
+    [JsonPropertyName("max_mp")]
+    [JsonInclude]
     public float MaxMP { get; protected set; }
-
-    /// <summary>
-    ///     If populated, the <see cref="Id" /> of the entity this one is focused on.
-    /// </summary>
-    [JsonProperty("focus")]
-    public string? Focus { get; protected set; }
 
     /// <summary>
     ///     The number of individual movements this entity has done.
     /// </summary>
-    [JsonProperty("move_num")]
+    [JsonPropertyName("move_num")]
+    [JsonInclude]
     public ulong MoveNum { get; protected set; }
 
-    [JsonProperty]
+    [JsonInclude]
     public bool Moving { get; protected set; }
+
+    /// <summary>
+    ///     Which wire keys the frame this entity was deserialized from actually carried. Set by <see cref="MarkPresent" />
+    ///     during deserialization; consumed by <see cref="Update(EntityBase)" /> so a partial delta never overwrites a field
+    ///     the server omitted.
+    /// </summary>
+    [JsonIgnore]
+    public EntityUpdateField PresentFields { get; private set; }
 
     /// <summary>
     ///     If populated, the <see cref="Id" /> of this entity's target.
     /// </summary>
-    [JsonProperty]
+    [JsonInclude]
     public string? Target { get; protected set; }
 
-    [JsonProperty]
+    [JsonInclude]
     public float X { get; protected set; }
 
-    [JsonProperty]
+    [JsonInclude]
     public float Y { get; protected set; }
 
     public float Bottom => Y + VerticalNotNorth;
@@ -183,6 +190,38 @@ public abstract class EntityBase : AttributedObjectBase,
 
     public override int GetHashCode() => Id.GetHashCode();
 
+    /// <summary>
+    ///     Records that <paramref name="key" /> was present on the wire. Allocation-free: it only ORs a flag. Unlisted keys
+    ///     (bank data, cosmetics, etc.) are not mergeable through <see cref="Update(EntityBase)" /> and are ignored here.
+    /// </summary>
+    public void MarkPresent(string key)
+        => PresentFields |= key switch
+        {
+            "abs"        => EntityUpdateField.ABS,
+            "angle"      => EntityUpdateField.Angle,
+            "armor"      => EntityUpdateField.Armor,
+            "attack"     => EntityUpdateField.Attack,
+            "s"          => EntityUpdateField.Conditions,
+            "focus"      => EntityUpdateField.Focus,
+            "frequency"  => EntityUpdateField.Frequency,
+            "going_x"    => EntityUpdateField.GoingX,
+            "going_y"    => EntityUpdateField.GoingY,
+            "hp"         => EntityUpdateField.HP,
+            "level"      => EntityUpdateField.Level,
+            "max_hp"     => EntityUpdateField.MaxHP,
+            "max_mp"     => EntityUpdateField.MaxMP,
+            "move_num"   => EntityUpdateField.MoveNum,
+            "moving"     => EntityUpdateField.Moving,
+            "mp"         => EntityUpdateField.MP,
+            "resistance" => EntityUpdateField.Resistance,
+            "speed"      => EntityUpdateField.Speed,
+            "target"     => EntityUpdateField.Target,
+            "x"          => EntityUpdateField.X,
+            "xp"         => EntityUpdateField.XP,
+            "y"          => EntityUpdateField.Y,
+            _            => EntityUpdateField.None
+        };
+
     public void Mutate(Mutation mutator)
     {
         if (mutator.Attribute == ALAttribute.Hp)
@@ -223,6 +262,74 @@ public abstract class EntityBase : AttributedObjectBase,
         Y = newY;
     }
 
+    /// <summary>
+    ///     Seeds a soft property from its G default, but only if the frame this entity was deserialized from did not already
+    ///     carry it. The server omits a soft property that equals the G default, so a freshly-sighted monster reports 0 for
+    ///     those until they are backfilled - mirrors the browser's
+    ///     <c>
+    ///         adopt_soft_properties
+    ///     </c>
+    ///     (
+    ///     <c>
+    ///         js/game.js:766-771
+    ///     </c>
+    ///     ). Only the numeric soft properties the encoder can omit are handled.
+    /// </summary>
+    public void BackfillSoftDefault(EntityUpdateField field, float value)
+    {
+        //the frame carried a real value for this field; never override it with the def
+        if ((PresentFields & field) != 0)
+            return;
+
+        switch (field)
+        {
+            case EntityUpdateField.HP:
+                HP = value;
+
+                break;
+            case EntityUpdateField.MaxHP:
+                MaxHP = value;
+
+                break;
+            case EntityUpdateField.MP:
+                MP = value;
+
+                break;
+            case EntityUpdateField.MaxMP:
+                MaxMP = value;
+
+                break;
+            case EntityUpdateField.Attack:
+                Attack = value;
+
+                break;
+            case EntityUpdateField.Speed:
+                Speed = value;
+
+                break;
+            case EntityUpdateField.XP:
+                XP = value;
+
+                break;
+            case EntityUpdateField.Frequency:
+                Frequency = value;
+
+                break;
+            case EntityUpdateField.Armor:
+                Armor = value;
+
+                break;
+            case EntityUpdateField.Resistance:
+                Resistance = value;
+
+                break;
+            case EntityUpdateField.Level:
+                Level = (int)value;
+
+                break;
+        }
+    }
+
     public void CorrectAndCompensate(IPoint point, TimeSpan minimumOffset)
     {
         IsCompensated = false;
@@ -241,41 +348,15 @@ public abstract class EntityBase : AttributedObjectBase,
     public void SetBoundingBase(BoundingBase boundingBase) => BoundingBase = boundingBase;
 
     /// <summary>
-    ///     Records that <paramref name="key" /> was present on the wire. Allocation-free: it only ORs a flag.
-    ///     Unlisted keys (bank data, cosmetics, etc.) are not mergeable through <see cref="Update(EntityBase)" />
-    ///     and are ignored here.
-    /// </summary>
-    public void MarkPresent(string key)
-        => PresentFields |= key switch
-        {
-            "abs"        => EntityUpdateField.ABS,
-            "angle"      => EntityUpdateField.Angle,
-            "armor"      => EntityUpdateField.Armor,
-            "attack"     => EntityUpdateField.Attack,
-            "s"          => EntityUpdateField.Conditions,
-            "focus"      => EntityUpdateField.Focus,
-            "frequency"  => EntityUpdateField.Frequency,
-            "going_x"    => EntityUpdateField.GoingX,
-            "going_y"    => EntityUpdateField.GoingY,
-            "hp"         => EntityUpdateField.HP,
-            "level"      => EntityUpdateField.Level,
-            "max_hp"     => EntityUpdateField.MaxHP,
-            "max_mp"     => EntityUpdateField.MaxMP,
-            "move_num"   => EntityUpdateField.MoveNum,
-            "moving"     => EntityUpdateField.Moving,
-            "mp"         => EntityUpdateField.MP,
-            "resistance" => EntityUpdateField.Resistance,
-            "speed"      => EntityUpdateField.Speed,
-            "target"     => EntityUpdateField.Target,
-            "x"          => EntityUpdateField.X,
-            "xp"         => EntityUpdateField.XP,
-            "y"          => EntityUpdateField.Y,
-            _            => EntityUpdateField.None
-        };
-
-    /// <summary>
-    ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame actually
-    ///     carried. Mirrors the browser's received-key merge (<c>js/game.js:786</c>) - a bare <c>{id,x,y}</c>
+    ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame actually carried.
+    ///     Mirrors the browser's received-key merge (
+    ///     <c>
+    ///         js/game.js:786
+    ///     </c>
+    ///     ) - a bare
+    ///     <c>
+    ///         {id,x,y}
+    ///     </c>
     ///     delta leaves hp/speed/etc. untouched instead of zeroing them.
     /// </summary>
     public void Update(EntityBase @new)
@@ -350,67 +431,6 @@ public abstract class EntityBase : AttributedObjectBase,
 
         if ((present & EntityUpdateField.Conditions) != 0)
             Conditions = @new.Conditions;
-    }
-
-    /// <summary>
-    ///     Seeds a soft property from its G default, but only if the frame this entity was deserialized from did
-    ///     not already carry it. The server omits a soft property that equals the G default, so a freshly-sighted
-    ///     monster reports 0 for those until they are backfilled - mirrors the browser's <c>adopt_soft_properties</c>
-    ///     (<c>js/game.js:766-771</c>). Only the numeric soft properties the encoder can omit are handled.
-    /// </summary>
-    public void BackfillSoftDefault(EntityUpdateField field, float value)
-    {
-        //the frame carried a real value for this field; never override it with the def
-        if ((PresentFields & field) != 0)
-            return;
-
-        switch (field)
-        {
-            case EntityUpdateField.HP:
-                HP = value;
-
-                break;
-            case EntityUpdateField.MaxHP:
-                MaxHP = value;
-
-                break;
-            case EntityUpdateField.MP:
-                MP = value;
-
-                break;
-            case EntityUpdateField.MaxMP:
-                MaxMP = value;
-
-                break;
-            case EntityUpdateField.Attack:
-                Attack = value;
-
-                break;
-            case EntityUpdateField.Speed:
-                Speed = value;
-
-                break;
-            case EntityUpdateField.XP:
-                XP = value;
-
-                break;
-            case EntityUpdateField.Frequency:
-                Frequency = value;
-
-                break;
-            case EntityUpdateField.Armor:
-                Armor = value;
-
-                break;
-            case EntityUpdateField.Resistance:
-                Resistance = value;
-
-                break;
-            case EntityUpdateField.Level:
-                Level = (int)value;
-
-                break;
-        }
     }
 
     /// <summary>

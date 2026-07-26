@@ -1,9 +1,9 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
-using AL.Core.Json.Converters;
-using Newtonsoft.Json;
+using StjConverters = AL.Core.Json.SystemTextJson;
 #endregion
 
 namespace AL.Data.Skills;
@@ -24,7 +24,7 @@ public sealed record GSkill : AttributedRecordBase
     /// <summary>
     ///     If true, this skill affects the casters party.
     /// </summary>
-    [JsonProperty("party")]
+    [JsonPropertyName("party")]
     public bool AffectsParty { get; init; }
 
     /// <summary>
@@ -35,7 +35,7 @@ public sealed record GSkill : AttributedRecordBase
     ///     <br />
     ///     This dictionary contains the attributes and the required values to meet this condition.
     /// </summary>
-    [JsonProperty("requirements")]
+    [JsonPropertyName("requirements")]
     public IReadOnlyDictionary<ALAttribute, float>? AttributeRequirements { get; init; }
 
     /// <summary>
@@ -51,7 +51,7 @@ public sealed record GSkill : AttributedRecordBase
     ///     <br />
     ///     This list contains the classes this skill can be used by.
     /// </summary>
-    [JsonProperty("class")]
+    [JsonPropertyName("class")]
     public IReadOnlyList<ALClass>? Classes { get; init; }
 
     /// <summary>
@@ -75,26 +75,27 @@ public sealed record GSkill : AttributedRecordBase
     /// <summary>
     ///     The cooldown of this ability in milliseconds.
     /// </summary>
-    [JsonProperty("cooldown")]
+    [JsonPropertyName("cooldown")]
+    [JsonInclude]
     public int CooldownMS { get; private set; }
 
     /// <summary>
     ///     Used with <see cref="SharedCooldown" />. This is the multiplier applied to the shared cooldown to get this skill's
     ///     cooldown.
     /// </summary>
-    [JsonProperty("cooldown_multiplier")]
+    [JsonPropertyName("cooldown_multiplier")]
     public float? CooldownMultiplier { get; init; }
 
     /// <summary>
     ///     The damage multiplier of the ability, applied against basic attack damage.
     /// </summary>
-    [JsonProperty("damage_multiplier")]
+    [JsonPropertyName("damage_multiplier")]
     public float DamageMultiplier { get; set; } = 1.0f;
 
     /// <summary>
     ///     The type of damage this skill deals.
     /// </summary>
-    [JsonProperty("damage_type")]
+    [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
     /// <summary>
@@ -122,10 +123,11 @@ public sealed record GSkill : AttributedRecordBase
     ///     <br />
     ///     This list contains the levels in which the effect of this skill changes, and the amount it changes to.
     /// </summary>
-    [JsonProperty("levels", ItemConverterType = typeof(ArrayToTupleConverter<float, float>))]
+    [JsonPropertyName("levels")]
     public IReadOnlyList<(float Level, float NewValue)>? LevelMods { get; init; }
 
-    [JsonProperty("list")]
+    [JsonPropertyName("list")]
+    [JsonInclude]
     private bool ListTargets
     {
         get => MultiTargeted;
@@ -140,7 +142,8 @@ public sealed record GSkill : AttributedRecordBase
     /// <summary>
     ///     If true, this skill is multitargeted, and requires you to specify each target.
     /// </summary>
-    [JsonProperty("multi")]
+    [JsonPropertyName("multi")]
+    [JsonInclude]
     public bool MultiTargeted { get; private set; }
 
     /// <summary>
@@ -161,13 +164,13 @@ public sealed record GSkill : AttributedRecordBase
     /// <summary>
     ///     A bonus to range(character range) applied for this skill. (applied after <see cref="RangeMultiplier" /> if present)
     /// </summary>
-    [JsonProperty("range_bonus")]
+    [JsonPropertyName("range_bonus")]
     public float RangeBonus { get; init; }
 
     /// <summary>
     ///     A multiplier applied to range(character range) for this skill.
     /// </summary>
-    [JsonProperty("range_multiplier")]
+    [JsonPropertyName("range_multiplier")]
     public float? RangeMultiplier { get; init; }
 
     /// <summary>
@@ -185,7 +188,7 @@ public sealed record GSkill : AttributedRecordBase
     ///     <br />
     ///     They are not necessarily consumed, look at <see cref="Consume" /> for that.
     /// </summary>
-    [JsonProperty("inventory")]
+    [JsonPropertyName("inventory")]
     public IReadOnlyList<string>? RequiredInventoryItems { get; init; }
 
     /// <summary>
@@ -196,10 +199,11 @@ public sealed record GSkill : AttributedRecordBase
     ///     <br />
     ///     This list contains an item name that need to be equipped, and all the slots that item can go in.
     /// </summary>
-    [JsonProperty("slot", ItemConverterType = typeof(ArrayToTupleConverter<EquipmentSlot, string>))]
+    [JsonPropertyName("slot")]
     public IReadOnlyList<(EquipmentSlot Slot, string ItemName)>? RequiredSlotItems { get; init; }
 
-    [JsonProperty("reuse_cooldown")]
+    [JsonPropertyName("reuse_cooldown")]
+    [JsonInclude]
     private int ReuseCooldown
     {
         get => CooldownMS;
@@ -211,13 +215,13 @@ public sealed record GSkill : AttributedRecordBase
     ///     <br />
     ///     Check <see cref="CooldownMultiplier" /> for a cooldown multiplier.
     /// </summary>
-    [JsonProperty("share")]
+    [JsonPropertyName("share")]
     public string? SharedCooldown { get; init; }
 
     /// <summary>
     ///     The kind of targeting this skill uses. Only populated for single target skills
     /// </summary>
-    [JsonProperty("target")]
+    [JsonPropertyName("target")]
     public TargetType TargetType { get; init; }
 
     /// <summary>
@@ -233,7 +237,7 @@ public sealed record GSkill : AttributedRecordBase
     /// <summary>
     ///     If true, this skill is useable on monsters.
     /// </summary>
-    [JsonProperty("monsters")]
+    [JsonPropertyName("monsters")]
     public bool UseableOnMonsters { get; init; }
 
     /// <summary>
@@ -250,6 +254,7 @@ public sealed record GSkill : AttributedRecordBase
     ///     . If populated, this skill is only usable if you have a certain weapon type equipped. This list contains the weapon
     ///     types that enable this skill to be used.
     /// </summary>
-    [JsonProperty("wtype"), JsonConverter(typeof(ArrayOrSingleConverter<WeaponType>))]
+    [JsonPropertyName("wtype")]
+    [JsonConverter(typeof(StjConverters.ArrayOrSingleConverter<WeaponType>))]
     public IReadOnlyList<WeaponType>? WeaponTypes { get; init; }
 }

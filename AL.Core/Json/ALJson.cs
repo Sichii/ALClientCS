@@ -10,27 +10,63 @@ using AL.Core.Json.SystemTextJson;
 namespace AL.Core.Json;
 
 /// <summary>
-///     The single canonical System.Text.Json configuration, shared by the socket transport, the REST
-///     client, and the game-data loader. It reproduces the Newtonsoft.Json defaults this codebase relied
-///     on: case-insensitive property matching, number-from-string coercion, and non-HTML-escaping output.
+///     The single canonical System.Text.Json configuration, shared by the socket transport, the REST client, and the
+///     game-data loader. It reproduces the Newtonsoft.Json defaults this codebase relied on: case-insensitive property
+///     matching, number-from-string coercion, and non-HTML-escaping output.
 /// </summary>
 /// <remarks>
-///     Binding is driven from the models' existing Newtonsoft attributes by
-///     <see cref="NewtonsoftAttributeBindingModifier" /> (renames, non-public setters, private
-///     <c>[JsonProperty]</c> members) rather than by per-member System.Text.Json attributes, so the migration
-///     touches no members while both engines run side by side. The converters are registered here as
-///     type-matched factories/instances — <see cref="AttributedObjectConverterFactory" /> for every
-///     <see cref="Interfaces.IAttributed" />, and factories that read the Newtonsoft
-///     <c>[JsonConverter]</c>/<c>ItemConverterType</c> attributes for tolerant enums, string-or-object types,
-///     positional arrays, and value tuples — so the models need no System.Text.Json wiring before Phase 6.
-///     The self-recursive socket/REST converters (event/boss, disappear, trade history, bank, login) register
-///     from their own assemblies at the transport cutover, since AL.Core cannot reference their types.
+///     Binding comes entirely from the models' own System.Text.Json attributes —
+///     <c>
+///         [JsonPropertyName]
+///     </c>
+///     for renames,
+///     <c>
+///         [JsonInclude]
+///     </c>
+///     for non-public setters and fields,
+///     <c>
+///         [JsonIgnore]
+///     </c>
+///     for exclusions. A member with a non-public setter and no
+///     <c>
+///         [JsonInclude]
+///     </c>
+///     (e.g.
+///     <c>
+///         EntityBase.In
+///     </c>
+///     ) stays unbound by construction, which is why the transitional resolver modifier could be removed outright rather
+///     than reproduced. The converters are registered here as type-matched factories/instances —
+///     <see cref="AttributedObjectConverterFactory" /> for every <see cref="AL.Core.Interfaces.IAttributed" />, and factories
+///     keyed on the AL-local markers (
+///     <c>
+///         [JsonStringOrObject]
+///     </c>
+///     ,
+///     <c>
+///         [JsonArrayIndex]
+///     </c>
+///     ,
+///     <c>
+///         [JsonForcedObject]
+///     </c>
+///     ) that carry a parameter a System.Text.Json
+///     <c>
+///         [JsonConverter]
+///     </c>
+///     attribute cannot. Tolerant enums need no marker — they carry
+///     <c>
+///         [JsonConverter(typeof(TolerantStringEnumConverterFactory))]
+///     </c>
+///     directly, and registering that factory here would make every enum tolerant. The self-recursive socket/REST
+///     converters (event/boss, disappear, trade history, bank, login) register from their own assemblies at the transport
+///     cutover, since AL.Core cannot reference their types.
 /// </remarks>
 public static class ALJson
 {
     /// <summary>
-    ///     The shared options instance. Built once and cached — constructing options is expensive and the
-    ///     instance is frozen on first use.
+    ///     The shared options instance. Built once and cached — constructing options is expensive and the instance is frozen
+    ///     on first use.
     /// </summary>
     public static JsonSerializerOptions Options { get; } = Create();
 
@@ -50,17 +86,15 @@ public static class ALJson
             // Newtonsoft does not \uXXXX-escape < > & +; keep emitted payloads byte-identical for parity.
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 
-            // bind members from the models' Newtonsoft attributes without touching a single member.
-            TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { NewtonsoftAttributeBindingModifier.Modify } }
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver()
         };
 
         // ordering matters: System.Text.Json takes the first converter whose CanConvert returns true. The
         // specific factories precede the type instances; none of their CanConvert predicates overlap.
         options.Converters.Add(new AttributedObjectConverterFactory());
         options.Converters.Add(new ArrayToObjectConverterFactory());
-        options.Converters.Add(new NewtonsoftTolerantEnumConverterFactory());
-        options.Converters.Add(new NewtonsoftStringOrObjectConverterFactory());
-        options.Converters.Add(new NewtonsoftTupleConverterFactory());
+        options.Converters.Add(new StringOrObjectConverterFactory());
+        options.Converters.Add(new TupleConverterFactory());
         options.Converters.Add(new ALClassConverter());
         options.Converters.Add(new LenientBooleanConverter());
         options.Converters.Add(new LenientStringConverter());

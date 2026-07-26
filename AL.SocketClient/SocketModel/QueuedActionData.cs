@@ -1,6 +1,6 @@
 #region
+using System.Text.Json.Serialization;
 using AL.SocketClient.Model;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -19,12 +19,12 @@ public sealed record QueuedActionData
     ///     If populated, no action was actually performed. This object contains information about what would happen if you
     ///     tried to upgrade/compound the item.
     /// </summary>
-    [JsonProperty("p")]
+    [JsonPropertyName("p")]
     public Prediction? Prediction { get; init; }
 
     /// <summary>
     ///     If populated, contains information about queued actions that are in progress, or just started.
     /// </summary>
-    [JsonProperty("q")]
+    [JsonPropertyName("q")]
     public QueuedActionInfo? QueuedActionInfo { get; init; }
 }

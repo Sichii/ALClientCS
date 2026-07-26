@@ -3,10 +3,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using AL.Core.Interfaces;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 // ReSharper disable ConstantConditionalAccessQualifier
+// ReSharper disable ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
 
 namespace AL.Core.Geometry;
 

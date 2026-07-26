@@ -1,15 +1,13 @@
 #region
 using System;
 using System.Runtime.Serialization;
-using AL.Core.Json.Converters;
-using AL.Core.Json.NamingStrategies;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using StjConverters = AL.Core.Json.SystemTextJson;
+using StjJson = System.Text.Json.Serialization;
 #endregion
 
 namespace AL.Core.Definitions;
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum RayType
 {
     None,
@@ -24,7 +22,7 @@ public enum RayType
     TilingBurstG
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum TargetType
 {
     NotSingleTarget,
@@ -39,7 +37,7 @@ public enum TargetType
     Any
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ALAttribute
 {
     None,
@@ -125,7 +123,7 @@ public enum ALAttribute
     Breaks
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum LockType
 {
     None,
@@ -149,7 +147,7 @@ public enum LockType
     AlsoLocked = Locked
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum KeyType
 {
     None,
@@ -170,7 +168,6 @@ public enum KeyType
     Complicated
 }
 
-[JsonConverter(typeof(ALClassConverter))]
 public enum ALClass
 {
     None,
@@ -184,7 +181,7 @@ public enum ALClass
     NPC
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum Projectile
 {
     None,
@@ -224,7 +221,7 @@ public enum Projectile
     WMomentum
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ArmorSet
 {
     None,
@@ -250,164 +247,68 @@ public enum ArmorSet
 }
 
 //the server keys bank packs as "items0", "items1", ... - the PascalCase name matches nothing
-[JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
+[StjJson.JsonConverter(typeof(StjConverters.LowerCaseTolerantStringEnumConverterFactory))]
 public enum BankPack
 {
     None,
-
-    [JsonProperty("items0")]
     Items0,
-
-    [JsonProperty("items1")]
     Items1,
-
-    [JsonProperty("items2")]
     Items2,
-
-    [JsonProperty("items3")]
     Items3,
-
-    [JsonProperty("items4")]
     Items4,
-
-    [JsonProperty("items5")]
     Items5,
-
-    [JsonProperty("items6")]
     Items6,
-
-    [JsonProperty("items7")]
     Items7,
-
-    [JsonProperty("items8")]
     Items8,
-
-    [JsonProperty("items9")]
     Items9,
-
-    [JsonProperty("items10")]
     Items10,
-
-    [JsonProperty("items11")]
     Items11,
-
-    [JsonProperty("items12")]
     Items12,
-
-    [JsonProperty("items13")]
     Items13,
-
-    [JsonProperty("items14")]
     Items14,
-
-    [JsonProperty("items15")]
     Items15,
-
-    [JsonProperty("items16")]
     Items16,
-
-    [JsonProperty("items17")]
     Items17,
-
-    [JsonProperty("items18")]
     Items18,
-
-    [JsonProperty("items19")]
     Items19,
-
-    [JsonProperty("items20")]
     Items20,
-
-    [JsonProperty("items21")]
     Items21,
-
-    [JsonProperty("items22")]
     Items22,
-
-    [JsonProperty("items23")]
     Items23,
-
-    [JsonProperty("items24")]
     Items24,
-
-    [JsonProperty("items25")]
     Items25,
-
-    [JsonProperty("items26")]
     Items26,
-
-    [JsonProperty("items27")]
     Items27,
-
-    [JsonProperty("items28")]
     Items28,
-
-    [JsonProperty("items29")]
     Items29,
-
-    [JsonProperty("items30")]
     Items30,
-
-    [JsonProperty("items31")]
     Items31,
-
-    [JsonProperty("items32")]
     Items32,
-
-    [JsonProperty("items33")]
     Items33,
-
-    [JsonProperty("items34")]
     Items34,
-
-    [JsonProperty("items35")]
     Items35,
-
-    [JsonProperty("items36")]
     Items36,
-
-    [JsonProperty("items37")]
     Items37,
-
-    [JsonProperty("items38")]
     Items38,
-
-    [JsonProperty("items39")]
     Items39,
-
-    [JsonProperty("items40")]
     Items40,
-
-    [JsonProperty("items41")]
     Items41,
-
-    [JsonProperty("items42")]
     Items42,
-
-    [JsonProperty("items43")]
     Items43,
-
-    [JsonProperty("items44")]
     Items44,
-
-    [JsonProperty("items45")]
     Items45,
-
-    [JsonProperty("items46")]
     Items46,
-
-    [JsonProperty("items47")]
     Items47
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum WorldType
 {
     None,
     Dungeon
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum Condition
 {
     None,
@@ -530,7 +431,7 @@ public enum Condition
     Zap
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum DamageType
 {
     None,
@@ -540,7 +441,7 @@ public enum DamageType
     Heal
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ItemType
 {
     Activator,
@@ -605,7 +506,8 @@ public enum ItemType
     XP
 }
 
-[Flags, JsonConverter(typeof(TolerantStringEnumConverter))]
+[Flags]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum WeaponType : ulong
 {
     None = 0,
@@ -645,7 +547,7 @@ public enum WeaponType : ulong
     PickAxe = 1 << 25
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum EquipmentSlot
 {
     None,
@@ -668,7 +570,7 @@ public enum EquipmentSlot
 }
 
 //the server keys trade slots as "trade1".."trade30"
-[JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
+[StjJson.JsonConverter(typeof(StjConverters.LowerCaseTolerantStringEnumConverterFactory))]
 public enum TradeSlot
 {
     None,
@@ -705,7 +607,7 @@ public enum TradeSlot
 }
 
 //the server keys equipment slots as "mainhand", "offhand", "ring1", ...
-[JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
+[StjJson.JsonConverter(typeof(StjConverters.LowerCaseTolerantStringEnumConverterFactory))]
 public enum Slot
 {
     None,
@@ -758,7 +660,7 @@ public enum Slot
     Trade30
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum DisappearEffect
 {
     None,
@@ -767,7 +669,7 @@ public enum DisappearEffect
     MagiPort
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum Direction
 {
     Down,
@@ -777,7 +679,6 @@ public enum Direction
     Invalid
 }
 
-[JsonConverter(typeof(FalsyConverter<Stand>), None)]
 public enum Stand
 {
     None,
@@ -787,7 +688,7 @@ public enum Stand
     Stand1
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum DropType
 {
     None,
@@ -802,7 +703,7 @@ public enum DropType
     Fishing1
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum SpawnType
 {
     Normal,
@@ -811,7 +712,7 @@ public enum SpawnType
     Random
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum TrapType
 {
     None,
@@ -819,7 +720,7 @@ public enum TrapType
     Spikes
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ZoneType
 {
     None,
@@ -827,14 +728,14 @@ public enum ZoneType
     Mining
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum AchievementRewardType
 {
     None,
     Stat
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum Quest
 {
     None,
@@ -851,7 +752,7 @@ public enum Quest
     Mistletoe
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum Token
 {
     None,
@@ -861,7 +762,7 @@ public enum Token
     PvPToken
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum NPCRole
 {
     None,
@@ -917,7 +818,7 @@ public enum NPCRole
     Witch
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum SkillType
 {
     None,
@@ -929,7 +830,7 @@ public enum SkillType
     Utility
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum Emotion
 {
     None,
@@ -941,7 +842,7 @@ public enum Emotion
     HeartsSingle
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ExitType
 {
     None,
@@ -949,7 +850,7 @@ public enum ExitType
     Transporter
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum EntitiesUpdateType
 {
     None,
@@ -959,7 +860,7 @@ public enum EntitiesUpdateType
     Partial
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum QueuedActionType
 {
     Unknown,
@@ -973,7 +874,7 @@ public enum QueuedActionType
     Poof
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum UIDataType
 {
     Unknown,
@@ -1006,7 +907,7 @@ public enum UIDataType
     LoseMoney
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ObtainType
 {
     Unknown,
@@ -1016,7 +917,7 @@ public enum ObtainType
     Quest
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ChestType
 {
     Unknown,
@@ -1033,7 +934,7 @@ public enum ChestType
     ChestP
 }
 
-[JsonConverter(typeof(TolerantStringEnumConverter))]
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum GamePlayMode
 {
     Unknown,

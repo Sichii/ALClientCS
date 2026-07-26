@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
@@ -30,80 +31,75 @@ using AL.Data.Titles;
 using AL.Data.Tokens;
 using Chaos.Extensions.Common;
 using Common.Logging;
-using Newtonsoft.Json;
 #endregion
+
+//the G-data statics are written only by Bind's reflection, which requires GetSetMethod(true) to be non-null
+// ReSharper disable UnusedAutoPropertyAccessor.Local
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 namespace AL.Data;
 
-[JsonObject]
 public record GameData
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(GameData));
 
-    [JsonProperty]
+    [GameDataRoot]
     public static AchievementsDatum Achievements { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static ClassesDatum Classes { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static ConditionsDatum Conditions { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static CraftDatum Craft { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static DimensionsDatum Dimensions { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static DismantleDatum Dismantle { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static EventsDatum Events { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static GamesDatum Games { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static GeometryDatum Geometry { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static ItemsDatum Items { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static IReadOnlyDictionary<int, float> Levels { get; private set; } = new Dictionary<int, float>();
 
-    [JsonProperty]
+    [GameDataRoot]
     public static MapsDatum Maps { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static MonstersDatum Monsters { get; private set; }
 
-    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing
-    [JsonProperty]
-    public static GMultipliers Multipliers { get; private set; } = new();
-
-    [JsonProperty]
+    [GameDataRoot]
     public static NPCsDatum NPCs { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static ProjectilesDatum Projectiles { get; private set; }
 
     [JsonIgnore]
     public static IReadOnlyDictionary<Quest, GNPC> Quests { get; private set; }
 
-    [JsonIgnore]
-    public static int ShellsToGold => Multipliers.ShellsToGold;
-
-    [JsonProperty]
+    [GameDataRoot]
     public static SkillsDatum Skills { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static TitlesDatum Titles { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static TokensDatum Tokens { get; private set; }
 
     //public Dimensions Dimensions { get; private set; }
@@ -118,8 +114,15 @@ public record GameData
     //public Emotions Emotions { get; private set; }
     //public Cosmetics Cosmetics { get; private set; }
 
-    [JsonProperty]
+    [GameDataRoot]
     public static int Version { get; private set; }
+
+    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing
+    [GameDataRoot]
+    public static GMultipliers Multipliers { get; private set; } = new();
+
+    [JsonIgnore]
+    public static int ShellsToGold => Multipliers.ShellsToGold;
 
     private static void AddBorderWalls()
     {
@@ -156,6 +159,33 @@ public record GameData
             horizontalLines.Add(bottom);
             verticalLines.Add(left);
             verticalLines.Add(right);
+        }
+    }
+
+    //System.Text.Json cannot bind static members, so drive the G-data statics from the wire by reflection:
+    //for each [JsonProperty] static, deserialize the matching (case-insensitively, as Newtonsoft matched) wire
+    //key through the shared options. An absent key leaves the member's initializer (Levels/Multipliers) intact.
+    private static void Bind(string json)
+    {
+        var root = JsonNode.Parse(json)
+                           ?.AsObject()
+                   ?? throw new InvalidOperationException("Game data is not a JSON object.");
+
+        var members = typeof(GameData).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                                      .Where(property => property.GetCustomAttribute<GameDataRootAttribute>() is not null
+                                                         && property.GetSetMethod(true) is not null);
+
+        foreach (var member in members)
+        {
+            var wireName = member.GetCustomAttribute<JsonPropertyNameAttribute>()
+                                 ?.Name
+                           ?? member.Name;
+
+            var node = root.FirstOrDefault(pair => string.Equals(pair.Key, wireName, StringComparison.OrdinalIgnoreCase))
+                           .Value;
+
+            if (node is not null)
+                member.SetValue(null, node.Deserialize(member.PropertyType, ALJson.Options));
         }
     }
 
@@ -484,29 +514,6 @@ public record GameData
         {
             mapGeometry.VerticalLines = LineHelper.FixLines(mapGeometry.VerticalLines, true);
             mapGeometry.HorizontalLines = LineHelper.FixLines(mapGeometry.HorizontalLines, false);
-        }
-    }
-
-    //System.Text.Json cannot bind static members, so drive the G-data statics from the wire by reflection:
-    //for each [JsonProperty] static, deserialize the matching (case-insensitively, as Newtonsoft matched) wire
-    //key through the shared options. An absent key leaves the member's initializer (Levels/Multipliers) intact.
-    private static void Bind(string json)
-    {
-        var root = JsonNode.Parse(json)?.AsObject()
-                   ?? throw new InvalidOperationException("Game data is not a JSON object.");
-
-        var members = typeof(GameData).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                                      .Where(property => (property.GetCustomAttribute<JsonPropertyAttribute>() is not null)
-                                                         && (property.GetSetMethod(nonPublic: true) is not null));
-
-        foreach (var member in members)
-        {
-            var wireName = member.GetCustomAttribute<JsonPropertyAttribute>()!.PropertyName ?? member.Name;
-            var node = root.FirstOrDefault(pair => string.Equals(pair.Key, wireName, StringComparison.OrdinalIgnoreCase))
-                           .Value;
-
-            if (node is not null)
-                member.SetValue(null, node.Deserialize(member.PropertyType, ALJson.Options));
         }
     }
 

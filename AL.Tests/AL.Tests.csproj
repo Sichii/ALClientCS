@@ -14,14 +14,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="6.12.2"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
-        <PackageReference Include="MSTest.TestAdapter" Version="3.6.3"/>
-        <PackageReference Include="MSTest.TestFramework" Version="3.6.3"/>
-        <!-- Frozen Newtonsoft oracle: the characterization suite pins current Newtonsoft behaviour as the
-             STJ migration target. Referenced explicitly here (it reaches the tests transitively today) so the
-             oracle survives production dropping Newtonsoft in STJ Phase 6. -->
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="FluentAssertions" Version="7.2.2"/>
+        <!-- No Microsoft.NET.Test.Sdk: TUnit runs on Microsoft.Testing.Platform, and the VSTest SDK
+             suppresses TUnit's generated entry point and breaks discovery if present. -->
+        <PackageReference Include="TUnit" Version="1.61.38"/>
+        <!-- No Newtonsoft.Json, deliberately. The characterization suite pinned its behaviour as the migration
+             target and that job is done: the committed snapshots under Fixtures/snapshots were frozen while
+             Newtonsoft produced them, so they remain the oracle as plain text with no second engine needed.
+             Its absence is what guarantees none creeps back - the compiler enforces that, where a test could
+             only notice it. -->
     </ItemGroup>
 
     <ItemGroup>

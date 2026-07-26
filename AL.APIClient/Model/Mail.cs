@@ -1,6 +1,5 @@
 #region
-using AL.APIClient.Json.Converters;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 namespace AL.APIClient.Model;
@@ -13,24 +12,32 @@ public sealed record Mail
     /// <summary>
     ///     The name of the person the mail is from.
     /// </summary>
-    [JsonProperty("fro")]
+    [JsonPropertyName("fro")]
     public string From { get; init; } = null!;
 
     /// <summary>
-    ///     A unique identifier for this piece of mail (carries an <c>ML_</c> prefix).
+    ///     A unique identifier for this piece of mail (carries an
+    ///     <c>
+    ///         ML_
+    ///     </c>
+    ///     prefix).
     /// </summary>
     public string Id { get; init; } = null!;
 
     /// <summary>
     ///     If populated, the simplified item attached to this mail.
     /// </summary>
-    [JsonProperty("item"), JsonConverter(typeof(StringOrObjectMailItemConverter))]
+    [JsonPropertyName("item")]
     public MailItem? Item { get; init; }
 
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    ///     When the mail was created, as the server's raw date string (a JS <c>Date.toString()</c>, not ISO-8601).
+    ///     When the mail was created, as the server's raw date string (a JS
+    ///     <c>
+    ///         Date.toString()
+    ///     </c>
+    ///     , not ISO-8601).
     /// </summary>
     public string? Sent { get; init; }
 

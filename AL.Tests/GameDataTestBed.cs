@@ -2,25 +2,22 @@
 using System.Threading.Tasks;
 using AL.APIClient;
 using AL.Data;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endregion
 
 namespace AL.Tests;
 
-[TestClass]
+[NotInParallel(ParallelKeys.GAME_DATA)]
 public abstract class GameDataTestBed : APITestBed
 {
-    [TestInitialize]
-    public override async Task Init()
+    [Before(Test)]
+    public async Task LoadGameDataAsync()
     {
-        await base.Init();
-
         await Sync.WaitAsync();
 
         try
         {
             if (GameData.Version == 0)
-                GameData.Populate(await ALAPIClient.GetGameDataAsync());
+                GameData.Populate(await AlApiClient.GetGameDataAsync());
         } finally
         {
             Sync.Release();

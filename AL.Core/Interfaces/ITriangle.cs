@@ -1,4 +1,3 @@
-namespace AL.Core.Interfaces
-{
-    public interface ITriangle : IPoint, IPolygon { }
-}
+namespace AL.Core.Interfaces;
+
+public interface ITriangle : IPoint, IPolygon { }

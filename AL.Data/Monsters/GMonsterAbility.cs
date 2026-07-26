@@ -1,7 +1,7 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Monsters;
@@ -27,7 +27,7 @@ public sealed record GMonsterAbility : AttributedRecordBase
     /// <summary>
     ///     The cooldown of this ability in milliseconds.
     /// </summary>
-    [JsonProperty("cooldown")]
+    [JsonPropertyName("cooldown")]
     public float CooldownMS { get; init; }
 
     /// <summary>
@@ -47,7 +47,7 @@ public sealed record GMonsterAbility : AttributedRecordBase
     /// <summary>
     ///     Whether or not this ability does pure damage.
     /// </summary>
-    [JsonProperty("pure")]
+    [JsonPropertyName("pure")]
     public bool PureDamage { get; set; }
 
     /// <summary>
@@ -68,15 +68,22 @@ public sealed record GMonsterAbility : AttributedRecordBase
     /// <summary>
     ///     The amount of heal/damage/amount for this ability.
     /// </summary>
+
+    //the annotated backing field owns the "amount" wire key; without this the accessor claims it too and the
+    //type throws on resolution. Newtonsoft keeps binding it as before - it reads its own attributes.
+    [JsonIgnore]
     public float Amount => _amount ?? _damage ?? _heal ?? 0f;
     #pragma warning disable 0649
-    [JsonProperty("amount")]
+    [JsonPropertyName("amount")]
+    [JsonInclude]
     private float? _amount;
 
-    [JsonProperty("damage")]
+    [JsonPropertyName("damage")]
+    [JsonInclude]
     private float? _damage;
 
-    [JsonProperty("heal")]
+    [JsonPropertyName("heal")]
+    [JsonInclude]
     private float? _heal;
     #pragma warning restore 0649
 }

@@ -1,8 +1,6 @@
 #region
 using AL.Core.Definitions;
 using AL.Core.Geometry;
-using AL.Core.Json.Converters;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Maps;
@@ -19,13 +17,11 @@ public sealed record GTrap
     ///     . If populated, this is the vertices of the polygon of the trap.
     ///     <br />
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToPointConverter))]
     public Polygon? Polygon { get; init; }
 
     /// <summary>
     ///     The coordinate of the trap.
     /// </summary>
-    [JsonConverter(typeof(ArrayToPointConverter))]
     public Point Position { get; init; }
 
     /// <summary>

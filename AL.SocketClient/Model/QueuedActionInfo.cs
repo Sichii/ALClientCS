@@ -1,7 +1,3 @@
-#region
-using Newtonsoft.Json;
-#endregion
-
 namespace AL.SocketClient.Model;
 
 /// <summary>
@@ -14,7 +10,6 @@ public sealed record QueuedActionInfo
     ///     <br />
     ///     This object holds information about when it will finish.
     /// </summary>
-    [JsonProperty]
     public QueuedAction? Compound { get; init; }
 
     /// <summary>
@@ -22,7 +17,6 @@ public sealed record QueuedActionInfo
     ///     <br />
     ///     This object holds information about when it will finish.
     /// </summary>
-    [JsonProperty]
     public QueuedAction? Exchange { get; init; }
 
     /// <summary>
@@ -30,6 +24,5 @@ public sealed record QueuedActionInfo
     ///     <br />
     ///     This object holds information about when it will finish.
     /// </summary>
-    [JsonProperty]
     public QueuedAction? Upgrade { get; init; }
 }

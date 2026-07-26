@@ -1,6 +1,6 @@
 #region
+using System.Text.Json.Serialization;
 using AL.APIClient.Definitions;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.APIClient.Model;
@@ -13,13 +13,13 @@ public sealed record Server
     /// <summary>
     ///     The host name of the server. There is no separate port; it is part of the host if non-standard.
     /// </summary>
-    [JsonProperty("address")]
+    [JsonPropertyName("address")]
     public string Address { get; init; } = null!;
 
     /// <summary>
     ///     The server identifier.
     /// </summary>
-    [JsonProperty("name")]
+    [JsonPropertyName("name")]
     public ServerId Identifier { get; set; }
 
     /// <summary>
@@ -30,7 +30,7 @@ public sealed record Server
     /// <summary>
     ///     The engine.io mount path this server listens on. Configured per server, so it is not always "/socket.io/".
     /// </summary>
-    [JsonProperty("path")]
+    [JsonPropertyName("path")]
     public string Path { get; init; } = null!;
 
     /// <summary>

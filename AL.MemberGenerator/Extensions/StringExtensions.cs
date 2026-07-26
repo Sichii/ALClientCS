@@ -1,62 +1,70 @@
+#region
 using System.Collections.Generic;
 using System.Linq;
+#endregion
 
-namespace AL.MemberGenerator.Extensions
+// nullable is not enabled in this project, so nullability can only be expressed via JetBrains attributes
+// ReSharper disable AnnotateNotNullTypeMember
+// ReSharper disable AnnotateNotNullParameter
+// ReSharper disable AnnotateCanBeNullParameter
+
+namespace AL.MemberGenerator.Extensions;
+
+public static class StringExtensions
 {
-    public static class StringExtensions
+    public static string ToCodeFormat(this string str)
     {
-        public static string ToCodeFormat(this string str)
+        static IEnumerable<char> InternalIterate(string source)
         {
-            IEnumerable<char> InternalIterate(string source)
-            {
-                var capitolize = false;
-                var first = true;
+            var capitolize = false;
+            var first = true;
 
-                foreach (var @char in source)
-                    if (first)
-                    {
-                        first = false;
+            foreach (var @char in source)
+                if (first)
+                {
+                    first = false;
 
-                        if (char.IsDigit(@char))
-                        {
-                            capitolize = true;
-
-                            yield return '_';
-                            yield return @char;
-                        } else
-                            yield return char.ToUpper(@char);
-                    } else if (@char == '_')
-                        capitolize = true;
-                    else if (char.IsDigit(@char))
+                    if (char.IsDigit(@char))
                     {
                         capitolize = true;
 
+                        yield return '_';
                         yield return @char;
-                    } else if (capitolize)
-                    {
-                        yield return char.ToUpper(@char);
-
-                        capitolize = false;
                     } else
-                        yield return @char;
-            }
+                        yield return char.ToUpper(@char);
+                } else if (@char == '_')
+                    capitolize = true;
+                else if (char.IsDigit(@char))
+                {
+                    capitolize = true;
 
-            return new string(InternalIterate(str).ToArray());
+                    yield return @char;
+                } else if (capitolize)
+                {
+                    yield return char.ToUpper(@char);
+
+                    capitolize = false;
+                } else
+                    yield return @char;
         }
 
-        public static string ToUpperFirstLetter(this string source)
-        {
-            if (string.IsNullOrEmpty(source))
-                return string.Empty;
+        return new string(
+            InternalIterate(str)
+                .ToArray());
+    }
 
-            // convert to char array of the string
-            var letters = source.ToCharArray();
+    public static string ToUpperFirstLetter(this string source)
+    {
+        if (string.IsNullOrEmpty(source))
+            return string.Empty;
 
-            // upper case the first char
-            letters[0] = char.ToUpper(letters[0]);
+        // convert to char array of the string
+        var letters = source.ToCharArray();
 
-            // return the array made of the new char array
-            return new string(letters);
-        }
+        // upper case the first char
+        letters[0] = char.ToUpper(letters[0]);
+
+        // return the array made of the new char array
+        return new string(letters);
     }
 }

@@ -1,19 +1,15 @@
 #region
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
-using AL.Client.Extensions;
 using AL.Client.Helpers;
-using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
-using Chaos.Extensions.Common;
 using Common.Logging;
 #endregion
 
@@ -47,259 +43,73 @@ public sealed class Warrior : ALClient
     /// <exception cref="ArgumentNullException">
     ///     socketClient
     /// </exception>
-    public Warrior(string characterName, IALAPIClient apiClient, IALSocketClient socketClient)
+    public Warrior(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
         : base(characterName, apiClient, socketClient) { }
 
     /// <summary>
-    ///     Asynchronously uses Agitate.
+    ///     Asynchronously uses Agitate, pulling every nearby monster onto yourself.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'agitate'. ({reason})
     /// </exception>
-    public async Task AgitateAsync()
-    {
-        const string SKILL_NAME = "agitate";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                        => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task AgitateAsync() => UseSkillCoreAsync("agitate");
 
     /// <summary>
-    ///     Asynchronously uses Charge.
+    ///     Asynchronously uses Charge, raising your movement speed.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'charge'. ({reason})
     /// </exception>
-    public async Task ChargeAsync()
-    {
-        const string SKILL_NAME = "charge";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        var charging = Character.Conditions.ContainsKey(Condition.Charging);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                        => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        //charge has no eval
-        using var characterCallback = Socket.On<CharacterData>(
-            ALSocketMessageType.Character,
-            data =>
-            {
-                //if we werent charging before, and we are now.. we know we just used it
-                //this is like this because of how hitchikers are handled
-                if (!charging && data.Conditions.ContainsKey(Condition.Charging))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task ChargeAsync() => UseSkillCoreAsync("charge");
 
     /// <summary>
-    ///     Asynchronously uses Cleave.
+    ///     Asynchronously uses Cleave, striking every monster around you.
     /// </summary>
     /// <returns>
-    ///     <see cref="List{T}" />
+    ///     <see cref="List{T}" /> of <see cref="ActionData" />
     ///     <br />
     ///     A collection of projectiles resulting from this attack.
     /// </returns>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'cleave'. ({reason})
     /// </exception>
-    public async Task<List<ActionData>> CleaveAsync()
-    {
-        const string SKILL_NAME = "cleave";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var actions = new List<ActionData>();
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (wrong weapon type)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                               => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        //a cleave will hit a bunch of targets, and we'll receive them 1 at a time
-        using var actionCallback = Socket.On<ActionData>(
-            ALSocketMessageType.Action,
-            data =>
-            {
-                if (data.AttackerId.EqualsI(Character.Id) && data.Source!.EqualsI(SKILL_NAME))
-                {
-                    actions.Add(data);
-
-                    return TaskCache.TRUE;
-                }
-
-                return TaskCache.FALSE;
-            });
-
-        //eval comes after we receive all the actions
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-
-        return actions;
-    }
+    public Task<List<ActionData>> CleaveAsync()
+        => UseSkillCoreAsync(
+            "cleave",
+            extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null,
+            collectActions: true);
 
     /// <summary>
-    ///     Asynchronously uses HardShell.
+    ///     Asynchronously uses Dash, jumping to a nearby point over any obstacle in the way.
+    /// </summary>
+    /// <param name="x">
+    ///     The x coordinate to jump to. Must be within 50 units, or the server rejects the jump.
+    /// </param>
+    /// <param name="y">
+    ///     The y coordinate to jump to. Must be within 50 units, or the server rejects the jump.
+    /// </param>
+    /// <remarks>
+    ///     Dash has no cooldown, so the server acknowledges it with nothing and this returns as soon as the emit is
+    ///     written. A rejected jump is reported only by the character's position not changing.
+    /// </remarks>
+    public Task DashAsync(float x, float y)
+        => UseSkillCoreAsync(
+            "dash",
+            completion: SkillCompletion.Immediate,
+            payload: new
+            {
+                name = "dash",
+                x,
+                y
+            });
+
+    /// <summary>
+    ///     Asynchronously uses HardShell, trading movement speed for armor.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'hardshell'. ({reason})
     /// </exception>
-    public async Task HardShellAsync()
-    {
-        const string SKILL_NAME = "hardshell";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        var hardShelled = Character.Conditions.ContainsKey(Condition.HardShell);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                        => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        //hardShell has no eval
-        using var characterCallback = Socket.On<CharacterData>(
-            ALSocketMessageType.Character,
-            data =>
-            {
-                //if we werent hardShelled before, and we are now.. we know we just used it
-                //this is like this because of how hitchikers are handled
-                if (!hardShelled && data.Conditions.ContainsKey(Condition.HardShell))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task HardShellAsync() => UseSkillCoreAsync("hardshell");
 
     /// <summary>
     ///     Asynchronously creates a Warrior client and connects.
@@ -315,7 +125,7 @@ public sealed class Warrior : ALClient
     ///     The identifier suffic for the region.
     /// </param>
     /// <param name="apiClient">
-    ///     An <see cref="IALAPIClient" /> with your authorization credentials.
+    ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
     /// <returns>
     ///     <see cref="Warrior" />
@@ -330,7 +140,7 @@ public sealed class Warrior : ALClient
         string characterName,
         ServerRegion region,
         ServerId identifier,
-        IALAPIClient apiClient)
+        IAlApiClient apiClient)
     {
         if (string.IsNullOrEmpty(characterName))
             throw new ArgumentNullException(nameof(characterName));
@@ -348,65 +158,18 @@ public sealed class Warrior : ALClient
     }
 
     /// <summary>
-    ///     Asynchronously uses Stomp.
+    ///     Asynchronously uses Stomp, stunning every monster around you.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'stomp'. ({reason})
     /// </exception>
-    public async Task StompAsync()
-    {
-        const string SKILL_NAME = "stomp";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (wrong weapon type)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                               => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task StompAsync()
+        => UseSkillCoreAsync(
+            "stomp",
+            extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null);
 
     /// <summary>
-    ///     Asynchronously uses Taunt on a target.
+    ///     Asynchronously uses Taunt on a target, pulling it onto yourself.
     /// </summary>
     /// <param name="targetId">
     ///     The id of the target.
@@ -422,115 +185,13 @@ public sealed class Warrior : ALClient
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'taunt' on {targetId}. ({reason})
     /// </exception>
-    public async Task<ActionData> TauntAsync(string targetId)
-    {
-        const string SKILL_NAME = "taunt";
-
-        if (string.IsNullOrEmpty(targetId))
-            throw new ArgumentNullException(nameof(targetId));
-
-        var source = new TaskCompletionSource<Expectation<ActionData>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    //attack_failed carries only an id, never a place
-                    GameResponseType.AttackFailed when targetId.EqualsI(data.TargetId!) =>
-                        source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (failed)"),
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) =>
-                        source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                     => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        using var actionCallback = Socket.On<ActionData>(
-            ALSocketMessageType.Action,
-            data =>
-            {
-                if (data.AttackerId.EqualsI(Character.Id)
-                    && (data.Source ?? data.Type)!.EqualsI(SKILL_NAME)
-                    && data.Target.EqualsI(targetId))
-                    return Task.FromResult(source.TrySetResult(data));
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME,
-                id = targetId
-            });
-
-        return await source.Task.WithNetworkTimeout();
-    }
+    public Task<ActionData> TauntAsync(string targetId) => UseProjectileSkillAsync("taunt", targetId);
 
     /// <summary>
-    ///     Asynchronously uses WarCry.
+    ///     Asynchronously uses WarCry, buffing your whole party.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'warcry'. ({reason})
     /// </exception>
-    public async Task WarCryAsync()
-    {
-        const string SKILL_NAME = "warcry";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult($"{data.Place}: {data.Reason}"),
-                    _                        => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task WarCryAsync() => UseSkillCoreAsync("warcry");
 }

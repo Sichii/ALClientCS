@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AL.APIClient.Interfaces;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
@@ -12,11 +13,8 @@ using AL.Core.Interfaces;
 using AL.Data.Conditions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.Model;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using JsonPropertyAttribute = Newtonsoft.Json.JsonPropertyAttribute;
-using StjSerializer = System.Text.Json.JsonSerializer;
+using FluentAssertions;
+using System.Threading.Tasks;
 #endregion
 
 namespace AL.Tests.Characterization;
@@ -25,14 +23,12 @@ namespace AL.Tests.Characterization;
 ///     T12 — Interface-declared attribute census.
 /// </summary>
 /// <remarks>
-///     ~70 wire names live only on the six item/attribute/player interfaces, not on the concrete types
-///     that implement them. Newtonsoft's contract resolver walks interfaces, so these names bind today.
-///     System.Text.Json does not inherit member attributes from interfaces, so it would read none of them.
-///     These tests enumerate the surface by reflection, commit it, and pin that it currently works.
-///     Phase 1 relocated the item keys onto the concrete types, so the value tests now bind through the STJ
-///     facade; the reflection census itself still reads the Newtonsoft attributes, which is where they live.
+///     ~70 wire names used to live only on the six item/attribute/player interfaces, not on the concrete types that
+///     implement them. System.Text.Json does not inherit member attributes from interfaces, so it would read none of them;
+///     Phase 1 relocated the item keys onto the concrete types for exactly that reason. These tests enumerate the surface
+///     by reflection, commit it, and pin that it still binds. All six interfaces are now bare — the census records CLR
+///     names only, and any attribute reappearing on one of them breaks the snapshot loudly, which is the point.
 /// </remarks>
-[TestClass]
 public class InterfaceAttributeCharacterization
 {
     private const string CENSUS_SNAPSHOT = "interface-attribute-census.json";
@@ -50,88 +46,62 @@ public class InterfaceAttributeCharacterization
         typeof(ISimpleItem)
     ];
 
-    /// <summary>
-    ///     Enumerates every interface-declared JSON member and pins the full surface against a committed
-    ///     snapshot. A member appearing, disappearing, or changing its wire name breaks this loudly — that
-    ///     is the whole point, since STJ silently ignores every one of these.
-    /// </summary>
-    [TestMethod]
-    public void T12_InterfaceDeclaredWireNames_Census_MatchesCommittedSnapshot()
+    private static string FriendlyTypeName(Type type)
     {
-        var lines = new List<string>();
+        var nullableUnderlying = Nullable.GetUnderlyingType(type);
 
-        foreach (Type wireInterface in WireInterfaces)
-        {
-            PropertyInfo[] properties = wireInterface.GetProperties(
-                BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        if (nullableUnderlying is not null)
+            return $"{FriendlyTypeName(nullableUnderlying)}?";
 
-            foreach (PropertyInfo property in properties)
-            {
-                // Predicate stays on the Newtonsoft attributes through Phase 5: no production model carries
-                // [JsonPropertyName]/[JsonInclude] yet, and the binding modifier reads these. Byte-neutral either
-                // way here (all six interfaces are bare), but flipping it early would just report nothing.
-                JsonPropertyAttribute? jsonProperty = property.GetCustomAttribute<JsonPropertyAttribute>();
-                bool hasIgnore = property.GetCustomAttribute<JsonIgnoreAttribute>() is not null;
-                bool hasConverter = property.GetCustomAttribute<JsonConverterAttribute>() is not null;
-                string wireName = jsonProperty?.PropertyName ?? $"(clr:{property.Name})";
+        if (!type.IsGenericType)
+            return type.Name;
 
-                lines.Add(
-                    $"{wireInterface.Name}.{property.Name} : {FriendlyTypeName(property.PropertyType)} "
-                    + $"=> {wireName}"
-                    + $"{(jsonProperty is not null ? " [JsonProperty]" : string.Empty)}"
-                    + $"{(hasIgnore ? " [JsonIgnore]" : string.Empty)}"
-                    + $"{(hasConverter ? " [JsonConverter]" : string.Empty)}");
-            }
-        }
+        var arguments = string.Join(
+            ",",
+            type.GetGenericArguments()
+                .Select(FriendlyTypeName));
+        var baseName = type.Name[..type.Name.IndexOf('`')];
 
-        lines.Sort(StringComparer.Ordinal);
-
-        string generated = StjSerializer.Serialize(
-            lines,
-            new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-
-        // Read the committed copy before writing, otherwise WriteSnapshot masks a genuinely missing snapshot.
-        string? committed = Fixture.ReadCommittedSnapshot(CENSUS_SNAPSHOT);
-
-        if (committed is null)
-        {
-            //sidecar name, never the committed one - see AttributesCensusCharacterization for why
-            string generatedPath = Fixture.WriteSnapshot($"{CENSUS_SNAPSHOT}.generated", generated);
-
-            Assert.Fail(
-                $"Committed census snapshot '{CENSUS_SNAPSHOT}' is missing. A freshly generated copy was written to "
-                + $"'{generatedPath}'; copy it into AL.Tests/Fixtures/snapshots/ and commit it.");
-        }
-
-        Assert.AreEqual(
-            committed,
-            generated,
-            "The interface-declared JSON surface changed. If intentional, update the committed census snapshot.");
+        return $"{baseName}<{arguments}>";
     }
 
     /// <summary>
-    ///     Independent tripwire on the count, so a snapshot regenerated on a drifted tree still trips.
+    ///     The eight custom-named attribute stats:
+    ///     <c>
+    ///         firesistance
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         fzresistance
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         mp_reduction
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         potionsm
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         healm
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         frequencym
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         pnresistance
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         stun
+    ///     </c>
+    ///     . Their wire names live only on <see cref="IAttributed" />; the concrete <see cref="AttributedRecordBase" />
+    ///     re-declares the properties with no attribute. Pins that they currently bind on a real attributed type.
     /// </summary>
-    [TestMethod]
-    public void T12_InterfaceDeclaredMemberCount_Is71()
-    {
-        int total = WireInterfaces.Sum(
-            wireInterface => wireInterface
-                             .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                             .Length);
-
-        // Reality per reflection: 45 + 8 + 7 + 5 + 4 + 2. The plan's "92" counts something else; see the report.
-        Assert.AreEqual(71, total);
-    }
-
-    /// <summary>
-    ///     The eight custom-named attribute stats: <c>firesistance</c>, <c>fzresistance</c>,
-    ///     <c>mp_reduction</c>, <c>potionsm</c>, <c>healm</c>, <c>frequencym</c>, <c>pnresistance</c>,
-    ///     <c>stun</c>. Their wire names live only on <see cref="IAttributed" />; the concrete
-    ///     <see cref="AttributedRecordBase" /> re-declares the properties with no attribute. Pins that they
-    ///     currently bind on a real attributed type.
-    /// </summary>
-    [TestMethod]
+    [Test]
     public void T12_AttributedType_InterfaceDeclaredStatNames_CurrentlyBind()
     {
         // GCondition : AttributedRecordBase — a condition entry is the real shape carrying these keys.
@@ -149,72 +119,200 @@ public class InterfaceAttributeCharacterization
 
         var condition = TestJson.Data<GCondition>(CONDITION_DATA);
 
-        Assert.IsNotNull(condition);
-        Assert.AreEqual(20f, condition.FireResistance);
-        Assert.AreEqual(21f, condition.FreezeResistance);
-        Assert.AreEqual(22f, condition.MPReduction);
-        Assert.AreEqual(0.5f, condition.PotionsMod);
-        Assert.AreEqual(0.25f, condition.HealMod);
-        Assert.AreEqual(0.8f, condition.FrequencyMod);
-        Assert.AreEqual(23f, condition.PoisonResistance);
-        Assert.AreEqual(0.15f, condition.StunChance);
+        condition.Should()
+                 .NotBeNull();
+
+        condition.FireResistance
+                 .Should()
+                 .Be(20f);
+
+        condition.FreezeResistance
+                 .Should()
+                 .Be(21f);
+
+        condition.MPReduction
+                 .Should()
+                 .Be(22f);
+
+        condition.PotionsMod
+                 .Should()
+                 .Be(0.5f);
+
+        condition.HealMod
+                 .Should()
+                 .Be(0.25f);
+
+        condition.FrequencyMod
+                 .Should()
+                 .Be(0.8f);
+
+        condition.PoisonResistance
+                 .Should()
+                 .Be(23f);
+
+        condition.StunChance
+                 .Should()
+                 .Be(0.15f);
     }
 
     /// <summary>
-    ///     Same three modifier stats, but read from the real committed <c>conditions.poisoned</c> entry
-    ///     rather than a synthetic literal, so the values are genuine wire data.
+    ///     Same three modifier stats, but read from the real committed
+    ///     <c>
+    ///         conditions.poisoned
+    ///     </c>
+    ///     entry rather than a synthetic literal, so the values are genuine wire data.
     /// </summary>
-    [TestMethod]
+    [Test]
     public void T12_AttributedType_RealPoisonedCondition_ModifierStatsBind()
     {
-        JToken poisoned = Fixture.Entry("conditions", "poisoned");
+        var poisoned = Fixture.Entry("conditions", "poisoned");
 
-        // Fixture navigation stays on JToken (it is not the oracle); only the bind is re-pointed, via the entry's
-        // raw text. The entry carries no date-shaped strings, so JObject.Parse's DateTime normalisation cannot
-        // perturb the round-trip.
-        var condition = TestJson.Data<GCondition>(poisoned.ToString(Formatting.None));
+        // Fixture navigation is plain DOM (it is not the oracle); the bind goes through the entry's raw text.
+        var condition = TestJson.Data<GCondition>(poisoned.ToJsonString());
 
-        Assert.IsNotNull(condition);
-        Assert.AreEqual(0.5f, condition.PotionsMod);
-        Assert.AreEqual(0.25f, condition.HealMod);
-        Assert.AreEqual(0.8f, condition.FrequencyMod);
+        condition.Should()
+                 .NotBeNull();
+
+        condition.PotionsMod
+                 .Should()
+                 .Be(0.5f);
+
+        condition.HealMod
+                 .Should()
+                 .Be(0.25f);
+
+        condition.FrequencyMod
+                 .Should()
+                 .Be(0.8f);
     }
 
     /// <summary>
-    ///     Phase 1 relocated the item interfaces' member attributes onto the concrete types. Pins the inverse of
-    ///     the pre-migration state: <see cref="SlotItem" /> now declares its OWN [JsonProperty] for every wire key
-    ///     it used to inherit only through <see cref="ITradeItem" />/<see cref="IInventoryItem" /> and their bases.
+    ///     Independent tripwire on the count, so a snapshot regenerated on a drifted tree still trips.
     /// </summary>
-    [TestMethod]
-    public void T12_SlotItem_NowDeclaresItsOwnWireKeys()
+    [Test]
+    public void T12_InterfaceDeclaredMemberCount_Is71()
     {
-        PropertyInfo[] ownProperties = typeof(SlotItem).GetProperties(
-            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        var total = WireInterfaces.Sum(wireInterface => wireInterface
+                                                        .GetProperties(
+                                                            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                                                        .Length);
 
-        // Unlike the census above, this predicate is NOT byte-neutral: SlotItem's relocated keys are declared as
-        // Newtonsoft [JsonProperty], so reading [JsonPropertyName] here would miss all twelve. Phase 6 flips both.
-        List<string> ownWireNames = ownProperties
-                                    .Select(p => p.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName)
-                                    .Where(name => name is not null)
-                                    .Select(name => name!)
-                                    .ToList();
+        // Reality per reflection: 45 + 8 + 7 + 5 + 4 + 2. The plan's "92" counts something else; see the report.
+        total.Should()
+             .Be(71);
+    }
 
-        // The twelve keys that used to live only on ITradeItem/IInventoryItem/ICommonItem/ISimpleItem.
-        string[] relocated = ["b", "giveaway", "list", "rid", "ach", "stat_type", "acc", "gf", "l", "ps", "v", "q"];
+    /// <summary>
+    ///     Enumerates every interface-declared JSON member and pins the full surface against a committed snapshot. A member
+    ///     appearing, disappearing, or acquiring a wire name breaks this loudly — that is the whole point, since STJ silently
+    ///     ignores any attribute declared here.
+    /// </summary>
+    [Test]
+    public async Task T12_InterfaceDeclaredWireNames_Census_MatchesCommittedSnapshot()
+    {
+        var lines = new List<string>();
 
-        foreach (string key in relocated)
-            Assert.IsTrue(
-                ownWireNames.Contains(key),
-                $"Phase 1 must have moved the '{key}' wire key onto SlotItem itself, but it is not declared there");
+        foreach (var wireInterface in WireInterfaces)
+        {
+            var properties = wireInterface.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            foreach (var property in properties)
+            {
+                // Predicate now reads the System.Text.Json attributes, the only flavour production carries.
+                // Byte-neutral: all six interfaces are bare, so every line renders as "(clr:Name)" either way.
+                var jsonProperty = property.GetCustomAttribute<JsonPropertyNameAttribute>();
+                var hasIgnore = property.GetCustomAttribute<JsonIgnoreAttribute>() is not null;
+                var hasConverter = property.GetCustomAttribute<JsonConverterAttribute>() is not null;
+                var wireName = jsonProperty?.Name ?? $"(clr:{property.Name})";
+
+                lines.Add(
+                    $"{wireInterface.Name}.{property.Name} : {FriendlyTypeName(property.PropertyType)} "
+                    + $"=> {wireName}"
+                    + $"{(jsonProperty is not null ? " [JsonPropertyName]" : string.Empty)}"
+                    + $"{(hasIgnore ? " [JsonIgnore]" : string.Empty)}"
+                    + $"{(hasConverter ? " [JsonConverter]" : string.Empty)}");
+            }
+        }
+
+        lines.Sort(StringComparer.Ordinal);
+
+        var generated = JsonSerializer.Serialize(
+            lines,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+
+        // Read the committed copy before writing, otherwise WriteSnapshot masks a genuinely missing snapshot.
+        var committed = Fixture.ReadCommittedSnapshot(CENSUS_SNAPSHOT);
+
+        if (committed is null)
+        {
+            //sidecar name, never the committed one - see AttributesCensusCharacterization for why
+            var generatedPath = Fixture.WriteSnapshot($"{CENSUS_SNAPSHOT}.generated", generated);
+
+            Assert.Fail(
+                $"Committed census snapshot '{CENSUS_SNAPSHOT}' is missing. A freshly generated copy was written to "
+                + $"'{generatedPath}'; copy it into AL.Tests/Fixtures/snapshots/ and commit it.");
+        }
+
+        generated.Should()
+                 .Be(committed, "The interface-declared JSON surface changed. If intentional, update the committed census snapshot.");
     }
 
     /// <summary>
     ///     Pins that all twelve of <see cref="SlotItem" />'s inherited wire keys currently bind:
-    ///     <c>b</c>, <c>giveaway</c>, <c>list</c>, <c>rid</c>, <c>ach</c>, <c>stat_type</c>, <c>acc</c>,
-    ///     <c>gf</c>, <c>l</c>, <c>ps</c>, <c>v</c>, <c>q</c>. None of these names exists on
-    ///     <see cref="SlotItem" /> itself.
+    ///     <c>
+    ///         b
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         giveaway
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         list
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         rid
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         ach
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         stat_type
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         acc
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         gf
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         l
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         ps
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         v
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         q
+    ///     </c>
+    ///     . None of these names exists on <see cref="SlotItem" /> itself.
     /// </summary>
-    [TestMethod]
+    [Test]
     public void T12_SlotItem_InterfaceDeclaredWireKeys_CurrentlyBind()
     {
         const string SLOT_ITEM_DATA = @"{
@@ -235,38 +333,98 @@ public class InterfaceAttributeCharacterization
 
         var slotItem = TestJson.Socket<SlotItem>(SLOT_ITEM_DATA);
 
-        Assert.IsNotNull(slotItem);
-        Assert.AreEqual("staff", slotItem.Name);
-        Assert.IsTrue(slotItem.Buying);                                    // b
-        Assert.AreEqual(12.5f, slotItem.GiveawayMins);                     // giveaway
-        CollectionAssert.AreEqual(
-            new[] { "alice", "bob" },
-            slotItem.GiveawayParticipants?.ToArray());                     // list
-        Assert.AreEqual("TfCh", slotItem.Id);                              // rid
-        Assert.AreEqual("firehazard", slotItem.AchievementName);           // ach
-        Assert.AreEqual(ALAttribute.Vit, slotItem.StatType);              // stat_type
-        Assert.AreEqual(0.42f, slotItem.AchievementProgress);             // acc
-        Assert.AreEqual("Chonk003", slotItem.GiveawayFrom);               // gf
-        Assert.AreEqual(LockType.Locked, slotItem.LockType);             // l
-        CollectionAssert.AreEqual(
-            new[] { "shiny", "glitched" },
-            slotItem.PossiblePrefixes.ToArray());                          // ps
-        Assert.AreEqual("2024-01-01T00:00:00Z", slotItem.Volatile);      // v
-        Assert.AreEqual(7, slotItem.Quantity);                            // q
+        slotItem.Should()
+                .NotBeNull();
+
+        slotItem.Name
+                .Should()
+                .Be("staff");
+
+        slotItem.Buying
+                .Should()
+                .BeTrue(); // b
+
+        slotItem.GiveawayMins
+                .Should()
+                .Be(12.5f); // giveaway
+
+        (slotItem.GiveawayParticipants?.ToArray()).Should()
+                                                  .Equal("alice", "bob"); // list
+
+        slotItem.Id
+                .Should()
+                .Be("TfCh"); // rid
+
+        slotItem.AchievementName
+                .Should()
+                .Be("firehazard"); // ach
+
+        slotItem.StatType
+                .Should()
+                .Be(ALAttribute.Vit); // stat_type
+
+        slotItem.AchievementProgress
+                .Should()
+                .Be(0.42f); // acc
+
+        slotItem.GiveawayFrom
+                .Should()
+                .Be("Chonk003"); // gf
+
+        slotItem.LockType
+                .Should()
+                .Be(LockType.Locked); // l
+
+        slotItem.PossiblePrefixes
+                .ToArray()
+                .Should()
+                .Equal("shiny", "glitched"); // ps
+
+        slotItem.Volatile
+                .Should()
+                .Be("2024-01-01T00:00:00Z"); // v
+
+        slotItem.Quantity
+                .Should()
+                .Be(7); // q
     }
 
-    private static string FriendlyTypeName(Type type)
+    /// <summary>
+    ///     Phase 1 relocated the item interfaces' member attributes onto the concrete types. Pins the inverse of the
+    ///     pre-migration state: <see cref="SlotItem" /> now declares its OWN [JsonPropertyName] for every wire key it used to
+    ///     inherit only through <see cref="ITradeItem" />/<see cref="IInventoryItem" /> and bases.
+    /// </summary>
+    [Test]
+    public void T12_SlotItem_NowDeclaresItsOwnWireKeys()
     {
-        Type? nullableUnderlying = Nullable.GetUnderlyingType(type);
-        if (nullableUnderlying is not null)
-            return $"{FriendlyTypeName(nullableUnderlying)}?";
+        var ownProperties = typeof(SlotItem).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-        if (!type.IsGenericType)
-            return type.Name;
+        var ownWireNames = ownProperties.Select(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()
+                                                      ?.Name)
+                                        .Where(name => name is not null)
+                                        .Select(name => name!)
+                                        .ToList();
 
-        string arguments = string.Join(",", type.GetGenericArguments().Select(FriendlyTypeName));
-        string baseName = type.Name[..type.Name.IndexOf('`')];
+        // The twelve keys that used to live only on ITradeItem/IInventoryItem/ICommonItem/ISimpleItem.
+        string[] relocated =
+        [
+            "b",
+            "giveaway",
+            "list",
+            "rid",
+            "ach",
+            "stat_type",
+            "acc",
+            "gf",
+            "l",
+            "ps",
+            "v",
+            "q"
+        ];
 
-        return $"{baseName}<{arguments}>";
+        foreach (var key in relocated)
+            ownWireNames.Contains(key)
+                        .Should()
+                        .BeTrue($"Phase 1 must have moved the '{key}' wire key onto SlotItem itself, but it is not declared there");
     }
 }

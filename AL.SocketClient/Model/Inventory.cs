@@ -1,7 +1,6 @@
 #region
 using System.Collections;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -15,7 +14,6 @@ public sealed class Inventory : IReadOnlyList<Item?>
     public int Count => Items.Count;
 
     // Backing stays List<Item?> so SetCapacity's downcast holds; the deserializer supplies a List.
-    [JsonConstructor]
     internal Inventory(IReadOnlyList<Item?>? items) => Items = items ?? new List<Item?>();
 
     public IEnumerator<Item?> GetEnumerator() => Items.GetEnumerator();

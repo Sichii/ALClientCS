@@ -6,16 +6,14 @@ using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Model;
 using AL.Visualizer.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SixLabors.ImageSharp;
 #endregion
 
 namespace AL.Tests.Visualizer.Tests;
 
-[TestClass]
 public class VisualizerTests : PathfindingTestBed
 {
-    [TestMethod]
+    [Test]
     public async Task DrawPathTest()
     {
         var start = new Location("main", -1582, 496);
@@ -37,7 +35,7 @@ public class VisualizerTests : PathfindingTestBed
             await image.SaveAsync($"{imgPath}{counter++}.png");
     }
 
-    [TestMethod]
+    [Test]
     public async Task DumpMapImages()
     {
         foreach (var map in GameData.Maps.Values.DistinctBy(map => map.Accessor))
@@ -47,7 +45,8 @@ public class VisualizerTests : PathfindingTestBed
             if (navMesh == null)
                 continue;
 
-            var image = AL.Visualizer.Visualizer
+            var image = AL.Visualizer
+                          .Visualizer
                           .CreateGridImage(navMesh)
                           .DrawEdges(navMesh);
 

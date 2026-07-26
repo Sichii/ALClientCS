@@ -1,7 +1,7 @@
 #region
-using AL.Core.Json.Converters;
+using System.Text.Json.Serialization;
+using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -16,7 +16,7 @@ namespace AL.SocketClient.SocketModel;
 /// <remarks>
 ///     The server sends this as a bare string on several paths, not always as an object.
 /// </remarks>
-[JsonConverter(typeof(StringOrObjectConverter<EvalData>), nameof(Code))]
+[JsonStringOrObject(nameof(Code))]
 public sealed record EvalData : IOptionalObject
 {
     /// <summary>

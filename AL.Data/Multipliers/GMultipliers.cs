@@ -1,5 +1,5 @@
 #region
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 namespace AL.Data.Multipliers;
@@ -12,37 +12,37 @@ public sealed record GMultipliers
     /// <summary>
     ///     The ratio of an item's base value an NPC pays when buying it back. The basis of every sell price.
     /// </summary>
-    [JsonProperty("buy_to_sell")]
+    [JsonPropertyName("buy_to_sell")]
     public float BuyToSell { get; init; }
 
     /// <summary>
     ///     The number of bonus shells granted on a shell purchase.
     /// </summary>
-    [JsonProperty("extra_shells")]
+    [JsonPropertyName("extra_shells")]
     public int ExtraShells { get; init; }
 
     /// <summary>
     ///     The multiplier applied to items recovered from the lost-and-found.
     /// </summary>
-    [JsonProperty("lostandfound_mult")]
+    [JsonPropertyName("lostandfound_mult")]
     public float LostAndFoundMult { get; init; }
 
     /// <summary>
-    ///     The multiplier the second-hands NPC applies to cash-shop items, in place of
-    ///     <see cref="BuyToSell" /> x <see cref="SecondHandsMult" />.
+    ///     The multiplier the second-hands NPC applies to cash-shop items, in place of <see cref="BuyToSell" /> x
+    ///     <see cref="SecondHandsMult" />.
     /// </summary>
-    [JsonProperty("secondhands_cash_mult")]
+    [JsonPropertyName("secondhands_cash_mult")]
     public float SecondHandsCashMult { get; init; }
 
     /// <summary>
     ///     The multiplier the second-hands NPC applies to ordinary items, on top of <see cref="BuyToSell" />.
     /// </summary>
-    [JsonProperty("secondhands_mult")]
+    [JsonPropertyName("secondhands_mult")]
     public float SecondHandsMult { get; init; }
 
     /// <summary>
     ///     The gold value of a single shell.
     /// </summary>
-    [JsonProperty("shells_to_gold")]
+    [JsonPropertyName("shells_to_gold")]
     public int ShellsToGold { get; init; }
 }

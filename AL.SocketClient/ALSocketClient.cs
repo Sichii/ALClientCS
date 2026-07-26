@@ -36,18 +36,18 @@ public sealed class ALSocketClient : IALSocketClient
     private SocketIOClient.SocketIO Socket = null!;
 
     /// <summary>
-    ///     Whether to connect over TLS. True for the public game host, which sets its auth cookie
-    ///     with the "secure" flag. Set to false to reach a locally hosted server.
-    /// </summary>
-    public static bool UseSecureTransport { get; set; } = true;
-
-    /// <summary>
     ///     Whether or not this socket is currently connected.
     /// </summary>
     public bool Connected { get; private set; }
 
     /// <inheritdoc />
     public string? LastDisconnectReason { get; private set; }
+
+    /// <summary>
+    ///     Whether to connect over TLS. True for the public game host, which sets its auth cookie with the "secure" flag. Set
+    ///     to false to reach a locally hosted server.
+    /// </summary>
+    public static bool UseSecureTransport { get; set; } = true;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
@@ -108,7 +108,7 @@ public sealed class ALSocketClient : IALSocketClient
             {
                 try
                 {
-                    LastDisconnectReason = response.GetValue<string>(0);
+                    LastDisconnectReason = response.GetValue<string>();
                 } catch (Exception e)
                 {
                     Logger.Error($"Failed to read disconnect_reason. {e}");
@@ -121,7 +121,7 @@ public sealed class ALSocketClient : IALSocketClient
             {
                 try
                 {
-                    var report = response.GetValue<LimitDcReportData>(0);
+                    var report = response.GetValue<LimitDcReportData>();
 
                     Logger.Warn(
                         $"Rate-limited: {report.TotalCalls} total calls, exceeded a call-cost limit of {report.CallLimit} in 4s. {report.Calls}");
@@ -246,7 +246,11 @@ RAW JSON:
         try
         {
             if (Subscriptions.TryGetValue(message.MessageType, out var subscriptionList))
-                await InvokeAsync(message.MessageType, subscriptionList, rawJson, message.Data)
+                await InvokeAsync(
+                        message.MessageType,
+                        subscriptionList,
+                        rawJson,
+                        message.Data)
                     .ConfigureAwait(false);
         } catch (Exception ex)
         {
@@ -376,18 +380,17 @@ RAW JSON:
             var dataObject = getValue(response, 0);
             Logger.Trace($"{messageType}, {response}");
 
-            Task.Run(
-                async () =>
+            Task.Run(async () =>
+            {
+                try
                 {
-                    try
-                    {
-                        await InvokeAsync(messageType, subscriptionList, dataObject)
-                            .ConfigureAwait(false);
-                    } catch (Exception e)
-                    {
-                        Logger.Error($"Handler for \"{eventName}\" threw. {e}");
-                    }
-                });
+                    await InvokeAsync(messageType, subscriptionList, dataObject)
+                        .ConfigureAwait(false);
+                } catch (Exception e)
+                {
+                    Logger.Error($"Handler for \"{eventName}\" threw. {e}");
+                }
+            });
         } catch (Exception e)
         {
             //a frame dropped here is otherwise indistinguishable from a frame never sent, so

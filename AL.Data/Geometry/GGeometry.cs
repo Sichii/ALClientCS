@@ -1,10 +1,9 @@
 #region
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
-using AL.Core.Json.Converters;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Geometry;
@@ -26,43 +25,44 @@ public record GGeometry : IRectangle
     /// <summary>
     ///     A list of horizontal lines that should be considered as walls.
     /// </summary>
-    [JsonProperty("y_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
+    [JsonPropertyName("y_lines")]
+    [JsonInclude]
     public IReadOnlyList<StraightLine> HorizontalLines { get; internal set; } = new List<StraightLine>();
 
     /// <summary>
     ///     Maximum X coordinate on the map.
     /// </summary>
-    [JsonProperty("max_x")]
+    [JsonPropertyName("max_x")]
     public int MaxX { get; init; }
 
     /// <summary>
     ///     Maximum Y coordinate on the map.
     /// </summary>
-    [JsonProperty("max_y")]
+    [JsonPropertyName("max_y")]
     public int MaxY { get; init; }
 
     /// <summary>
     ///     Minimum X coordinate on the map.
     /// </summary>
-    [JsonProperty("min_x")]
+    [JsonPropertyName("min_x")]
     public int MinX { get; init; }
 
     /// <summary>
     ///     Minimum Y coordinate on the map.
     /// </summary>
-    [JsonProperty("min_y")]
+    [JsonPropertyName("min_y")]
     public int MinY { get; init; }
 
     /// <summary>
     ///     A list of tiles on this map.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToObjectConverter<GTile>))]
     public IReadOnlyList<GTile> Tiles { get; init; } = new List<GTile>();
 
     /// <summary>
     ///     A list of vertical lines that should be considered as walls.
     /// </summary>
-    [JsonProperty("x_lines", ItemConverterType = typeof(ArrayToObjectConverter<StraightLine>))]
+    [JsonPropertyName("x_lines")]
+    [JsonInclude]
     public IReadOnlyList<StraightLine> VerticalLines { get; internal set; } = new List<StraightLine>();
 
     [JsonIgnore]

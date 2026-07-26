@@ -8,22 +8,46 @@ using AL.Core.Helpers;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Handles a value the server may send as literal <c>false</c> (JavaScript's <c>a &amp;&amp; a</c> idiom):
-///     any falsy token maps to the configured default; anything else deserializes as <typeparamref name="T" />.
-///     The System.Text.Json replacement for the Newtonsoft <c>FalsyConverter</c>. It targets the non-nullable
-///     value type (its call sites are non-nullable — <c>int StackSize</c>, <c>Stand</c>), so <c>HandleNull</c>
-///     routes a null token here instead of System.Text.Json's nullable wrapper swallowing it. Its default cannot
-///     be passed through a System.Text.Json <c>[JsonConverter]</c> attribute, so apply it via a parameterless
-///     subclass on the property (int case) or on the enum type (enum case).
+///     Handles a value the server may send as literal
+///     <c>
+///         false
+///     </c>
+///     (JavaScript's
+///     <c>
+///         a &amp;&amp; a
+///     </c>
+///     idiom): any falsy token maps to the configured default; anything else deserializes as <typeparamref name="T" />.
+///     The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         FalsyConverter
+///     </c>
+///     . It targets the non-nullable value type (its call sites are non-nullable —
+///     <c>
+///         int StackSize
+///     </c>
+///     ,
+///     <c>
+///         Stand
+///     </c>
+///     ), so
+///     <c>
+///         HandleNull
+///     </c>
+///     routes a null token here instead of System.Text.Json's nullable wrapper swallowing it. Its default cannot be passed
+///     through a System.Text.Json
+///     <c>
+///         [JsonConverter]
+///     </c>
+///     attribute, so apply it via a parameterless subclass on the property (int case) or on the enum type (enum case).
 /// </summary>
-public sealed class FalsyConverter<T> : JsonConverter<T>
+public class FalsyConverter<T> : JsonConverter<T>
 {
     private readonly T Default;
 
-    public FalsyConverter(T @default) => Default = @default;
-
     //null/true/false are all "falsy" and map to Default, so null must reach Read (STJ would otherwise throw)
     public override bool HandleNull => true;
+
+    public FalsyConverter(T @default) => Default = @default;
 
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -60,3 +84,24 @@ public sealed class FalsyConverter<T> : JsonConverter<T>
 
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) => throw new NotSupportedException();
 }
+
+/// <summary>
+///     <see cref="FalsyConverter{T}" /> for
+///     <c>
+///         GItem.StackSize
+///     </c>
+///     , whose falsy fallback is 1.
+/// </summary>
+/// <remarks>
+///     System.Text.Json's
+///     <c>
+///         [JsonConverter]
+///     </c>
+///     attribute requires a public parameterless constructor, so the fallback cannot travel with the attribute the way
+///     Newtonsoft's converter parameters did — it has to live here. Do not replace this with a bare
+///     <c>
+///         FalsyConverter&lt;int&gt;
+///     </c>
+///     subclass: the fallback would default to 0, which is a perfectly plausible stack size and would corrupt silently.
+/// </remarks>
+public sealed class FalsyStackSizeConverter() : FalsyConverter<int>(1);

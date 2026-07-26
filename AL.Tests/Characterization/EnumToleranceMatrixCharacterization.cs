@@ -5,53 +5,73 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-using AL.Core.Json;
-using AL.Core.Json.Converters;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using AL.APIClient.Definitions;
+using AL.Core.Definitions;
+using AL.Core.Json.SystemTextJson;
+using AL.SocketClient.Definitions;
 using FluentAssertions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using StjSerializer = System.Text.Json.JsonSerializer;
 #endregion
 
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins the full input-shape matrix of <see cref="TolerantStringEnumConverter" /> under Newtonsoft (T8).
-///     This is the spec the System.Text.Json <c>TolerantEnumConverter</c> is written against: for every enum
-///     that carries the tolerant converter, and for a fixed set of wire shapes, the exact value (or throw)
-///     Newtonsoft produces today.
+///     Pins the full input-shape matrix of <see cref="TolerantEnumConverter{TEnum}" /> (T8): for every enum that carries a
+///     tolerant converter, and for a fixed set of wire shapes, the exact value (or throw) the client produces. The
+///     committed fixture is that matrix as it was pinned before the migration; it is frozen text and is now the only
+///     oracle the System.Text.Json arm is measured against.
 /// </summary>
 /// <remarks>
-///     The enum set is discovered by reflection over the three assemblies that declare tolerant enums, so the
-///     matrix tracks the code rather than a hand list. Deserialization goes through
-///     <see cref="JsonConvert.DeserializeObject(string, Type)" />, which uses the same default settings as the
-///     production socket path, so these results are the ones the live client actually produces. Dictionary-key
-///     position is a distinct code path (STJ resolves it through <c>ReadAsPropertyName</c>); under Newtonsoft a
-///     naked <c>Dictionary&lt;TEnum,int&gt;</c> ignores the value converter entirely and uses the framework's
-///     own key parser, so its tolerance differs from value position - that difference is the point of pinning it.
+///     The enum set is discovered by reflection over the three assemblies that declare tolerant enums, so the matrix
+///     tracks the code rather than a hand list. Deserialization goes through
+///     <c>
+///         TestJson.Data
+///     </c>
+///     , i.e. the production
+///     <c>
+///         ALJson.Options
+///     </c>
+///     , so these results are the ones the live client actually produces. Dictionary-key position is a distinct code path
+///     (resolved through
+///     <c>
+///         ReadAsPropertyName
+///     </c>
+///     ) whose tolerance differs from value position in the pinned baseline - a naked
+///     <c>
+///         Dictionary&lt;TEnum,int&gt;
+///     </c>
+///     never reached the value converter there, so an unknown key killed the payload. That difference is the point of
+///     pinning it.
 /// </remarks>
-[TestClass]
 public sealed class EnumToleranceMatrixCharacterization
 {
     private const string FIXTURE_NAME = "enum-tolerance-matrix.json";
 
+    //the fixture holds the matrix POCO under its exact CLR property names with a two-space indent, which is
+    //what these options reproduce - so a regenerated sidecar stays diffable against the committed file
+    private static readonly JsonSerializerOptions SnapshotOptions = new()
+    {
+        WriteIndented = true
+    };
+
     // grep across the solution finds the tolerant converter declared only in these three Enums.cs files
     private static readonly Assembly[] TolerantEnumAssemblies =
     [
-        typeof(AL.Core.Definitions.Slot).Assembly,
-        typeof(AL.SocketClient.Definitions.GameResponseType).Assembly,
-        typeof(AL.APIClient.Definitions.ServerId).Assembly
+        typeof(Slot).Assembly,
+        typeof(GameResponseType).Assembly,
+        typeof(ServerId).Assembly
     ];
 
     // decision 5 calls out these five for key position; Condition is fully qualified because
     // AL.SocketClient.Model also declares a Condition entity type
     private static readonly Type[] DictionaryKeyEnums =
     [
-        typeof(AL.Core.Definitions.Condition),
-        typeof(AL.Core.Definitions.Slot),
-        typeof(AL.Core.Definitions.TradeSlot),
-        typeof(AL.Core.Definitions.BankPack),
-        typeof(AL.Core.Definitions.WeaponType)
+        typeof(Condition),
+        typeof(Slot),
+        typeof(TradeSlot),
+        typeof(BankPack),
+        typeof(WeaponType)
     ];
 
     private static IReadOnlyList<Type> DiscoverTolerantEnums()
@@ -69,7 +89,11 @@ public sealed class EnumToleranceMatrixCharacterization
                 if (attributes.Length == 0)
                     continue;
 
-                if (((JsonConverterAttribute)attributes[0]).ConverterType == typeof(TolerantStringEnumConverter))
+                var converterType = ((JsonConverterAttribute)attributes[0]).ConverterType;
+
+                //LowerCaseTolerantStringEnumConverterFactory derives from the base factory, so one assignability
+                //check covers both tolerant markers - and an enum carrying some other converter is not counted
+                if ((converterType != null) && typeof(TolerantStringEnumConverterFactory).IsAssignableFrom(converterType))
                     result.Add(type);
             }
 
@@ -78,11 +102,10 @@ public sealed class EnumToleranceMatrixCharacterization
     }
 
     #region Discovery — the plan's "35" is stale
-
     // FINDING: MIGRATION-PLAN T8 says "35 tolerant enums". Reality is 41: 35 in AL.Core, plus 3 in
     // AL.SocketClient (GameResponseType, ALSocketMessageType, ALSocketEmitType) and 3 in AL.APIClient
     // (ServerId, ServerRegion, APIMethod). The plan counted only AL.Core.
-    [TestMethod]
+    [Test]
     public void T8_TolerantEnum_Discovery_Finds_41_Not_35()
     {
         var enums = DiscoverTolerantEnums();
@@ -90,85 +113,116 @@ public sealed class EnumToleranceMatrixCharacterization
         enums.Should()
              .HaveCount(41, "grep finds the tolerant converter on 35 AL.Core + 3 AL.SocketClient + 3 AL.APIClient enums");
 
-        enums.Count(static type => type.Assembly == typeof(AL.Core.Definitions.Slot).Assembly)
+        enums.Count(static type => type.Assembly == typeof(Slot).Assembly)
              .Should()
              .Be(35);
     }
-
     #endregion
 
     #region The matrix — committed fixture is the pinned baseline
-
-    [TestMethod]
-    public void T8_ToleranceMatrix_MatchesCommittedFixture()
-    {
-        var generated = BuildMatrixJson();
-
-        var committed = Fixture.ReadCommittedSnapshot(FIXTURE_NAME);
-
-        if (committed == null)
-        {
-            //sidecar name, never the committed one - see AttributesCensusCharacterization for why
-            var path = Fixture.WriteSnapshot($"{FIXTURE_NAME}.generated", generated);
-
-            Assert.Fail(
-                $"Committed fixture '{FIXTURE_NAME}' is missing. Generated it at {path}; copy it into "
-                + "AL.Tests/Fixtures/snapshots and re-run so the build copies it back beside the test binary.");
-        }
-
-        Normalize(generated)
-            .Should()
-            .Be(Normalize(committed), "the pinned Newtonsoft enum-tolerance matrix must not move under the migration");
-    }
-
     /// <summary>
-    ///     The migration's proof for T8: every cell of the tolerance matrix re-run through the production
-    ///     System.Text.Json options, compared against the pinned Newtonsoft outcome. Cells that agree are the
-    ///     proof; cells that differ must each fall into a consciously accepted class, and the class counts are
+    ///     The migration's proof for T8: every cell of the tolerance matrix re-run through the production System.Text.Json
+    ///     options, compared against the committed fixture - the matrix as it was pinned before the migration. Cells that
+    ///     agree are the proof; cells that differ must each fall into a consciously accepted class, and the class counts are
     ///     pinned so a new kind of divergence cannot slip in behind an existing one.
     /// </summary>
-    [TestMethod]
-    public void T8_ToleranceMatrix_StjPath_DivergesOnlyWhereExpected()
+    [Test]
+    public void T8_ToleranceMatrix_StjPath_DivergesFromPinnedFixtureOnlyWhereExpected()
     {
-        var newtonsoft = BuildMatrix(useStj: false);
-        var stj = BuildMatrix(useStj: true);
+        var pinned = ReadPinnedMatrix();
+        var stj = BuildMatrix();
+
+        //the shape of the matrix itself is part of the pin: an enum gaining or losing the tolerant marker, or a
+        //dictionary-key enum being dropped, must fail here rather than quietly shrink the measured set
+        stj.EnumCount
+           .Should()
+           .Be(pinned.EnumCount);
+
+        stj.Value
+           .Keys
+           .Should()
+           .BeEquivalentTo(pinned.Value.Keys);
+
+        stj.DictionaryKey
+           .Keys
+           .Should()
+           .BeEquivalentTo(pinned.DictionaryKey.Keys);
 
         var byClass = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
 
-        foreach ((var typeName, var entry) in newtonsoft.Value)
-            foreach ((var cell, var expected) in entry.Cells)
-                Classify(byClass, $"value {typeName}.{cell}", expected, stj.Value[typeName].Cells[cell]);
+        foreach ((var typeName, var entry) in pinned.Value)
+        {
+            var actual = stj.Value[typeName];
 
-        foreach ((var typeName, var entry) in newtonsoft.DictionaryKey)
+            //zero/sample/alias are reflection-derived rather than engine-derived, so they must match exactly
+            actual.ZeroMember
+                  .Should()
+                  .Be(entry.ZeroMember, typeName);
+
+            actual.SampleMember
+                  .Should()
+                  .Be(entry.SampleMember, typeName);
+
+            actual.AliasMember
+                  .Should()
+                  .Be(entry.AliasMember, typeName);
+
+            actual.AliasValue
+                  .Should()
+                  .Be(entry.AliasValue, typeName);
+
             foreach ((var cell, var expected) in entry.Cells)
-                Classify(byClass, $"key {typeName}.{cell}", expected, stj.DictionaryKey[typeName].Cells[cell]);
+                Classify(
+                    byClass,
+                    $"value {typeName}.{cell}",
+                    expected,
+                    actual.Cells[cell]);
+        }
+
+        foreach ((var typeName, var entry) in pinned.DictionaryKey)
+        {
+            var actual = stj.DictionaryKey[typeName];
+
+            actual.AliasMember
+                  .Should()
+                  .Be(entry.AliasMember, typeName);
+
+            foreach ((var cell, var expected) in entry.Cells)
+                Classify(
+                    byClass,
+                    $"key {typeName}.{cell}",
+                    expected,
+                    actual.Cells[cell]);
+        }
 
         var unexpected = byClass.TryGetValue(UNEXPECTED, out var list) ? list : [];
 
-        Assert.AreEqual(
-            0,
-            unexpected.Count,
-            $"System.Text.Json diverges from the pinned Newtonsoft tolerance matrix in an unclassified way:\n{string.Join("\n", unexpected)}");
+        unexpected.Count
+                  .Should()
+                  .Be(
+                      0,
+                      $"System.Text.Json diverges from the pinned tolerance matrix in an unclassified way:\n{string.Join("\n", unexpected)}");
 
         var counts = byClass.ToDictionary(pair => pair.Key, pair => pair.Value.Count);
 
-        CollectionAssert.AreEquivalent(
-            ExpectedDivergenceCounts.ToList(),
-            counts.ToList(),
-            $"the accepted divergence classes moved:\n{string.Join("\n", counts.Select(pair => $"{pair.Key}={pair.Value}"))}");
+        counts.ToList()
+              .Should()
+              .BeEquivalentTo(
+                  ExpectedDivergenceCounts.ToList(),
+                  $"the accepted divergence classes moved:\n{string.Join("\n", counts.Select(pair => $"{pair.Key}={pair.Value}"))}");
     }
 
     private const string UNEXPECTED = "9_UNEXPECTED";
 
     /// <summary>
-    ///     Divergence class -> how many cells fall in it. Pinned so both a new class and a change in an existing
-    ///     class's population fail loudly.
+    ///     Divergence class -> how many cells fall in it. Pinned so both a new class and a change in an existing class's
+    ///     population fail loudly.
     /// </summary>
     /// <remarks>
-    ///     Every one of the 369 value-position cells across all 41 tolerant enums agrees exactly — including the
-    ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and the two
-    ///     engines' exception-type names never even come into it. The whole measured divergence is the five
-    ///     unknown-key cells, one per dictionary-key enum, which is exactly what the plan predicted.
+    ///     Every one of the 369 value-position cells across all 41 tolerant enums agrees with the pin exactly — including the
+    ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and exception-type names never
+    ///     even come into it. The whole measured divergence is the five unknown-key cells, one per dictionary-key enum, which
+    ///     is exactly what the plan predicted.
     /// </remarks>
     private static readonly IReadOnlyDictionary<string, int> ExpectedDivergenceCounts = new Dictionary<string, int>(StringComparer.Ordinal)
     {
@@ -176,97 +230,98 @@ public sealed class EnumToleranceMatrixCharacterization
     };
 
     /// <summary>
-    ///     Buckets one cell's Newtonsoft-vs-STJ outcome pair. Agreement is not recorded; a difference lands in
-    ///     an accepted class or, failing that, in <see cref="UNEXPECTED" />.
+    ///     Buckets one cell's pinned-vs-STJ outcome pair. Agreement is not recorded; a difference lands in an accepted class
+    ///     or, failing that, in <see cref="UNEXPECTED" />.
     /// </summary>
-    private static void Classify(SortedDictionary<string, List<string>> byClass, string location, string newtonsoft, string stj)
+    private static void Classify(
+        SortedDictionary<string, List<string>> byClass,
+        string location,
+        string pinned,
+        string stj)
     {
-        if (newtonsoft == stj)
+        if (pinned == stj)
             return;
 
-        var bothThrow = newtonsoft.StartsWith("THROW", StringComparison.Ordinal) && stj.StartsWith("THROW", StringComparison.Ordinal);
+        var bothThrow = pinned.StartsWith("THROW", StringComparison.Ordinal) && stj.StartsWith("THROW", StringComparison.Ordinal);
 
-        //both engines reject the shape and only name the exception differently - not a behavioural difference,
+        //the shape is rejected either way and only the exception name moved - not a behavioural difference,
         //because every caller either catches everything or lets the frame die
-        var key = bothThrow ? "1_throwTypeRenamed"
+        var key = bothThrow
+            ? "1_throwTypeRenamed"
 
-                  //the deliberate improvement: a naked Dictionary<TEnum,int> never consulted the value converter
-                  //under Newtonsoft, so one unknown key killed the whole payload. STJ routes the key through
-                  //ReadAsPropertyName and degrades it to the zero member, matching value position.
-                  : newtonsoft.StartsWith("THROW", StringComparison.Ordinal) && stj.StartsWith("count=", StringComparison.Ordinal)
-                      ? "2_dictionaryKeyDegradesInsteadOfThrowing"
-                      : UNEXPECTED;
+            //the deliberate improvement: in the pinned baseline a naked Dictionary<TEnum,int> never
+            //consulted the value converter, so one unknown key killed the whole payload. STJ routes the key
+            //through ReadAsPropertyName and degrades it to the zero member, matching value position.
+            : pinned.StartsWith("THROW", StringComparison.Ordinal) && stj.StartsWith("count=", StringComparison.Ordinal)
+                ? "2_dictionaryKeyDegradesInsteadOfThrowing"
+                : UNEXPECTED;
 
         if (!byClass.TryGetValue(key, out var list))
             byClass[key] = list = [];
 
-        list.Add($"{location}: newtonsoft={newtonsoft} stj={stj}");
+        list.Add($"{location}: pinned={pinned} stj={stj}");
     }
-
     #endregion
 
     #region Spot checks — the destructive cells the plan singles out
-
-    // TradeSlot.Trade1 = 17: Newtonsoft parses a numeric string as the underlying value, so "17" binds to
-    // Trade1 rather than degrading. A wrong value here consumed real inventory once (EmitPayloadTests).
-    [TestMethod]
+    // TradeSlot.Trade1 = 17: a numeric string parses as the underlying value, so "17" binds to Trade1 rather
+    // than degrading. A wrong value here consumed real inventory once (EmitPayloadTests).
+    [Test]
     public void T8_TradeSlot_NumericString17_Value_BindsToTrade1()
     {
-        var value = JsonConvert.DeserializeObject(@"""17""", typeof(AL.Core.Definitions.TradeSlot));
+        var value = TestJson.Data(@"""17""", typeof(TradeSlot));
 
-        value.Should().Be(AL.Core.Definitions.TradeSlot.Trade1);
+        value.Should()
+             .Be(TradeSlot.Trade1);
     }
 
     // The whole reason the converter exists: an unrecognized value degrades to the zero member (None),
     // never throws, so the frame carrying it survives.
-    [TestMethod]
+    [Test]
     public void T8_TradeSlot_Unknown_Value_DegradesToZeroMember()
     {
-        var value = JsonConvert.DeserializeObject(@"""trade99""", typeof(AL.Core.Definitions.TradeSlot));
+        var value = TestJson.Data(@"""trade99""", typeof(TradeSlot));
 
-        value.Should().Be(AL.Core.Definitions.TradeSlot.None);
+        value.Should()
+             .Be(TradeSlot.None);
     }
 
-    // LowerCaseNamingStrategy: the server sends "mainhand"; it must still read back to Slot.MainHand.
-    [TestMethod]
+    // Slot carries the LowerCase tolerant factory: the server sends "mainhand"; it must read back to
+    // Slot.MainHand.
+    [Test]
     public void T8_Slot_LowercaseWireName_Value_Binds()
     {
-        var value = JsonConvert.DeserializeObject(@"""mainhand""", typeof(AL.Core.Definitions.Slot));
+        var value = TestJson.Data(@"""mainhand""", typeof(Slot));
 
-        value.Should().Be(AL.Core.Definitions.Slot.MainHand);
+        value.Should()
+             .Be(Slot.MainHand);
     }
 
     // [EnumMember] alias resolution in value position.
-    [TestMethod]
+    [Test]
     public void T8_WeaponType_EnumMemberAlias_Value_Binds()
     {
-        var value = JsonConvert.DeserializeObject(@"""great_staff""", typeof(AL.Core.Definitions.WeaponType));
+        var value = TestJson.Data(@"""great_staff""", typeof(WeaponType));
 
-        value.Should().Be(AL.Core.Definitions.WeaponType.GreatStaff);
+        value.Should()
+             .Be(WeaponType.GreatStaff);
     }
 
-    // Dictionary-key position is the separate path. A naked Dictionary<TEnum,int> never consults the value
-    // converter, so an unknown key is NOT tolerated here - Newtonsoft throws for the whole payload. This is
-    // exactly the behaviour the STJ ReadAsPropertyName override changes (degrade-to-zero), so it is pinned.
-    [TestMethod]
-    public void T8_TradeSlot_Unknown_DictionaryKey_Throws()
-    {
-        var act = () => JsonConvert.DeserializeObject<Dictionary<AL.Core.Definitions.TradeSlot, int>>(@"{""trade99"":1}");
-
-        act.Should().Throw<JsonSerializationException>();
-    }
-
-    // The STJ half of the pin above, and the only accepted divergence in the entire matrix - the five
-    // 5_unknownString key cells counted by 2_dictionaryKeyDegradesInsteadOfThrowing. TolerantEnumConverter
-    // .ReadAsPropertyName runs the key through the same tolerant parse as value position, so the frame
-    // survives carrying a phantom zero-member entry instead of dying. The Newtonsoft test stays the oracle.
-    [TestMethod]
+    // Dictionary-key position is the separate path, and the only accepted divergence in the entire matrix - the
+    // five 5_unknownString key cells counted by 2_dictionaryKeyDegradesInsteadOfThrowing. The pinned baseline
+    // throws for the whole payload there (the fixture's DictionaryKey 5_unknownString cells, still the oracle);
+    // TolerantEnumConverter.ReadAsPropertyName runs the key through the same tolerant parse as value position,
+    // so the frame survives carrying a phantom zero-member entry instead of dying.
+    [Test]
     public void T8_TradeSlot_Unknown_DictionaryKey_StjDegradesToZeroMember()
     {
-        var dict = TestJson.Data<Dictionary<AL.Core.Definitions.TradeSlot, int>>(@"{""trade99"":1}")!;
+        var dict = TestJson.Data<Dictionary<TradeSlot, int>>(@"{""trade99"":1}")!;
 
-        dict.Should().ContainKey(AL.Core.Definitions.TradeSlot.None);
-        dict.Should().HaveCount(1);
+        dict.Should()
+            .ContainKey(TradeSlot.None);
+
+        dict.Should()
+            .HaveCount(1);
     }
 
     // What that degrade costs, which nothing else in the suite states: unknown keys do not merely survive,
@@ -282,40 +337,75 @@ public sealed class EnumToleranceMatrixCharacterization
     //     the key and merges, so the count holds but a value is silently overwritten.
     // ReadAsPropertyName therefore does NOT make the whole-dict converter redundant: deleting it turns skip
     // into merge on every live entity.
-    [TestMethod]
+    [Test]
     public void T8_Unknown_DictionaryKeys_StjDegradeAndMerge_LastWriteWins()
     {
         // two distinct unknown keys, one surviving entry - the second value overwrote the first
-        var collided = TestJson.Data<Dictionary<AL.Core.Definitions.Slot, int>>(@"{""zzz1"":1,""zzz2"":2}")!;
+        var collided = TestJson.Data<Dictionary<Slot, int>>(@"{""zzz1"":1,""zzz2"":2}")!;
 
-        collided.Should().HaveCount(1);
-        collided[AL.Core.Definitions.Slot.None].Should().Be(2);
+        collided.Should()
+                .HaveCount(1);
+
+        collided[Slot.None]
+            .Should()
+            .Be(2);
 
         // a known key is untouched; the unknown one lands beside it as a phantom None
-        var mixed = TestJson.Data<Dictionary<AL.Core.Definitions.Slot, int>>(@"{""mainhand"":1,""zzz"":2}")!;
+        var mixed = TestJson.Data<Dictionary<Slot, int>>(@"{""mainhand"":1,""zzz"":2}")!;
 
-        mixed.Should().HaveCount(2);
-        mixed[AL.Core.Definitions.Slot.MainHand].Should().Be(1);
-        mixed[AL.Core.Definitions.Slot.None].Should().Be(2);
+        mixed.Should()
+             .HaveCount(2);
+
+        mixed[Slot.MainHand]
+            .Should()
+            .Be(1);
+
+        mixed[Slot.None]
+            .Should()
+            .Be(2);
     }
 
     // A known lowercase key still binds in the naked-dictionary path (case-insensitive, EnumMember honoured).
-    [TestMethod]
+    [Test]
     public void T8_Slot_LowercaseWireName_DictionaryKey_Binds()
     {
-        var dict = JsonConvert.DeserializeObject<Dictionary<AL.Core.Definitions.Slot, int>>(@"{""mainhand"":1}")!;
+        var dict = TestJson.Data<Dictionary<Slot, int>>(@"{""mainhand"":1}")!;
 
-        dict.Should().ContainKey(AL.Core.Definitions.Slot.MainHand);
-        dict.Should().HaveCount(1);
+        dict.Should()
+            .ContainKey(Slot.MainHand);
+
+        dict.Should()
+            .HaveCount(1);
     }
-
     #endregion
 
     #region Matrix construction
+    /// <summary>
+    ///     The committed fixture, parsed. Missing fixture writes a sidecar to copy in and fails loudly rather than measuring
+    ///     nothing.
+    /// </summary>
+    private static Matrix ReadPinnedMatrix()
+    {
+        var committed = Fixture.ReadCommittedSnapshot(FIXTURE_NAME);
 
-    private static string BuildMatrixJson() => JsonConvert.SerializeObject(BuildMatrix(useStj: false), Formatting.Indented);
+        if (committed == null)
+        {
+            //sidecar name, never the committed one - see AttributesCensusCharacterization for why
+            var path = Fixture.WriteSnapshot($"{FIXTURE_NAME}.generated", BuildMatrixJson());
 
-    private static Matrix BuildMatrix(bool useStj)
+            committed.Should()
+                     .NotBeNull(
+                         $"Committed fixture '{FIXTURE_NAME}' is missing. Generated it at {path}; copy it into "
+                         + "AL.Tests/Fixtures/snapshots and re-run so the build copies it back beside the test binary.");
+        }
+
+        return JsonSerializer.Deserialize<Matrix>(committed, SnapshotOptions)
+               ?? throw new InvalidOperationException($"Committed fixture '{FIXTURE_NAME}' did not parse into a matrix.");
+    }
+
+    private static string BuildMatrixJson() => JsonSerializer.Serialize(BuildMatrix(), SnapshotOptions);
+
+    private static Matrix BuildMatrix()
     {
         var enums = DiscoverTolerantEnums();
 
@@ -325,32 +415,30 @@ public sealed class EnumToleranceMatrixCharacterization
         };
 
         foreach (var type in enums)
-            matrix.Value[type.FullName!] = BuildValueEntry(type, useStj);
+            matrix.Value[type.FullName!] = BuildValueEntry(type);
 
         foreach (var type in DictionaryKeyEnums)
-            matrix.DictionaryKey[type.FullName!] = BuildKeyEntry(type, useStj);
+            matrix.DictionaryKey[type.FullName!] = BuildKeyEntry(type);
 
         return matrix;
     }
 
-    private static ValueEnumEntry BuildValueEntry(Type type, bool useStj)
+    private static ValueEnumEntry BuildValueEntry(Type type)
     {
-        var (zero, sample) = ZeroAndSample(type);
-        var (aliasMember, aliasValue) = FirstAlias(type);
+        (var zero, var sample) = ZeroAndSample(type);
+        (var aliasMember, var aliasValue) = FirstAlias(type);
 
         var cells = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
-            ["1_exactName"] = ValueOutcome(type, JsonConvert.ToString(sample), useStj),
-            ["2_lowercase"] = ValueOutcome(type, JsonConvert.ToString(sample.ToLowerInvariant()), useStj),
-            ["3_UPPERCASE"] = ValueOutcome(type, JsonConvert.ToString(sample.ToUpperInvariant()), useStj),
-            ["4_enumMemberAlias"] = aliasValue == null
-                ? "<no-enum-member>"
-                : ValueOutcome(type, JsonConvert.ToString(aliasValue), useStj),
-            ["5_unknownString"] = ValueOutcome(type, JsonConvert.ToString("zzz_not_a_member_zzz"), useStj),
-            ["6_numericString17"] = ValueOutcome(type, @"""17""", useStj),
-            ["7_jsonNull"] = ValueOutcome(type, "null", useStj),
-            ["8_fractional_1_5"] = ValueOutcome(type, "1.5", useStj),
-            ["9_boolTrue"] = ValueOutcome(type, "true", useStj)
+            ["1_exactName"] = ValueOutcome(type, Quote(sample)),
+            ["2_lowercase"] = ValueOutcome(type, Quote(sample.ToLowerInvariant())),
+            ["3_UPPERCASE"] = ValueOutcome(type, Quote(sample.ToUpperInvariant())),
+            ["4_enumMemberAlias"] = aliasValue == null ? "<no-enum-member>" : ValueOutcome(type, Quote(aliasValue)),
+            ["5_unknownString"] = ValueOutcome(type, Quote("zzz_not_a_member_zzz")),
+            ["6_numericString17"] = ValueOutcome(type, @"""17"""),
+            ["7_jsonNull"] = ValueOutcome(type, "null"),
+            ["8_fractional_1_5"] = ValueOutcome(type, "1.5"),
+            ["9_boolTrue"] = ValueOutcome(type, "true")
         };
 
         return new ValueEnumEntry
@@ -363,20 +451,20 @@ public sealed class EnumToleranceMatrixCharacterization
         };
     }
 
-    private static KeyEnumEntry BuildKeyEntry(Type type, bool useStj)
+    private static KeyEnumEntry BuildKeyEntry(Type type)
     {
-        var (_, sample) = ZeroAndSample(type);
-        var (aliasMember, aliasValue) = FirstAlias(type);
+        (_, var sample) = ZeroAndSample(type);
+        (var aliasMember, var aliasValue) = FirstAlias(type);
 
         // JSON object keys are always strings, so only the string-representable shapes apply in key position
         var cells = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
-            ["1_exactName"] = KeyOutcome(type, sample, useStj),
-            ["2_lowercase"] = KeyOutcome(type, sample.ToLowerInvariant(), useStj),
-            ["3_UPPERCASE"] = KeyOutcome(type, sample.ToUpperInvariant(), useStj),
-            ["4_enumMemberAlias"] = aliasValue == null ? "<no-enum-member>" : KeyOutcome(type, aliasValue, useStj),
-            ["5_unknownString"] = KeyOutcome(type, "zzz_not_a_member_zzz", useStj),
-            ["6_numericString17"] = KeyOutcome(type, "17", useStj)
+            ["1_exactName"] = KeyOutcome(type, sample),
+            ["2_lowercase"] = KeyOutcome(type, sample.ToLowerInvariant()),
+            ["3_UPPERCASE"] = KeyOutcome(type, sample.ToUpperInvariant()),
+            ["4_enumMemberAlias"] = aliasValue == null ? "<no-enum-member>" : KeyOutcome(type, aliasValue),
+            ["5_unknownString"] = KeyOutcome(type, "zzz_not_a_member_zzz"),
+            ["6_numericString17"] = KeyOutcome(type, "17")
         };
 
         return new KeyEnumEntry
@@ -386,13 +474,15 @@ public sealed class EnumToleranceMatrixCharacterization
         };
     }
 
-    private static string ValueOutcome(Type type, string json, bool useStj)
+    //escaping choices do not survive the round-trip back through the parser, so the cell outcome is unaffected
+    //by which encoder writes the literal
+    private static string Quote(string value) => JsonSerializer.Serialize(value);
+
+    private static string ValueOutcome(Type type, string json)
     {
         try
         {
-            var value = useStj
-                ? StjSerializer.Deserialize(json, type, ALJson.Options)
-                : JsonConvert.DeserializeObject(json, type);
+            var value = TestJson.Data(json, type);
 
             return value == null ? "<null>" : $"{value} = {Enum.Format(type, value, "D")}";
         } catch (Exception ex)
@@ -401,16 +491,14 @@ public sealed class EnumToleranceMatrixCharacterization
         }
     }
 
-    private static string KeyOutcome(Type type, string rawKey, bool useStj)
+    private static string KeyOutcome(Type type, string rawKey)
     {
         var dictionaryType = typeof(Dictionary<,>).MakeGenericType(type, typeof(int));
-        var json = $"{{{JsonConvert.ToString(rawKey)}:1}}";
+        var json = $"{{{Quote(rawKey)}:1}}";
 
         try
         {
-            var dictionary = (IDictionary)(useStj
-                ? StjSerializer.Deserialize(json, dictionaryType, ALJson.Options)!
-                : JsonConvert.DeserializeObject(json, dictionaryType)!);
+            var dictionary = (IDictionary)TestJson.Data(json, dictionaryType)!;
 
             var entries = dictionary.Keys
                                     .Cast<object>()
@@ -437,9 +525,9 @@ public sealed class EnumToleranceMatrixCharacterization
         {
             var isZero = Enum.Format(type, Enum.Parse(type, name), "D") == "0";
 
-            if (isZero && zero.Length == 0)
+            if (isZero && (zero.Length == 0))
                 zero = name;
-            else if (!isZero && sample.Length == 0)
+            else if (!isZero && (sample.Length == 0))
                 sample = name;
         }
 
@@ -462,29 +550,24 @@ public sealed class EnumToleranceMatrixCharacterization
         return (null, null);
     }
 
-    private static string Normalize(string value) => value.Replace("\r\n", "\n")
-                                                          .Trim();
-
     private sealed class Matrix
     {
+        public SortedDictionary<string, KeyEnumEntry> DictionaryKey { get; set; } = new(StringComparer.Ordinal);
         public int EnumCount { get; set; }
 
         public SortedDictionary<string, ValueEnumEntry> Value { get; set; } = new(StringComparer.Ordinal);
-
-        public SortedDictionary<string, KeyEnumEntry> DictionaryKey { get; set; } = new(StringComparer.Ordinal);
     }
 
     private sealed class ValueEnumEntry
     {
-        public string ZeroMember { get; set; } = string.Empty;
-
-        public string SampleMember { get; set; } = string.Empty;
-
         public string? AliasMember { get; set; }
 
         public string? AliasValue { get; set; }
 
         public SortedDictionary<string, string> Cells { get; set; } = new(StringComparer.Ordinal);
+
+        public string SampleMember { get; set; } = string.Empty;
+        public string ZeroMember { get; set; } = string.Empty;
     }
 
     private sealed class KeyEnumEntry
@@ -493,6 +576,5 @@ public sealed class EnumToleranceMatrixCharacterization
 
         public SortedDictionary<string, string> Cells { get; set; } = new(StringComparer.Ordinal);
     }
-
     #endregion
 }

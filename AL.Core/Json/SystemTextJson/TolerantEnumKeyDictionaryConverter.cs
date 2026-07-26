@@ -11,14 +11,17 @@ using Common.Logging;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads an object into a dictionary keyed by <typeparamref name="TKey" />, skipping any key that does not
-///     map to a known member instead of failing the whole payload. The System.Text.Json replacement for the
-///     Newtonsoft <c>TolerantEnumKeyDictionaryConverter</c>.
+///     Reads an object into a dictionary keyed by <typeparamref name="TKey" />, skipping any key that does not map to a
+///     known member instead of failing the whole payload. The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         TolerantEnumKeyDictionaryConverter
+///     </c>
+///     .
 /// </summary>
 /// <remarks>
 ///     System.Text.Json resolves dictionary keys with a key converter that throws on an unparseable key, so a
-///     whole-dictionary converter is required to skip-and-continue. One unrecognized key - a new monster
-///     ability, a new buff - would otherwise discard every entity in the same frame.
+///     whole-dictionary converter is required to skip-and-continue. One unrecognized key - a new monster ability, a new
+///     buff - would otherwise discard every entity in the same frame.
 /// </remarks>
 public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConverter<ConcurrentDictionary<TKey, TValue>>
     where TKey: struct, Enum
@@ -26,7 +29,9 @@ public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConve
 {
     private static readonly ILog Log = LogManager.GetLogger(typeof(TolerantEnumKeyDictionaryConverter<TKey, TValue>));
 
-    //tolerance that hides schema drift is worse than the drift, so each unknown key is reported once
+    //tolerance that hides schema drift is worse than the drift, so each unknown key is reported once per closed
+    //generic - a TKey shared by two TValues can warn twice, which is cheaper than a global table to dedupe it
+    // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<string, byte> Reported = new();
 
     //a JSON null must reach Read so it maps to an empty dictionary instead of a null reference
@@ -39,7 +44,8 @@ public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConve
         if (reader.TokenType == JsonTokenType.Null)
             return result;
 
-        var obj = JsonNode.Parse(ref reader)?.AsObject();
+        var obj = JsonNode.Parse(ref reader)
+                          ?.AsObject();
 
         if (obj is null)
             return result;

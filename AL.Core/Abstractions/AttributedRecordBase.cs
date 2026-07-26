@@ -1,122 +1,124 @@
+#region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
-using Newtonsoft.Json;
+#endregion
 
-namespace AL.Core.Abstractions
+namespace AL.Core.Abstractions;
+
+/// <summary>
+///     Provides a base for records that have <see cref="ALAttribute" />s.
+/// </summary>
+/// <seealso cref="AL.Core.Interfaces.IAttributed" />
+public abstract record AttributedRecordBase : IAttributed
 {
-    /// <summary>
-    ///     Provides a base for records that have <see cref="ALAttribute" />s.
-    /// </summary>
-    /// <seealso cref="AL.Core.Interfaces.IAttributed" />
-    public abstract record AttributedRecordBase : IAttributed
-    {
-        public float APiercing { get; init; }
-        [JsonProperty]
-        public float Armor { get; protected set; }
+    public float APiercing { get; init; }
 
-        [JsonProperty]
-        public float Attack { get; protected set; }
+    [JsonInclude]
+    public float Armor { get; protected set; }
 
-        [JsonIgnore]
-        public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
+    [JsonInclude]
+    public float Attack { get; protected set; }
 
-        public float Awesomeness { get; init; }
+    [JsonIgnore]
+    public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
-        public float Blast { get; init; }
+    public float Awesomeness { get; init; }
 
-        public float Bling { get; init; }
+    public float Blast { get; init; }
 
-        public float Charisma { get; init; }
+    public float Bling { get; init; }
 
-        public float Crit { get; init; }
+    public float Charisma { get; init; }
 
-        public float CritDamage { get; init; }
+    public float Crit { get; init; }
 
-        public float Cuteness { get; init; }
+    public float CritDamage { get; init; }
 
-        public float Dex { get; init; }
+    public float Cuteness { get; init; }
 
-        public float DReturn { get; init; }
+    public float Dex { get; init; }
 
-        public float Evasion { get; init; }
+    public float DReturn { get; init; }
 
-        public float Explosion { get; init; }
+    public float Evasion { get; init; }
 
-        [JsonProperty("firesistance")]
-        public float FireResistance { get; init; }
+    public float Explosion { get; init; }
 
-        public float For { get; init; }
+    [JsonPropertyName("firesistance")]
+    public float FireResistance { get; init; }
 
-        [JsonProperty("fzresistance")]
-        public float FreezeResistance { get; init; }
+    public float For { get; init; }
 
-        [JsonProperty]
-        public float Frequency { get; protected set; }
+    [JsonPropertyName("fzresistance")]
+    public float FreezeResistance { get; init; }
 
-        [JsonProperty("frequencym")]
-        public float FrequencyMod { get; init; }
+    [JsonInclude]
+    public float Frequency { get; protected set; }
 
-        public float Gold { get; init; }
+    [JsonPropertyName("frequencym")]
+    public float FrequencyMod { get; init; }
 
-        public float GoldSteal { get; init; }
+    public float Gold { get; init; }
 
-        [JsonProperty("healm")]
-        public float HealMod { get; init; }
+    public float GoldSteal { get; init; }
 
-        [JsonProperty]
-        public float HP { get; protected set; }
+    [JsonPropertyName("healm")]
+    public float HealMod { get; init; }
 
-        public float Int { get; init; }
+    [JsonInclude]
+    public float HP { get; protected set; }
 
-        public float Lifesteal { get; init; }
+    public float Int { get; init; }
 
-        public float Luck { get; init; }
+    public float Lifesteal { get; init; }
 
-        public float ManaSteal { get; init; }
+    public float Luck { get; init; }
 
-        public float Miss { get; init; }
+    public float ManaSteal { get; init; }
 
-        [JsonProperty]
-        public float MP { get; protected set; }
+    public float Miss { get; init; }
 
-        [JsonProperty("mp_cost")]
-        public float MPCost { get; init; }
+    [JsonInclude]
+    public float MP { get; protected set; }
 
-        [JsonProperty("mp_reduction")]
-        public float MPReduction { get; init; }
+    [JsonPropertyName("mp_cost")]
+    public float MPCost { get; init; }
 
-        public float Output { get; init; }
+    [JsonPropertyName("mp_reduction")]
+    public float MPReduction { get; init; }
 
-        [JsonProperty("pnresistance")]
-        public float PoisonResistance { get; init; }
+    public float Output { get; init; }
 
-        [JsonProperty("potionsm")]
-        public float PotionsMod { get; init; }
+    [JsonPropertyName("pnresistance")]
+    public float PoisonResistance { get; init; }
 
-        [JsonProperty]
-        public float Range { get; protected set; }
+    [JsonPropertyName("potionsm")]
+    public float PotionsMod { get; init; }
 
-        public float Reflection { get; init; }
+    [JsonInclude]
+    public float Range { get; protected set; }
 
-        [JsonProperty]
-        public float Resistance { get; protected set; }
+    public float Reflection { get; init; }
 
-        public float RPiercing { get; init; }
+    [JsonInclude]
+    public float Resistance { get; protected set; }
 
-        [JsonProperty]
-        public float Speed { get; protected set; }
+    public float RPiercing { get; init; }
 
-        public float Stat { get; init; }
+    [JsonInclude]
+    public float Speed { get; protected set; }
 
-        public float Str { get; init; }
+    public float Stat { get; init; }
 
-        [JsonProperty("stun")]
-        public float StunChance { get; init; }
+    public float Str { get; init; }
 
-        public float Vit { get; init; }
+    [JsonPropertyName("stun")]
+    public float StunChance { get; init; }
 
-        [JsonProperty]
-        public float XP { get; protected set; }
-    }
+    public float Vit { get; init; }
+
+    [JsonInclude]
+    public float XP { get; protected set; }
 }

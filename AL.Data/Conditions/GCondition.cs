@@ -1,7 +1,7 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Conditions;
@@ -15,7 +15,8 @@ namespace AL.Data.Conditions;
 public sealed record GCondition : AttributedRecordBase
 {
     #pragma warning disable 0649
-    [JsonProperty("can_move")]
+    [JsonPropertyName("can_move")]
+    [JsonInclude]
     private bool _canMove;
     #pragma warning restore 0649
 
@@ -23,18 +24,6 @@ public sealed record GCondition : AttributedRecordBase
     ///     Whether or not this condition is associated with an aura.
     /// </summary>
     public bool Aura { get; init; }
-
-    /// <summary>
-    ///     Whether or not this condition is a debuff (detrimental).
-    /// </summary>
-    [JsonProperty("debuff")]
-    public bool Debuff { get; init; }
-
-    /// <summary>
-    ///     If populated, the resistance stat that reduces this condition's chance to apply or its duration.
-    /// </summary>
-    [JsonProperty("defense")]
-    public ALAttribute Defense { get; init; }
 
     /// <summary>
     ///     Whether or not you are blocked from taking actions.
@@ -49,7 +38,7 @@ public sealed record GCondition : AttributedRecordBase
     /// <summary>
     ///     For the condition "Reflection", the maximum amount of reflection you can have.
     /// </summary>
-    [JsonProperty("cap_reflection")]
+    [JsonPropertyName("cap_reflection")]
     public int CapReflection { get; init; }
 
     /// <summary>
@@ -58,16 +47,28 @@ public sealed record GCondition : AttributedRecordBase
     public bool Channel { get; init; }
 
     /// <summary>
-    ///     The duration of this condition in milliseconds.
+    ///     Whether or not this condition is a debuff (detrimental).
     /// </summary>
-    [JsonProperty("duration")]
-    public int DurationMs { get; init; }
+    [JsonPropertyName("debuff")]
+    public bool Debuff { get; init; }
+
+    /// <summary>
+    ///     If populated, the resistance stat that reduces this condition's chance to apply or its duration.
+    /// </summary>
+    [JsonPropertyName("defense")]
+    public ALAttribute Defense { get; init; }
 
     /// <summary>
     ///     If populated, the minimum duration of this condition in milliseconds. (Ms, not minutes.)
     /// </summary>
-    [JsonProperty("duration_min")]
+    [JsonPropertyName("duration_min")]
     public int DurationMinMs { get; init; }
+
+    /// <summary>
+    ///     The duration of this condition in milliseconds.
+    /// </summary>
+    [JsonPropertyName("duration")]
+    public int DurationMs { get; init; }
 
     /// <summary>
     ///     The amount this condition heals. (per interval)
@@ -82,7 +83,7 @@ public sealed record GCondition : AttributedRecordBase
     /// <summary>
     ///     The time between ticks of this condition in milliseconds.
     /// </summary>
-    [JsonProperty("interval")]
+    [JsonPropertyName("interval")]
     public int IntervalMS { get; init; }
 
     /// <summary>
@@ -98,7 +99,7 @@ public sealed record GCondition : AttributedRecordBase
     /// <summary>
     ///     <see cref="ALAttribute.Speed" /> will be set to this value.
     /// </summary>
-    [JsonProperty("set_speed")]
+    [JsonPropertyName("set_speed")]
     public int SetSpeed { get; init; }
 
     /// <summary>

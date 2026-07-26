@@ -1,10 +1,10 @@
 #region
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.SocketClient.Interfaces;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using StjConverters = AL.Core.Json.SystemTextJson;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -18,13 +18,13 @@ public sealed record Item : IInventoryItem
     /// <summary>
     ///     True when this item is account-locked and cannot be sent or traded across accounts.
     /// </summary>
-    [JsonProperty("acl")]
+    [JsonPropertyName("acl")]
     public bool AccountLocked { get; init; }
 
-    [JsonProperty("ach")]
+    [JsonPropertyName("ach")]
     public string? AchievementName { get; init; }
 
-    [JsonProperty("acc")]
+    [JsonPropertyName("acc")]
     public float AchievementProgress { get; init; }
 
     /// <summary>
@@ -37,49 +37,49 @@ public sealed record Item : IInventoryItem
     /// </summary>
     public string? Data { get; init; }
 
-    [JsonProperty, JsonConverter(typeof(IsoDateTimeConverter))]
+    [JsonConverter(typeof(StjConverters.LenientDateTimeConverter))]
     public DateTime? Expires { get; init; }
 
     public float Extra { get; init; }
 
     public float Gift { get; init; }
 
-    [JsonProperty("gf")]
+    [JsonPropertyName("gf")]
     public string? GiveawayFrom { get; init; }
 
     public float Grace { get; init; }
 
     public int Level { get; init; }
 
-    [JsonProperty("l")]
+    [JsonPropertyName("l")]
     public LockType LockType { get; init; }
 
     /// <summary>
     ///     If populated, the name of the merchant whose mluck produced this drop.
     /// </summary>
-    [JsonProperty("m")]
+    [JsonPropertyName("m")]
     public string? MerchantName { get; init; }
 
     public string Name { get; init; } = null!;
 
-    [JsonProperty("ps")]
+    [JsonPropertyName("ps")]
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
     /// <summary>
-    ///     Carries the item's title (e.g. "shiny", "legacy") via <see cref="Model.Prediction.Title" />, or,
-    ///     while this item is the placeholder for an in-progress upgrade or compound, the details of that
-    ///     operation. Null when the item has no title.
+    ///     Carries the item's title (e.g. "shiny", "legacy") via <see cref="Model.Prediction.Title" />, or, while this item is
+    ///     the placeholder for an in-progress upgrade or compound, the details of that operation. Null when the item has no
+    ///     title.
     /// </summary>
-    [JsonProperty("p")]
+    [JsonPropertyName("p")]
     public Prediction? Prediction { get; init; }
 
-    [JsonProperty("q")]
+    [JsonPropertyName("q")]
     public int Quantity { get; init; } = 1;
 
     /// <summary>
     ///     True when this item is rented / offered for rent.
     /// </summary>
-    [JsonProperty("r")]
+    [JsonPropertyName("r")]
     public bool Rented { get; init; }
 
     /// <summary>
@@ -87,9 +87,9 @@ public sealed record Item : IInventoryItem
     /// </summary>
     public string? Skin { get; init; }
 
-    [JsonProperty("stat_type")]
+    [JsonPropertyName("stat_type")]
     public ALAttribute StatType { get; init; }
 
-    [JsonProperty("v")]
+    [JsonPropertyName("v")]
     public string? Volatile { get; init; }
 }

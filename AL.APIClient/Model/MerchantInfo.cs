@@ -1,51 +1,52 @@
+#region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
-using Newtonsoft.Json;
+#endregion
 
-namespace AL.APIClient.Model
+namespace AL.APIClient.Model;
+
+/// <summary>
+///     Represents a merchant that has a stand open somewhere in the world.
+/// </summary>
+/// <seealso cref="ILocation" />
+public record MerchantInfo : ILocation
 {
     /// <summary>
-    ///     Represents a merchant that has a stand open somewhere in the world.
+    ///     The level of the merchant.
     /// </summary>
-    /// <seealso cref="ILocation" />
-    public record MerchantInfo : ILocation
-    {
-        /// <summary>
-        ///     The level of the merchant.
-        /// </summary>
-        public int Level { get; init; }
+    public int Level { get; init; }
 
-        public string Map { get; init; } = null!;
+    public string Map { get; init; } = null!;
 
-        /// <summary>
-        ///     The name of the merchant.
-        /// </summary>
-        public string Name { get; init; } = null!;
+    /// <summary>
+    ///     The name of the merchant.
+    /// </summary>
+    public string Name { get; init; } = null!;
 
-        /// <summary>
-        ///     This is the <see cref="AL.APIClient.Definitions.ServerRegion" /> and
-        ///     <see cref="AL.APIClient.Definitions.ServerId" />
-        /// </summary>
-        [JsonProperty("server")]
-        public string ServerKey { get; init; } = null!;
+    /// <summary>
+    ///     This is the <see cref="AL.APIClient.Definitions.ServerRegion" /> and
+    ///     <see cref="AL.APIClient.Definitions.ServerId" />
+    /// </summary>
+    [JsonPropertyName("server")]
+    public string ServerKey { get; init; } = null!;
 
-        /// <summary>
-        ///     The items this merchant has for sale, or is buying.
-        /// </summary>
-        public IReadOnlyDictionary<TradeSlot, TradeItem> Slots { get; init; } = new Dictionary<TradeSlot, TradeItem>();
+    /// <summary>
+    ///     The items this merchant has for sale, or is buying.
+    /// </summary>
+    public IReadOnlyDictionary<TradeSlot, TradeItem> Slots { get; init; } = new Dictionary<TradeSlot, TradeItem>();
 
-        /// <summary>
-        ///     The type of stand this merchant is using.
-        /// </summary>
-        public Stand Stand { get; init; }
+    /// <summary>
+    ///     The type of stand this merchant is using.
+    /// </summary>
+    public Stand Stand { get; init; }
 
-        public float X { get; init; }
-        public float Y { get; init; }
-        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+    public float X { get; init; }
+    public float Y { get; init; }
+    public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
 
-        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
+    public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
 
-        public override string ToString() => ILocation.ToString(this);
-    }
+    public override string ToString() => ILocation.ToString(this);
 }

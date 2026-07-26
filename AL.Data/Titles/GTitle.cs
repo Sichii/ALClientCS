@@ -1,7 +1,7 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Data.Achievements;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Titles;
@@ -22,13 +22,13 @@ public sealed record GTitle : AttributedRecordBase
     /// <summary>
     ///     If populated, the type of item this title can affect.
     /// </summary>
-    [JsonProperty("type")]
+    [JsonPropertyName("type")]
     public string? AffectsItemType { get; init; }
 
     /// <summary>
     ///     The name of this title.
     /// </summary>
-    [JsonProperty("title")]
+    [JsonPropertyName("title")]
     public string Name { get; init; } = null!;
 
     /// <summary>

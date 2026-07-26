@@ -1,7 +1,7 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
-using Newtonsoft.Json;
 #endregion
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
@@ -26,8 +26,14 @@ public sealed record GClass
     /// <summary>
     ///     The stat values this class starts out with at level 1.
     /// </summary>
-    [JsonProperty("stats")]
+    [JsonPropertyName("stats")]
     public Stats BaseStats { get; init; } = null!;
+
+    /// <summary>
+    ///     Base black-magic resistance. (resists curse, stone, etc.)
+    /// </summary>
+    [JsonPropertyName("bmresistance")]
+    public int BlackMagicResistance { get; init; }
 
     /// <summary>
     ///     If true, this class can be the target of any number of monsters without slowing down
@@ -45,7 +51,7 @@ public sealed record GClass
     /// <summary>
     ///     The type of damage this character deals.
     /// </summary>
-    [JsonProperty("damage_type")]
+    [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
     /// <summary>
@@ -53,6 +59,12 @@ public sealed record GClass
     /// </summary>
     public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Doublehand { get; init; }
         = new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
+
+    /// <summary>
+    ///     Base cold resistance.
+    /// </summary>
+    [JsonPropertyName("fzresistance")]
+    public int FreezeResistance { get; init; }
 
     /// <summary>
     ///     The default number of attacks this class can do per second. (AttackSpeed/100)
@@ -65,7 +77,7 @@ public sealed record GClass
     ///     <br />
     ///     TODO: figure out details of scared
     /// </summary>
-    [JsonProperty("mcourage")]
+    [JsonPropertyName("mcourage")]
     public int MagicCourage { get; init; }
 
     /// <summary>
@@ -77,62 +89,26 @@ public sealed record GClass
     /// <summary>
     ///     The main stat this class uses for damage calculations.
     /// </summary>
-    [JsonProperty("main_stat")]
+    [JsonPropertyName("main_stat")]
     public ALAttribute MainStat { get; init; }
 
     /// <summary>
     ///     Base max hp.
     /// </summary>
-    [JsonProperty("hp")]
+    [JsonPropertyName("hp")]
     public int MaxHp { get; init; }
 
     /// <summary>
     ///     Base max mp.
     /// </summary>
-    [JsonProperty("mp")]
+    [JsonPropertyName("mp")]
     public int MaxMp { get; init; }
 
     /// <summary>
     ///     The amount of mp this class's basic attack costs by default.
     /// </summary>
-    [JsonProperty("mp_cost")]
+    [JsonPropertyName("mp_cost")]
     public int MpCost { get; init; }
-
-    /// <summary>
-    ///     The base damage output of this class as a percentage. (attack is scaled by output/100)
-    /// </summary>
-    [JsonProperty("output")]
-    public int Output { get; init; }
-
-    /// <summary>
-    ///     Base impact resistance. (resists stuns and physical status effects)
-    /// </summary>
-    [JsonProperty("phresistance")]
-    public int PhysicalResistance { get; init; }
-
-    /// <summary>
-    ///     Base status resistance. (shortens debuff durations)
-    /// </summary>
-    [JsonProperty("stresistance")]
-    public int StunResistance { get; init; }
-
-    /// <summary>
-    ///     Base black-magic resistance. (resists curse, stone, etc.)
-    /// </summary>
-    [JsonProperty("bmresistance")]
-    public int BlackMagicResistance { get; init; }
-
-    /// <summary>
-    ///     Base cold resistance.
-    /// </summary>
-    [JsonProperty("fzresistance")]
-    public int FreezeResistance { get; init; }
-
-    /// <summary>
-    ///     Base poison resistance.
-    /// </summary>
-    [JsonProperty("pnresistance")]
-    public int PoisonResistance { get; init; }
 
     /// <summary>
     ///     The offhand weapons this class can use, and the stat modifications that apply when wielding them.
@@ -141,13 +117,31 @@ public sealed record GClass
         = new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
 
     /// <summary>
+    ///     The base damage output of this class as a percentage. (attack is scaled by output/100)
+    /// </summary>
+    [JsonPropertyName("output")]
+    public int Output { get; init; }
+
+    /// <summary>
     ///     The default number of enemies that deal <see cref="AL.Core.Definitions.DamageType.Physical" /> damage that you can
     ///     engage before getting scared.
     ///     <br />
     ///     TODO: figure out details of scared
     /// </summary>
-    [JsonProperty("pcourage")]
+    [JsonPropertyName("pcourage")]
     public int PhysicalCourage { get; init; }
+
+    /// <summary>
+    ///     Base impact resistance. (resists stuns and physical status effects)
+    /// </summary>
+    [JsonPropertyName("phresistance")]
+    public int PhysicalResistance { get; init; }
+
+    /// <summary>
+    ///     Base poison resistance.
+    /// </summary>
+    [JsonPropertyName("pnresistance")]
+    public int PoisonResistance { get; init; }
 
     /// <summary>
     ///     The name of the projectile this class's base attack uses by default.
@@ -172,8 +166,14 @@ public sealed record GClass
     /// <summary>
     ///     The amount of each stat this class receives when leveling up.
     /// </summary>
-    [JsonProperty("lstats")]
+    [JsonPropertyName("lstats")]
     public Stats StatGrowth { get; init; } = null!;
+
+    /// <summary>
+    ///     Base status resistance. (shortens debuff durations)
+    /// </summary>
+    [JsonPropertyName("stresistance")]
+    public int StunResistance { get; init; }
 
     /// <summary>
     ///     Checks if this class can wield the given 2handed weapon.

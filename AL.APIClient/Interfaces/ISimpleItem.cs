@@ -1,18 +1,17 @@
-namespace AL.APIClient.Interfaces
+namespace AL.APIClient.Interfaces;
+
+/// <summary>
+///     Represents the simplest information possible about an item.
+/// </summary>
+public interface ISimpleItem
 {
     /// <summary>
-    ///     Represents the simplest information possible about an item.
+    ///     The name of the item.
     /// </summary>
-    public interface ISimpleItem
-    {
-        /// <summary>
-        ///     The name of the item.
-        /// </summary>
-        string Name { get; }
+    string Name { get; }
 
-        /// <summary>
-        ///     The quantity of the item.
-        /// </summary>
-        int Quantity { get; }
-    }
+    /// <summary>
+    ///     The quantity of the item.
+    /// </summary>
+    int Quantity { get; }
 }

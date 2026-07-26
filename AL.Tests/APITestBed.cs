@@ -4,25 +4,25 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using AL.APIClient;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endregion
 
 namespace AL.Tests;
 
-[TestClass]
 public abstract class APITestBed
 {
     protected static readonly SemaphoreSlim Sync = new(1, 1);
-    protected static ALAPIClient APIClient { get; private set; } = null!;
+    protected static AlApiClient APIClient { get; private set; } = null!;
 
-    [TestInitialize]
-    public virtual async Task Init()
+    //each level of the test-bed chain declares its own hook rather than overriding: TUnit collects them
+    //base-first through the hierarchy, and an override carrying the same attribute is error TUnit0074
+    [Before(Test)]
+    public async Task LogInToApiAsync()
     {
         await Sync.WaitAsync();
 
         try
         {
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse, ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (APIClient == null)
             {
                 var lines = await File.ReadAllLinesAsync("TestCredentials.txt");
@@ -33,7 +33,7 @@ public abstract class APITestBed
                 var email = lines[0];
                 var pw = lines[1];
 
-                APIClient = await ALAPIClient.LoginAsync(email, pw);
+                APIClient = await AlApiClient.LoginAsync(email, pw);
             }
         } finally
         {

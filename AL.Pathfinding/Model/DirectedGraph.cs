@@ -165,7 +165,9 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
             {
                 var navMesh = NavMeshes[current.Start.Vertex.Map];
 
-                yield return navMesh.ConstructEdge(current.Start, bestNext.End);
+                //keep the collapsed edge's own type - re-deriving it relabels a walk that lands on the
+                //map's spawn as a town teleport
+                yield return navMesh.ConstructEdge(current.Start, bestNext.End, bestNext.Type);
             }
         }
     }

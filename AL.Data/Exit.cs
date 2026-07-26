@@ -1,63 +1,67 @@
+#region
 using System;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
+#endregion
 
-namespace AL.Data
+namespace AL.Data;
+
+/// <summary>
+///     Represents a point on a map that will teleport you to another map or point.
+/// </summary>
+/// <seealso cref="ICircle" />
+/// <seealso cref="ILocation" />
+public record Exit : ICircle, ILocation
 {
+    public bool Locked;
+    public string Map { get; init; } = null!;
+    public float Radius { get; init; }
+
     /// <summary>
-    ///     Represents a point on a map that will teleport you to another map or point.
+    ///     The location this exit leads to.
     /// </summary>
-    /// <seealso cref="ICircle" />
-    /// <seealso cref="ILocation" />
-    public record Exit : ICircle, ILocation
+    public ILocation ToLocation { get; init; } = null!;
+
+    public int ToSpawnIndex { get; init; }
+
+    /// <summary>
+    ///     The type of exit. (door, npc)
+    /// </summary>
+    public ExitType Type { get; init; }
+
+    public float X { get; init; }
+    public float Y { get; init; }
+
+    public ILocation Center => this;
+
+    internal Exit(
+        string map,
+        IPoint point,
+        ILocation toLocation,
+        int toSpawnIndex,
+        ExitType type)
     {
-        public bool Locked;
-        public string Map { get; init; } = null!;
-        public float Radius { get; init; }
-        /// <summary>
-        ///     The location this exit leads to.
-        /// </summary>
-        public ILocation ToLocation { get; init; } = null!;
+        Map = map;
+        X = point.X;
+        Y = point.Y;
+        ToLocation = toLocation;
+        ToSpawnIndex = toSpawnIndex;
+        Type = type;
 
-        public int ToSpawnIndex { get; init; }
-        /// <summary>
-        ///     The type of exit. (door, npc)
-        /// </summary>
-        public ExitType Type { get; init; }
-        public float X { get; init; }
-        public float Y { get; init; }
-
-        public ILocation Center => this;
-
-        internal Exit(
-            string map,
-            IPoint point,
-            ILocation toLocation,
-            int toSpawnIndex,
-            ExitType type)
+        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+        Radius = type switch
         {
-            Map = map;
-            X = point.X;
-            Y = point.Y;
-            ToLocation = toLocation;
-            ToSpawnIndex = toSpawnIndex;
-            Type = type;
-
-            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-            Radius = type switch
-            {
-                ExitType.Door        => CONSTANTS.DOOR_RANGE,
-                ExitType.Transporter => CONSTANTS.TRANSPORTER_RANGE,
-                _                    => throw new ArgumentOutOfRangeException(nameof(type))
-            };
-        }
-
-        public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
-
-        public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
-
-        public virtual bool Equals(ICircle? other) => ICircle.Comparer.Equals(this, other);
-
-        public override string ToString() => $"{ILocation.ToString(this)} => {ILocation.ToString(ToLocation)}";
+            ExitType.Door        => CONSTANTS.DOOR_RANGE,
+            ExitType.Transporter => CONSTANTS.TRANSPORTER_RANGE,
+            _                    => throw new ArgumentOutOfRangeException(nameof(type))
+        };
     }
+
+    public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
+
+    public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
+
+    public virtual bool Equals(ICircle? other) => ICircle.Comparer.Equals(this, other);
+
+    public override string ToString() => $"{ILocation.ToString(this)} => {ILocation.ToString(ToLocation)}";
 }

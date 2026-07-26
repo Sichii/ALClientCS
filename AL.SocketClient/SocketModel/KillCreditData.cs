@@ -1,16 +1,18 @@
-using Newtonsoft.Json;
+#region
+using System.Text.Json.Serialization;
+#endregion
 
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents authoritative kill credit for a monster (node/server.js:2545). More reliable than inferring
-///     a kill from the 'death' event.
+///     Represents authoritative kill credit for a monster (node/server.js:2545). More reliable than inferring a kill from
+///     the 'death' event.
 /// </summary>
 public sealed record KillCreditData
 {
     /// <summary>
     ///     The monster type id that was credited (e.g. "goo", "crab", "bee").
     /// </summary>
-    [JsonProperty("mtype")]
+    [JsonPropertyName("mtype")]
     public string MonsterType { get; init; } = null!;
 }

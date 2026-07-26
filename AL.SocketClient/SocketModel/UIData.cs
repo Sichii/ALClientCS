@@ -1,8 +1,8 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.SocketClient.Model;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -20,6 +20,6 @@ public sealed class UIData
     public string? Name { get; init; }
     public string? To { get; init; }
 
-    [JsonProperty("type")]
+    [JsonPropertyName("type")]
     public UIDataType UIDataType { get; init; }
 }

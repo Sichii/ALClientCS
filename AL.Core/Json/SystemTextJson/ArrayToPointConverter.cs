@@ -11,8 +11,15 @@ using AL.Core.Interfaces;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Converts a 2-element numeric array <c>[x, y]</c> to a <see cref="Point" />. The System.Text.Json
-///     replacement for the Newtonsoft <c>ArrayToPointConverter</c>.
+///     Converts a 2-element numeric array
+///     <c>
+///         [x, y]
+///     </c>
+///     to a <see cref="Point" />. The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         ArrayToPointConverter
+///     </c>
+///     .
 /// </summary>
 public sealed class ArrayToPointConverter : JsonConverter<Point>
 {
@@ -30,11 +37,28 @@ public sealed class ArrayToPointConverter : JsonConverter<Point>
 }
 
 /// <summary>
-///     Converts an array of <c>[x, y]</c> pairs to a <see cref="Polygon" />. Newtonsoft applied
-///     <see cref="ArrayToPointConverter" /> per element via <c>ItemConverterType</c>; System.Text.Json cannot, because
-///     a <see cref="Polygon" /> is an <c>IEnumerable&lt;IPoint&gt;</c> with no add-path and its element type is the
-///     interface <c>IPoint</c> (which the point converter, a <c>JsonConverter&lt;Point&gt;</c>, does not match). So the
-///     whole polygon is claimed here: each element resolves through the registered <see cref="ArrayToPointConverter" />.
+///     Converts an array of
+///     <c>
+///         [x, y]
+///     </c>
+///     pairs to a <see cref="Polygon" />. Newtonsoft applied <see cref="ArrayToPointConverter" /> per element via
+///     <c>
+///         ItemConverterType
+///     </c>
+///     ; System.Text.Json cannot, because a <see cref="Polygon" /> is an
+///     <c>
+///         IEnumerable&lt;IPoint&gt;
+///     </c>
+///     with no add-path and its element type is the interface
+///     <c>
+///         IPoint
+///     </c>
+///     (which the point converter, a
+///     <c>
+///         JsonConverter&lt;Point&gt;
+///     </c>
+///     , does not match). So the whole polygon is claimed here: each element resolves through the registered
+///     <see cref="ArrayToPointConverter" />.
 /// </summary>
 public sealed class PolygonConverter : JsonConverter<Polygon>
 {

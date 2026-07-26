@@ -124,23 +124,3 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Skin
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Slots	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Stand	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Teleporting	tp
-non-public-setter	static	AL.Data	AL.Data.GameData	Achievements	
-non-public-setter	static	AL.Data	AL.Data.GameData	Classes	
-non-public-setter	static	AL.Data	AL.Data.GameData	Conditions	
-non-public-setter	static	AL.Data	AL.Data.GameData	Craft	
-non-public-setter	static	AL.Data	AL.Data.GameData	Dimensions	
-non-public-setter	static	AL.Data	AL.Data.GameData	Dismantle	
-non-public-setter	static	AL.Data	AL.Data.GameData	Events	
-non-public-setter	static	AL.Data	AL.Data.GameData	Games	
-non-public-setter	static	AL.Data	AL.Data.GameData	Geometry	
-non-public-setter	static	AL.Data	AL.Data.GameData	Items	
-non-public-setter	static	AL.Data	AL.Data.GameData	Levels	
-non-public-setter	static	AL.Data	AL.Data.GameData	Maps	
-non-public-setter	static	AL.Data	AL.Data.GameData	Monsters	
-non-public-setter	static	AL.Data	AL.Data.GameData	Multipliers	
-non-public-setter	static	AL.Data	AL.Data.GameData	NPCs	
-non-public-setter	static	AL.Data	AL.Data.GameData	Projectiles	
-non-public-setter	static	AL.Data	AL.Data.GameData	Skills	
-non-public-setter	static	AL.Data	AL.Data.GameData	Titles	
-non-public-setter	static	AL.Data	AL.Data.GameData	Tokens	
-non-public-setter	static	AL.Data	AL.Data.GameData	Version	

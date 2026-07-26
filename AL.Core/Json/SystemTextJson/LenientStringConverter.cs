@@ -10,10 +10,26 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Coerces a JSON number or boolean to a <see cref="string" /> member, matching Newtonsoft's reader, whose
-///     <c>Convert.ToString</c> leniency yields the number's text or <c>"True"</c>/<c>"False"</c> on both the
-///     populate and direct paths. The server sends some string-typed fields as a bare number (an account
-///     <c>owner</c> id) or a bare boolean (a client-event <c>cevent</c> tag). Registered in the shared options so
-///     it applies on the direct socket path too.
+///     <c>
+///         Convert.ToString
+///     </c>
+///     leniency yields the number's text or
+///     <c>
+///         "True"
+///     </c>
+///     /
+///     <c>
+///         "False"
+///     </c>
+///     on both the populate and direct paths. The server sends some string-typed fields as a bare number (an account
+///     <c>
+///         owner
+///     </c>
+///     id) or a bare boolean (a client-event
+///     <c>
+///         cevent
+///     </c>
+///     tag). Registered in the shared options so it applies on the direct socket path too.
 /// </summary>
 public sealed class LenientStringConverter : JsonConverter<string>
 {

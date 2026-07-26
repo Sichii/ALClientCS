@@ -1,9 +1,7 @@
 #region
 using System.Collections.Generic;
 using AL.Core.Definitions;
-using AL.Core.Json.Converters;
 using AL.Data.NPCs;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data;
@@ -21,7 +19,6 @@ public sealed record Recipe
     /// <summary>
     ///     The name, quantity, and level of the items associated with the recipe.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<float, string, int>))]
     public IReadOnlyList<(float Quantity, string ItemName, int Level)> Items { get; init; }
         = new List<(float Quantity, string ItemName, int Level)>();
 

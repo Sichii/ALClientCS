@@ -1,34 +1,36 @@
+#region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.APIClient.Model;
-using Newtonsoft.Json;
+#endregion
 
-namespace AL.APIClient.Response
+namespace AL.APIClient.Response;
+
+/// <summary>
+///     Represents the data received when requesting mail from the server.
+/// </summary>
+public record MailResponse
 {
     /// <summary>
-    ///     Represents the data received when requesting mail from the server.
+    ///     The id of the cursor iterating the mail, if you have <see cref="More" /> mail.
     /// </summary>
-    public record MailResponse
-    {
-        /// <summary>
-        ///     The id of the cursor iterating the mail, if you have <see cref="More" /> mail.
-        /// </summary>
-        public string? Cursor { get; init; }
+    public string? Cursor { get; init; }
 
-        /// <summary>
-        ///     Whether or not there is a <see cref="Cursor" />.
-        /// </summary>
-        public bool Cursored { get; init; }
+    /// <summary>
+    ///     Whether or not there is a <see cref="Cursor" />.
+    /// </summary>
+    public bool Cursored { get; init; }
 
-        /// <summary>
-        ///     Whether or not there is more mail.
-        /// </summary>
-        public bool More { get; init; }
+    /// <summary>
+    ///     A list of mails in your inbox.
+    /// </summary>
 
-        /// <summary>
-        ///     A list of mails in your inbox.
-        /// </summary>
-        // ReSharper disable once ReturnTypeCanBeEnumerable.Global
-        [JsonProperty("mail")]
-        public IReadOnlyList<Mail> Mail { get; init; } = new List<Mail>();
-    }
+    // ReSharper disable once ReturnTypeCanBeEnumerable.Global
+    [JsonPropertyName("mail")]
+    public IReadOnlyList<Mail> Mail { get; init; } = new List<Mail>();
+
+    /// <summary>
+    ///     Whether or not there is more mail.
+    /// </summary>
+    public bool More { get; init; }
 }

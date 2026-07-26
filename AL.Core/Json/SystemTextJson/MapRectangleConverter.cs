@@ -10,9 +10,19 @@ using AL.Core.Geometry;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Parses a <see cref="MapRectangle" /> from a positional array that is either <c>[x1, y1, x2, y2]</c> or
-///     <c>[mapName, x1, y1, x2, y2]</c>. The System.Text.Json replacement for the Newtonsoft
-///     <c>MapRectangleConverter</c>.
+///     Parses a <see cref="MapRectangle" /> from a positional array that is either
+///     <c>
+///         [x1, y1, x2, y2]
+///     </c>
+///     or
+///     <c>
+///         [mapName, x1, y1, x2, y2]
+///     </c>
+///     . The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         MapRectangleConverter
+///     </c>
+///     .
 /// </summary>
 public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
 {
@@ -20,12 +30,16 @@ public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
     //zeroed, unnamed rectangle rather than a null reference
     public override bool HandleNull => true;
 
+    private static float Coord(JsonArray arr, int index, JsonSerializerOptions options)
+        => (index < arr.Count) && arr[index] is { } node ? node.Deserialize<float>(options) : 0f;
+
     public override MapRectangle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var arr = JsonNode.Parse(ref reader)?.AsArray();
+        var arr = JsonNode.Parse(ref reader)
+                          ?.AsArray();
 
         if (arr is null)
-            return new MapRectangle(new Point(0, 0), new Point(0, 0), null);
+            return new MapRectangle(new Point(0, 0), new Point(0, 0));
 
         // coords 2-4 flow through Deserialize<float> (JSON-numeric + string coercion), matching JToken.ToObject<float>
         var num1 = Coord(arr, 1, options);
@@ -42,13 +56,15 @@ public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
 
         var str = first?.GetValue<string>();
 
-        return float.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out var val)
+        return float.TryParse(
+            str,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out var val)
             ? new MapRectangle(new Point(val, num1), new Point(num2, num3))
             : new MapRectangle(new Point(num1, num2), new Point(num3, num4), str);
     }
 
-    private static float Coord(JsonArray arr, int index, JsonSerializerOptions options)
-        => index < arr.Count && arr[index] is { } node ? node.Deserialize<float>(options) : 0f;
-
-    public override void Write(Utf8JsonWriter writer, MapRectangle value, JsonSerializerOptions options) => throw new NotSupportedException();
+    public override void Write(Utf8JsonWriter writer, MapRectangle value, JsonSerializerOptions options)
+        => throw new NotSupportedException();
 }

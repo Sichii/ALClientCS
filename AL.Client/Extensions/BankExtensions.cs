@@ -34,16 +34,14 @@ public static class BankExtensions
     {
         ArgumentNullException.ThrowIfNull(bank);
 
-        return bank.SelectMany(
-                       kvp => kvp.Value.Select(
-                           (item, index) => item == null
-                               ? null
-                               : new BankIndexer
-                               {
-                                   BankPack = kvp.Key,
-                                   Index = index,
-                                   Item = item
-                               }))
+        return bank.SelectMany(kvp => kvp.Value.Select((item, index) => item == null
+                       ? null
+                       : new BankIndexer
+                       {
+                           BankPack = kvp.Key,
+                           Index = index,
+                           Item = item
+                       }))
                    .Where(bankedItem => bankedItem != null)!;
     }
 
@@ -229,13 +227,13 @@ public static class BankExtensions
 
         foreach ((var bankPack, var items) in bank)
         {
-            var index = items.FindIndex(
-                item => (item != null)
-                        && (item.Level >= levelMin)
-                        && (item.Level <= levelMax)
-                        && (item.Quantity >= quantityMin)
-                        && (item.Quantity <= quantityMax)
-                        && ((itemName == null) || item.Name.EqualsI(itemName)));
+            var index = items.FindIndex(item
+                => (item != null)
+                   && (item.Level >= levelMin)
+                   && (item.Level <= levelMax)
+                   && (item.Quantity >= quantityMin)
+                   && (item.Quantity <= quantityMax)
+                   && ((itemName == null) || item.Name.EqualsI(itemName)));
 
             if (index == -1)
                 continue;

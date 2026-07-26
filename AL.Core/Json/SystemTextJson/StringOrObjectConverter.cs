@@ -4,20 +4,24 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;
-using NJson = Newtonsoft.Json;
-using NsConverters = AL.Core.Json.Converters;
 #endregion
 
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Handles a field the server sends as either a bare string or a full object. On a string, constructs T and
-///     assigns the string to the property named at construction; on an object, populates T normally and marks
+///     Handles a field the server sends as either a bare string or a full object. On a string, constructs T and assigns
+///     the string to the property named at construction; on an object, populates T normally and marks
 ///     <see cref="IOptionalObject.ContainsData" />. The System.Text.Json replacement for the Newtonsoft
-///     <c>StringOrObjectConverter</c>. Register in the shared options (its property name cannot be passed through
-///     a System.Text.Json <c>[JsonConverter]</c> attribute), so the object branch drops this converter to avoid
-///     re-entering itself.
+///     <c>
+///         StringOrObjectConverter
+///     </c>
+///     . Register in the shared options (its property name cannot be passed through a System.Text.Json
+///     <c>
+///         [JsonConverter]
+///     </c>
+///     attribute), so the object branch drops this converter to avoid re-entering itself.
 /// </summary>
 public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: class, IOptionalObject, new()
 {
@@ -57,43 +61,37 @@ public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: clas
 }
 
 /// <summary>
-///     Registers <see cref="StringOrObjectConverter{T}" /> for the types the models mark with the Newtonsoft
-///     <c>[JsonConverter(typeof(StringOrObjectConverter&lt;T&gt;), nameof(SomeProperty))]</c> attribute, reading the
-///     string-property name from the attribute's second argument. The factory lives in AL.Core yet still covers the
-///     socket/API types (it inspects the attribute by reflection and closes the generic at runtime), so no cross-project
-///     reference is needed. Transitional: reads Newtonsoft attributes so the models need no per-type wiring before Phase 6.
+///     Registers <see cref="StringOrObjectConverter{T}" /> for the types the models mark with
+///     <see cref="JsonStringOrObjectAttribute" />, taking the string-property name from it. The parameter is why the
+///     marker exists: System.Text.Json's
+///     <c>
+///         [JsonConverter]
+///     </c>
+///     attribute requires a public parameterless constructor and so cannot carry it. The factory lives in AL.Core yet
+///     still covers the socket/API types (it reads the marker by reflection and closes the generic at runtime), so no
+///     cross-project reference is needed.
 /// </summary>
-public sealed class NewtonsoftStringOrObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
+public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
 {
     private readonly Type? Excluded;
 
-    public NewtonsoftStringOrObjectConverterFactory() { }
+    public StringOrObjectConverterFactory() { }
 
-    private NewtonsoftStringOrObjectConverterFactory(Type excluded) => Excluded = excluded;
-
-    public override bool CanConvert(Type typeToConvert) => (typeToConvert != Excluded) && (StringOrObjectAttribute(typeToConvert) is not null);
-
-    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-    {
-        var attribute = StringOrObjectAttribute(typeToConvert)!;
-        var propertyName = (string)attribute.ConverterParameters![0];
-
-        return (JsonConverter)Activator.CreateInstance(typeof(StringOrObjectConverter<>).MakeGenericType(typeToConvert), new object[] { propertyName })!;
-    }
+    private StringOrObjectConverterFactory(Type excluded) => Excluded = excluded;
 
     // the object branch's inner fill runs under a copy of the options where this factory declines T, so T resolves
     // the default object converter instead of re-entering this converter and recursing until the stack overflows.
-    public JsonConverterFactory Excluding(Type type) => new NewtonsoftStringOrObjectConverterFactory(type);
+    public JsonConverterFactory Excluding(Type type) => new StringOrObjectConverterFactory(type);
 
-    private static NJson.JsonConverterAttribute? StringOrObjectAttribute(Type type)
+    public override bool CanConvert(Type typeToConvert)
+        => (typeToConvert != Excluded) && typeToConvert.GetCustomAttribute<JsonStringOrObjectAttribute>() is not null;
+
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
-        var attribute = type.GetCustomAttribute<NJson.JsonConverterAttribute>();
-        var converterType = attribute?.ConverterType;
+        var attribute = typeToConvert.GetCustomAttribute<JsonStringOrObjectAttribute>()!;
 
-        return (converterType is not null)
-               && converterType.IsGenericType
-               && (converterType.GetGenericTypeDefinition() == typeof(NsConverters.StringOrObjectConverter<>))
-            ? attribute
-            : null;
+        return (JsonConverter)Activator.CreateInstance(
+            typeof(StringOrObjectConverter<>).MakeGenericType(typeToConvert),
+            attribute.PropertyName)!;
     }
 }

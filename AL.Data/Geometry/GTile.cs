@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Core.Json.Attributes;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Geometry;
@@ -20,31 +19,31 @@ public record GTile : IRectangle
     /// <summary>
     ///     Tiles are square. The size is the height and width of the tile.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(3)]
+    [JsonArrayIndex(3)]
     public float Size { get; init; }
 
     /// <summary>
     ///     The name of the tileset this tile belongs to.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(0)]
+    [JsonArrayIndex(0)]
     public string TileSet { get; init; } = null!;
 
     /// <summary>
     ///     TODO: Unknown
     /// </summary>
-    [JsonProperty, JsonArrayIndex(4)]
+    [JsonArrayIndex(4)]
     public float? Unknown { get; init; }
 
     /// <summary>
     ///     The X coordinate of the top left of the tile.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(1)]
+    [JsonArrayIndex(1)]
     public float X { get; init; }
 
     /// <summary>
     ///     The Y coordinate of the top left of the tile.
     /// </summary>
-    [JsonProperty, JsonArrayIndex(2)]
+    [JsonArrayIndex(2)]
     public float Y { get; init; }
 
     public float Bottom => Y + Size;

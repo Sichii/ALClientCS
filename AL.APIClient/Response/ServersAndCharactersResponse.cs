@@ -1,26 +1,27 @@
+#region
 using System.Collections.Generic;
 using AL.APIClient.Model;
+#endregion
 
-namespace AL.APIClient.Response
+namespace AL.APIClient.Response;
+
+/// <summary>
+///     Represents the data received when requesting character and server info from the gameserver.
+/// </summary>
+public record ServersAndCharactersResponse
 {
     /// <summary>
-    ///     Represents the data received when requesting character and server info from the gameserver.
+    ///     A list of characters this user owns.
     /// </summary>
-    public record ServersAndCharactersResponse
-    {
-        /// <summary>
-        ///     A list of characters this user owns.
-        /// </summary>
-        public IReadOnlyList<CharacterInfo> Characters { get; init; } = new List<CharacterInfo>();
+    public IReadOnlyList<CharacterInfo> Characters { get; init; } = new List<CharacterInfo>();
 
-        /// <summary>
-        ///     The amount of mail in this user's inbox.
-        /// </summary>
-        public int Mail { get; init; }
+    /// <summary>
+    ///     The amount of mail in this user's inbox.
+    /// </summary>
+    public int Mail { get; init; }
 
-        /// <summary>
-        ///     A list of servers available to log onto.
-        /// </summary>
-        public IReadOnlyList<Server> Servers { get; init; } = new List<Server>();
-    }
+    /// <summary>
+    ///     A list of servers available to log onto.
+    /// </summary>
+    public IReadOnlyList<Server> Servers { get; init; } = new List<Server>();
 }

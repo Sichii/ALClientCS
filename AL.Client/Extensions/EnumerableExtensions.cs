@@ -39,18 +39,17 @@ public static class EnumerableExtensions
 
         return enumerable.GroupBy(indexed => $"{indexed.Item.Name}@{indexed.Item.Level}")
                          .Where(group => group.Count() >= 3)
-                         .Select(
-                             group =>
-                             {
-                                 var arr = group.ToArray();
-                                 var indexed = arr[0];
+                         .Select(group =>
+                         {
+                             var arr = group.ToArray();
+                             var indexed = arr[0];
 
-                                 return new CompoundableGrouping<T>
-                                 {
-                                     Name = indexed.Item.Name,
-                                     Level = indexed.Item.Level,
-                                     Items = arr
-                                 };
-                             });
+                             return new CompoundableGrouping<T>
+                             {
+                                 Name = indexed.Item.Name,
+                                 Level = indexed.Item.Level,
+                                 Items = arr
+                             };
+                         });
     }
 }

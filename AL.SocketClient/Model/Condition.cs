@@ -1,11 +1,10 @@
 #region
 using System;
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Interfaces;
-using AL.Core.Json.Converters;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -14,13 +13,12 @@ namespace AL.SocketClient.Model;
 ///     Represents a buff or debuff.
 /// </summary>
 /// <seealso cref="AttributedObjectBase" />
-[JsonConverter(typeof(AttributedObjectConverter<Condition>))]
 public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaUpdatable
 {
     /// <summary>
     ///     How long before this condition expires in milliseconds.
     /// </summary>
-    [JsonProperty("ms")]
+    [JsonPropertyName("ms")]
     public float DurationMs { get; set; }
 
     /// <summary>
@@ -37,13 +35,12 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     </b>
     ///     the ID of a coop boss this player is fighting.
     /// </summary>
-    [JsonProperty("id")]
+    [JsonPropertyName("id")]
     public string? Id { get; init; }
 
     /// <summary>
     ///     The intensity of the <see cref="AL.Core.Definitions.Condition.Burned" /> condition.
     /// </summary>
-    [JsonProperty]
     public float Intensity { get; init; }
 
     public bool IsCompensated { get; private set; }
@@ -51,7 +48,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// <summary>
     ///     Whether or not this condition is from a monster ability.
     /// </summary>
-    [JsonProperty("ability")]
+    [JsonPropertyName("ability")]
     public bool IsMonsterAbility { get; init; }
 
     /// <summary>
@@ -60,7 +57,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     <br />
     ///     It seems aimed to avoid just killing level 1's and getting the same quest afterwards
     /// </summary>
-    [JsonProperty("dl")]
+    [JsonPropertyName("dl")]
     public bool MonstersDeLevel { get; init; }
 
     /// <summary>
@@ -68,26 +65,26 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     <br />
     ///     See <see cref="Id" /> for the ID of the boss.
     /// </summary>
-    [JsonProperty("p")]
+    [JsonPropertyName("p")]
     public float? Proportion { get; init; }
 
     /// <summary>
     ///     The remaining number of monsters you need to kill to complete the
     ///     <see cref="AL.Core.Definitions.Condition.MonsterHunt" />.
     /// </summary>
-    [JsonProperty("c")]
+    [JsonPropertyName("c")]
     public float RemainingMonsters { get; init; }
 
     /// <summary>
     ///     If populated, the id of the server for this <see cref="AL.Core.Definitions.Condition.MonsterHunt" />.
     /// </summary>
-    [JsonProperty("sn")]
+    [JsonPropertyName("sn")]
     public string? ServerKey { get; init; }
 
     /// <summary>
     ///     If populated, the Id of the merchant who cast this <see cref="AL.Core.Definitions.Condition.MLuck" />.
     /// </summary>
-    [JsonProperty("f")]
+    [JsonPropertyName("f")]
     public string? SourceId { get; init; }
 
     /// <summary>
@@ -95,7 +92,6 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     <br />
     ///     If false, this <see cref="AL.Core.Definitions.Condition.MLuck" /> can be overwritten by any other merchant.
     /// </summary>
-    [JsonProperty]
     public bool Strong { get; init; }
 
     string IMutable.Id => string.Empty;

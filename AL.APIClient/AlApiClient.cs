@@ -22,14 +22,14 @@ namespace AL.APIClient;
 /// <summary>
 ///     Provides easy access to the Adventure.Land API. (not the socket server)
 /// </summary>
-public sealed class ALAPIClient : IALAPIClient
+public sealed class AlApiClient : IAlApiClient
 {
     /// <summary>
     ///     The public game host. Must be https - the auth cookie is set with the "secure" flag.
     /// </summary>
     public const string DEFAULT_BASE_URL = "https://adventure.land";
 
-    private static readonly ILog Logger = LogManager.GetLogger<ALAPIClient>();
+    private static readonly ILog Logger = LogManager.GetLogger<AlApiClient>();
 
     private readonly string BaseUrl;
 
@@ -49,7 +49,7 @@ public sealed class ALAPIClient : IALAPIClient
                    .TotalMinutes
            > 1;
 
-    private ALAPIClient(AuthUser auth, IRestClient client, string baseUrl)
+    private AlApiClient(AuthUser auth, IRestClient client, string baseUrl)
     {
         LastUpdate = DateTime.MinValue;
         Auth = auth;
@@ -84,6 +84,7 @@ public sealed class ALAPIClient : IALAPIClient
                 CookieDomain);
 
             var response = await Client.ExecutePostAsync(request);
+
             result = ReadNotifications(response)
                 .Deserialize<MailResponse[]>(ApiJson.Options)![0];
 
@@ -179,29 +180,6 @@ public sealed class ALAPIClient : IALAPIClient
         Auth = apiClient.Auth;
     }
 
-    /// <summary>
-    ///     Unwraps an api response into the notification array the payload actually lives in.
-    /// </summary>
-    /// <remarks>
-    ///     Every response is an object of the form <c>{ success|failed, reason?, infs:[...] }</c>. Handlers push
-    ///     their real payload into <c>infs</c> and return only a status on the envelope.
-    /// </remarks>
-    private static JsonArray ReadNotifications(RestResponse response)
-    {
-        if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
-            throw new InvalidOperationException($"API call failed. ({response.StatusCode}) {response.ErrorMessage}");
-
-        var body = JsonNode.Parse(response.Content);
-
-        if (body is not JsonObject envelope)
-            return body as JsonArray ?? new JsonArray();
-
-        if (envelope["failed"]?.GetValue<bool>() ?? false)
-            throw new InvalidOperationException($@"API call failed. {envelope["reason"]?.GetValue<string>() ?? "Unknown"}");
-
-        return envelope["infs"] as JsonArray ?? new JsonArray();
-    }
-
     private static IRestClient CreateRestClient(string baseUrl) => new RestClient(baseUrl);
 
     /// <summary>
@@ -248,7 +226,7 @@ public sealed class ALAPIClient : IALAPIClient
     ///     The host to log into. Defaults to the public game host.
     /// </param>
     /// <returns>
-    ///     <see cref="ALAPIClient" />
+    ///     <see cref="AlApiClient" />
     ///     <br />
     ///     An ALAPIClient that can be used to fetch user-specific information.
     /// </returns>
@@ -264,7 +242,7 @@ public sealed class ALAPIClient : IALAPIClient
     /// <exception cref="InvalidOperationException">
     ///     Failed to log in. {reason}
     /// </exception>
-    public static async Task<ALAPIClient> LoginAsync(string email, string password, string baseUrl = DEFAULT_BASE_URL)
+    public static async Task<AlApiClient> LoginAsync(string email, string password, string baseUrl = DEFAULT_BASE_URL)
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentNullException(nameof(email));
@@ -301,8 +279,8 @@ public sealed class ALAPIClient : IALAPIClient
         //the response can carry several Set-Cookie headers; only one of them is the auth pair
         var authCookie = response.Headers
                                  ?.Where(header => header.Name.EqualsI("set-cookie"))
-                                 .Select(header => header.Value?.ToString())
-                                 .FirstOrDefault(value => value?.StartsWithI("auth=") ?? false);
+                                 .Select(header => header.Value.ToString())
+                                 .FirstOrDefault(value => value.StartsWithI("auth="));
 
         var data = JsonSerializer.Deserialize<LoginResponse>(response.Content!, ApiJson.Options);
 
@@ -313,8 +291,40 @@ public sealed class ALAPIClient : IALAPIClient
 
         //the cookie is the only real proof of a successful login; the message text is cosmetic
         if (data.Failed || string.IsNullOrEmpty(authCookie))
-            throw new InvalidOperationException($@"Failed to log in. {data.Reason ?? data.Message ?? "Unknown"}");
+            throw new InvalidOperationException($"Failed to log in. {data.Reason ?? data.Message ?? "Unknown"}");
 
-        return new ALAPIClient(new AuthUser(loginInfo, authCookie), client, baseUrl);
+        return new AlApiClient(new AuthUser(loginInfo, authCookie), client, baseUrl);
+    }
+
+    /// <summary>
+    ///     Unwraps an api response into the notification array the payload actually lives in.
+    /// </summary>
+    /// <remarks>
+    ///     Every response is an object of the form
+    ///     <c>
+    ///         { success|failed, reason?, infs:[...] }
+    ///     </c>
+    ///     . Handlers push their real payload into
+    ///     <c>
+    ///         infs
+    ///     </c>
+    ///     and return only a status on the envelope.
+    /// </remarks>
+    private static JsonArray ReadNotifications(RestResponse response)
+    {
+        if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
+            throw new InvalidOperationException($"API call failed. ({response.StatusCode}) {response.ErrorMessage}");
+
+        var body = JsonNode.Parse(response.Content);
+
+        if (body is not JsonObject envelope)
+            return body as JsonArray ?? new JsonArray();
+
+        if (envelope["failed"]
+                ?.GetValue<bool>()
+            ?? false)
+            throw new InvalidOperationException($@"API call failed. {envelope["reason"]?.GetValue<string>() ?? "Unknown"}");
+
+        return envelope["infs"] as JsonArray ?? new JsonArray();
     }
 }

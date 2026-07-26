@@ -1,16 +1,12 @@
 #region
 using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
-using AL.Core.Json.Converters;
 using AL.Data.NPCs;
-using Chaos.Extensions.Common;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using StjConverters = AL.Core.Json.SystemTextJson;
 #endregion
 
 namespace AL.Data.Items;
@@ -29,19 +25,28 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
+    ///     The item's price in shells if it is a cash-shop item, otherwise zero.
+    /// </summary>
+    /// <remarks>
+    ///     A nonzero value also changes how the item is valued: the buy-to-sell discount is not applied to cash items, and the
+    ///     second-hands NPC charges a 3x multiplier rather than 2x.
+    /// </remarks>
+    public float Cash { get; init; }
+
+    /// <summary>
     ///     <b>
     ///         NULLABLE
     ///     </b>
     ///     . If null, this item is not compoundable. If NOT null, this dictionary contains the <see cref="ALAttribute" />
     ///     modifications per compound level.
     /// </summary>
-    [JsonProperty("compound")]
+    [JsonPropertyName("compound")]
     public IReadOnlyDictionary<ALAttribute, float>? CompoundModifiers { get; init; }
 
     /// <summary>
     ///     If this item is a weapon, this is the damage type of the weapon.
     /// </summary>
-    [JsonProperty("damage_type")]
+    [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
     /// <summary>
@@ -64,7 +69,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <br />
     ///     Check <see cref="ExchangeAtNPC" /> for the npc to exchange at.
     /// </summary>
-    [JsonProperty("e")]
+    [JsonPropertyName("e")]
     public int? ExchangeCount { get; init; }
 
     /// <summary>
@@ -72,13 +77,12 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <br />
     ///     These are the attributes it gives.
     /// </summary>
-    [JsonProperty(ItemConverterType = typeof(ArrayToTupleConverter<ALAttribute, float>))]
     public IReadOnlyList<(ALAttribute Attribute, float Amount)>? Gives { get; init; }
 
     /// <summary>
     ///     The default gold value of this item if selling to an NPC merchant.
     /// </summary>
-    [JsonProperty("g")]
+    [JsonPropertyName("g")]
     public float GoldValue { get; init; }
 
     /// <summary>
@@ -94,15 +98,6 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     increases.
     /// </summary>
     public IReadOnlyList<int>? Grades { get; init; }
-
-    /// <summary>
-    ///     The item's price in shells if it is a cash-shop item, otherwise zero.
-    /// </summary>
-    /// <remarks>
-    ///     A nonzero value also changes how the item is valued: the buy-to-sell discount is not applied to
-    ///     cash items, and the second-hands NPC charges a 3x multiplier rather than 2x.
-    /// </remarks>
-    public float Cash { get; init; }
 
     /// <summary>
     ///     If this is true, this is bad/old data that should be ignored.
@@ -174,7 +169,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// <summary>
     ///     The number of this item that can be placed in a stack.
     /// </summary>
-    [JsonProperty("s"), JsonConverter(typeof(FalsyConverter<int>), 1)]
+    [JsonPropertyName("s")]
+    [JsonConverter(typeof(StjConverters.FalsyStackSizeConverter))]
     public int StackSize { get; init; } = 1;
 
     /// <summary>
@@ -194,44 +190,30 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     . If null, this item is not upgradeable. If NOT null, this dictionary contains the <see cref="ALAttribute" />
     ///     modifications per upgrade level.
     /// </summary>
-    [JsonProperty("upgrade")]
+    [JsonPropertyName("upgrade")]
     public IReadOnlyDictionary<ALAttribute, float>? UpgradeModifiers { get; init; }
 
     /// <summary>
     ///     If this item is a weapon, this is the type of weapon.
     /// </summary>
-    [JsonProperty("wtype")]
+    [JsonPropertyName("wtype")]
     public WeaponType WeaponType { get; init; }
 
     /// <summary>
-    ///     Recovers the scroll's target stat when the server sends its name in the numeric <c>stat</c> slot. The
-    ///     System.Text.Json attributed-object converter strips that key before binding (the float <see cref="Stat" />
-    ///     would otherwise abort the item) and calls this; it is the deterministic replacement for the Newtonsoft
-    ///     <see cref="OnError" /> path, which threw and scraped the exception message for the same value.
+    ///     Recovers the scroll's target stat when the server sends its name in the numeric
+    ///     <c>
+    ///         stat
+    ///     </c>
+    ///     slot. The System.Text.Json attributed-object converter strips that key before binding (the float
+    ///     <see cref="ALAttribute.Stat" /> attribute would otherwise abort the item) and calls this. It replaces a Newtonsoft
+    ///     <c>
+    ///         [OnError]
+    ///     </c>
+    ///     handler that let the bind throw and then scraped the stat name out of the exception message.
     /// </summary>
     public void RecoverScrollStat(string statName)
     {
         if (EnumHelper.TryParse(statName, out ALAttribute attribute))
             ScrollStat = attribute;
-    }
-
-    [OnError]
-
-    // ReSharper disable once UnusedParameter.Global
-    public void OnError(StreamingContext context, ErrorContext errorContext)
-    {
-        if (errorContext.Member
-                        ?.ToString()
-                        .EqualsI("stat")
-            == true)
-        {
-            var match = Regex.Match(errorContext.Error.Message, @"double\: (\w+)\.");
-
-            if (match.Success && EnumHelper.TryParse(match.Groups[1].Value, out ALAttribute attr))
-            {
-                ScrollStat = attr;
-                errorContext.Handled = true;
-            }
-        }
     }
 }

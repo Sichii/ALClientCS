@@ -7,9 +7,20 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads <c>Player.AFK</c>, which the server sends inconsistently: <c>null</c> -&gt; false, any string
-///     (a timestamp/code) -&gt; true, otherwise a bool. The System.Text.Json replacement for the Newtonsoft
-///     <c>AfkConverter</c>.
+///     Reads
+///     <c>
+///         Player.AFK
+///     </c>
+///     , which the server sends inconsistently:
+///     <c>
+///         null
+///     </c>
+///     -&gt; false, any string (a timestamp/code) -&gt; true, otherwise a bool. The System.Text.Json replacement for the
+///     Newtonsoft
+///     <c>
+///         AfkConverter
+///     </c>
+///     .
 /// </summary>
 public sealed class AfkConverter : JsonConverter<bool>
 {

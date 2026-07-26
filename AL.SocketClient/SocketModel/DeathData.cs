@@ -1,6 +1,6 @@
 #region
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -18,13 +18,13 @@ public sealed record DeathData
     /// <summary>
     ///     The killer's luck multiplier (1 when the killer had no luck bonus).
     /// </summary>
-    [JsonProperty("luckm")]
+    [JsonPropertyName("luckm")]
     public float LuckM { get; init; }
 
     /// <summary>
-    ///     For cooperative monsters (announce-bosses), each contributor's accumulated points by character name;
-    ///     absent for non-cooperative deaths.
+    ///     For cooperative monsters (announce-bosses), each contributor's accumulated points by character name; absent for
+    ///     non-cooperative deaths.
     /// </summary>
-    [JsonProperty("points")]
+    [JsonPropertyName("points")]
     public IReadOnlyDictionary<string, float>? Points { get; init; }
 }

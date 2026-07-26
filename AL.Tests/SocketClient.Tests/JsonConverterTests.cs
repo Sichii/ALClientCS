@@ -1,35 +1,37 @@
 #region
+using System.Collections.Generic;
 using System.Linq;
 using AL.APIClient.Model;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
 
-[TestClass]
 public class JsonConverterTests
 {
-   [TestMethod]
-   public void DeserializeAchievementProgressDataTest()
-   {
-      const string ACHIEVEMENT_PROGRESS_DATA = @"{
+    [Test]
+    public void DeserializeAchievementProgressDataTest()
+    {
+        const string ACHIEVEMENT_PROGRESS_DATA = @"{
    ""name"":""firehazard"",
    ""count"":""25"",
    ""needed"":""19975""
 }";
 
-      var obj = TestJson.Socket<AchievementProgressData>(ACHIEVEMENT_PROGRESS_DATA);
+        var obj = TestJson.Socket<AchievementProgressData>(ACHIEVEMENT_PROGRESS_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeActionDataTest()
-   {
-      const string ACTION_DATA = @"{
+    [Test]
+    public void DeserializeActionDataTest()
+    {
+        const string ACTION_DATA = @"{
    ""attacker"":""2144160"",
    ""target"":""Moneybaggers"",
    ""type"":""attack"",
@@ -43,15 +45,16 @@ public class JsonConverterTests
    ""damage"":25
 }";
 
-      var obj = TestJson.Socket<ActionData>(ACTION_DATA);
+        var obj = TestJson.Socket<ActionData>(ACTION_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeCharacterDataTest()
-   {
-      const string CHARACTER_DATA = @"{
+    [Test]
+    public void DeserializeCharacterDataTest()
+    {
+        const string CHARACTER_DATA = @"{
    ""hp"":7826,
    ""max_hp"":7826,
    ""mp"":2020,
@@ -301,15 +304,16 @@ public class JsonConverterTests
    ""cc"":1
 }";
 
-      var obj = TestJson.Socket<CharacterData>(CHARACTER_DATA);
+        var obj = TestJson.Socket<CharacterData>(CHARACTER_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeChestOpenedDataTest()
-   {
-      const string CHEST_OPENED_DATA = @"{
+    [Test]
+    public void DeserializeChestOpenedDataTest()
+    {
+        const string CHEST_OPENED_DATA = @"{
    ""id"":""lUHVxKFHEl85OVZf5weJNBii0pip9x"",
    ""goldm"":1.01,
    ""opener"":""makiz"",
@@ -328,170 +332,99 @@ public class JsonConverterTests
    ""gold"":1655
 }";
 
-      var obj = TestJson.Socket<ChestOpenedData>(CHEST_OPENED_DATA);
+        var obj = TestJson.Socket<ChestOpenedData>(CHEST_OPENED_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeCorrectionDataTest()
-   {
-      const string CORRECTION_DATA = @"{
-   ""x"":64.123,
-   ""y"":792.456,
-}";
-
-      var obj = TestJson.Socket<CorrectionData>(CORRECTION_DATA);
-
-      Assert.IsNotNull(obj);
-      Assert.IsTrue(new Point(64.123f, 792.456f).Distance(obj) < 10);
-   }
-
-   [TestMethod]
-   public void DeserializeDeathDataTest()
-   {
-      const string DEATH_DATA = @"{
-   ""id"":""43923109""
-}";
-
-      var obj = TestJson.Socket<DeathData>(DEATH_DATA);
-
-      Assert.IsNotNull(obj);
-   }
-
-   [TestMethod]
-   public void DeserializeCooperativeDeathTest()
-   {
-      // a cooperative-boss death sends 'points' as a per-contributor OBJECT, not a scalar
-      const string DEATH_DATA = @"{
+    [Test]
+    public void DeserializeCooperativeDeathTest()
+    {
+        // a cooperative-boss death sends 'points' as a per-contributor OBJECT, not a scalar
+        const string DEATH_DATA = @"{
    ""id"":""12345"",
    ""luckm"":1,
    ""points"":{""alice"":500,""bob"":300}
 }";
 
-      var obj = TestJson.Socket<DeathData>(DEATH_DATA);
+        var obj = TestJson.Socket<DeathData>(DEATH_DATA);
 
-      Assert.IsNotNull(obj);
-      Assert.IsNotNull(obj!.Points);
-      Assert.AreEqual(2, obj.Points!.Count);
-      Assert.AreEqual(500f, obj.Points["alice"]);
-   }
+        obj.Should()
+           .NotBeNull();
 
-   [TestMethod]
-   public void DeserializeTradeHistoryTest()
-   {
-      // the giveaway row's 4th element is null on the wire (giveaways carry no price) - the real payload shape
-      const string TRADE_HISTORY = @"[
-   [""sell"",""Bob"",{""name"":""hppot"",""q"":5},1000],
-   [""giveaway"",""Alice"",{""name"":""hpamulet""},null]
-]";
+        obj.Points
+           .Should()
+           .NotBeNull();
 
-      var obj = TestJson.Socket<TradeHistoryEntry[]>(TRADE_HISTORY);
+        obj.Points!.Count
+           .Should()
+           .Be(2);
 
-      Assert.IsNotNull(obj);
-      Assert.AreEqual(2, obj!.Length);
-      Assert.AreEqual("sell", obj[0].Event);
-      Assert.AreEqual("Bob", obj[0].PartnerName);
-      Assert.AreEqual(1000L, obj[0].Price);
-      Assert.IsNotNull(obj[0].Item);
-      Assert.AreEqual("giveaway", obj[1].Event);
-      Assert.IsNull(obj[1].Price, "a giveaway entry carries a null price");
-   }
+        obj.Points["alice"]
+           .Should()
+           .Be(500f);
+    }
 
-   [TestMethod]
-   public void DeserializePartyUpdateLeaveTest()
-   {
-      const string PARTY_UPDATE = @"{
-   ""message"":""Bob left the party"",
-   ""leave"":1
+    [Test]
+    public void DeserializeCorrectionDataTest()
+    {
+        const string CORRECTION_DATA = @"{
+   ""x"":64.123,
+   ""y"":792.456,
 }";
 
-      var obj = TestJson.Socket<PartyUpdateData>(PARTY_UPDATE);
+        var obj = TestJson.Socket<CorrectionData>(CORRECTION_DATA);
 
-      Assert.IsNotNull(obj);
-      Assert.IsTrue(obj!.Leave);
-   }
+        obj.Should()
+           .NotBeNull();
 
-   [TestMethod]
-   public void DeserializeTrackDataArrayTest()
-   {
-      const string TRACK = @"[
-   {""sound"":""rr"",""dist"":12.5,""invis"":true},
-   {""sound"":""wmp"",""dist"":200.0}
-]";
+        (new Point(64.123f, 792.456f).Distance(obj) < 10).Should()
+                                                         .BeTrue();
+    }
 
-      var obj = TestJson.Socket<System.Collections.Generic.List<TrackData>>(TRACK);
-
-      Assert.IsNotNull(obj);
-      Assert.AreEqual(2, obj!.Count);
-      Assert.AreEqual("rr", obj[0].Sound);
-      Assert.IsTrue(obj[0].Invis);
-      Assert.IsFalse(obj[1].Invis);
-   }
-
-   [TestMethod]
-   public void DeserializePredictionFailureTest()
-   {
-      // the server sends 'failure' as boolean true (not a numeric level) on a revealed-fail prediction
-      const string PREDICTION = @"{
-   ""name"":""hpamulet"",
-   ""level"":7,
-   ""chance"":0.4,
-   ""scroll"":""scroll0"",
-   ""failure"":true,
-   ""nums"":[1,2]
+    [Test]
+    public void DeserializeDeathDataTest()
+    {
+        const string DEATH_DATA = @"{
+   ""id"":""43923109""
 }";
 
-      var obj = TestJson.Socket<AL.SocketClient.Model.Prediction>(PREDICTION);
+        var obj = TestJson.Socket<DeathData>(DEATH_DATA);
 
-      Assert.IsNotNull(obj);
-      Assert.AreEqual(true, obj!.Failure);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeMailItemStringAndObjectTest()
-   {
-      // the mail item is polymorphic: a JSON object, or a JSON-stringified object (simplify_item)
-      const string MAIL_OBJECT = @"{ ""item"": { ""name"":""hpamulet"", ""level"":2, ""q"":3 } }";
-      const string MAIL_STRING = @"{ ""item"": ""{\""name\"":\""hpamulet\"",\""level\"":2}"" }";
-
-      var fromObject = TestJson.Api<Mail>(MAIL_OBJECT);
-      var fromString = TestJson.Api<Mail>(MAIL_STRING);
-
-      Assert.IsNotNull(fromObject!.Item);
-      Assert.AreEqual("hpamulet", fromObject.Item!.Name);
-      Assert.AreEqual(3, fromObject.Item.Quantity);
-      Assert.IsNotNull(fromString!.Item);
-      Assert.AreEqual("hpamulet", fromString.Item!.Name);
-      Assert.AreEqual(2, fromString.Item.Level);
-   }
-
-   [TestMethod]
-   public void DeserializeDisappearDataTest()
-   {
-      const string DISAPPEAR_DATA = @"{
+    [Test]
+    public void DeserializeDisappearDataTest()
+    {
+        const string DISAPPEAR_DATA = @"{
    ""id"":""CeeNote"",
    ""reason"":""transport"",
    ""s"":1
 }";
 
-      const string DISAPPEAR_DATA2 = @"{
+        const string DISAPPEAR_DATA2 = @"{
    ""id"":""CeeNote"",
    ""reason"":""transport"",
    ""s"":[5, 10, 1]
 }";
 
-      var obj = TestJson.Socket<DisappearData>(DISAPPEAR_DATA);
-      var obj2 = TestJson.Socket<DisappearData>(DISAPPEAR_DATA2);
+        var obj = TestJson.Socket<DisappearData>(DISAPPEAR_DATA);
+        var obj2 = TestJson.Socket<DisappearData>(DISAPPEAR_DATA2);
 
-      Assert.IsNotNull(obj);
-      Assert.IsNotNull(obj2);
-   }
+        obj.Should()
+           .NotBeNull();
 
-   [TestMethod]
-   public void DeserializeDisappearingTextData()
-   {
-      const string DISAPPEARING_TEXT_DATA = @"{
+        obj2.Should()
+            .NotBeNull();
+    }
+
+    [Test]
+    public void DeserializeDisappearingTextData()
+    {
+        const string DISAPPEARING_TEXT_DATA = @"{
    ""message"":""+100"",
    ""x"":15.280000219733335,
    ""y"":-413.5399998351999,
@@ -502,15 +435,16 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = TestJson.Socket<DisappearingTextData>(DISAPPEARING_TEXT_DATA);
+        var obj = TestJson.Socket<DisappearingTextData>(DISAPPEARING_TEXT_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeDropDataTest()
-   {
-      const string DROP_DATA = @"{
+    [Test]
+    public void DeserializeDropDataTest()
+    {
+        const string DROP_DATA = @"{
    ""x"":64,
    ""y"":792,
    ""items"":0,
@@ -519,15 +453,16 @@ public class JsonConverterTests
    ""map"":""main""
 }";
 
-      var obj = TestJson.Socket<DropData>(DROP_DATA);
+        var obj = TestJson.Socket<DropData>(DROP_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeEntitiesDataTest()
-   {
-      const string ENTITIES_DATA = @"{
+    [Test]
+    public void DeserializeEntitiesDataTest()
+    {
+        const string ENTITIES_DATA = @"{
         ""players"": [
             {
                 ""hp"": 5245,
@@ -678,29 +613,39 @@ public class JsonConverterTests
         ""map"": ""main""
     }";
 
-      var obj = TestJson.Socket<EntitiesData>(ENTITIES_DATA);
+        var obj = TestJson.Socket<EntitiesData>(ENTITIES_DATA);
 
-      Assert.IsNotNull(obj);
-      Assert.IsTrue(obj.Players.Any());
-      Assert.IsTrue(obj.Monsters.Any());
-   }
+        obj.Should()
+           .NotBeNull();
 
-   [TestMethod]
-   public void DeserializeEvalDataTest()
-   {
-      const string EVAL_DATA = @"{
+        obj.Players
+           .Any()
+           .Should()
+           .BeTrue();
+
+        obj.Monsters
+           .Any()
+           .Should()
+           .BeTrue();
+    }
+
+    [Test]
+    public void DeserializeEvalDataTest()
+    {
+        const string EVAL_DATA = @"{
    ""code"":""skill_timeout('attack',1096.1809388171202)""
 }";
 
-      var obj = TestJson.Socket<EvalData>(EVAL_DATA);
+        var obj = TestJson.Socket<EvalData>(EVAL_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeEventAndBossDataTest()
-   {
-      const string EVENT_AND_BOSS_DATA = @"{
+    [Test]
+    public void DeserializeEventAndBossDataTest()
+    {
+        const string EVENT_AND_BOSS_DATA = @"{
    ""icegolem"":{
       ""live"":true,
       ""map"":""winterland"",
@@ -727,42 +672,51 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_DATA);
+        var obj = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeGameLogDataTest()
-   {
-      const string GAME_LOG_DATA = "\"Stored 37,500,711 gold\"";
+    [Test]
+    public void DeserializeGameLogDataTest()
+    {
+        const string GAME_LOG_DATA = "\"Stored 37,500,711 gold\"";
 
-      var obj = TestJson.Socket<string>(GAME_LOG_DATA);
+        var obj = TestJson.Socket<string>(GAME_LOG_DATA);
 
-      Assert.AreEqual("Stored 37,500,711 gold", obj);
-   }
+        obj.Should()
+           .Be("Stored 37,500,711 gold");
+    }
 
-   [TestMethod]
-   public void DeserializeGameResponseDataTest()
-   {
-      const string STRING_GAME_RESPONSE_DATA = @"""ex_condition""";
+    [Test]
+    public void DeserializeGameResponseDataTest()
+    {
+        const string STRING_GAME_RESPONSE_DATA = @"""ex_condition""";
 
-      const string GAME_RESPONSE_DATA = @"{
+        const string GAME_RESPONSE_DATA = @"{
    ""response"":""ex_condition"",
    ""name"":""charging""
 }";
 
-      var obj = TestJson.Socket<GameResponseData>(GAME_RESPONSE_DATA);
-      Assert.IsNotNull(obj);
-      Assert.IsNotNull(obj.Name);
-      obj = TestJson.Socket<GameResponseData>(STRING_GAME_RESPONSE_DATA);
-      Assert.IsNotNull(obj);
-   }
+        var obj = TestJson.Socket<GameResponseData>(GAME_RESPONSE_DATA);
 
-   [TestMethod]
-   public void DeserializeHitDataTest()
-   {
-      const string HIT_DATA = @"{
+        obj.Should()
+           .NotBeNull();
+
+        obj.Name
+           .Should()
+           .NotBeNull();
+        obj = TestJson.Socket<GameResponseData>(STRING_GAME_RESPONSE_DATA);
+
+        obj.Should()
+           .NotBeNull();
+    }
+
+    [Test]
+    public void DeserializeHitDataTest()
+    {
+        const string HIT_DATA = @"{
    ""attacker"":""2144160"",
    ""target"":""Moneybaggers"",
    ""type"":""attack"",
@@ -776,27 +730,66 @@ public class JsonConverterTests
    ""damage"":25
 }";
 
-      var obj = TestJson.Socket<HitData>(HIT_DATA);
+        var obj = TestJson.Socket<HitData>(HIT_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeInviteDataTest()
-   {
-      const string INVITE_DATA = @"{
+    [Test]
+    public void DeserializeInviteDataTest()
+    {
+        const string INVITE_DATA = @"{
    ""name"":""earthMer""
 }";
 
-      var obj = TestJson.Socket<InviteData>(INVITE_DATA);
+        var obj = TestJson.Socket<InviteData>(INVITE_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeNewMapDataTest()
-   {
-      const string NEW_MAP_DATA = @"{
+    [Test]
+    public void DeserializeMailItemStringAndObjectTest()
+    {
+        // the mail item is polymorphic: a JSON object, or a JSON-stringified object (simplify_item)
+        const string MAIL_OBJECT = @"{ ""item"": { ""name"":""hpamulet"", ""level"":2, ""q"":3 } }";
+        const string MAIL_STRING = @"{ ""item"": ""{\""name\"":\""hpamulet\"",\""level\"":2}"" }";
+
+        var fromObject = TestJson.Api<Mail>(MAIL_OBJECT);
+        var fromString = TestJson.Api<Mail>(MAIL_STRING);
+
+        fromObject!.Item
+                   .Should()
+                   .NotBeNull();
+
+        fromObject.Item!.Name
+                  .Should()
+                  .Be("hpamulet");
+
+        fromObject.Item
+                  .Quantity
+                  .Should()
+                  .Be(3);
+
+        fromString!.Item
+                   .Should()
+                   .NotBeNull();
+
+        fromString.Item!.Name
+                  .Should()
+                  .Be("hpamulet");
+
+        fromString.Item
+                  .Level
+                  .Should()
+                  .Be(2);
+    }
+
+    [Test]
+    public void DeserializeNewMapDataTest()
+    {
+        const string NEW_MAP_DATA = @"{
    ""name"":""bank"",
    ""in"":""bank"",
    ""x"":0,
@@ -1049,15 +1042,16 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = TestJson.Socket<NewMapData>(NEW_MAP_DATA);
+        var obj = TestJson.Socket<NewMapData>(NEW_MAP_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializePartyUpdateDataTest()
-   {
-      const string PARTY_UPDATE_DATA = @"{
+    [Test]
+    public void DeserializePartyUpdateDataTest()
+    {
+        const string PARTY_UPDATE_DATA = @"{
    ""list"":[
       ""earthMer"",
       ""myranger"",
@@ -1124,27 +1118,70 @@ public class JsonConverterTests
    ""message"":""sichi joined the party""
 }";
 
-      var obj = TestJson.Socket<PartyUpdateData>(PARTY_UPDATE_DATA);
+        var obj = TestJson.Socket<PartyUpdateData>(PARTY_UPDATE_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializePingAckDataTest()
-   {
-      const string PING_ACK_DATA = @"{
+    [Test]
+    public void DeserializePartyUpdateLeaveTest()
+    {
+        const string PARTY_UPDATE = @"{
+   ""message"":""Bob left the party"",
+   ""leave"":1
+}";
+
+        var obj = TestJson.Socket<PartyUpdateData>(PARTY_UPDATE);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Leave
+           .Should()
+           .BeTrue();
+    }
+
+    [Test]
+    public void DeserializePingAckDataTest()
+    {
+        const string PING_ACK_DATA = @"{
    ""id"":""aKHAz""
 }";
 
-      var obj = TestJson.Socket<PingAckData>(PING_ACK_DATA);
+        var obj = TestJson.Socket<PingAckData>(PING_ACK_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeQueueActionDataTest()
-   {
-      const string QUEUED_ACTION_DATA = @"{
+    [Test]
+    public void DeserializePredictionFailureTest()
+    {
+        // the server sends 'failure' as boolean true (not a numeric level) on a revealed-fail prediction
+        const string PREDICTION = @"{
+   ""name"":""hpamulet"",
+   ""level"":7,
+   ""chance"":0.4,
+   ""scroll"":""scroll0"",
+   ""failure"":true,
+   ""nums"":[1,2]
+}";
+
+        var obj = TestJson.Socket<Prediction>(PREDICTION);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Failure
+           .Should()
+           .Be(true);
+    }
+
+    [Test]
+    public void DeserializeQueueActionDataTest()
+    {
+        const string QUEUED_ACTION_DATA = @"{
    ""q"":{
       ""upgrade"":{
          ""ms"":161,
@@ -1165,28 +1202,30 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = TestJson.Socket<QueuedActionData>(QUEUED_ACTION_DATA);
+        var obj = TestJson.Socket<QueuedActionData>(QUEUED_ACTION_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeQueuedActionResultDataTest()
-   {
-      const string QUEUED_ACTION_RESULT_DATA = @"{
+    [Test]
+    public void DeserializeQueuedActionResultDataTest()
+    {
+        const string QUEUED_ACTION_RESULT_DATA = @"{
    ""type"":""compound"",
    ""success"":1
 }";
 
-      var obj = TestJson.Socket<QueuedActionResultData>(QUEUED_ACTION_RESULT_DATA);
+        var obj = TestJson.Socket<QueuedActionResultData>(QUEUED_ACTION_RESULT_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeSecondHandsDataTest()
-   {
-      const string SECONDHANDS_DATA = @"[
+    [Test]
+    public void DeserializeSecondHandsDataTest()
+    {
+        const string SECONDHANDS_DATA = @"[
    {
       ""q"":9999,
       ""rid"":""AbUEw"",
@@ -1962,16 +2001,19 @@ public class JsonConverterTests
    }
 ]";
 
-      var obj = TestJson.Socket<TradeItem[]>(SECONDHANDS_DATA);
+        var obj = TestJson.Socket<TradeItem[]>(SECONDHANDS_DATA);
 
-      Assert.IsNotNull(obj);
-      Assert.IsTrue(obj.Length != 0);
-   }
+        obj.Should()
+           .NotBeNull();
 
-   [TestMethod]
-   public void DeserializeStartDataTest()
-   {
-      const string START_DATA = @"{
+        (obj.Length != 0).Should()
+                         .BeTrue();
+    }
+
+    [Test]
+    public void DeserializeStartDataTest()
+    {
+        const string START_DATA = @"{
    ""hp"":7826,
    ""max_hp"":7826,
    ""mp"":2020,
@@ -3232,15 +3274,98 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = TestJson.Socket<StartData>(START_DATA);
+        var obj = TestJson.Socket<StartData>(START_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeUIDataTest()
-   {
-      const string UI_DATA = @"{
+    [Test]
+    public void DeserializeTrackDataArrayTest()
+    {
+        const string TRACK = @"[
+   {""sound"":""rr"",""dist"":12.5,""invis"":true},
+   {""sound"":""wmp"",""dist"":200.0}
+]";
+
+        var obj = TestJson.Socket<List<TrackData>>(TRACK);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Count
+           .Should()
+           .Be(2);
+
+        obj[0]
+            .Sound
+            .Should()
+            .Be("rr");
+
+        obj[0]
+            .Invis
+            .Should()
+            .BeTrue();
+
+        obj[1]
+            .Invis
+            .Should()
+            .BeFalse();
+    }
+
+    [Test]
+    public void DeserializeTradeHistoryTest()
+    {
+        // the giveaway row's 4th element is null on the wire (giveaways carry no price) - the real payload shape
+        const string TRADE_HISTORY = @"[
+   [""sell"",""Bob"",{""name"":""hppot"",""q"":5},1000],
+   [""giveaway"",""Alice"",{""name"":""hpamulet""},null]
+]";
+
+        var obj = TestJson.Socket<TradeHistoryEntry[]>(TRADE_HISTORY);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Length
+           .Should()
+           .Be(2);
+
+        obj[0]
+            .Event
+            .Should()
+            .Be("sell");
+
+        obj[0]
+            .PartnerName
+            .Should()
+            .Be("Bob");
+
+        obj[0]
+            .Price
+            .Should()
+            .Be(1000L);
+
+        obj[0]
+            .Item
+            .Should()
+            .NotBeNull();
+
+        obj[1]
+            .Event
+            .Should()
+            .Be("giveaway");
+
+        obj[1]
+            .Price
+            .Should()
+            .BeNull("a giveaway entry carries a null price");
+    }
+
+    [Test]
+    public void DeserializeUIDataTest()
+    {
+        const string UI_DATA = @"{
    ""type"":""+$"",
    ""id"":""scrolls"",
    ""name"":""earthMag2"",
@@ -3250,15 +3375,16 @@ public class JsonConverterTests
    }
 }";
 
-      var obj = TestJson.Socket<UIData>(UI_DATA);
+        var obj = TestJson.Socket<UIData>(UI_DATA);
 
-      Assert.IsNotNull(obj);
-   }
+        obj.Should()
+           .NotBeNull();
+    }
 
-   [TestMethod]
-   public void DeserializeWelcomeDataTest()
-   {
-      const string WELCOME_DATA = @"{
+    [Test]
+    public void DeserializeWelcomeDataTest()
+    {
+        const string WELCOME_DATA = @"{
    ""region"":""US"",
    ""name"":""III"",
    ""pvp"":false,
@@ -3272,8 +3398,9 @@ public class JsonConverterTests
    ""in"":""desertland""
 }";
 
-      var obj = TestJson.Socket<WelcomeData>(WELCOME_DATA);
+        var obj = TestJson.Socket<WelcomeData>(WELCOME_DATA);
 
-      Assert.IsNotNull(obj);
+        obj.Should()
+           .NotBeNull();
     }
 }

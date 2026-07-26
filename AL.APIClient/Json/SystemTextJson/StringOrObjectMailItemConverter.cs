@@ -10,9 +10,12 @@ using AL.Core.Json.SystemTextJson;
 namespace AL.APIClient.Json.SystemTextJson;
 
 /// <summary>
-///     Binds a mail item the server sends either as a JSON object or as a JSON-stringified object
-///     (simplify_item) to a <see cref="MailItem" />. The System.Text.Json replacement for the Newtonsoft
-///     <c>StringOrObjectMailItemConverter</c>.
+///     Binds a mail item the server sends either as a JSON object or as a JSON-stringified object (simplify_item) to a
+///     <see cref="MailItem" />. The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         StringOrObjectMailItemConverter
+///     </c>
+///     .
 /// </summary>
 public sealed class StringOrObjectMailItemConverter : JsonConverter<MailItem?>
 {
@@ -43,6 +46,5 @@ public sealed class StringOrObjectMailItemConverter : JsonConverter<MailItem?>
         return node.Deserialize<MailItem>(RecursionSafeOptions.Without(options, typeof(StringOrObjectMailItemConverter)));
     }
 
-    public override void Write(Utf8JsonWriter writer, MailItem? value, JsonSerializerOptions options)
-        => throw new NotSupportedException();
+    public override void Write(Utf8JsonWriter writer, MailItem? value, JsonSerializerOptions options) => throw new NotSupportedException();
 }

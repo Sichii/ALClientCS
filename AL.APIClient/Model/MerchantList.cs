@@ -1,6 +1,6 @@
 #region
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 namespace AL.APIClient.Model;
@@ -13,6 +13,6 @@ public sealed record MerchantList
     /// <summary>
     ///     A list of merchants with a stand open in any server.
     /// </summary>
-    [JsonProperty("chars")]
+    [JsonPropertyName("chars")]
     public IReadOnlyList<MerchantInfo> Merchants { get; init; } = new List<MerchantInfo>();
 }

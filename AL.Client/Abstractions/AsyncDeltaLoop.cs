@@ -43,7 +43,7 @@ public abstract class AsyncDeltaLoop
     /// </exception>
     protected AsyncDeltaLoop(ALClient client)
     {
-        ArgumentNullException.ThrowIfNull(client, nameof(client));
+        ArgumentNullException.ThrowIfNull(client);
 
         Client = client;
         Ctx = new CancellationTokenSource();

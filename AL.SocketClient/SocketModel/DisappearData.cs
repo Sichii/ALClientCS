@@ -1,8 +1,7 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
-using AL.SocketClient.Json.Converters;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -10,7 +9,6 @@ namespace AL.SocketClient.SocketModel;
 /// <summary>
 ///     Represents the data received when an entity disappears.
 /// </summary>
-[JsonConverter(typeof(DisappearDataConverter))]
 public sealed record DisappearData
 {
     /// <summary>
@@ -26,7 +24,7 @@ public sealed record DisappearData
     /// <summary>
     ///     Whether or not the target disappeared because they became invisible.
     /// </summary>
-    [JsonProperty("invis")]
+    [JsonPropertyName("invis")]
     public bool Invisible { get; init; }
 
     /// <summary>
@@ -39,7 +37,7 @@ public sealed record DisappearData
     ///     <br />
     ///     This is the accessor of the map they transported to.
     /// </summary>
-    [JsonProperty("to")]
+    [JsonPropertyName("to")]
     public string? ToMap { get; init; }
 
     /// <summary>

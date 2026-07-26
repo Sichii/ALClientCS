@@ -1,41 +1,57 @@
 #region
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.APIClient.Tests;
 
-[TestClass]
 public class APIClientTests : APITestBed
 {
-    [TestMethod]
+    [Test]
     public async Task GetMailTest()
     {
         var result = await APIClient.GetMailAsync()
                                     .ToListAsync();
 
-        Assert.IsNotNull(result);
+        result.Should()
+              .NotBeNull();
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetMerchantTest()
     {
         var result = await APIClient.GetMerchantsAsync()
                                     .ToListAsync();
 
-        Assert.IsNotNull(result);
-        Assert.IsTrue(result.Count != 0);
+        result.Should()
+              .NotBeNull();
+
+        (result.Count != 0).Should()
+                           .BeTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task UpdateServersAndCharactersTest()
     {
         var serversAndCharacters = await APIClient.GetServersAndCharactersAsync();
 
-        Assert.IsNotNull(serversAndCharacters.Servers);
-        Assert.IsNotNull(serversAndCharacters.Characters);
-        Assert.IsTrue(serversAndCharacters.Servers.Any());
-        Assert.IsTrue(serversAndCharacters.Characters.Any());
+        serversAndCharacters.Servers
+                            .Should()
+                            .NotBeNull();
+
+        serversAndCharacters.Characters
+                            .Should()
+                            .NotBeNull();
+
+        serversAndCharacters.Servers
+                            .Any()
+                            .Should()
+                            .BeTrue();
+
+        serversAndCharacters.Characters
+                            .Any()
+                            .Should()
+                            .BeTrue();
     }
 }

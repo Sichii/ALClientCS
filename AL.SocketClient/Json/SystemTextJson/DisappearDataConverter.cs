@@ -11,10 +11,16 @@ using AL.SocketClient.SocketModel;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     Deserializes <see cref="DisappearData" />, special-casing the <c>s</c> field, which is either a spawn
-///     <see cref="Orientation" /> array or a scalar spawn id. The System.Text.Json replacement for the
-///     Newtonsoft <c>DisappearDataConverter</c>. Register in the shared options so the declared-field fill drops
-///     this converter and cannot re-enter itself.
+///     Deserializes <see cref="DisappearData" />, special-casing the
+///     <c>
+///         s
+///     </c>
+///     field, which is either a spawn <see cref="Orientation" /> array or a scalar spawn id. The System.Text.Json
+///     replacement for the Newtonsoft
+///     <c>
+///         DisappearDataConverter
+///     </c>
+///     . Register in the shared options so the declared-field fill drops this converter and cannot re-enter itself.
 /// </summary>
 public sealed class DisappearDataConverter : JsonConverter<DisappearData>
 {
@@ -26,7 +32,7 @@ public sealed class DisappearDataConverter : JsonConverter<DisappearData>
         Orientation? spawn = null;
         int? spawnId = null;
 
-        if (obj.TryGetPropertyValue("s", out var spawnNode) && (spawnNode is not null))
+        if (obj.TryGetPropertyValue("s", out var spawnNode) && spawnNode is not null)
         {
             if (spawnNode.GetValueKind() == JsonValueKind.Array)
                 spawn = ArrayToObjectConverter<Orientation>.FromArray(spawnNode.AsArray(), options);

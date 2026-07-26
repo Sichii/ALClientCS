@@ -37,7 +37,13 @@ public static class ALClientSettings
     /// </param>
     public static void SetLogLevel(LogLevel level)
     {
-        foreach (var rule in LogManager.Configuration.LoggingRules)
+        var configuration = LogManager.Configuration;
+
+        //there are no rules to adjust until something has configured NLog
+        if (configuration == null)
+            return;
+
+        foreach (var rule in configuration.LoggingRules)
             if (rule.LoggerNamePattern == "AL.*")
                 rule.SetLoggingLevels(level, LogLevel.Fatal);
     }
@@ -56,17 +62,18 @@ public static class ALClientSettings
 
         var fileTarget = new FileTarget("ALClientCSInternalFileTarget")
         {
-            Layout = new SimpleLayout(@"[${date:format=HH\:mm\:ss.fff}][${level:uppercase=true}][${logger:shortName=true}] ${message}${onexception:inner=${newline}${exception:format=ToString}}"),
+            Layout = new SimpleLayout(
+                @"[${date:format=HH\:mm\:ss.fff}][${level:uppercase=true}][${logger:shortName=true}] ${message}${onexception:inner=${newline}${exception:format=ToString}}"),
             FileName = @"logs\${shortdate}.txt",
             ArchiveFileName = @"logs\old\${shortdate}.txt",
             ArchiveEvery = FileArchivePeriod.Day,
-            ArchiveNumbering = ArchiveNumberingMode.Rolling,
             MaxArchiveFiles = 30
         };
 
         var consoleTarget = new ConsoleTarget("ALClientCSConsoleInternalTarget")
         {
-            Layout = @"[${level:uppercase=true}][${logger:shortName=true}] ${message}${onexception:inner=${newline}${exception:format=ToString}}"
+            Layout
+                = @"[${level:uppercase=true}][${logger:shortName=true}] ${message}${onexception:inner=${newline}${exception:format=ToString}}"
         };
 
         config.AddTarget(fileTarget);

@@ -50,7 +50,7 @@ public class Merchant : ALClient
     /// <exception cref="ArgumentNullException">
     ///     socketClient
     /// </exception>
-    public Merchant(string characterName, IALAPIClient apiClient, IALSocketClient socketClient)
+    public Merchant(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
         : base(characterName, apiClient, socketClient) { }
 
     /// <summary>
@@ -85,106 +85,39 @@ public class Merchant : ALClient
     }
 
     /// <summary>
-    ///     Asynchronously uses Fishing.
-    ///     <br />
-    ///     <b>
-    ///         USEABLE BUT INCOMPLETE, I don't own a fishing rod lmaokai
-    ///     </b>
+    ///     Asynchronously starts Fishing.
     /// </summary>
+    /// <remarks>
+    ///     This returns once the server accepts the cast, which starts the channel rather than landing a fish. Fishing
+    ///     runs for its duration and catches something one time in ten; the cooldown is taken then, not now.
+    ///     <br />
+    ///     Fishing is <c>persistent</c>, and the server restores its cooldown on a frame that does not ride login — so
+    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it
+    ///     and it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
+    /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'fishing'. ({reason})
     /// </exception>
-
-    //TODO: complete fishing callbacks
-    public async Task FishingAsync()
-    {
-        const string SKILL_NAME = "fishing";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
+    public Task FishingAsync()
+        => UseSkillCoreAsync(
+            "fishing",
+            completion: SkillCompletion.ResponseData,
+            extraFailure: static data => data.ResponseType switch
             {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (wrong weapon type)"),
-                    _                               => false
-                };
+                GameResponseType.SkillCantWType => "wrong weapon type",
 
-                return Task.FromResult(result);
+                //accepting and rejecting the cast use the same frame shape; only in_progress tells them apart
+                GameResponseType.Data when "fishing".EqualsI(data.Place!) && !data.InProgress => "not in a fishing zone",
+                _ => null
             });
-
-        /*
-        using var uiDataCallback = Socket.On<UIData>(ALSocketMessageType.UI, data =>
-        {
-            var result = data.UIDataType switch
-            {
-                UIDataType.FishingFail => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (failed)"),
-                UIDataType.FishingNone => source.TrySetResult(default),
-                UIDataType.FishingStart => source.TrySetResult(default)
-            }
-        })
-        */
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
 
     /// <summary>
-    ///     Asynchronously uses MassProduction.
+    ///     Asynchronously uses MassProduction, refilling the potions of everyone in your party.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massproduction'. ({reason})
     /// </exception>
-    public async Task MassProductionAsync()
-    {
-        const string SKILL_NAME = "massproduction";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.Data when SKILL_NAME.EqualsI(data.Place!) && data.Success => source.TrySetResult(Expectation.Success),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _ => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task MassProductionAsync() => UseSkillCoreAsync("massproduction");
 
     /// <summary>
     ///     Asynchronously uses MassProductionPP.
@@ -192,104 +125,53 @@ public class Merchant : ALClient
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massproductionpp'. ({reason})
     /// </exception>
-    public async Task MassProductionPPAsync()
-    {
-        const string SKILL_NAME = "massproductionpp";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.Data when SKILL_NAME.EqualsI(data.Place!) && data.Success => source.TrySetResult(Expectation.Success),
-                    _ when data.Failed && SKILL_NAME.EqualsI(data.Place!) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. ({data.Reason ?? data.ResponseType.ToString()})"),
-                    _ => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+    public Task MassProductionPPAsync() => UseSkillCoreAsync("massproductionpp");
 
     /// <summary>
-    ///     Asynchronously uses Mining.
-    ///     <br />
-    ///     <b>
-    ///         USEABLE BUT INCOMPLETE, I don't own a pickaxe lmaokai
-    ///     </b>
+    ///     Asynchronously uses MCourage, raising your defenses.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'mcourage'. ({reason})
+    /// </exception>
+    public Task MCourageAsync() => UseSkillCoreAsync("mcourage");
+
+    /// <summary>
+    ///     Asynchronously uses MFrenzy, raising your attack speed sharply for a short time.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'mfrenzy'. ({reason})
+    /// </exception>
+    public Task MFrenzyAsync() => UseSkillCoreAsync("mfrenzy");
+
+    /// <summary>
+    ///     Asynchronously starts Mining.
+    /// </summary>
+    /// <remarks>
+    ///     This returns once the server accepts the cast, which starts the channel rather than landing a strike. Mining
+    ///     runs for its duration and yields something one time in five; the cooldown is taken then, not now.
+    ///     <br />
+    ///     Mining is <c>persistent</c>, and the server restores its cooldown on a frame that does not ride login — so
+    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it
+    ///     and it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
+    /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'mining'. ({reason})
     /// </exception>
-
-    //TODO: complete mining callbacks
-    public async Task MiningAsync()
-    {
-        const string SKILL_NAME = "mining";
-
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
+    public Task MiningAsync()
+        => UseSkillCoreAsync(
+            "mining",
+            completion: SkillCompletion.ResponseData,
+            extraFailure: static data => data.ResponseType switch
             {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (disabled)"),
-                    GameResponseType.Cooldown when data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}'. (on cooldown)"),
-                    GameResponseType.NoLevel        => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (level too low)"),
-                    GameResponseType.NoMP           => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (no mp)"),
-                    GameResponseType.SkillCantWType => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (wrong weapon type)"),
-                    _                               => false
-                };
+                GameResponseType.SkillCantWType => "wrong weapon type",
 
-                return Task.FromResult(result);
+                //accepting and rejecting the cast use the same frame shape; only in_progress tells them apart
+                GameResponseType.Data when "mining".EqualsI(data.Place!) && !data.InProgress => "not in a mining zone",
+                _ => null
             });
-
-        /*
-        using var uiDataCallback = Socket.On<UIData>(ALSocketMessageType.UI, data =>
-        {
-            var result = data.UIDataType switch
-            {
-                UIDataType.MiningFail => source.TrySetResult($"Failed to use '{SKILL_NAME}'. (failed)"),
-                UIDataType.MiningNone => source.TrySetResult(default),
-                UIDataType.MiningStart => source.TrySetResult(default)
-            }
-        })
-        */
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
 
     /// <summary>
-    ///     Asynchronously uses MLuck on a target.
+    ///     Asynchronously uses MLuck on a target, luck-buffing them for a long duration.
     /// </summary>
     /// <param name="targetId">
     ///     The id of the target.
@@ -300,60 +182,46 @@ public class Merchant : ALClient
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'mluck' on {targetId}. ({reason})
     /// </exception>
-    public async Task MLuckAsync(string targetId)
+    public Task MLuckAsync(string targetId)
     {
-        const string SKILL_NAME = "mluck";
-
         if (string.IsNullOrEmpty(targetId))
             throw new ArgumentNullException(nameof(targetId));
 
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+        return UseSkillCoreAsync("mluck", targetId);
+    }
 
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
+    /// <summary>
+    ///     Asynchronously throws an item from your inventory at a target.
+    /// </summary>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <param name="inventorySlot">
+    ///     The inventory slot holding the item to throw.
+    /// </param>
+    /// <remarks>
+    ///     The item is consumed. Throwing an item the server considers harmful at another player fails outside of pvp.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'throw' on {targetId}. ({reason})
+    /// </exception>
+    public Task ThrowAsync(string targetId, int inventorySlot)
+    {
+        if (string.IsNullOrEmpty(targetId))
+            throw new ArgumentNullException(nameof(targetId));
+
+        return UseSkillCoreAsync(
+            "throw",
+            targetId,
+            payload: new
             {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.Disabled => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (disabled)"),
-                    GameResponseType.Cooldown when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (level too low)"),
-                    GameResponseType.TooFar when data.TargetId.EqualsI(targetId) && data.Place.EqualsI(SKILL_NAME) => source.TrySetResult(
-                        $"Failed to use '{SKILL_NAME}' on {targetId}. (too far)"),
-                    GameResponseType.NoMP => source.TrySetResult($"Failed to use '{SKILL_NAME}' on {targetId}. (no mp)"),
-                    _                     => false
-                };
-
-                return Task.FromResult(result);
+                name = "throw",
+                id = targetId,
+                num = inventorySlot
             });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                Match match;
-
-                if (!string.IsNullOrEmpty(data.Code)
-                    && (match = RegexCache.SKILL_TIMEOUT.Match(data.Code)).Success
-                    && match.Groups[1]
-                            .Value
-                            .EqualsI(SKILL_NAME))
-                    return Task.FromResult(source.TrySetResult(Expectation.Success));
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Skill,
-            new
-            {
-                name = SKILL_NAME,
-                id = targetId
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
     }
 
     /// <summary>
@@ -368,10 +236,9 @@ public class Merchant : ALClient
             return;
 
         var stand = Character.Inventory.FindItem("computer")
-                    ?? Character.Inventory.FindItem(
-                        item => item.GetData()
-                                    ?.Type
-                                == ItemType.Stand);
+                    ?? Character.Inventory.FindItem(item => item.GetData()
+                                                                ?.Type
+                                                            == ItemType.Stand);
 
         if (stand == null)
             throw new InvalidOperationException("Failed to open stand. (no stand)");
@@ -600,7 +467,7 @@ public class Merchant : ALClient
     ///     The identifier suffic for the region.
     /// </param>
     /// <param name="apiClient">
-    ///     An <see cref="IALAPIClient" /> with your authorization credentials.
+    ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
     /// <returns>
     ///     <see cref="Merchant" />
@@ -615,7 +482,7 @@ public class Merchant : ALClient
         string characterName,
         ServerRegion region,
         ServerId identifier,
-        IALAPIClient apiClient)
+        IAlApiClient apiClient)
     {
         if (string.IsNullOrEmpty(characterName))
             throw new ArgumentNullException(nameof(characterName));
@@ -677,11 +544,11 @@ public class Merchant : ALClient
                         return TaskCache.FALSE;
                     }
 
-                    var inventoryItem = Enumerable.FirstOrDefault<InventoryIndexer>(
-                        data.Inventory
-                            .AsIndexed()
-                            .Except(previousInventory!),
-                        indexed => indexed.Item.Name.EqualsI(tradeItem.Name) && (indexed.Item.Level == tradeItem.Level));
+                    var inventoryItem = data.Inventory
+                                            .AsIndexed()
+                                            .Except(previousInventory!)
+                                            .FirstOrDefault(indexed
+                                                => indexed.Item.Name.EqualsI(tradeItem.Name) && (indexed.Item.Level == tradeItem.Level));
 
                     if (inventoryItem != null)
                         source.TrySetResult(inventoryItem);

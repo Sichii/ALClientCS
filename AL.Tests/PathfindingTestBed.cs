@@ -1,19 +1,15 @@
 #region
 using System.Threading.Tasks;
 using AL.Pathfinding;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 #endregion
 
 namespace AL.Tests;
 
-[TestClass]
 public abstract class PathfindingTestBed : GameDataTestBed
 {
-    [TestInitialize]
-    public override async Task Init()
+    [Before(Test)]
+    public async Task InitializePathfinderAsync()
     {
-        await base.Init();
-
         await Sync.WaitAsync();
 
         try

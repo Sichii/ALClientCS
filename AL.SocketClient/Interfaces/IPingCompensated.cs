@@ -18,7 +18,7 @@ public interface IPingCompensated : IMutable
     /// <summary>
     ///     Compensates the object to be pseudo-equivalent to what's on the server.
     /// </summary>
-    /// <param name="minimumOffsetMs">
+    /// <param name="minimumOffset">
     ///     A minimized offset, so as to not overcompensate.
     ///     <br />
     ///     We want to be closer to the truth, but not overcompensate.

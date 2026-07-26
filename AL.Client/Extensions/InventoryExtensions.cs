@@ -34,14 +34,13 @@ public static class InventoryExtensions
     {
         ArgumentNullException.ThrowIfNull(inventory);
 
-        return inventory.Select(
-                            (item, index) => item == null
-                                ? null
-                                : new InventoryIndexer
-                                {
-                                    Index = index,
-                                    Item = item
-                                })
+        return inventory.Select((item, index) => item == null
+                            ? null
+                            : new InventoryIndexer
+                            {
+                                Index = index,
+                                Item = item
+                            })
                         .Where(indexed => indexed != null)!;
     }
 
@@ -218,13 +217,13 @@ public static class InventoryExtensions
             quantityMax = quantity.Value;
         }
 
-        var index = inventory.FindIndex(
-            item => (item != null)
-                    && (item.Level >= levelMin)
-                    && (item.Level <= levelMax)
-                    && (item.Quantity >= quantityMin)
-                    && (item.Quantity <= quantityMax)
-                    && ((itemName == null) || item.Name.EqualsI(itemName)));
+        var index = inventory.FindIndex(item
+            => (item != null)
+               && (item.Level >= levelMin)
+               && (item.Level <= levelMax)
+               && (item.Quantity >= quantityMin)
+               && (item.Quantity <= quantityMax)
+               && ((itemName == null) || item.Name.EqualsI(itemName)));
 
         if (index == -1)
             return null;

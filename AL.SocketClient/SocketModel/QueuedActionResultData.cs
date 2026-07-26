@@ -1,6 +1,6 @@
 #region
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -13,7 +13,7 @@ public sealed record QueuedActionResultData
     /// <summary>
     ///     The type of the queued action this is the result for.
     /// </summary>
-    [JsonProperty("type")]
+    [JsonPropertyName("type")]
     public QueuedActionType QueuedActionType { get; init; }
 
     /// <summary>

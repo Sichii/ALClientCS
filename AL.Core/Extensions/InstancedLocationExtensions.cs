@@ -140,10 +140,11 @@ public static class InstancedLocationExtensions
         if ((l1.In == string.Empty) || (l2.In == string.Empty))
             return true;
 
-        if (l1.In is null && l2.In is null)
-            return true;
+        //null is an unknown instance rather than a wildcard, so it only matches another unknown
+        if ((l1.In is null) || (l2.In is null))
+            return (l1.In is null) && (l2.In is null);
 
-        return l1.In!.EqualsI(l2.In!);
+        return l1.In.EqualsI(l2.In);
     }
 
     /// <summary>

@@ -19,7 +19,7 @@ using AL.Data.Projectiles;
 using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.MemberGenerator.Extensions;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 #endregion
 
 namespace AL.MemberGenerator;
@@ -129,31 +129,34 @@ public class Program
     {
         Console.WriteLine("Generating data members");
 
-        var gameData = await ALAPIClient.GetGameDataAsync();
-        var jObj = JObject.Parse(gameData);
+        var gameData = await AlApiClient.GetGameDataAsync();
+        var jObj = JsonNode.Parse(gameData)!.AsObject();
 
         if (!Directory.Exists(FOLDER_NAME))
             Directory.CreateDirectory(FOLDER_NAME);
 
         await Parallel.ForEachAsync(
-            jObj.Properties(),
+            jObj,
             async (gDataProperty, _) =>
             {
                 var builder = new StringBuilder();
-                var fileName = $@"{FOLDER_NAME}\{gDataProperty.Name}.txt";
+                var fileName = $@"{FOLDER_NAME}\{gDataProperty.Key}.txt";
 
-                if (!TypeStrings.TryGetValue(gDataProperty.Name, out var typeString))
+                if (!TypeStrings.TryGetValue(gDataProperty.Key, out var typeString))
                     typeString = string.Empty;
 
-                foreach (var child in gDataProperty.Value.Children<JProperty>())
+                //a section that is not an object has no members to generate. Newtonsoft's Children<JProperty>()
+                //filtered by type and silently yielded nothing for those; AsObject() would throw instead. The
+                //empty file is still written, as it was before.
+                foreach (var child in gDataProperty.Value as JsonObject ?? [])
                 {
-                    var name = child.Name;
+                    var name = child.Key;
                     var jsonPropertyValue = name;
 
                     name = Replacements.TryGetValue(name, out var replacement) ? replacement.ToUpperFirstLetter() : name.ToCodeFormat();
 
                     if (!name.Equals(jsonPropertyValue))
-                        builder.AppendLine($"[JsonProperty(\"{jsonPropertyValue}\")]");
+                        builder.AppendLine($"[JsonPropertyName(\"{jsonPropertyValue}\")]");
 
                     builder.Append(GLOBAL_PREFIX);
                     builder.Append(!string.IsNullOrEmpty(typeString) ? typeString : "object");

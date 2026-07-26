@@ -125,7 +125,7 @@ public static class Pathfinder
         var maps = GameData.Maps
                            .Entries
                            .DistinctBy(kvp => kvp.Value.Accessor)
-                           .Where(kvp => kvp.Value.Ignore == false)
+                           .Where(kvp => !kvp.Value.Ignore)
                            .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 

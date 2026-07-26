@@ -1,10 +1,9 @@
 #region
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
-using AL.Core.Json.Converters;
 using AL.Data.Monsters;
-using Newtonsoft.Json;
 #endregion
 
 namespace AL.Data.Maps;
@@ -53,7 +52,7 @@ public sealed record GMapMonster
     /// <summary>
     ///     The name of this monster.
     /// </summary>
-    [JsonProperty("type")]
+    [JsonPropertyName("type")]
     public string Name { get; init; } = null!;
 
     /// <summary>
@@ -68,7 +67,7 @@ public sealed record GMapMonster
     ///     . If populated, specifies the boundary in which the entire spawn of this monster will swarm you at
     ///     <see cref="GMonster.ChargeSpeed" />.
     /// </summary>
-    [JsonProperty("rage"), JsonConverter(typeof(MapRectangleConverter))]
+    [JsonPropertyName("rage")]
     public MapRectangle? RageRect { get; init; }
 
     /// <summary>
@@ -87,12 +86,14 @@ public sealed record GMapMonster
     public bool Special { get; init; }
 
     #pragma warning disable 0649
-    [JsonProperty("boundaries", ItemConverterType = typeof(MapRectangleConverter))]
+    [JsonPropertyName("boundaries")]
+    [JsonInclude]
 
     // ReSharper disable once InconsistentNaming
     internal IReadOnlyList<MapRectangle>? _boundaries { get; init; }
 
-    [JsonProperty("boundary"), JsonConverter(typeof(MapRectangleConverter))]
+    [JsonPropertyName("boundary")]
+    [JsonInclude]
 
     // ReSharper disable once InconsistentNaming
     internal MapRectangle? _boundary { get; init; }

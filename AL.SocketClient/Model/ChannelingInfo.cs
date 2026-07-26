@@ -1,5 +1,5 @@
 #region
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -12,6 +12,6 @@ public sealed record ChannelingInfo
     /// <summary>
     ///     The remaining MS needed to complete channeling.
     /// </summary>
-    [JsonProperty("ms")]
+    [JsonPropertyName("ms")]
     public float RemainingMS { get; init; }
 }

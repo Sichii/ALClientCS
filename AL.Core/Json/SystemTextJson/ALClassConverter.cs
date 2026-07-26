@@ -9,9 +9,16 @@ using AL.Core.Helpers;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Parses <see cref="ALClass" /> with fallbacks: <c>null</c>/bool -&gt; <see cref="ALClass.None" />, a string
-///     that parses -&gt; that class, a string that does not parse -&gt; <see cref="ALClass.NPC" />. The
-///     System.Text.Json replacement for the Newtonsoft <c>ALClassConverter</c>.
+///     Parses <see cref="ALClass" /> with fallbacks:
+///     <c>
+///         null
+///     </c>
+///     /bool -&gt; <see cref="ALClass.None" />, a string that parses -&gt; that class, a string that does not parse -&gt;
+///     <see cref="ALClass.NPC" />. The System.Text.Json replacement for the Newtonsoft
+///     <c>
+///         ALClassConverter
+///     </c>
+///     .
 /// </summary>
 public sealed class ALClassConverter : JsonConverter<ALClass>
 {
