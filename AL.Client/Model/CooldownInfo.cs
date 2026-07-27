@@ -1,5 +1,4 @@
 #region
-using System;
 using AL.Core.Interfaces;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;

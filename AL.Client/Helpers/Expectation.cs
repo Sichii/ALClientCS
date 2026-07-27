@@ -1,7 +1,3 @@
-#region
-using System;
-#endregion
-
 namespace AL.Client.Helpers;
 
 public readonly struct Expectation

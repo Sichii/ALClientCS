@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using AL.Core.Definitions;
 using AL.Core.Geometry;

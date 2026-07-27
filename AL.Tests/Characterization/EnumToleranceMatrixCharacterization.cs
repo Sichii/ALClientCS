@@ -1,8 +1,5 @@
 #region
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json;
@@ -100,24 +97,6 @@ public sealed class EnumToleranceMatrixCharacterization
         return result.OrderBy(static type => type.FullName, StringComparer.Ordinal)
                      .ToList();
     }
-
-    #region Discovery — the plan's "35" is stale
-    // FINDING: MIGRATION-PLAN T8 says "35 tolerant enums". Reality is 41: 35 in AL.Core, plus 3 in
-    // AL.SocketClient (GameResponseType, ALSocketMessageType, ALSocketEmitType) and 3 in AL.APIClient
-    // (ServerId, ServerRegion, APIMethod). The plan counted only AL.Core.
-    [Test]
-    public void T8_TolerantEnum_Discovery_Finds_41_Not_35()
-    {
-        var enums = DiscoverTolerantEnums();
-
-        enums.Should()
-             .HaveCount(41, "grep finds the tolerant converter on 35 AL.Core + 3 AL.SocketClient + 3 AL.APIClient enums");
-
-        enums.Count(static type => type.Assembly == typeof(Slot).Assembly)
-             .Should()
-             .Be(35);
-    }
-    #endregion
 
     #region The matrix — committed fixture is the pinned baseline
     /// <summary>
@@ -263,50 +242,7 @@ public sealed class EnumToleranceMatrixCharacterization
     }
     #endregion
 
-    #region Spot checks — the destructive cells the plan singles out
-    // TradeSlot.Trade1 = 17: a numeric string parses as the underlying value, so "17" binds to Trade1 rather
-    // than degrading. A wrong value here consumed real inventory once (EmitPayloadTests).
-    [Test]
-    public void T8_TradeSlot_NumericString17_Value_BindsToTrade1()
-    {
-        var value = TestJson.Data(@"""17""", typeof(TradeSlot));
-
-        value.Should()
-             .Be(TradeSlot.Trade1);
-    }
-
-    // The whole reason the converter exists: an unrecognized value degrades to the zero member (None),
-    // never throws, so the frame carrying it survives.
-    [Test]
-    public void T8_TradeSlot_Unknown_Value_DegradesToZeroMember()
-    {
-        var value = TestJson.Data(@"""trade99""", typeof(TradeSlot));
-
-        value.Should()
-             .Be(TradeSlot.None);
-    }
-
-    // Slot carries the LowerCase tolerant factory: the server sends "mainhand"; it must read back to
-    // Slot.MainHand.
-    [Test]
-    public void T8_Slot_LowercaseWireName_Value_Binds()
-    {
-        var value = TestJson.Data(@"""mainhand""", typeof(Slot));
-
-        value.Should()
-             .Be(Slot.MainHand);
-    }
-
-    // [EnumMember] alias resolution in value position.
-    [Test]
-    public void T8_WeaponType_EnumMemberAlias_Value_Binds()
-    {
-        var value = TestJson.Data(@"""great_staff""", typeof(WeaponType));
-
-        value.Should()
-             .Be(WeaponType.GreatStaff);
-    }
-
+    #region Spot checks — the dictionary-key cells the matrix cannot state
     // Dictionary-key position is the separate path, and the only accepted divergence in the entire matrix - the
     // five 5_unknownString key cells counted by 2_dictionaryKeyDegradesInsteadOfThrowing. The pinned baseline
     // throws for the whole payload there (the fixture's DictionaryKey 5_unknownString cells, still the oracle);

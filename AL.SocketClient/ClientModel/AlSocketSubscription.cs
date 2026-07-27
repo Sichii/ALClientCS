@@ -1,8 +1,3 @@
-#region
-using System;
-using System.Threading.Tasks;
-#endregion
-
 namespace AL.SocketClient.ClientModel;
 
 public abstract class ALSocketSubscription : IDisposable

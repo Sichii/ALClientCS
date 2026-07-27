@@ -1,5 +1,4 @@
 #region
-using System.Collections.Generic;
 using AL.Core.Definitions;
 #endregion
 

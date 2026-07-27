@@ -1,8 +1,5 @@
 #region
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -36,12 +33,6 @@ public class MapBoundaryCharacterization
     ///     . Read back through <see cref="Fixture.ReadCommittedSnapshot" />.
     /// </summary>
     private const string COMMITTED_NAME = "map-boundaries.json";
-
-    /// <summary>
-    ///     A distinct name for the freshly generated copy, so regenerating it never overwrites the committed fixture's output
-    ///     path and turns the regression check into a tautology.
-    /// </summary>
-    private const string GENERATED_NAME = "map-boundaries.generated.json";
 
     //matches JsonConvert.ToString's escaping - quotes, backslash and control characters only, with < > & +
     //left alone - so the rendered strings stay byte-identical to the frozen fixture
@@ -142,24 +133,6 @@ public class MapBoundaryCharacterization
     }
 
     /// <summary>
-    ///     Line-ending agnostic comparison, as the sibling census suites already do. <see cref="Render" /> emits
-    ///     <c>
-    ///         \n
-    ///     </c>
-    ///     , but the repo has
-    ///     <c>
-    ///         core.autocrlf=true
-    ///     </c>
-    ///     and no
-    ///     <c>
-    ///         .gitattributes
-    ///     </c>
-    ///     , so a checkout rewrites the committed fixture to CRLF and a raw string compare would fail on line 2 of a fresh
-    ///     clone.
-    /// </summary>
-    private static string Normalize(string text) => text.Replace("\r\n", "\n");
-
-    /// <summary>
     ///     Renders the records as deterministic, diff-friendly JSON. Floats use round-trip formatting so the fixture preserves
     ///     the exact bits, and Phase 1's diff shows precisely which coordinates recovered a fraction.
     /// </summary>
@@ -199,59 +172,37 @@ public class MapBoundaryCharacterization
     /// </summary>
     [Test]
     public void T5_AllMapRectangles_StjPath_ReproducesCommittedSnapshot()
-    {
-        var generated = Render(CollectRectangles());
-
-        //written beside the binary under a distinct name so it can be diffed / re-committed, and so it never
-        //clobbers the committed fixture's own output path
-        Fixture.WriteSnapshot(GENERATED_NAME, generated);
-
-        var committed = Fixture.ReadCommittedSnapshot(COMMITTED_NAME);
-
-        committed.Should()
-                 .NotBeNull(
-                     $"Committed fixture '{COMMITTED_NAME}' is missing. A freshly generated copy was written to the "
-                     + $"test binary's Fixtures\\snapshots\\{GENERATED_NAME}. Copy it into "
-                     + $"AL.Tests/Fixtures/snapshots/{COMMITTED_NAME} and commit it.");
-
-        Normalize(generated)
-            .Should()
-            .Be(Normalize(committed), "the System.Text.Json map-rectangle path does not reproduce the pinned Newtonsoft coordinates");
-    }
+        => Fixture.ShouldMatchCommittedSnapshot(Render(CollectRectangles()), COMMITTED_NAME);
 
     /// <summary>
-    ///     Documents the 5-element form
-    ///     <c>
-    ///         [map, x1, y1, x2, y2]
-    ///     </c>
-    ///     : the first element is a non-numeric string, so
+    ///     Documents the converter's two array shapes, both built from Point(x1, y1) and Point(x2, y2). In the 5-element form
+    ///     the leading element fails
     ///     <c>
     ///         float.TryParse
     ///     </c>
-    ///     fails and it is taken as the map name rather than a coordinate.
+    ///     and is taken as the map name rather than a coordinate; the 4-element form carries no map name. All four
+    ///     coordinates have been
+    ///     <c>
+    ///         float
+    ///     </c>
+    ///     since the Phase 1 widening, so no fraction is lost either way: center X = (100.7 + 300.4) / 2 = 200.55, center
+    ///     Y = (200.9 + 400.6) / 2 = 300.75, and both extents are 199.7. This is the mechanism the snapshot captures in
+    ///     aggregate.
     /// </summary>
-    /// <remarks>
-    ///     The name predates the widening — nothing rounds any more; the assertions below are the truth.
-    /// </remarks>
     [Test]
-    public void T5_FiveElementArray_WithMapName_RoundsAllFourCoordinates()
+    [Arguments("[100.7, 200.9, 300.4, 400.6]", "")]
+    [Arguments("[\"main\", 100.7, 200.9, 300.4, 400.6]", "main")]
+    public void T5_CoordinateArray_KeepsEveryFraction(string payload, string expectedMap)
     {
-        const string PAYLOAD = "[\"main\", 100.7, 200.9, 300.4, 400.6]";
+        var rectangle = TestJson.Data<MapRectangle>(payload)!;
 
-        var rectangle = TestJson.Data<MapRectangle>(PAYLOAD)!;
-
-        //after the Phase 1 widening all four coordinates are float: 100.7, 200.9, 300.4, 400.6
-        //  center X = (100.7 + 300.4) / 2 = 200.55
-        //  center Y = (200.9 + 400.6) / 2 = 300.75
-        //  width    = |100.7 - 300.4| = 199.7
-        //  height   = |200.9 - 400.6| = 199.7
         rectangle.Map
                  .Should()
-                 .Be("main");
+                 .Be(expectedMap, "only a non-numeric leading element is taken as a map name");
 
         rectangle.X
                  .Should()
-                 .BeApproximately(200.55f, 0.001f, "coordinates are float now, so the fraction survives even with a map name");
+                 .BeApproximately(200.55f, 0.001f, "center X keeps the first coordinate's fraction");
 
         rectangle.Y
                  .Should()
@@ -264,50 +215,6 @@ public class MapBoundaryCharacterization
         rectangle.Height
                  .Should()
                  .BeApproximately(199.7f, 0.001f);
-    }
-
-    /// <summary>
-    ///     Documents how the converter builds a rectangle from a 4-element numeric array. All four coordinates have been
-    ///     <c>
-    ///         float
-    ///     </c>
-    ///     since the Phase 1 widening, so no fraction is lost. This is the mechanism the snapshot captures in aggregate.
-    /// </summary>
-    /// <remarks>
-    ///     The name predates the widening — nothing rounds any more; the assertions below are the truth.
-    /// </remarks>
-    [Test]
-    public void T5_FourElementNumericArray_KeepsFirstCoordinateFractional_RoundsTheRest()
-    {
-        //[x1, y1, x2, y2] — after the Phase 1 widening ALL four coordinates are float; none rounds
-        const string PAYLOAD = "[100.7, 200.9, 300.4, 400.6]";
-
-        var rectangle = TestJson.Data<MapRectangle>(PAYLOAD)!;
-
-        //built from Point(100.7, 200.9) and Point(300.4, 400.6) — every fraction now survives:
-        //  center X = (100.7 + 300.4) / 2 = 200.55
-        //  center Y = (200.9 + 400.6) / 2 = 300.75
-        //  width    = |100.7 - 300.4| = 199.7
-        //  height   = |200.9 - 400.6| = 199.7
-        rectangle.X
-                 .Should()
-                 .BeApproximately(200.55f, 0.001f, "center X keeps the first coordinate's fraction");
-
-        rectangle.Y
-                 .Should()
-                 .BeApproximately(300.75f, 0.001f, "center Y now keeps its fraction (float, not rounded int)");
-
-        rectangle.Width
-                 .Should()
-                 .BeApproximately(199.7f, 0.001f);
-
-        rectangle.Height
-                 .Should()
-                 .BeApproximately(199.7f, 0.001f);
-
-        rectangle.Map
-                 .Should()
-                 .Be(string.Empty, "a 4-element numeric array carries no map name");
     }
 
     /// <summary>
@@ -376,61 +283,8 @@ public class MapBoundaryCharacterization
     }
 
     /// <summary>
-    ///     Guards the count the plan asserts (T5 claims 160). Boundaries = monster
-    ///     <c>
-    ///         boundary
-    ///     </c>
-    ///     +
-    ///     <c>
-    ///         boundaries
-    ///     </c>
-    ///     + NPC
-    ///     <c>
-    ///         boundary
-    ///     </c>
-    ///     .
-    ///     <c>
-    ///         rage
-    ///     </c>
-    ///     is the same converter but a separate field, so it is counted apart. The exact numbers are verified here rather than
-    ///     trusted.
-    /// </summary>
-    [Test]
-    public void T5_RectangleCounts_ArePinned()
-    {
-        //these counts are a property of the data, not of the engine that read it
-        var records = CollectRectangles();
-
-        var monsterBoundary = records.Count(record => record.Field == "boundary");
-        var monsterBoundaries = records.Count(record => record.Field == "boundaries");
-        var npcBoundary = records.Count(record => record.Field == "npc");
-        var rage = records.Count(record => record.Field == "rage");
-        var boundaries = monsterBoundary + monsterBoundaries + npcBoundary;
-
-        monsterBoundary.Should()
-                       .Be(146, "monster single boundary count");
-
-        monsterBoundaries.Should()
-                         .Be(7, "monster boundaries-list element count");
-
-        npcBoundary.Should()
-                   .Be(3, "npc boundary count");
-
-        rage.Should()
-            .Be(4, "rage rectangle count");
-
-        boundaries.Should()
-                  .Be(156, "boundary rectangles (monster boundary + boundaries + npc)");
-
-        //the plan's "160" is the whole converter population INCLUDING the 4 rage rectangles, not just boundaries
-        records.Count
-               .Should()
-               .Be(160, "total rectangles through MapRectangleConverter (plan T5's 160)");
-    }
-
-    /// <summary>
     ///     One captured rectangle: a stable location key plus the final <see cref="MapRectangle" /> fields the migration can
-    ///     move. <paramref name="Field" /> is retained so counts can be reported per category.
+    ///     move. <paramref name="Field" /> is rendered into the fixture, which is what pins the per-category counts.
     /// </summary>
     private readonly record struct RectRecord(
         string Loc,

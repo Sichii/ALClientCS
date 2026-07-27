@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Interfaces;

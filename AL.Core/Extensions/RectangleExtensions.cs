@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;

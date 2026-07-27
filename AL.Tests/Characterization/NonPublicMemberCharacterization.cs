@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using AL.APIClient.Request;
@@ -45,15 +42,13 @@ namespace AL.Tests.Characterization;
 ///     </c>
 ///     frame actually drives those members away from their defaults under the current serializer.
 ///     <br />
-///     Phase 6b re-pointed the predicate from the old serializer's property attribute onto the two STJ attributes; every
-///     pinned count in <see cref="T11_Census_PinsCategoryCounts" /> was re-derived, not carried over.
+///     Phase 6b re-pointed the predicate from the old serializer's property attribute onto the two STJ attributes, so the
+///     committed fixture was re-derived member by member rather than carried over.
 /// </remarks>
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public sealed class NonPublicMemberCharacterization
 {
     private const string CENSUS_SNAPSHOT = "t11-nonpublic-member-census.txt";
-
-    private const string GENERATED_CENSUS_SNAPSHOT = "t11-nonpublic-member-census.generated.txt";
 
     private const string START_FRAME = "t11-start-frame.json";
 
@@ -110,167 +105,25 @@ public sealed class NonPublicMemberCharacterization
     }
 
     [Test]
-    public void T11_Census_ContainsEveryNamedSite()
-    {
-        var census = BuildCensus();
+    public void T11_Census_MatchesCommittedFixture() => Fixture.ShouldMatchCommittedSnapshot(Render(BuildCensus()), CENSUS_SNAPSHOT);
 
-        // The eight non-public *properties* the plan names (property visibility itself is non-public).
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.Data.Skills.GSkill",
-            "ListTargets");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.Data.Skills.GSkill",
-            "ReuseCooldown");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.Data.Maps.GMapMonster",
-            "_boundaries");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.Data.Maps.GMapMonster",
-            "_boundary");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.Data.Maps.GMapNPC",
-            "_position");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.Data.Maps.GMapNPC",
-            "_positions");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.APIClient.Request.LoginInfo",
-            "Email");
-
-        AssertPresent(
-            census,
-            NON_PUBLIC_PROPERTY,
-            "AL.APIClient.Request.LoginInfo",
-            "Password");
-
-        // The five private *fields* the plan names.
-        AssertPresent(
-            census,
-            FIELD,
-            "AL.Data.Conditions.GCondition",
-            "_canMove");
-
-        AssertPresent(
-            census,
-            FIELD,
-            "AL.Data.Maps.GMapNPC",
-            "_name");
-
-        AssertPresent(
-            census,
-            FIELD,
-            "AL.Data.Monsters.GMonsterAbility",
-            "_amount");
-
-        AssertPresent(
-            census,
-            FIELD,
-            "AL.Data.Monsters.GMonsterAbility",
-            "_damage");
-
-        AssertPresent(
-            census,
-            FIELD,
-            "AL.Data.Monsters.GMonsterAbility",
-            "_heal");
-    }
-
+    /// <summary>
+    ///     The per-category census counts are pinned by the committed fixture itself, member by member. These two numbers are
+    ///     not, because they count members no serialization attribute reaches — which is exactly the hazard.
+    /// </summary>
     [Test]
-    public void T11_Census_MatchesCommittedFixture()
-    {
-        var census = BuildCensus();
-        var rendered = Render(census);
-
-        //written under a distinct name, so regenerating never overwrites the committed fixture's output path and
-        //turns the comparison into a tautology - the hazard MapBoundaryCharacterization's sidecar already avoids
-        var generatedPath = Fixture.WriteSnapshot(GENERATED_CENSUS_SNAPSHOT, rendered);
-        var committed = Fixture.ReadCommittedSnapshot(CENSUS_SNAPSHOT);
-
-        committed.Should()
-                 .NotBeNull(
-                     $"the census fixture must be committed at AL.Tests/Fixtures/snapshots/{CENSUS_SNAPSHOT}; "
-                     + $"copy the generated file from {generatedPath} into the repo and re-run");
-
-        Normalize(committed)
-            .Should()
-            .Be(
-                Normalize(rendered),
-                "the non-public JSON member census drifted; re-commit the generated snapshot if the change is intended");
-    }
-
-    [Test]
-    public void T11_Census_PinsCategoryCounts()
+    public void T11_Census_PinsAttributeAuditBlindSpot()
     {
         var census = BuildCensus();
 
         var instanceNonPublicSetters = census.Count(entry => entry is { Category: NON_PUBLIC_SETTER, IsStatic: false });
-        var staticNonPublicSetters = census.Count(entry => entry is { Category: NON_PUBLIC_SETTER, IsStatic: true });
-        var nonPublicProperties = census.Count(entry => entry.Category == NON_PUBLIC_PROPERTY);
-        var fields = census.Count(entry => entry.Category == FIELD);
-
-        // Diagnostic for the migration hazard the census surfaces: the attribute-gated blind spot.
         var allInstanceNonPublicSetters = AllInstanceNonPublicSetterCount();
         var auditGap = allInstanceNonPublicSetters - instanceNonPublicSetters;
 
         Console.WriteLine($"instance non-public setters (w/ STJ attribute) : {instanceNonPublicSetters}");
-        Console.WriteLine($"static  non-public setters (GameData)          : {staticNonPublicSetters}");
-        Console.WriteLine($"non-public properties                          : {nonPublicProperties}");
-        Console.WriteLine($"instance fields                                : {fields}");
         Console.WriteLine($"total census entries                           : {census.Count}");
         Console.WriteLine($"ALL instance non-public setters (any/no attr)  : {allInstanceNonPublicSetters}");
         Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {auditGap}");
-
-        // Pinned to the REAL reflection result, re-derived member-by-member after Phase 6b re-pointed the
-        // predicate from [JsonProperty] onto [JsonInclude]/[JsonPropertyName]. The two populations are not the
-        // same set, so every number below was recomputed rather than carried across:
-        //   instance non-public setters : 113 -> 113  (unchanged)
-        //   static  non-public setters  :  20 ->   0  (see below — the whole category emptied)
-        //   non-public properties       :   8 ->   8  (unchanged)
-        //   instance fields             :   5 ->   5  (unchanged)
-        // The three unchanged categories are 1:1 replacements: each [JsonProperty] on a non-public member became
-        // [JsonInclude], and each [JsonProperty("wire")] additionally kept its name as [JsonPropertyName("wire")],
-        // so the same 126 members are still named with the same wire keys.
-        instanceNonPublicSetters.Should()
-                                .Be(113);
-
-        // The one real re-baseline. The 20 GameData roots left the census entirely: STJ cannot bind static
-        // members at all, so they are no longer driven by a serialization attribute but by [GameDataRoot], which
-        // GameData.Bind reflects over by hand. Nothing went uncovered with them — GameDataLoadCharacterization's
-        // T1_StaticScalars_Bind / T1_Datums_FullyPopulated assert those roots by value, which is a stronger
-        // guard than a name in this census ever was.
-        staticNonPublicSetters.Should()
-                              .Be(0);
-
-        nonPublicProperties.Should()
-                           .Be(8);
-
-        fields.Should()
-              .Be(5);
-
-        // The ~48 dead [JsonProperty] that used to sit on BankPack (and a few other) enum members had their own
-        // count pinned at 0 here. Phase 6c dropped that guard along with the package reference it needed: with
-        // the old serializer gone from the solution entirely, the attribute cannot be reapplied without
-        // reintroducing the dependency, which the compiler now rejects. That is a stronger guard than a count.
 
         // Finding, and the reason an attribute-gated audit is unsafe under STJ exactly as it was under the old
         // serializer: 150 instance properties in the six assemblies have a non-public setter, and only 113 carry
@@ -282,7 +135,7 @@ public sealed class NonPublicMemberCharacterization
         auditGap.Should()
                 .Be(37);
 
-        // Attribute-independent by construction, so the re-point could not move it: 150, unchanged.
+        // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150, unchanged.
         allInstanceNonPublicSetters.Should()
                                    .Be(150);
     }
@@ -899,20 +752,6 @@ public sealed class NonPublicMemberCharacterization
 
         return string.Join('\n', lines);
     }
-
-    private static string Normalize(string text)
-        => text.Replace("\r\n", "\n")
-               .Trim('\n');
-
-    private static void AssertPresent(
-        IReadOnlyList<CensusEntry> census,
-        string category,
-        string typeFullName,
-        string memberName)
-        => census.Should()
-                 .ContainSingle(
-                     entry => (entry.Category == category) && (entry.TypeFullName == typeFullName) && (entry.MemberName == memberName),
-                     $"{typeFullName}.{memberName} must be in the census as {category}");
     #endregion
 
     #region frame coverage helpers

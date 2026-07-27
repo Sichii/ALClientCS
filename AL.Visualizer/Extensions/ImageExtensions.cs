@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
@@ -260,13 +257,12 @@ public static class ImageExtensions
         if (color == default)
             color = Color.Gold;
 
-        _ = points.Aggregate(
-            (prev, cur) =>
-            {
-                image.DrawLine(prev, cur, color);
+        _ = points.Aggregate((prev, cur) =>
+        {
+            image.DrawLine(prev, cur, color);
 
-                return cur;
-            });
+            return cur;
+        });
 
         return image;
     }

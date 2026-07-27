@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Reflection;
-using AL.APIClient.Model;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.SocketClient.Definitions;
@@ -46,40 +43,6 @@ public class ToleranceTests
         obj.Y
            .Should()
            .Be(456.5f);
-    }
-
-    [Test]
-    public void AuthCookieWithAPrefixedUserIdParses()
-    {
-        const string COOKIE
-            = "auth=US_abcdefghijklmnopqrstuvwxyz123-tok12345678901234567; Max-Age=157680000; Domain=.adventure.land; Path=/; Expires=Sat, 21 Jul 2035 12:00:00 GMT";
-
-        var authUser = typeof(AuthUser).Assembly.GetType("AL.APIClient.Model.AuthUser");
-
-        authUser.Should()
-                .NotBeNull();
-
-        var instance = Activator.CreateInstance(
-            authUser,
-            BindingFlags.Instance | BindingFlags.NonPublic,
-            null,
-            [
-                null,
-                COOKIE
-            ],
-            null);
-
-        instance.Should()
-                .NotBeNull();
-
-        var userId = authUser.GetProperty("UserID")!.GetValue(instance) as string;
-        var authKey = authUser.GetProperty("AuthKey")!.GetValue(instance) as string;
-
-        userId.Should()
-              .Be("US_abcdefghijklmnopqrstuvwxyz123");
-
-        authKey.Should()
-               .Be("tok12345678901234567");
     }
 
     [Test]

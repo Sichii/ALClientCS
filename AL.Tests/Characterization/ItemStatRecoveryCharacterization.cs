@@ -1,6 +1,4 @@
 #region
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AL.Core.Definitions;
@@ -65,44 +63,53 @@ public class ItemStatRecoveryCharacterization
     };
 
     /// <summary>
-    ///     The item's wire JSON through
-    ///     <c>
-    ///         ALJson.Options
-    ///     </c>
-    ///     , which resolves the item converter from the attributed factory exactly as GameData binds items.
-    /// </summary>
-    private static GItem Deserialize(JsonObject wire) => TestJson.Data<GItem>(wire.ToJsonString())!;
-
-    /// <summary>
     ///     Every item in the snapshot whose
     ///     <c>
     ///         stat
     ///     </c>
     ///     value is a JSON string, discovered from the raw wire so the count is independent of any deserialization the tests
-    ///     also exercise.
+    ///     also exercise, paired with the <see cref="GItem" /> the converter binds it to. Lazy and shared: every test below
+    ///     reads the same 22 items, and deserializing them once is what keeps that from being five passes over the section.
     /// </summary>
-    private static IEnumerable<(string Accessor, JsonObject Wire)> StringStatItems()
-        => Fixture.Section("items")
-                  .AsObject()
-                  .Select(property => (Accessor: property.Key, Wire: property.Value as JsonObject))
-                  .Where(item => item.Wire?["stat"]
-                                     ?.GetValueKind()
-                                 == JsonValueKind.String)
-                  .Select(item => (item.Accessor, item.Wire!));
+    private static readonly Lazy<IReadOnlyList<ScrollItem>> StringStatItems = new(Collect);
+
+    private static IReadOnlyList<ScrollItem> Collect()
+    {
+        var items = new List<ScrollItem>();
+
+        var section = Fixture.Section("items")
+                             .AsObject();
+
+        foreach ((var accessor, var value) in section)
+        {
+            if (value is not JsonObject wire)
+                continue;
+
+            if (wire["stat"]
+                    ?.GetValueKind()
+                != JsonValueKind.String)
+                continue;
+
+            //through ALJson.Options, which resolves the item converter from the attributed factory exactly as
+            //GameData binds items
+            items.Add(new ScrollItem(accessor, wire, TestJson.Data<GItem>(wire.ToJsonString())!));
+        }
+
+        return items;
+    }
 
     [Test]
     public void T3_StringStat_GradeIsNull_AbsentFromWire()
     {
         // the plan lists Grade as a resume canary, but grade is absent from all 22 scrolls' wire; it stays null.
         // pinned as-is: the real resume canaries are Name / GoldValue / StackSize (see the sibling test).
-        foreach ((var accessor, var wire) in StringStatItems())
+        foreach ((var accessor, var wire, var item) in StringStatItems.Value)
         {
             wire.ContainsKey("grade")
                 .Should()
                 .BeFalse("grade is absent from the wire for {0}", accessor);
 
-            Deserialize(wire)
-                .Grade
+            item.Grade
                 .Should()
                 .BeNull("grade is absent from the wire for {0}, so Grade cannot serve as a resume canary", accessor);
         }
@@ -112,9 +119,8 @@ public class ItemStatRecoveryCharacterization
     public void T3_StringStat_LeavesNumericStatUnbound()
     {
         // the string value never reaches the numeric Stat bind; recovery fills ScrollStat and Stat keeps its default
-        foreach ((var accessor, var wire) in StringStatItems())
-            Deserialize(wire)
-                .Stat
+        foreach ((var accessor, _, var item) in StringStatItems.Value)
+            item.Stat
                 .Should()
                 .Be(0f, "item {0}'s stat was a string, so the numeric Stat property never bound", accessor);
     }
@@ -122,12 +128,11 @@ public class ItemStatRecoveryCharacterization
     [Test]
     public void T3_StringStat_RecoversScrollStat()
     {
-        foreach ((var accessor, var wire) in StringStatItems())
+        foreach ((var accessor, var wire, var item) in StringStatItems.Value)
         {
             var statString = wire["stat"]!.GetValue<string>();
 
-            Deserialize(wire)
-                .ScrollStat
+            item.ScrollStat
                 .Should()
                 .Be(
                     ExpectedScrollStat[statString],
@@ -142,10 +147,8 @@ public class ItemStatRecoveryCharacterization
     {
         // name, s and g all follow stat in the wire object; if recovery abandoned the object instead of
         // binding the rest, these would hold their defaults (null / 1 / 0)
-        foreach ((var accessor, var wire) in StringStatItems())
+        foreach ((var accessor, var wire, var item) in StringStatItems.Value)
         {
-            var item = Deserialize(wire);
-
             item.Name
                 .Should()
                 .Be(wire["name"]!.GetValue<string>(), "Name follows stat in the wire and must bind after recovery for {0}", accessor);
@@ -163,16 +166,16 @@ public class ItemStatRecoveryCharacterization
     [Test]
     public void T3_StringStatItems_AreExactlyTwentyTwo()
     {
-        var discovered = StringStatItems()
-                         .Select(item => item.Accessor)
-                         .ToList();
-
-        discovered.Should()
-                  .HaveCount(22, "the snapshot contains exactly this many items whose stat is a string");
+        StringStatItems.Value
+                       .Should()
+                       .HaveCount(22, "the snapshot contains exactly this many items whose stat is a string");
 
         // the hardcoded expectation set must cover every discovered stat string and nothing else
-        discovered.Select(accessor => Fixture.Entry("items", accessor)["stat"]!.GetValue<string>())
-                  .Should()
-                  .BeEquivalentTo(ExpectedScrollStat.Keys);
+        StringStatItems.Value
+                       .Select(scroll => scroll.Wire["stat"]!.GetValue<string>())
+                       .Should()
+                       .BeEquivalentTo(ExpectedScrollStat.Keys);
     }
+
+    private sealed record ScrollItem(string Accessor, JsonObject Wire, GItem Item);
 }

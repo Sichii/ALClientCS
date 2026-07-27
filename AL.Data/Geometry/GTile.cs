@@ -1,6 +1,5 @@
 #region
 using System.Collections;
-using System.Collections.Generic;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Core.Json.Attributes;

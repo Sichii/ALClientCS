@@ -1,7 +1,6 @@
 #region
-using System;
-using System.IO;
 using System.Text.Json.Nodes;
+using FluentAssertions;
 #endregion
 
 namespace AL.Tests.Characterization;
@@ -45,6 +44,10 @@ public static class Fixture
     public static JsonNode Entry(string section, string key)
         => Section(section)[key] ?? throw new InvalidOperationException($@"Snapshot has no ""{section}.{key}"".");
 
+    private static string Normalize(string text)
+        => text.Replace("\r\n", "\n")
+               .Trim('\n');
+
     /// <summary>
     ///     Reads a snapshot committed under
     ///     <c>
@@ -68,6 +71,45 @@ public static class Fixture
     /// </summary>
     public static JsonNode Section(string name)
         => GameData[name] ?? throw new InvalidOperationException($@"Snapshot has no ""{name}"" section.");
+
+    /// <summary>
+    ///     The differential check every census suite runs: compares freshly generated text against the committed fixture of
+    ///     that name, leaving a sidecar copy beside the test binary to diff or re-commit.
+    /// </summary>
+    /// <remarks>
+    ///     The sidecar carries a distinct name so regenerating can never overwrite the committed fixture's own output path and
+    ///     turn the comparison into a tautology, and the committed text is read first so the build-copied source stays
+    ///     authoritative. A missing fixture fails rather than being bootstrapped from the engine under test — the committed
+    ///     text
+    ///     <b>
+    ///         is
+    ///     </b>
+    ///     the frozen oracle. The compare is line-ending agnostic because the repo has
+    ///     <c>
+    ///         core.autocrlf=true
+    ///     </c>
+    ///     and no
+    ///     <c>
+    ///         .gitattributes
+    ///     </c>
+    ///     , so a checkout rewrites the committed fixture to CRLF.
+    /// </remarks>
+    public static void ShouldMatchCommittedSnapshot(string generated, string fileName)
+    {
+        var committed = ReadCommittedSnapshot(fileName);
+        var sidecarPath = WriteSnapshot($"{fileName}.generated", generated);
+
+        committed.Should()
+                 .NotBeNull(
+                     $"Committed fixture '{fileName}' is missing. A freshly generated copy was written to "
+                     + $"'{sidecarPath}'; copy it into AL.Tests/Fixtures/snapshots and commit it.");
+
+        Normalize(generated)
+            .Should()
+            .Be(
+                Normalize(committed!),
+                $"the System.Text.Json path no longer reproduces '{fileName}'; re-commit the generated copy only if the change is intended");
+    }
 
     /// <summary>
     ///     Writes a generated snapshot beside the test binary and returns its path. Used by the characterisation tests that

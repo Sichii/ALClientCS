@@ -1,5 +1,4 @@
 #region
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;

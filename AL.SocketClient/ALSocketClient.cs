@@ -1,11 +1,8 @@
 #region
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Linq.Expressions;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
@@ -29,7 +26,7 @@ namespace AL.SocketClient;
 /// <seealso cref="IAsyncDisposable" />
 public sealed class ALSocketClient : IALSocketClient
 {
-    private readonly ConcurrentDictionary<Type, Func<SocketIOResponse, int, object>> CompiledExpressions;
+    private readonly ConcurrentDictionary<Type, Func<SocketIOResponse, int, object>> GetValueInvokers;
     private readonly IFormattedLogger Logger;
     private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
     private bool Disposed;
@@ -59,7 +56,7 @@ public sealed class ALSocketClient : IALSocketClient
     {
         Logger = logger;
         Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
-        CompiledExpressions = new ConcurrentDictionary<Type, Func<SocketIOResponse, int, object>>();
+        GetValueInvokers = new ConcurrentDictionary<Type, Func<SocketIOResponse, int, object>>();
     }
 
     /// <inheritdoc />
@@ -283,21 +280,18 @@ RAW JSON:
                     invocationList.Remove(subscription);
     }
 
+    //binds response.GetValue<T>(index) for a type only known at runtime. MethodInvoker over MethodInfo.Invoke
+    //because it does not wrap a deserialization failure in TargetInvocationException
     internal static Func<SocketIOResponse, int, object> CreateLambda(Type type)
     {
-        //compile an expression for a given type, that called response.GetValue<T> where T is the type object
-        var responseParam = Expression.Parameter(typeof(SocketIOResponse), "response");
-        var callParam = Expression.Parameter(typeof(int));
+        var getValue = typeof(SocketIOResponse).GetMethods()
+                                               .First(mInfo => mInfo.IsGenericMethod
+                                                               && mInfo.Name.EqualsI(nameof(SocketIOResponse.GetValue)))
+                                               .MakeGenericMethod(type);
 
-        var method = typeof(SocketIOResponse).GetMethods()
-                                             .Where(mInfo => mInfo.Name.EqualsI(nameof(SocketIOResponse.GetValue)))
-                                             .FirstOrDefault(mInfo => mInfo.IsGenericMethod)!.MakeGenericMethod(type);
+        var invoker = MethodInvoker.Create(getValue);
 
-        var call = Expression.Call(responseParam, method, callParam);
-
-        var lambda = Expression.Lambda<Func<SocketIOResponse, int, object>>(call, responseParam, callParam);
-
-        return lambda.Compile();
+        return (response, index) => invoker.Invoke(response, index)!;
     }
 
     private void DisconnectedEvent(object? sender, string e)
@@ -376,7 +370,7 @@ RAW JSON:
                 return;
 
             var type = subscriptionList.Type;
-            var getValue = CompiledExpressions.GetOrAdd(type, CreateLambda);
+            var getValue = GetValueInvokers.GetOrAdd(type, CreateLambda);
             var dataObject = getValue(response, 0);
             Logger.Trace($"{messageType}, {response}");
 

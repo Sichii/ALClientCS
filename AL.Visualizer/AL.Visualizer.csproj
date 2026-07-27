@@ -1,11 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- AL.Data/AL.Core arrive transitively through AL.Pathfinding; AL.APIClient does not, and Program.cs
+             needs it to fetch the game data that GameData.Populate consumes. -->
+        <ProjectReference Include="..\AL.APIClient\AL.APIClient.csproj"/>
         <ProjectReference Include="..\AL.Pathfinding\AL.Pathfinding.csproj"/>
     </ItemGroup>
 

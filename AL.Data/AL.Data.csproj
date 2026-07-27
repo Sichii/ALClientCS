@@ -1,31 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Title>AL.Data</Title>
-        <Authors>Sichi</Authors>
         <Description>Data library for the ALClientCS project. Contains data objects equivalent to GData/data.js.</Description>
-        <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
-        <AssemblyVersion>1.0.0.0</AssemblyVersion>
-        <FileVersion>1.0.0.0</FileVersion>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-        <DebugType>portable</DebugType>
-        <DebugSymbols>true</DebugSymbols>
-        <NoWarn>1701;1702;1591</NoWarn>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-        <DebugType>portable</DebugType>
     </PropertyGroup>
 
     <ItemGroup>

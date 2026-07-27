@@ -1,5 +1,4 @@
 #region
-using System.Collections.Generic;
 using AL.Core.Interfaces;
 using AL.Pathfinding.Interfaces;
 using Priority_Queue;

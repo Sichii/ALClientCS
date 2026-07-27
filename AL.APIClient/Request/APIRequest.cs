@@ -1,5 +1,4 @@
 #region
-using System;
 using System.Text.Json;
 using AL.APIClient.Definitions;
 using AL.APIClient.Json.SystemTextJson;

@@ -1,12 +1,8 @@
 #region
-using System;
-using System.Threading.Tasks;
-using AL.Core.Helpers;
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
-using Common.Logging;
 using FluentAssertions;
 using SocketIOClient;
 #endregion
@@ -14,13 +10,8 @@ using SocketIOClient;
 namespace AL.Tests.SocketClient.Tests;
 
 [NotInParallel(ParallelKeys.SOCKET_MESSAGE_HANDLER)]
-public class MessageHandlerTests
+public class MessageHandlerTests : SocketTestBed
 {
-    public static ALSocketClient Socket { get; set; } = null!;
-
-    [After(Class)]
-    public static async Task Cleanup() => await Socket.DisposeAsync();
-
     [Test]
     public void CreateLambdaTest()
     {
@@ -49,28 +40,9 @@ public class MessageHandlerTests
                 return source.Task;
             });
 
-        await Socket.HandleEventAsync(
-            @"[
-   ""action"",
-   {
-      ""attacker"":""2144160"",
-      ""target"":""Moneybaggers"",
-      ""type"":""attack"",
-      ""source"":""attack"",
-      ""x"":595.7417319170224,
-      ""y"":1091.179435638155,
-      ""eta"":400,
-      ""m"":361,
-      ""pid"":""wMhQBT"",
-      ""projectile"":""stone"",
-      ""damage"":25
-   }
-]");
+        await Socket.HandleEventAsync(ACTION_FRAME);
 
         (await source.Task).Should()
                            .BeTrue();
     }
-
-    [Before(Class)]
-    public static void Init() => Socket = new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
 }

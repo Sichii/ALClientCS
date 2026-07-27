@@ -1,41 +1,14 @@
 #region
-using System;
-using System.Threading.Tasks;
-using AL.Core.Helpers;
-using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.SocketModel;
-using Common.Logging;
 using FluentAssertions;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
 
 [NotInParallel(ParallelKeys.SOCKET_DISPATCH)]
-public class DispatchTests
+public class DispatchTests : SocketTestBed
 {
-    private const string ACTION_FRAME = @"[
-   ""action"",
-   {
-      ""attacker"":""2144160"",
-      ""target"":""Moneybaggers"",
-      ""type"":""attack"",
-      ""source"":""attack"",
-      ""x"":595.7417319170224,
-      ""y"":1091.179435638155,
-      ""eta"":400,
-      ""m"":361,
-      ""pid"":""wMhQBT"",
-      ""projectile"":""stone"",
-      ""damage"":25
-   }
-]";
-
-    public static ALSocketClient Socket { get; set; } = null!;
-
-    [After(Class)]
-    public static async Task Cleanup() => await Socket.DisposeAsync();
-
     [Test]
     public async Task HandledSubscriberStillShortCircuitsTest()
     {
@@ -57,9 +30,6 @@ public class DispatchTests
         laterRan.Should()
                 .BeFalse();
     }
-
-    [Before(Class)]
-    public static void Init() => Socket = new ALSocketClient(new FormattedLogger("test", LogManager.GetLogger<ALSocketClient>()));
 
     [Test]
     public async Task ThrowingSubscriberDoesNotStarveLaterSubscribersTest()

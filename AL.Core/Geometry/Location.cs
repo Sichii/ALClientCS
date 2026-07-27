@@ -1,5 +1,4 @@
 #region
-using System;
 using AL.Core.Interfaces;
 #endregion
 
@@ -47,6 +46,7 @@ public record Location(string Map, float X, float Y) : ILocation
     public Location(string map, IPoint point)
         : this(
             map,
+
             // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
             point?.X ?? throw new ArgumentNullException(nameof(point)),
             point?.Y ?? throw new ArgumentNullException(nameof(point))) { }

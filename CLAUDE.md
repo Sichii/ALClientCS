@@ -29,27 +29,34 @@ Two things that will waste your time if you don't know them:
 
 ```powershell
 # Build the solution
-dotnet build ALClientCS.sln
+dotnet build ALClientCS.slnx
 
-# Run all tests (MSTest + VSTest — `dotnet test` is correct here)
-dotnet test AL.Tests/AL.Tests.csproj
+# Run all tests. TUnit on Microsoft.Testing.Platform, so the test binary IS the runner.
+# `dotnet test` reports "Zero tests ran" — the csproj does not opt into
+# TestingPlatformDotnetTestSupport. Run the project instead.
+dotnet run --project AL.Tests -c Debug
 
 # Run a single test class, then a single test method
-dotnet test AL.Tests/AL.Tests.csproj --filter "FullyQualifiedName~PathfindingTests"
-dotnet test AL.Tests/AL.Tests.csproj --filter "FullyQualifiedName~PathfindingTests.MethodName"
+dotnet run --project AL.Tests -c Debug -- --treenode-filter "/*/*/PathfindingTests/*"
+dotnet run --project AL.Tests -c Debug -- --treenode-filter "/*/*/PathfindingTests/MethodName"
 
 # Regenerate strongly-typed data members from the game's G data
 dotnet run --project AL.MemberGenerator
+
+# Render navmesh images (standalone tool)
+dotnet run --project AL.Visualizer -- dump-maps
 ```
 
-Any test deriving from `APITestBed` logs into the live API and needs `TestCredentials.txt` beside the test binary — account email on line 1, password on line 2. `AssemblyInit` repoints `Environment.CurrentDirectory` at the test output directory and creates `images/` and `images/path/`, which the visualizer tests write into.
+Any test deriving from `APITestBed` logs into the live API and needs `TestCredentials.txt` beside the test binary — account email on line 1, password on line 2. `AssemblyInit` repoints `Environment.CurrentDirectory` at the test output directory.
+
+Shared build properties (TFM, nullable, implicit usings, packaging metadata) live in `Directory.Build.props` at the repo root, so a new project inherits them. The three tool projects opt out of packaging with `IsPackable=false`.
 
 **Downstream consumer:** `D:\repos\Sichii\ALBot` references six of these projects *by relative path* from its own `ALBot.slnx`. Changing a public signature here breaks that build with no compile-time warning on this side.
 
 ## Solution Structure
 
 ```
-ALClientCS.sln (net10.0)
+ALClientCS.slnx (net10.0)
 ├── AL.Core            — base types, geometry, comparers, JSON converters, enums, extensions
 ├── AL.Data            — static 'G' game data (GameData), enriched with derived members
 ├── AL.APIClient       — REST layer: login, server list, character list (RestSharp)
@@ -57,8 +64,8 @@ ALClientCS.sln (net10.0)
 ├── AL.Pathfinding     — nav mesh triangulation (Poly2Tri) + A* (OptimizedPriorityQueue)
 ├── AL.Client          — ALClient and per-class subclasses; the public entry point
 ├── AL.MemberGenerator — codegen console tool, emits a `dataMembers` folder (not shipped)
-├── AL.Visualizer      — renders maps/paths to images via ImageSharp (debug + test aid)
-└── AL.Tests           — MSTest + FluentAssertions
+├── AL.Visualizer      — standalone CLI that renders navmeshes/paths to PNG via ImageSharp (not shipped)
+└── AL.Tests           — TUnit + FluentAssertions
 ```
 
 **Dependency flow** (verified against each `.csproj`):
@@ -68,11 +75,14 @@ ALClientCS.sln (net10.0)
 AL.Core─┤                                      ├──> AL.Client
         └──> AL.APIClient ──> AL.SocketClient ─┘
 
-AL.MemberGenerator -> AL.APIClient + AL.Data      AL.Visualizer -> AL.Pathfinding
-AL.Tests -> AL.Client + AL.Visualizer
+AL.MemberGenerator -> AL.APIClient + AL.Data
+AL.Visualizer      -> AL.APIClient + AL.Pathfinding
+AL.Tests           -> AL.Client
 ```
 
-`AL.Core` is the only project with no project references. Every NuGet dependency the whole stack gets for free flows from it: `Chaos.Extensions.Common`, `Chaos.Time`, `Common.Logging.NLogNetStandard`, `Newtonsoft.Json`, `System.Linq.Async`.
+The six library projects are packed on build; `AL.MemberGenerator`, `AL.Visualizer` and `AL.Tests` are `Exe` tools and set `IsPackable=false`.
+
+`AL.Core` is the only project with no project references. Every NuGet dependency the whole stack gets for free flows from it: `Chaos.Time` and `Common.Logging.NLogNetStandard` (which is what puts NLog on the graph — nothing else references it directly).
 
 ## Architecture
 
@@ -119,7 +129,7 @@ var bounds = gMonster.BoundingBase;
 
 ### Pathfinding (`AL.Pathfinding`)
 
-Two structures, both built at init: a **triangulated navigation mesh** for complex movement, and a **2D byte array** for simple movement. Poly2Tri does the triangulation, OptimizedPriorityQueue backs the search. `AL.Visualizer` renders the results to PNG, which is how the pathfinding tests assert visually.
+Two structures, both built at init: a **triangulated navigation mesh** for complex movement, and a **2D byte array** for simple movement. Poly2Tri does the triangulation, OptimizedPriorityQueue backs the search. `GraphBase.OpenNode` uses its `Contains` + `UpdatePriority` (decrease-key), which the BCL `PriorityQueue<T,TP>` has no equivalent for — swapping to the BCL type means restructuring the search around lazy deletion (enqueue duplicates, skip stale pops). That is a normal transformation, not a blocker; which is actually faster here has not been measured. `AL.Visualizer` renders the results to PNG; run it by hand to eyeball a mesh, since no test asserts visually.
 
 ## Entity Persistence Rules
 

@@ -1,5 +1,4 @@
 #region
-using System;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Model;
 using FluentAssertions;

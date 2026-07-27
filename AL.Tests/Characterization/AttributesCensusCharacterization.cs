@@ -1,8 +1,5 @@
 #region
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -149,8 +146,6 @@ public class AttributesCensusCharacterization
         return property?.PropertyType == typeof(float) ? property : null;
     }
 
-    private static string Normalize(string text) => text.Replace("\r\n", "\n");
-
     /// <summary>
     ///     Renders a float exactly as the frozen snapshot holds it: round-trip format, plus a trailing
     ///     <c>
@@ -206,14 +201,7 @@ public class AttributesCensusCharacterization
         var generated = BuildCensus()
             .ToJsonString(CensusOptions);
 
-        var committed = Fixture.ReadCommittedSnapshot(SNAPSHOT_FILE);
-
-        committed.Should()
-                 .NotBeNull($@"Committed snapshot ""{SNAPSHOT_FILE}"" is missing.");
-
-        Normalize(generated)
-            .Should()
-            .Be(Normalize(committed), "the System.Text.Json attributed-object path does not reproduce the pinned Newtonsoft census");
+        Fixture.ShouldMatchCommittedSnapshot(generated, SNAPSHOT_FILE);
     }
 
     [Test]

@@ -1,8 +1,3 @@
-#region
-using System;
-using System.Collections.Generic;
-#endregion
-
 namespace AL.Pathfinding.Interfaces;
 
 /// <summary>

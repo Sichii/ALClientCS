@@ -1,5 +1,4 @@
 #region
-using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.Client;
 using AL.Core.Extensions;

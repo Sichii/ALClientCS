@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.SocketClient.Model;
@@ -68,6 +66,31 @@ public class CollectionIdentityCharacterization
     private const string ENTITIES_FRAME
         = @"{""in"":""main"",""map"":""main"",""type"":""all"",""monsters"":[{""id"":""m1"",""type"":""goo""}],""players"":[{""id"":""p1"",""ctype"":""mage""}]}";
 
+    #region EventAndBossData.BossInfo — ALClient's in-place downcast
+    [Test]
+    public void T13_BossInfo_DowncastSucceedsAndIsMutable()
+    {
+        var data = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_FRAME)!;
+
+        var downcast = (Dictionary<string, BossInfo>)data.BossInfo;
+
+        downcast.Should()
+                .ContainKey("franky");
+
+        downcast["franky"]
+            .Id
+            .Should()
+            .Be("franky");
+
+        // ALClient mutates this dictionary in place (DestroyEntity removes, OnServerInfo mutates HP).
+        downcast.Remove("franky");
+
+        data.BossInfo
+            .Should()
+            .BeEmpty();
+    }
+    #endregion
+
     #region EntitiesData.Monsters / .Players — IReadOnlyList<T> materialisation
     [Test]
     public void T13_EntitiesData_Collections_RuntimeType()
@@ -97,6 +120,21 @@ public class CollectionIdentityCharacterization
         entities.Players
                 .Should()
                 .BeOfType<List<Player>>();
+    }
+    #endregion
+
+    #region Inventory.Items — the SetCapacity downcast
+    [Test]
+    public void T13_InventorySetCapacity_DowncastToListSucceeds()
+    {
+        // InventoryConverter must hand the ctor a List<Item?>, or SetCapacity's internal (List<Item?>)Items
+        // breaks in production with an InvalidCastException.
+        var inventory = TestJson.Socket<Inventory>(@"[{""name"":""hpot0""}]")!;
+
+        var act = () => inventory.SetCapacity(42);
+
+        act.Should()
+           .NotThrow();
     }
     #endregion
 
@@ -222,86 +260,6 @@ public class CollectionIdentityCharacterization
                                                       .Be(
                                                           Enum.GetValues<Slot>()
                                                               .Length);
-    }
-    #endregion
-
-    #region EventAndBossData.BossInfo — ALClient's in-place downcast
-    [Test]
-    public void T13_BossInfo_RuntimeTypeIsMutableDictionary()
-    {
-        var data = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_FRAME);
-
-        data.Should()
-            .NotBeNull();
-
-        data.BossInfo
-            .Should()
-            .BeOfType<Dictionary<string, BossInfo>>();
-    }
-
-    [Test]
-    public void T13_BossInfo_DowncastSucceedsAndIsMutable()
-    {
-        var data = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_FRAME)!;
-
-        var downcast = (Dictionary<string, BossInfo>)data.BossInfo;
-
-        downcast.Should()
-                .ContainKey("franky");
-
-        downcast["franky"]
-            .Id
-            .Should()
-            .Be("franky");
-
-        // ALClient mutates this dictionary in place (DestroyEntity removes, OnServerInfo mutates HP).
-        downcast.Remove("franky");
-
-        data.BossInfo
-            .Should()
-            .BeEmpty();
-    }
-    #endregion
-
-    #region Inventory.Items — the SetCapacity downcast
-    [Test]
-    public void T13_InventoryItems_RuntimeTypeIsMutableList()
-    {
-        var inventory = TestJson.Socket<Inventory>(@"[{""name"":""hpot0""},{""name"":""mpot0""}]");
-
-        inventory.Should()
-                 .NotBeNull();
-
-        inventory.Count
-                 .Should()
-                 .Be(2);
-
-        // Nullable-reference annotations are erased at runtime, so List<Item> and List<Item?> are the
-        // same type; Items is what SetCapacity downcasts.
-        inventory.Items
-                 .Should()
-                 .BeOfType<List<Item?>>();
-
-        inventory[0]
-            .Should()
-            .NotBeNull();
-
-        inventory[0]!.Name
-                     .Should()
-                     .Be("hpot0");
-    }
-
-    [Test]
-    public void T13_InventorySetCapacity_DowncastToListSucceeds()
-    {
-        // InventoryConverter must hand the ctor a List<Item?>, or SetCapacity's internal (List<Item?>)Items
-        // breaks in production with an InvalidCastException.
-        var inventory = TestJson.Socket<Inventory>(@"[{""name"":""hpot0""}]")!;
-
-        var act = () => inventory.SetCapacity(42);
-
-        act.Should()
-           .NotThrow();
     }
     #endregion
 

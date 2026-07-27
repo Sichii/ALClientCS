@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Linq;
 using System.Reflection;
 using AL.Core.Definitions;
 using AL.SocketClient.Model;

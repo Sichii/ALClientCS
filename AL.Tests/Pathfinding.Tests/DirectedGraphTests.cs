@@ -1,13 +1,8 @@
 #region
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AL.Core.Geometry;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Model;
-using Common.Logging;
 using FluentAssertions;
 #endregion
 
@@ -15,8 +10,6 @@ namespace AL.Tests.Pathfinding.Tests;
 
 public class DirectedGraphTests : PathfindingTestBed
 {
-    private readonly ILog Logger = LogManager.GetLogger<DirectedGraphTests>();
-
     [Test]
     public async Task FindPathFromTownNodeTest()
     {
@@ -36,32 +29,15 @@ public class DirectedGraphTests : PathfindingTestBed
     }
 
     [Test]
-    public async Task FindPathMultiMapBenchTest()
+    public async Task FindPathMultiMapAcrossDoorsTest()
     {
+        //a second cross-map destination, so a regression that only breaks one cluster of maps still fails a test
         var start = new Location("main", -1582, 496);
         var endLoc = new Location("spookytown", 0, 0);
         var end = new Destination(endLoc, 0);
 
-        //jit it!
-        // ReSharper disable once RedundantAssignment
         var path = await Pathfinder.FindPathAsync(start, [end])
                                    .ToArrayAsync();
-
-        var timer = Stopwatch.StartNew();
-
-        path = await Pathfinder.FindPathAsync(start, [end])
-                               .ToArrayAsync();
-
-        timer.Stop();
-        var elapsed = timer.ElapsedMilliseconds;
-        var builder = new StringBuilder();
-
-        foreach (var edge in path)
-            builder.AppendLine(edge.ToString());
-
-        Logger.Info($"Finding path from {start} to {endLoc}");
-        Logger.Info(builder);
-        Logger.Info($"Found path to sppokytown in {elapsed}ms");
 
         path.Should()
             .Contain(p => p.Type == EdgeType.Door);

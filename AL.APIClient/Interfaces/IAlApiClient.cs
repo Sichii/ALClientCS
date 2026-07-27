@@ -1,6 +1,4 @@
 #region
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.APIClient.Response;
 #endregion

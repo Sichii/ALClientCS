@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 #endregion
@@ -15,30 +12,23 @@ namespace AL.Client.Helpers;
 ///     The type of the object. Must be a reference type;
 ///     a struct target would be assigned by value and the merge discarded.
 /// </typeparam>
-public static class ShallowMerge<T> where T : class
+public static class ShallowMerge<T> where T: class
 {
     private static readonly Action<T, T> AssignmentDelegate;
 
     static ShallowMerge()
     {
-        if (AssignmentDelegate == null)
-        {
-            var fromEx = Expression.Parameter(typeof(T), "fromObj");
-            var targetEx = Expression.Parameter(typeof(T), "targetObj");
+        var fromEx = Expression.Parameter(typeof(T), "fromObj");
+        var targetEx = Expression.Parameter(typeof(T), "targetObj");
 
-            var properties = GetRecursiveProperties(typeof(T));
+        var properties = GetRecursiveProperties(typeof(T));
 
-            //typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            //.Where(p => p.CanRead && p.CanWrite)
-            //.ToArray();
+        var assignmentExpressions = properties.Select(p => Expression.Assign(
+            Expression.Property(targetEx, p),
+            Expression.Property(fromEx, p)));
 
-            var assignmentExpressions = properties.Select(p => Expression.Assign(
-                Expression.Property(targetEx, p),
-                Expression.Property(fromEx, p)));
-
-            AssignmentDelegate = Expression.Lambda<Action<T, T>>(Expression.Block(assignmentExpressions), fromEx, targetEx)
-                                           .Compile();
-        }
+        AssignmentDelegate = Expression.Lambda<Action<T, T>>(Expression.Block(assignmentExpressions), fromEx, targetEx)
+                                       .Compile();
     }
 
     private static IEnumerable<PropertyInfo> GetRecursiveProperties(Type type)

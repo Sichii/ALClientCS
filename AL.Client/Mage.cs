@@ -1,16 +1,10 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
 using AL.Core.Helpers;
-using AL.SocketClient;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
-using Common.Logging;
 #endregion
 
 namespace AL.Client;
@@ -252,24 +246,15 @@ public class Mage : ALClient
     /// <exception cref="ArgumentNullException">
     ///     apiClient
     /// </exception>
-    public static async Task<Mage> StartAsync(
+    public static Task<Mage> StartAsync(
         string characterName,
         ServerRegion region,
         ServerId identifier,
         IAlApiClient apiClient)
-    {
-        if (string.IsNullOrEmpty(characterName))
-            throw new ArgumentNullException(nameof(characterName));
-
-        ArgumentNullException.ThrowIfNull(apiClient);
-
-        var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
-        var socketClient = new ALSocketClient(logger);
-
-        var client = new Mage(characterName, apiClient, socketClient);
-
-        await client.ConnectAsync(region, identifier);
-
-        return client;
-    }
+        => StartClientAsync(
+            characterName,
+            region,
+            identifier,
+            apiClient,
+            static (name, api, socket) => new Mage(name, api, socket));
 }

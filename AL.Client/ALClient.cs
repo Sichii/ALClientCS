@@ -1,13 +1,8 @@
 #region
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using AL.APIClient;
 using AL.APIClient.Definitions;
 using AL.APIClient.Extensions;
@@ -842,6 +837,31 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         await using var @lock = await Sync.WaitAsync();
         await InternalConnectAsync();
+    }
+
+    /// <summary>
+    ///     Builds a character client of the requested type and logs it in. Every character class's StartAsync is this,
+    ///     differing only in which type <paramref name="createClient" /> constructs.
+    /// </summary>
+    protected private static async Task<T> StartClientAsync<T>(
+        string characterName,
+        ServerRegion region,
+        ServerId identifier,
+        IAlApiClient apiClient,
+        Func<string, IAlApiClient, IALSocketClient, T> createClient) where T: ALClient
+    {
+        if (string.IsNullOrEmpty(characterName))
+            throw new ArgumentNullException(nameof(characterName));
+
+        ArgumentNullException.ThrowIfNull(apiClient);
+
+        var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
+        var socketClient = new ALSocketClient(logger);
+        var client = createClient(characterName, apiClient, socketClient);
+
+        await client.ConnectAsync(region, identifier);
+
+        return client;
     }
 
     protected async Task InternalConnectAsync()
@@ -2541,20 +2561,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The ping acknowledgement from the server.
     /// </returns>
     public async Task<PingAckData> PingAsync(long pingCount)
-    {
-        var source = new TaskCompletionSource<Expectation<PingAckData>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var pingAckCallback = Socket.On<PingAckData>(ALSocketMessageType.PingAck, data => Task.FromResult(source.TrySetResult(data)));
-
-        await Socket.EmitAsync(
+        => await RequestAsync<PingAckData>(
+            ALSocketMessageType.PingAck,
             ALSocketEmitType.Ping,
             new
             {
                 id = pingCount.ToString()
             });
-
-        return await source.Task.WithNetworkTimeout();
-    }
 
     /// <summary>
     ///     Asynchronously requests your character's data from the server.
@@ -2565,28 +2578,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The character's data.
     /// </returns>
     public async Task<CharacterData> RequestCharacterAsync()
-    {
-        var source = new TaskCompletionSource<Expectation<CharacterData>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var characterCallback = Socket.On<CharacterData>(
+        => await RequestAsync<CharacterData>(
             ALSocketMessageType.Character,
-            data =>
-            {
-                source.TrySetResult(data);
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
             ALSocketEmitType.Property,
             new
             {
                 typing = true
-            });
+            },
 
-        //return await source.Task.WithNetworkTimeout();
-        return await source.Task.WithTimeout(5000);
-    }
+            //character frames feed the whole client, so this subscriber must not consume them
+            false,
+            5000);
 
     /// <summary>
     ///     Asynchronously requests a full entity refresh from the server.
@@ -2597,17 +2599,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     A full refresh of entity data.
     /// </returns>
     public async Task<EntitiesData> RequestEntitiesAsync()
-    {
-        var source = new TaskCompletionSource<Expectation<EntitiesData>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var entitiesCallback = Socket.On<EntitiesData>(
-            ALSocketMessageType.Entities,
-            data => Task.FromResult(source.TrySetResult(data)));
-
-        await Socket.EmitAsync(ALSocketEmitType.SendUpdates, new object());
-
-        return await source.Task.WithNetworkTimeout();
-    }
+        => await RequestAsync<EntitiesData>(ALSocketMessageType.Entities, ALSocketEmitType.SendUpdates, new object());
 
     /// <summary>
     ///     Asynchronously fetches basic information about all players on the server.
@@ -2618,17 +2610,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Basic information about all players on the server.
     /// </returns>
     public async Task<IReadOnlyList<SimplePlayer>> RequestPlayersAsync()
-    {
-        var source = new TaskCompletionSource<Expectation<IReadOnlyList<SimplePlayer>>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var playersCallback = Socket.On<IReadOnlyList<SimplePlayer>>(
-            ALSocketMessageType.Players,
-            data => Task.FromResult(source.TrySetResult(new Expectation<IReadOnlyList<SimplePlayer>>(data))));
-
-        await Socket.EmitAsync(ALSocketEmitType.Players);
-
-        return (await source.Task.WithNetworkTimeout()).Result;
-    }
+        => (await RequestAsync<IReadOnlyList<SimplePlayer>>(ALSocketMessageType.Players, ALSocketEmitType.Players)).Result;
 
     /// <summary>
     ///     Asynchronously gets a list of items ponty is selling.
@@ -3823,37 +3805,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (item == null)
             throw new InvalidOperationException($"Failed to use pot {inventorySlot}. (no item)");
 
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var disappearingTextCallback = Socket.On<DisappearingTextData>(
-            ALSocketMessageType.DisappearingText,
-            data =>
-            {
-                if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
-                    source.TrySetResult($"Failed to use pot {item.Name}. (not ready)");
-
-                return TaskCache.FALSE;
-            });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
+        await ConsumeAsync(
             ALSocketEmitType.Equip,
             new
             {
                 num = inventorySlot
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
+            },
+            $"pot {item.Name}");
     }
 
     /// <summary>
@@ -3862,40 +3820,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">
     ///     Failed to use regen_hp. ({readon})
     /// </exception>
-    public async Task UseRegenHPAsync()
-    {
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var disappearingTextCallback = Socket.On<DisappearingTextData>(
-            ALSocketMessageType.DisappearingText,
-            data =>
-            {
-                if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
-                    source.TrySetResult("Failed to use regen_hp. (not ready)");
-
-                return TaskCache.FALSE;
-            });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
+    public Task UseRegenHPAsync()
+        => ConsumeAsync(
             ALSocketEmitType.Use,
             new
             {
                 item = "hp"
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+            },
+            "regen_hp");
 
     /// <summary>
     ///     Asynchronously regens a small amount of mp. Has a shared CD with potions with a 2x multiplier.
@@ -3903,40 +3835,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">
     ///     Failed to use regen_mp. ({readon})
     /// </exception>
-    public async Task UseRegenMPAsync()
-    {
-        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var disappearingTextCallback = Socket.On<DisappearingTextData>(
-            ALSocketMessageType.DisappearingText,
-            data =>
-            {
-                if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
-                    source.TrySetResult("Failed to use regen_mp. (not ready)");
-
-                return TaskCache.FALSE;
-            });
-
-        using var evalCallback = Socket.On<EvalData>(
-            ALSocketMessageType.Eval,
-            data =>
-            {
-                if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
-
-        await Socket.EmitAsync(
+    public Task UseRegenMPAsync()
+        => ConsumeAsync(
             ALSocketEmitType.Use,
             new
             {
                 item = "mp"
-            });
-
-        var expectation = await source.Task.WithNetworkTimeout();
-        expectation.ThrowIfUnsuccessful();
-    }
+            },
+            "regen_mp");
 
     /// <summary>
     ///     Asynchronously uses the town ability to go to spawn index 0 on the current map.
@@ -4582,6 +4488,75 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     #endregion
 
     #region Helpers
+    /// <summary>
+    ///     Subscribes, emits, and awaits the first matching message. <paramref name="handled" /> stops the message chain at
+    ///     this subscriber, which only a request that owns its message type may do.
+    /// </summary>
+    private async Task<Expectation<T>> RequestAsync<T>(
+        ALSocketMessageType messageType,
+        ALSocketEmitType emitType,
+        object? emitData = null,
+        bool handled = true,
+        int? timeoutMS = null,
+        [CallerMemberName] string? caller = null)
+    {
+        var source = new TaskCompletionSource<Expectation<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var callback = Socket.On<T>(
+            messageType,
+            data =>
+            {
+                var result = source.TrySetResult(new Expectation<T>(data));
+
+                return handled ? Task.FromResult(result) : TaskCache.FALSE;
+            });
+
+        if (emitData == null)
+            await Socket.EmitAsync(emitType);
+        else
+            await Socket.EmitAsync(emitType, emitData);
+
+        return timeoutMS.HasValue ? await source.Task.WithTimeout(timeoutMS.Value) : await source.Task.WithNetworkTimeout(caller);
+    }
+
+    /// <summary>
+    ///     Consumes a potion or regen. The server acknowledges it with an eval carrying the shared pot cooldown, and refuses
+    ///     it with a "not ready" disappearing text. <paramref name="description" /> names the item in that failure.
+    /// </summary>
+    private async Task ConsumeAsync(
+        ALSocketEmitType emitType,
+        object emitData,
+        string description,
+        [CallerMemberName] string? caller = null)
+    {
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var disappearingTextCallback = Socket.On<DisappearingTextData>(
+            ALSocketMessageType.DisappearingText,
+            data =>
+            {
+                if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
+                    source.TrySetResult($"Failed to use {description}. (not ready)");
+
+                return TaskCache.FALSE;
+            });
+
+        using var evalCallback = Socket.On<EvalData>(
+            ALSocketMessageType.Eval,
+            data =>
+            {
+                if (!string.IsNullOrEmpty(data.Code) && RegexCache.POT_TIMEOUT.IsMatch(data.Code))
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(emitType, emitData);
+
+        var expectation = await source.Task.WithNetworkTimeout(caller);
+        expectation.ThrowIfUnsuccessful();
+    }
+
     protected bool DestroyEntity(string id)
     {
         var result = Monsters.Remove(id, out _) || Players.Remove(id, out _);

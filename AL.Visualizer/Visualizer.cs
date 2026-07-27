@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
@@ -37,7 +35,7 @@ public static class Visualizer
     ///     navMesh
     /// </exception>
     public static Image<Rgba32> CreateGridImage<TNode, TEdge>(MeshBase<TNode, TEdge> navMesh) where TEdge: IGraphEdge<TNode>, new()
-                                                                                              where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+        where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
 
     {
         ArgumentNullException.ThrowIfNull(navMesh);
@@ -53,13 +51,6 @@ public static class Visualizer
 
         return image;
     }
-    /*
-             public static Image<Rgba32> DrawPath<TEdge, TNode>(
-        this Image<Rgba32> image,
-        NavMesh2 navMesh,
-        IEnumerable<TEdge?> pathConnectors,
-        Color color = default) where TEdge: IGraphEdge<TNode> where TNode: IGraphNode2<TEdge>
-     */
 
     public static async IAsyncEnumerable<Image<Rgba32>> DrawPath<TGraph, TMesh, TNode, TEdge>(
         TGraph graph,
@@ -98,7 +89,12 @@ public static class Visualizer
             currentPath.Add(edge);
         }
 
-        currentImage!.DrawPath(currentMesh!, currentPath, color);
+        if (currentImage == null)
+            yield break;
+
+        currentImage.DrawPath(currentMesh!, currentPath, color);
+
+        yield return currentImage;
     }
 
     private static Color PointTypeToColor(PointType type)

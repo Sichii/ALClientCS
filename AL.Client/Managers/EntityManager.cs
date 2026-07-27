@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using AL.Client.Abstractions;
 using AL.Core.Helpers;
 using AL.SocketClient.Definitions;
@@ -23,14 +20,7 @@ public sealed class EntityManager : AsyncDeltaLoop
 
     internal void AttachListener()
     {
-        if (OnCharacterSubscription != null)
-            try
-            {
-                OnCharacterSubscription.Dispose();
-            } catch
-            {
-                //ignored
-            }
+        OnCharacterSubscription?.Dispose();
 
         OnCharacterSubscription = Client.Socket.On<CharacterData>(
             ALSocketMessageType.Character,

@@ -1,7 +1,3 @@
-#region
-using System.Threading.Tasks;
-#endregion
-
 namespace AL.Core.Helpers;
 
 /// <summary>

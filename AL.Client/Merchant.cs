@@ -1,8 +1,5 @@
 #region
-using System;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Extensions;
@@ -12,12 +9,10 @@ using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Helpers;
 using AL.Data;
-using AL.SocketClient;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
 using Chaos.Extensions.Common;
-using Common.Logging;
 #endregion
 
 namespace AL.Client;
@@ -108,7 +103,7 @@ public class Merchant : ALClient
 
                 //accepting and rejecting the cast use the same frame shape; only in_progress tells them apart
                 GameResponseType.Data when "fishing".EqualsI(data.Place!) && !data.InProgress => "not in a fishing zone",
-                _ => null
+                _                                                                             => null
             });
 
     /// <summary>
@@ -167,7 +162,7 @@ public class Merchant : ALClient
 
                 //accepting and rejecting the cast use the same frame shape; only in_progress tells them apart
                 GameResponseType.Data when "mining".EqualsI(data.Place!) && !data.InProgress => "not in a mining zone",
-                _ => null
+                _                                                                            => null
             });
 
     /// <summary>
@@ -188,40 +183,6 @@ public class Merchant : ALClient
             throw new ArgumentNullException(nameof(targetId));
 
         return UseSkillCoreAsync("mluck", targetId);
-    }
-
-    /// <summary>
-    ///     Asynchronously throws an item from your inventory at a target.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <param name="inventorySlot">
-    ///     The inventory slot holding the item to throw.
-    /// </param>
-    /// <remarks>
-    ///     The item is consumed. Throwing an item the server considers harmful at another player fails outside of pvp.
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'throw' on {targetId}. ({reason})
-    /// </exception>
-    public Task ThrowAsync(string targetId, int inventorySlot)
-    {
-        if (string.IsNullOrEmpty(targetId))
-            throw new ArgumentNullException(nameof(targetId));
-
-        return UseSkillCoreAsync(
-            "throw",
-            targetId,
-            payload: new
-            {
-                name = "throw",
-                id = targetId,
-                num = inventorySlot
-            });
     }
 
     /// <summary>
@@ -478,25 +439,50 @@ public class Merchant : ALClient
     /// <exception cref="ArgumentNullException">
     ///     apiClient
     /// </exception>
-    public static async Task<Merchant> StartAsync(
+    public static Task<Merchant> StartAsync(
         string characterName,
         ServerRegion region,
         ServerId identifier,
         IAlApiClient apiClient)
+        => StartClientAsync(
+            characterName,
+            region,
+            identifier,
+            apiClient,
+            static (name, api, socket) => new Merchant(name, api, socket));
+
+    /// <summary>
+    ///     Asynchronously throws an item from your inventory at a target.
+    /// </summary>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <param name="inventorySlot">
+    ///     The inventory slot holding the item to throw.
+    /// </param>
+    /// <remarks>
+    ///     The item is consumed. Throwing an item the server considers harmful at another player fails outside of pvp.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'throw' on {targetId}. ({reason})
+    /// </exception>
+    public Task ThrowAsync(string targetId, int inventorySlot)
     {
-        if (string.IsNullOrEmpty(characterName))
-            throw new ArgumentNullException(nameof(characterName));
+        if (string.IsNullOrEmpty(targetId))
+            throw new ArgumentNullException(nameof(targetId));
 
-        ArgumentNullException.ThrowIfNull(apiClient);
-
-        var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
-        var socketClient = new ALSocketClient(logger);
-
-        var client = new Merchant(characterName, apiClient, socketClient);
-
-        await client.ConnectAsync(region, identifier);
-
-        return client;
+        return UseSkillCoreAsync(
+            "throw",
+            targetId,
+            payload: new
+            {
+                name = "throw",
+                id = targetId,
+                num = inventorySlot
+            });
     }
 
     /// <summary>

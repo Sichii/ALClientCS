@@ -1,8 +1,3 @@
-#region
-using System;
-using System.Threading.Tasks;
-#endregion
-
 namespace AL.APIClient.Extensions;
 
 /// <summary>

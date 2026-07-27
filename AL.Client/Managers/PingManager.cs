@@ -1,9 +1,5 @@
 #region
-using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using AL.Client.Abstractions;
 using AL.Core.Collections;
 #endregion

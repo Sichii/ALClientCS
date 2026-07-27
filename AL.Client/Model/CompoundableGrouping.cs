@@ -1,6 +1,5 @@
 #region
 using System.Collections;
-using System.Collections.Generic;
 using AL.Client.Interfaces;
 using AL.SocketClient.Model;
 #endregion

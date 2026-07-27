@@ -18,7 +18,7 @@ internal static class ParallelKeys
     //them, reloads from the committed snapshot and restores them, so every reader serializes against both
     internal const string GAME_DATA = "GameData";
 
-    //each of these owns a separate static ALSocketClient, so they only ever race with themselves
+    //SocketTestBed hands each test its own ALSocketClient, so these only ever serialize a class against itself
     internal const string SOCKET_DISPATCH = "SocketDispatch";
 
     internal const string SOCKET_MESSAGE_HANDLER = "SocketMessageHandler";

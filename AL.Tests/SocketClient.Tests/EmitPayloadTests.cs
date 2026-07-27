@@ -1,5 +1,4 @@
 #region
-using System.Linq;
 using AL.Core.Definitions;
 using AL.Data.Items;
 using FluentAssertions;

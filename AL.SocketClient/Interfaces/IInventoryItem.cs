@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
 using AL.APIClient.Interfaces;
 using AL.Core.Definitions;
 #endregion

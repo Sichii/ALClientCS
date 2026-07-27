@@ -1,5 +1,4 @@
 #region
-using System.Collections.Generic;
 using System.Text.Json;
 using AL.Core.Definitions;
 using AL.Core.Geometry;

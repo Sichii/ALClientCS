@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Threading.Tasks;
 using AL.APIClient.Model;
 using AL.SocketClient.Definitions;
 #endregion

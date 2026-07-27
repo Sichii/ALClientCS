@@ -1,8 +1,5 @@
 #region
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -84,6 +81,10 @@ public record GameData
     [GameDataRoot]
     public static MonstersDatum Monsters { get; private set; }
 
+    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing
+    [GameDataRoot]
+    public static GMultipliers Multipliers { get; } = new();
+
     [GameDataRoot]
     public static NPCsDatum NPCs { get; private set; }
 
@@ -102,24 +103,8 @@ public record GameData
     [GameDataRoot]
     public static TokensDatum Tokens { get; private set; }
 
-    //public Dimensions Dimensions { get; private set; }
-    //public Sprites Sprites { get; private set; }
-    //public Tilesets Tilesets { get; private set; }
-    //public Sets Sets { get; private set; }
-    //public Positions Positions { get; private set; }
-    //public Images1 Images { get; private set; }
-    //public Imagesets Imagesets { get; private set; }
-    //public Docs Docs { get; private set; }
-    //public Drops Drops { get; private set; }
-    //public Emotions Emotions { get; private set; }
-    //public Cosmetics Cosmetics { get; private set; }
-
     [GameDataRoot]
     public static int Version { get; private set; }
-
-    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing
-    [GameDataRoot]
-    public static GMultipliers Multipliers { get; private set; } = new();
 
     [JsonIgnore]
     public static int ShellsToGold => Multipliers.ShellsToGold;

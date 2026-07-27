@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Core.Helpers;
@@ -14,6 +11,91 @@ namespace AL.Client;
 
 public abstract partial class ALClient
 {
+    /// <summary>
+    ///     Uses a skill that sends a single projectile at a target, and returns that projectile.
+    /// </summary>
+    /// <param name="skillName">
+    ///     The name of the skill as the server knows it.
+    /// </param>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <param name="completion">
+    ///     The signal to await. Defaults to the projectile itself, which is how
+    ///     <c>
+    ///         commence_attack
+    ///     </c>
+    ///     answers.
+    /// </param>
+    /// <param name="extraFailure">
+    ///     Inspects each response for a failure specific to this skill, returning the reason or
+    ///     <c>
+    ///         null
+    ///     </c>
+    ///     .
+    /// </param>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item this skill consumes, if it consumes one.
+    /// </param>
+    /// <returns>
+    ///     <see cref="ActionData" />
+    ///     <br />
+    ///     The projectile this skill produced.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use '{skillName}' on {targetId}. ({reason})
+    /// </exception>
+    protected async Task<ActionData> UseProjectileSkillAsync(
+        string skillName,
+        string targetId,
+        SkillCompletion? completion = null,
+        Func<GameResponseData, string?>? extraFailure = null,
+        int? inventorySlot = null)
+    {
+        if (string.IsNullOrEmpty(targetId))
+            throw new ArgumentNullException(nameof(targetId));
+
+        var actions = await UseSkillCoreAsync(
+            skillName,
+            targetId,
+            completion ?? SkillCompletion.Action,
+            extraFailure,
+            true,
+            inventorySlot);
+
+        if (actions.Count == 0)
+            throw new InvalidOperationException($"The server acknowledged '{skillName}' on {targetId} but sent no projectile.");
+
+        return actions[0];
+    }
+
+    /// <summary>
+    ///     Uses a skill by name, for the skills with no dedicated method of their own.
+    /// </summary>
+    /// <param name="skillName">
+    ///     The name of the skill as the server knows it.
+    /// </param>
+    /// <param name="targetId">
+    ///     The id of the entity to use the skill on, for skills that take one.
+    /// </param>
+    /// <remarks>
+    ///     This awaits the contract the majority of skills use. A skill the server answers in some other way will throw
+    ///     <see cref="TimeoutException" /> even though the cast landed — prefer the dedicated method where one exists.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     skillName
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use '{skillName}'. ({reason})
+    /// </exception>
+    /// <exception cref="TimeoutException">
+    ///     The server never acknowledged the skill.
+    /// </exception>
+    public Task UseSkillAsync(string skillName, string? targetId = null) => UseSkillCoreAsync(skillName, targetId);
+
     /// <summary>
     ///     Emits a skill and waits for the server to acknowledge it.
     /// </summary>
@@ -134,18 +216,16 @@ public abstract partial class ALClient
                     GameResponseType.AttackFailed when (targetId != null) && targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"{failurePrefix} (failed)"),
                     GameResponseType.Disabled => source.TrySetResult($"{failurePrefix} (disabled)"),
-                    GameResponseType.Cooldown when skillName.EqualsI(data.Place!) => source.TrySetResult(
-                        $"{failurePrefix} (on cooldown)"),
+                    GameResponseType.Cooldown when skillName.EqualsI(data.Place!) => source.TrySetResult($"{failurePrefix} (on cooldown)"),
                     GameResponseType.NoLevel => source.TrySetResult($"{failurePrefix} (level too low)"),
-                    GameResponseType.NoMP    => source.TrySetResult($"{failurePrefix} (no mp)"),
+                    GameResponseType.NoMP => source.TrySetResult($"{failurePrefix} (no mp)"),
                     GameResponseType.TooFar when (targetId != null) && targetId.EqualsI(data.TargetId!) && skillName.EqualsI(data.Place!) =>
                         source.TrySetResult($"{failurePrefix} (too far)"),
 
                     //the server collapses some volleys into one frame that carries no "success"
                     GameResponseType.Data when (strategy.Kind == SkillCompletionKind.ResponseData)
                                                && !data.Failed
-                                               && skillName.EqualsI(data.Place!)
-                        => source.TrySetResult(Expectation.Success),
+                                               && skillName.EqualsI(data.Place!) => source.TrySetResult(Expectation.Success),
 
                     _ when data.Failed && skillName.EqualsI(data.Place!) => source.TrySetResult(
                         $"{failurePrefix} ({data.Reason ?? data.ResponseType.ToString()})"),
@@ -184,8 +264,9 @@ public abstract partial class ALClient
                 data =>
                 {
                     //calculate_player_stats pushes an attack_ms correction through this same event; it acknowledges no cast
-                    if (string.IsNullOrEmpty(data.Reason) && SkillCompletion.ResolveTimeoutName(skillName)
-                                                                            .EqualsI(data.SkillName))
+                    if (string.IsNullOrEmpty(data.Reason)
+                        && SkillCompletion.ResolveTimeoutName(skillName)
+                                          .EqualsI(data.SkillName))
                         source.TrySetResult(Expectation.Success);
 
                     //never swallow the frame - the standing subscriber behind this one is what records the cooldown
@@ -213,83 +294,6 @@ public abstract partial class ALClient
 
         return actions;
     }
-
-    /// <summary>
-    ///     Uses a skill that sends a single projectile at a target, and returns that projectile.
-    /// </summary>
-    /// <param name="skillName">
-    ///     The name of the skill as the server knows it.
-    /// </param>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <param name="completion">
-    ///     The signal to await. Defaults to the projectile itself, which is how <c>commence_attack</c> answers.
-    /// </param>
-    /// <param name="extraFailure">
-    ///     Inspects each response for a failure specific to this skill, returning the reason or <c>null</c>.
-    /// </param>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item this skill consumes, if it consumes one.
-    /// </param>
-    /// <returns>
-    ///     <see cref="ActionData" />
-    ///     <br />
-    ///     The projectile this skill produced.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '{skillName}' on {targetId}. ({reason})
-    /// </exception>
-    protected async Task<ActionData> UseProjectileSkillAsync(
-        string skillName,
-        string targetId,
-        SkillCompletion? completion = null,
-        Func<GameResponseData, string?>? extraFailure = null,
-        int? inventorySlot = null)
-    {
-        if (string.IsNullOrEmpty(targetId))
-            throw new ArgumentNullException(nameof(targetId));
-
-        var actions = await UseSkillCoreAsync(
-            skillName,
-            targetId,
-            completion ?? SkillCompletion.Action,
-            extraFailure,
-            true,
-            inventorySlot);
-
-        if (actions.Count == 0)
-            throw new InvalidOperationException($"The server acknowledged '{skillName}' on {targetId} but sent no projectile.");
-
-        return actions[0];
-    }
-
-    /// <summary>
-    ///     Uses a skill by name, for the skills with no dedicated method of their own.
-    /// </summary>
-    /// <param name="skillName">
-    ///     The name of the skill as the server knows it.
-    /// </param>
-    /// <param name="targetId">
-    ///     The id of the entity to use the skill on, for skills that take one.
-    /// </param>
-    /// <remarks>
-    ///     This awaits the contract the majority of skills use. A skill the server answers in some other way will throw
-    ///     <see cref="TimeoutException" /> even though the cast landed — prefer the dedicated method where one exists.
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '{skillName}'. ({reason})
-    /// </exception>
-    /// <exception cref="TimeoutException">
-    ///     The server never acknowledged the skill.
-    /// </exception>
-    public Task UseSkillAsync(string skillName, string? targetId = null) => UseSkillCoreAsync(skillName, targetId);
 
     #region Item skills
     //These are not class skills - the server gates them on an equipped or consumed item, so any character can use one.

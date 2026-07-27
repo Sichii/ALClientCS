@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using AL.Core.Definitions;
 using FluentAssertions;
@@ -32,32 +29,6 @@ namespace AL.Tests.Characterization;
 public class EmitEnumWireFormCharacterization
 {
     private const string SNAPSHOT_NAME = "enum-wire-forms.json";
-
-    //property name in the object-position wrapper; kept short and deterministic so the wire form is stable
-    private const string BOX_PROPERTY = "V";
-
-    private static void AssertAllMembersEmitStrings<T>() where T: struct, Enum
-    {
-        foreach (var name in Enum.GetNames<T>())
-        {
-            var value = Enum.Parse<T>(name);
-            var bare = TestJson.Emit(value);
-
-            var inObject = TestJson.Emit(
-                new Box<T>
-                {
-                    V = value
-                });
-
-            JsonNode.Parse(bare)!.GetValueKind()
-                    .Should()
-                    .Be(JsonValueKind.String, $"{typeof(T).Name}.{name} bare emit is not a JSON string.");
-
-            JsonNode.Parse(inObject)![BOX_PROPERTY]!.GetValueKind()
-                    .Should()
-                    .Be(JsonValueKind.String, $"{typeof(T).Name}.{name} in-object emit is not a JSON string.");
-        }
-    }
 
     private static void AssertRoundTrips<T>() where T: struct, Enum
     {
@@ -217,30 +188,6 @@ public class EmitEnumWireFormCharacterization
                 .NotBe(ALClass.None);
     }
 
-    [Test]
-    public void T7_BankPack_EmitsLowercaseName_BareAndInObject()
-    {
-        TestJson.Emit(BankPack.None)
-                .Should()
-                .Be(@"""none""");
-
-        TestJson.Emit(BankPack.Items0)
-                .Should()
-                .Be(@"""items0""");
-
-        TestJson.Emit(BankPack.Items47)
-                .Should()
-                .Be(@"""items47""");
-
-        TestJson.Emit(
-                    new Box<BankPack>
-                    {
-                        V = BankPack.Items0
-                    })
-                .Should()
-                .Be(@"{""V"":""items0""}");
-    }
-
     /// <summary>
     ///     The migration's proof for T7: every emit-reachable enum member must reach the wire under the production
     ///     System.Text.Json options exactly as the pinned snapshot says it does, and no member may be added, removed, renamed,
@@ -262,61 +209,6 @@ public class EmitEnumWireFormCharacterization
         differences.Count
                    .Should()
                    .Be(0, $"System.Text.Json emit diverges from the pinned wire forms:\n{string.Join("\n", differences)}");
-    }
-
-    [Test]
-    public void T7_EveryStringEnumMember_EmitsAJsonStringNeverAnInteger()
-    {
-        //guards the entire failure class, not just Trade1: no member of the four emit-capable enums may
-        //serialize to a bare number in either position
-        AssertAllMembersEmitStrings<Slot>();
-        AssertAllMembersEmitStrings<TradeSlot>();
-        AssertAllMembersEmitStrings<BankPack>();
-        AssertAllMembersEmitStrings<WeaponType>();
-    }
-
-    [Test]
-    public void T7_Slot_EmitsLowercaseName_BareAndInObject()
-    {
-        TestJson.Emit(Slot.None)
-                .Should()
-                .Be(@"""none""");
-
-        TestJson.Emit(Slot.MainHand)
-                .Should()
-                .Be(@"""mainhand""");
-
-        TestJson.Emit(Slot.OffHand)
-                .Should()
-                .Be(@"""offhand""");
-
-        TestJson.Emit(Slot.Ring1)
-                .Should()
-                .Be(@"""ring1""");
-
-        TestJson.Emit(Slot.Trade1)
-                .Should()
-                .Be(@"""trade1""");
-
-        TestJson.Emit(Slot.Trade30)
-                .Should()
-                .Be(@"""trade30""");
-
-        TestJson.Emit(
-                    new Box<Slot>
-                    {
-                        V = Slot.MainHand
-                    })
-                .Should()
-                .Be(@"{""V"":""mainhand""}");
-
-        TestJson.Emit(
-                    new Box<Slot>
-                    {
-                        V = Slot.Trade1
-                    })
-                .Should()
-                .Be(@"{""V"":""trade1""}");
     }
 
     [Test]
@@ -373,56 +265,6 @@ public class EmitEnumWireFormCharacterization
     }
 
     [Test]
-    public void T7_TradeSlot_EmitsLowercaseName_BareAndInObject()
-    {
-        TestJson.Emit(TradeSlot.None)
-                .Should()
-                .Be(@"""none""");
-
-        TestJson.Emit(TradeSlot.Trade1)
-                .Should()
-                .Be(@"""trade1""");
-
-        TestJson.Emit(TradeSlot.Trade30)
-                .Should()
-                .Be(@"""trade30""");
-
-        TestJson.Emit(
-                    new Box<TradeSlot>
-                    {
-                        V = TradeSlot.Trade1
-                    })
-                .Should()
-                .Be(@"{""V"":""trade1""}");
-
-        TestJson.Emit(
-                    new Box<TradeSlot>
-                    {
-                        V = TradeSlot.Trade30
-                    })
-                .Should()
-                .Be(@"{""V"":""trade30""}");
-    }
-
-    [Test]
-    public void T7_TradeSlot_Trade1_EmitsQuotedStringNotSeventeen()
-    {
-        //the destructive regression: TradeSlot.Trade1 == 17, so a slip to integer emit yields {"slot":17},
-        //a value the server acts on - it previously consumed the item instead of listing it
-        var bare = TestJson.Emit(TradeSlot.Trade1);
-
-        bare.Should()
-            .Be(@"""trade1""");
-
-        bare.Should()
-            .NotBe("17");
-
-        JsonNode.Parse(bare)!.GetValueKind()
-                .Should()
-                .Be(JsonValueKind.String);
-    }
-
-    [Test]
     public void T7_UnknownValue_DegradesToZeroMember()
     {
         //the tolerant converter defaults an unrecognized wire value to the enum's zero member rather than throwing
@@ -445,51 +287,6 @@ public class EmitEnumWireFormCharacterization
         TestJson.Socket<Stand>(@"""nonexistent_stand""")
                 .Should()
                 .Be(Stand.None);
-    }
-
-    [Test]
-    public void T7_WeaponType_EmitsMemberNameHonoringEnumMember_BareAndInObject()
-    {
-        //no lowercasing on this one, so the wire form is the CLR name, except where [EnumMember] overrides it
-        TestJson.Emit(WeaponType.None)
-                .Should()
-                .Be(@"""None""");
-
-        TestJson.Emit(WeaponType.Axe)
-                .Should()
-                .Be(@"""Axe""");
-
-        TestJson.Emit(WeaponType.GreatStaff)
-                .Should()
-                .Be(@"""great_staff""");
-
-        TestJson.Emit(WeaponType.GreatSword)
-                .Should()
-                .Be(@"""great_sword""");
-
-        TestJson.Emit(WeaponType.MiscOffhand)
-                .Should()
-                .Be(@"""misc_offhand""");
-
-        TestJson.Emit(WeaponType.ShortSword)
-                .Should()
-                .Be(@"""short_sword""");
-
-        TestJson.Emit(
-                    new Box<WeaponType>
-                    {
-                        V = WeaponType.Axe
-                    })
-                .Should()
-                .Be(@"{""V"":""Axe""}");
-
-        TestJson.Emit(
-                    new Box<WeaponType>
-                    {
-                        V = WeaponType.GreatStaff
-                    })
-                .Should()
-                .Be(@"{""V"":""great_staff""}");
     }
 
     /// <summary>

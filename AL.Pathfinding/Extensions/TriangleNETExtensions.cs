@@ -1,6 +1,4 @@
 #region
-using System.Collections.Generic;
-using System.Linq;
 using AL.Core.Geometry;
 using AL.Pathfinding.Model;
 using Poly2Tri;

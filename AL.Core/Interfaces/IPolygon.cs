@@ -1,7 +1,3 @@
-#region
-using System.Collections.Generic;
-#endregion
-
 namespace AL.Core.Interfaces;
 
 /// <summary>

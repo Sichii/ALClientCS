@@ -1,6 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.SocketClient.Interfaces;

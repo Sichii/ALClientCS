@@ -1,7 +1,3 @@
-#region
-using System.Collections.Generic;
-#endregion
-
 namespace AL.APIClient.Interfaces;
 
 /// <summary>

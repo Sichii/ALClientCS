@@ -1,5 +1,4 @@
 #region
-using System;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;

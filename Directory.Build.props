@@ -1,0 +1,28 @@
+<Project>
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    </PropertyGroup>
+
+    <!-- Packaging metadata. The tool projects opt out with IsPackable=false, which no-ops Pack. -->
+    <PropertyGroup>
+        <Authors>Sichi</Authors>
+        <PackageProjectUrl>https://github.com/Sichii/ALClientCS</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Sichii/ALClientCS</RepositoryUrl>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <DebugSymbols>true</DebugSymbols>
+        <NoWarn>1701;1702;1591</NoWarn>
+    </PropertyGroup>
+
+</Project>

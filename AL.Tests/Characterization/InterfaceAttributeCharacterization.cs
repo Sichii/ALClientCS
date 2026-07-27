@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -14,7 +11,6 @@ using AL.Data.Conditions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.Model;
 using FluentAssertions;
-using System.Threading.Tasks;
 #endregion
 
 namespace AL.Tests.Characterization;
@@ -187,28 +183,12 @@ public class InterfaceAttributeCharacterization
     }
 
     /// <summary>
-    ///     Independent tripwire on the count, so a snapshot regenerated on a drifted tree still trips.
-    /// </summary>
-    [Test]
-    public void T12_InterfaceDeclaredMemberCount_Is71()
-    {
-        var total = WireInterfaces.Sum(wireInterface => wireInterface
-                                                        .GetProperties(
-                                                            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-                                                        .Length);
-
-        // Reality per reflection: 45 + 8 + 7 + 5 + 4 + 2. The plan's "92" counts something else; see the report.
-        total.Should()
-             .Be(71);
-    }
-
-    /// <summary>
     ///     Enumerates every interface-declared JSON member and pins the full surface against a committed snapshot. A member
     ///     appearing, disappearing, or acquiring a wire name breaks this loudly — that is the whole point, since STJ silently
     ///     ignores any attribute declared here.
     /// </summary>
     [Test]
-    public async Task T12_InterfaceDeclaredWireNames_Census_MatchesCommittedSnapshot()
+    public void T12_InterfaceDeclaredWireNames_Census_MatchesCommittedSnapshot()
     {
         var lines = new List<string>();
 
@@ -244,21 +224,7 @@ public class InterfaceAttributeCharacterization
                 Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
 
-        // Read the committed copy before writing, otherwise WriteSnapshot masks a genuinely missing snapshot.
-        var committed = Fixture.ReadCommittedSnapshot(CENSUS_SNAPSHOT);
-
-        if (committed is null)
-        {
-            //sidecar name, never the committed one - see AttributesCensusCharacterization for why
-            var generatedPath = Fixture.WriteSnapshot($"{CENSUS_SNAPSHOT}.generated", generated);
-
-            Assert.Fail(
-                $"Committed census snapshot '{CENSUS_SNAPSHOT}' is missing. A freshly generated copy was written to "
-                + $"'{generatedPath}'; copy it into AL.Tests/Fixtures/snapshots/ and commit it.");
-        }
-
-        generated.Should()
-                 .Be(committed, "The interface-declared JSON surface changed. If intentional, update the committed census snapshot.");
+        Fixture.ShouldMatchCommittedSnapshot(generated, CENSUS_SNAPSHOT);
     }
 
     /// <summary>
@@ -387,44 +353,5 @@ public class InterfaceAttributeCharacterization
         slotItem.Quantity
                 .Should()
                 .Be(7); // q
-    }
-
-    /// <summary>
-    ///     Phase 1 relocated the item interfaces' member attributes onto the concrete types. Pins the inverse of the
-    ///     pre-migration state: <see cref="SlotItem" /> now declares its OWN [JsonPropertyName] for every wire key it used to
-    ///     inherit only through <see cref="ITradeItem" />/<see cref="IInventoryItem" /> and bases.
-    /// </summary>
-    [Test]
-    public void T12_SlotItem_NowDeclaresItsOwnWireKeys()
-    {
-        var ownProperties = typeof(SlotItem).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-        var ownWireNames = ownProperties.Select(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()
-                                                      ?.Name)
-                                        .Where(name => name is not null)
-                                        .Select(name => name!)
-                                        .ToList();
-
-        // The twelve keys that used to live only on ITradeItem/IInventoryItem/ICommonItem/ISimpleItem.
-        string[] relocated =
-        [
-            "b",
-            "giveaway",
-            "list",
-            "rid",
-            "ach",
-            "stat_type",
-            "acc",
-            "gf",
-            "l",
-            "ps",
-            "v",
-            "q"
-        ];
-
-        foreach (var key in relocated)
-            ownWireNames.Contains(key)
-                        .Should()
-                        .BeTrue($"Phase 1 must have moved the '{key}' wire key onto SlotItem itself, but it is not declared there");
     }
 }

@@ -1,9 +1,5 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using AL.APIClient;
 using AL.Data;
 using AL.Data.Achievements;

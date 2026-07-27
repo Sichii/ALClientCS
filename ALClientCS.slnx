@@ -1,0 +1,13 @@
+<Solution>
+    <Folder Name="/Tools/">
+        <Project Path="AL.MemberGenerator/AL.MemberGenerator.csproj"/>
+    </Folder>
+    <Project Path="AL.APIClient/AL.APIClient.csproj"/>
+    <Project Path="AL.Client/AL.Client.csproj"/>
+    <Project Path="AL.Core/AL.Core.csproj"/>
+    <Project Path="AL.Data/AL.Data.csproj"/>
+    <Project Path="AL.Pathfinding/AL.Pathfinding.csproj"/>
+    <Project Path="AL.SocketClient/AL.SocketClient.csproj"/>
+    <Project Path="AL.Tests/AL.Tests.csproj"/>
+    <Project Path="AL.Visualizer/AL.Visualizer.csproj"/>
+</Solution>

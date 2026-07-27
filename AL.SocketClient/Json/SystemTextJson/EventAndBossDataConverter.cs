@@ -1,7 +1,4 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -23,19 +20,6 @@ namespace AL.SocketClient.Json.SystemTextJson;
 /// </summary>
 public sealed class EventAndBossDataConverter : JsonConverter<EventAndBossData>
 {
-    private static readonly Action<BossInfo, string> SetId;
-
-    static EventAndBossDataConverter()
-    {
-        var bossInfoParam = Expression.Parameter(typeof(BossInfo), "bossInfo");
-        var bossIdParam = Expression.Parameter(typeof(string), "bossId");
-
-        var property = Expression.Property(bossInfoParam, typeof(BossInfo).GetProperty(nameof(BossInfo.Id))!);
-
-        SetId = Expression.Lambda<Action<BossInfo, string>>(Expression.Assign(property, bossIdParam), bossInfoParam, bossIdParam)
-                          .Compile();
-    }
-
     public override EventAndBossData? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (JsonNode.Parse(ref reader) is not JsonObject obj)
@@ -51,8 +35,11 @@ public sealed class EventAndBossDataConverter : JsonConverter<EventAndBossData>
             {
                 var bossInfo = child.Deserialize<BossInfo>(options) ?? throw new JsonException("Failed to deserialize boss info.");
 
-                SetId(bossInfo, key);
-                bossInfoDic[key] = bossInfo;
+                //Id is [JsonIgnore]d and init-only; the property name is the only place it exists
+                bossInfoDic[key] = bossInfo with
+                {
+                    Id = key
+                };
             }
 
         return value;

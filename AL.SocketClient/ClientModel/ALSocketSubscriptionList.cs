@@ -1,5 +1,4 @@
 #region
-using System;
 using Chaos.Collections.Synchronized;
 #endregion
 

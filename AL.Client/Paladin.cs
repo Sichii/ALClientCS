@@ -1,15 +1,11 @@
 #region
-using System;
-using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
-using AL.SocketClient;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
-using Common.Logging;
 #endregion
 
 namespace AL.Client;
@@ -142,24 +138,15 @@ public class Paladin : ALClient
     /// <exception cref="ArgumentNullException">
     ///     apiClient
     /// </exception>
-    public static async Task<Paladin> StartAsync(
+    public static Task<Paladin> StartAsync(
         string characterName,
         ServerRegion region,
         ServerId identifier,
         IAlApiClient apiClient)
-    {
-        if (string.IsNullOrEmpty(characterName))
-            throw new ArgumentNullException(nameof(characterName));
-
-        ArgumentNullException.ThrowIfNull(apiClient);
-
-        var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
-        var socketClient = new ALSocketClient(logger);
-
-        var client = new Paladin(characterName, apiClient, socketClient);
-
-        await client.ConnectAsync(region, identifier);
-
-        return client;
-    }
+        => StartClientAsync(
+            characterName,
+            region,
+            identifier,
+            apiClient,
+            static (name, api, socket) => new Paladin(name, api, socket));
 }

@@ -1,7 +1,4 @@
 #region
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AL.Core.Definitions;
 using AL.SocketClient.Definitions;
 #endregion

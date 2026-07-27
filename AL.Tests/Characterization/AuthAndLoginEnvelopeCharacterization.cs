@@ -1,11 +1,9 @@
 #region
-using System;
 using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text.Json.Nodes;
-using System.Threading;
 using AL.APIClient;
 using AL.APIClient.Model;
 using AL.APIClient.Request;
@@ -47,93 +45,37 @@ namespace AL.Tests.Characterization;
 public sealed class AuthAndLoginEnvelopeCharacterization
 {
     #region AuthUser cookie regex
+    /// <summary>
+    ///     Every cookie shape the parser must split into a user id and an auth key.
+    /// </summary>
     [Test]
-    public void T15_AuthCookie_Plain_ParsesIdAndToken()
+    [Arguments("auth=abc123def-tok456ghi", "abc123def", "tok456ghi")]
+
+    //the server strips quotes before splitting, so a wrapped value must parse identically
+    [Arguments(@"auth=""qid-qtok""", "qid", "qtok")]
+
+    //the live cookie is "US_<29 alphanumerics>-<20 alphanumerics>"; the underscore is part of the id
+    [Arguments("auth=US_a83Jd0kQ29charidxxxxxxxxxxxxx-Kd82Ms91xQpZ0aBc7fRt", "US_a83Jd0kQ29charidxxxxxxxxxxxxx", "Kd82Ms91xQpZ0aBc7fRt")]
+
+    //the token group is anchored to ';' OR end-of-string
+    [Arguments("auth=nosemi_id-nosemi_tok", "nosemi_id", "nosemi_tok")]
+
+    //RegexOptions.IgnoreCase means an "Auth=" header is accepted as readily as "auth="
+    [Arguments("Auth=mixed_id-mixed_tok", "mixed_id", "mixed_tok")]
+
+    //the token stops at the first ';', so trailing cookie attributes never bleed into AuthKey
+    [Arguments("auth=attr_id-attr_tok; Max-Age=157680000; Domain=.adventure.land; Path=/; Secure", "attr_id", "attr_tok")]
+    public void T15_AuthCookie_ParsesIdAndToken(string cookie, string expectedUserId, string expectedAuthKey)
     {
-        var auth = CreateAuthUser("auth=abc123def-tok456ghi");
+        var auth = CreateAuthUser(cookie);
 
         auth.UserID
             .Should()
-            .Be("abc123def");
+            .Be(expectedUserId);
 
         auth.AuthKey
             .Should()
-            .Be("tok456ghi");
-    }
-
-    [Test]
-    public void T15_AuthCookie_DoubleQuoted_StripsQuotesThenParses()
-    {
-        //the server strips quotes before splitting, so a wrapped value must parse identically
-        var auth = CreateAuthUser("auth=\"qid-qtok\"");
-
-        auth.UserID
-            .Should()
-            .Be("qid");
-
-        auth.AuthKey
-            .Should()
-            .Be("qtok");
-    }
-
-    [Test]
-    public void T15_AuthCookie_UsPrefixedId_KeepsPrefixInUserId()
-    {
-        //the live cookie is "US_<29 alphanumerics>-<20 alphanumerics>"; the underscore is part of the id
-        var auth = CreateAuthUser("auth=US_a83Jd0kQ29charidxxxxxxxxxxxxx-Kd82Ms91xQpZ0aBc7fRt");
-
-        auth.UserID
-            .Should()
-            .Be("US_a83Jd0kQ29charidxxxxxxxxxxxxx");
-
-        auth.AuthKey
-            .Should()
-            .Be("Kd82Ms91xQpZ0aBc7fRt");
-    }
-
-    [Test]
-    public void T15_AuthCookie_NoTrailingSemicolon_ParsesToEnd()
-    {
-        //the token group is anchored to ';' OR end-of-string
-        var auth = CreateAuthUser("auth=nosemi_id-nosemi_tok");
-
-        auth.UserID
-            .Should()
-            .Be("nosemi_id");
-
-        auth.AuthKey
-            .Should()
-            .Be("nosemi_tok");
-    }
-
-    [Test]
-    public void T15_AuthCookie_MixedCasePrefix_ParsesCaseInsensitively()
-    {
-        //RegexOptions.IgnoreCase means a "Auth=" header is accepted as readily as "auth="
-        var auth = CreateAuthUser("Auth=mixed_id-mixed_tok");
-
-        auth.UserID
-            .Should()
-            .Be("mixed_id");
-
-        auth.AuthKey
-            .Should()
-            .Be("mixed_tok");
-    }
-
-    [Test]
-    public void T15_AuthCookie_ExtraAttributes_StopAtFirstSemicolon()
-    {
-        //the token stops at the first ';', so trailing cookie attributes never bleed into AuthKey
-        var auth = CreateAuthUser("auth=attr_id-attr_tok; Max-Age=157680000; Domain=.adventure.land; Path=/; Secure");
-
-        auth.UserID
-            .Should()
-            .Be("attr_id");
-
-        auth.AuthKey
-            .Should()
-            .Be("attr_tok");
+            .Be(expectedAuthKey);
     }
 
     [Test]

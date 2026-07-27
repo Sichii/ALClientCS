@@ -1,16 +1,11 @@
 #region
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
-using AL.SocketClient;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
-using Common.Logging;
 #endregion
 
 namespace AL.Client;
@@ -192,10 +187,7 @@ public class Rogue : ALClient
     ///     Failed to use 'shadowstrike'. ({reason})
     /// </exception>
     public Task<List<ActionData>> ShadowStrikeAsync(int? inventorySlot = null)
-        => UseSkillCoreAsync(
-            "shadowstrike",
-            collectActions: true,
-            inventorySlot: inventorySlot);
+        => UseSkillCoreAsync("shadowstrike", collectActions: true, inventorySlot: inventorySlot);
 
     /// <summary>
     ///     Asynchronously creates a Rogue client and connects.
@@ -222,24 +214,15 @@ public class Rogue : ALClient
     /// <exception cref="ArgumentNullException">
     ///     apiClient
     /// </exception>
-    public static async Task<Rogue> StartAsync(
+    public static Task<Rogue> StartAsync(
         string characterName,
         ServerRegion region,
         ServerId identifier,
         IAlApiClient apiClient)
-    {
-        if (string.IsNullOrEmpty(characterName))
-            throw new ArgumentNullException(nameof(characterName));
-
-        ArgumentNullException.ThrowIfNull(apiClient);
-
-        var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
-        var socketClient = new ALSocketClient(logger);
-
-        var client = new Rogue(characterName, apiClient, socketClient);
-
-        await client.ConnectAsync(region, identifier);
-
-        return client;
-    }
+        => StartClientAsync(
+            characterName,
+            region,
+            identifier,
+            apiClient,
+            static (name, api, socket) => new Rogue(name, api, socket));
 }

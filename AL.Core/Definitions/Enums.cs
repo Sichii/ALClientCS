@@ -1,5 +1,4 @@
 #region
-using System;
 using System.Runtime.Serialization;
 using StjConverters = AL.Core.Json.SystemTextJson;
 using StjJson = System.Text.Json.Serialization;
