@@ -381,3 +381,6 @@ docs/
 
 # graphify knowledge-graph output
 graphify-out/
+
+# memsearch index/tool state
+.memsearch/

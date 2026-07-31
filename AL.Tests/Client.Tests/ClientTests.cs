@@ -1,5 +1,6 @@
 #region
 using System.Diagnostics;
+using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
@@ -14,6 +15,37 @@ namespace AL.Tests.Client.Tests;
 
 public class ClientTests
 {
+    //the filter RangerCombat picks its multishot targets through - a monster an in-flight arrow has already
+    //killed is not worth a shot, because every shot spends the whole shared attack cooldown. Pinned on a plain
+    //EntityBase so it needs no game data: the Monster arm adds only the _1hp bail-out on top of this arithmetic.
+    [Test]
+    public void WillDieToProjectilesCountsOnlyTheProjectilesAimedAtThatEntity()
+    {
+        static ActionData Shot(string targetId, float damage)
+            => new()
+            {
+                Target = targetId,
+                Damage = damage
+            };
+
+        var target = TestJson.Socket<Player>(@"{""id"":""m1"",""hp"":100}")!;
+
+        //120 of committed damage against 100 hp, and the 0.95 haircut still clears it
+        target.WillDieToProjectiles([Shot("m1", 60), Shot("m1", 60)])
+              .Should()
+              .BeTrue();
+
+        //one arrow short - 57 does not, so the ranger keeps shooting it
+        target.WillDieToProjectiles([Shot("m1", 60)])
+              .Should()
+              .BeFalse();
+
+        //aimed at something else, so it counts for nothing here
+        target.WillDieToProjectiles([Shot("m2", 500)])
+              .Should()
+              .BeFalse();
+    }
+
     [Test]
     public void CalculateDamageMultiplierTest()
     {

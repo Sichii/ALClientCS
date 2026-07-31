@@ -163,7 +163,7 @@ public abstract partial class ALClient
                               {
                                   name = skillName
                               },
-                              (not null, null) => (object)new
+                              (not null, null) => new
                               {
                                   name = skillName,
                                   id = targetId
@@ -215,10 +215,13 @@ public abstract partial class ALClient
                     //attack_failed carries only an id, never a place, so the target is the only discriminator there is
                     GameResponseType.AttackFailed when (targetId != null) && targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"{failurePrefix} (failed)"),
-                    GameResponseType.Disabled => source.TrySetResult($"{failurePrefix} (disabled)"),
+                    GameResponseType.Disabled when skillName.EqualsI(data.Place!) => source.TrySetResult($"{failurePrefix} (disabled)"),
                     GameResponseType.Cooldown when skillName.EqualsI(data.Place!) => source.TrySetResult($"{failurePrefix} (on cooldown)"),
-                    GameResponseType.NoLevel => source.TrySetResult($"{failurePrefix} (level too low)"),
-                    GameResponseType.NoMP => source.TrySetResult($"{failurePrefix} (no mp)"),
+                    GameResponseType.NoLevel when skillName.EqualsI(data.Place!) => source.TrySetResult($"{failurePrefix} (level too low)"),
+
+                    //the skill handler's own no_mp names the skill; commence_attack has three that send a bare code with
+                    //no place, and those stay unmatched here rather than failing every other cast in flight
+                    GameResponseType.NoMP when skillName.EqualsI(data.Place!) => source.TrySetResult($"{failurePrefix} (no mp)"),
                     GameResponseType.TooFar when (targetId != null) && targetId.EqualsI(data.TargetId!) && skillName.EqualsI(data.Place!) =>
                         source.TrySetResult($"{failurePrefix} (too far)"),
 

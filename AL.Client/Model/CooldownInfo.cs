@@ -12,6 +12,12 @@ namespace AL.Client.Model;
 public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 {
     /// <summary>
+    ///     How far short of the round trip <see cref="CompensateOnce" /> stops, so the next use aims just past the
+    ///     server's expiry rather than exactly at it.
+    /// </summary>
+    private const float JITTER_GUARD_MS = 15f;
+
+    /// <summary>
     ///     The cooldown of the skill.
     /// </summary>
     public float CooldownMs { get; init; }
@@ -45,7 +51,12 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
             throw new InvalidOperationException("Object already compensated.");
 
         IsCompensated = true;
-        Elapsed += minimumOffset;
+
+        //compensating the whole round trip aims the next use at the exact instant the server's timer expires, and the
+        //server keeps no grace - it refuses outright while mssince(last) is under the cooldown - so any leg quicker
+        //than the minimum observed one lands early and is rejected. Held back by the guard, which is well inside the
+        //poll granularity of anything waiting on this and so costs no real uptime
+        Elapsed += minimumOffset - TimeSpan.FromMilliseconds(JITTER_GUARD_MS);
     }
 
     /// <inheritdoc />

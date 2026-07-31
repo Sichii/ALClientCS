@@ -122,6 +122,8 @@ public sealed class ALSocketClient : IALSocketClient
 
                     Logger.Warn(
                         $"Rate-limited: {report.TotalCalls} total calls, exceeded a call-cost limit of {report.CallLimit} in 4s. {report.Calls}");
+
+                    OnLimitDcReport?.Invoke(this, report);
                 } catch (Exception e)
                 {
                     Logger.Error($"Failed to read limitdcreport. {e}");
@@ -271,6 +273,11 @@ RAW JSON:
     ///     An event fired when the socket disconnects unintentionally.
     /// </summary>
     public event EventHandler<string>? OnDisconnected;
+
+    /// <summary>
+    ///     Raised when the server sends a rate-limit kick report immediately before disconnecting.
+    /// </summary>
+    public event EventHandler<LimitDcReportData>? OnLimitDcReport;
 
     public void Unsub<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
     {

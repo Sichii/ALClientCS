@@ -814,7 +814,12 @@ public enum NPCRole
     Tease,
     TheSearch,
     Transport,
-    Witch
+    Witch,
+
+    //appended rather than sorted in: the implicit numbering is pinned by the tolerance matrix, and the
+    //numeric-string fallback resolves against it
+    Favors,
+    Scrollsmith
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -903,7 +908,21 @@ public enum UIDataType
     GainMoney,
 
     [EnumMember(Value = "-$")]
-    LoseMoney
+    LoseMoney,
+
+    //appended rather than sorted in: the implicit numbering is pinned by the tolerance matrix, and the
+    //numeric-string fallback resolves against it
+    Energize,
+
+    [EnumMember(Value = "restore_mp")]
+    RestoreMP,
+
+    //the two "draw a line between the two players" texts; sender/receiver rather than a single anchor
+    [EnumMember(Value = "gold_sent")]
+    GoldSent,
+
+    [EnumMember(Value = "item_sent")]
+    ItemSent
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

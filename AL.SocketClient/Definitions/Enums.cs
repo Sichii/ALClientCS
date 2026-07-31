@@ -274,6 +274,11 @@ public enum GameResponseType
     [EnumMember(Value = "target_alive")]
     TargetAlive,
 
+    //revive's rejection for a gravestone below full hp. Built by hand rather than by fail_response, so it carries
+    //neither place nor failed - the response code is the only discriminator it has.
+    [EnumMember(Value = "revive_failed")]
+    ReviveFailed,
+
     [EnumMember(Value = "not_in_pvp")]
     NotInPvP,
 

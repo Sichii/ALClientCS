@@ -4,23 +4,23 @@ using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Interfaces;
+using AL.Visualizer.Model;
 using Priority_Queue;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 #endregion
 
 namespace AL.Visualizer.Extensions;
 
 /// <summary>
-///     Provides a set of extensions for <see cref="Image{TPixel}" />.
+///     Provides a set of extensions for <see cref="PixelCanvas" />.
 /// </summary>
-public static class ImageExtensions
+public static class PixelCanvasExtensions
 {
     /// <summary>
-    ///     Draws all connections between all navMesh and their neighbors on an image.
+    ///     Draws all connections between all navMesh and their neighbors on a canvas.
     /// </summary>
-    /// <param name="image">
-    ///     The image to draw on.
+    /// <param name="canvas">
+    ///     The canvas to draw on.
     /// </param>
     /// <param name="navMesh">
     ///     The navMesh to draw connections for.
@@ -29,47 +29,47 @@ public static class ImageExtensions
     ///     The color to draw the connections as.
     /// </param>
     /// <returns>
-    ///     <see cref="Image{TPixel}" />
+    ///     <see cref="PixelCanvas" />
     ///     <br />
-    ///     The image with the connections drawn on it.
+    ///     The canvas with the connections drawn on it.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     image
+    ///     canvas
     /// </exception>
     /// <exception cref="ArgumentNullException">
     ///     navMesh
     /// </exception>
-    public static Image<Rgba32> DrawEdges<TNode, TEdge>(this Image<Rgba32> image, MeshBase<TNode, TEdge> navMesh, Color color = default)
+    public static PixelCanvas DrawEdges<TNode, TEdge>(this PixelCanvas canvas, MeshBase<TNode, TEdge> navMesh, SKColor color = default)
         where TEdge: IGraphEdge<TNode>, new()
         where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
 
     {
-        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(canvas);
 
         ArgumentNullException.ThrowIfNull(navMesh);
 
         if (color == default)
-            color = Color.Red;
+            color = SKColors.Red;
 
         foreach (var edge in navMesh.TraverseEdges())
         {
             var start = navMesh.ApplyOffset(edge.Start.Vertex);
             var midEnd = navMesh.ApplyOffset(edge.End.Vertex.MidPoint(edge.Start.Vertex));
 
-            image.DrawLine(start, midEnd, color);
+            canvas.DrawLine(start, midEnd, color);
         }
 
-        return image;
+        return canvas;
     }
 
     /// <summary>
-    ///     Draws a line on an image.
+    ///     Draws a line on a canvas.
     /// </summary>
-    /// <param name="image">
-    ///     The image to draw on.
+    /// <param name="canvas">
+    ///     The canvas to draw on.
     /// </param>
     /// <param name="line">
-    ///     The line to draw on the image.
+    ///     The line to draw on the canvas.
     /// </param>
     /// <param name="color">
     ///     The color to draw the line.
@@ -78,28 +78,27 @@ public static class ImageExtensions
     ///     The color to draw the pixel the start/end points.
     /// </param>
     /// <returns>
-    ///     <see cref="Image{TPixel}" />
+    ///     <see cref="PixelCanvas" />
     ///     <br />
-    ///     The image with the line drawn on it.
+    ///     The canvas with the line drawn on it.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     image
+    ///     canvas
     /// </exception>
     /// <exception cref="ArgumentNullException">
     ///     line
     /// </exception>
-    public static Image<Rgba32> DrawLine<TLine>(
-        this Image<Rgba32> image,
+    public static PixelCanvas DrawLine<TLine>(
+        this PixelCanvas canvas,
         TLine line,
-        Color color = default,
-        Color ptColor = default) where TLine: ILine
+        SKColor color = default,
+        SKColor ptColor = default) where TLine: ILine
     {
-        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (line == null)
-            throw new ArgumentNullException(nameof(line));
+        ArgumentNullException.ThrowIfNull(line);
 
-        return image.DrawLine(
+        return canvas.DrawLine(
             line.Point1,
             line.Point2,
             color,
@@ -107,10 +106,10 @@ public static class ImageExtensions
     }
 
     /// <summary>
-    ///     Draws a line on an image.
+    ///     Draws a line on a canvas.
     /// </summary>
-    /// <param name="image">
-    ///     The image to draw on.
+    /// <param name="canvas">
+    ///     The canvas to draw on.
     /// </param>
     /// <param name="start">
     ///     The start of the line.
@@ -125,12 +124,12 @@ public static class ImageExtensions
     ///     The color to draw the pixel the start/end points.
     /// </param>
     /// <returns>
-    ///     <see cref="Image{TPixel}" />
+    ///     <see cref="PixelCanvas" />
     ///     <br />
-    ///     The image with the line drawn on it.
+    ///     The canvas with the line drawn on it.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     image
+    ///     canvas
     /// </exception>
     /// <exception cref="ArgumentNullException">
     ///     start
@@ -138,46 +137,41 @@ public static class ImageExtensions
     /// <exception cref="ArgumentNullException">
     ///     end
     /// </exception>
-    public static Image<Rgba32> DrawLine<TPoint>(
-        this Image<Rgba32> image,
+    public static PixelCanvas DrawLine<TPoint>(
+        this PixelCanvas canvas,
         TPoint start,
         TPoint end,
-        Color color = default,
-        Color ptColor = default) where TPoint: IPoint
+        SKColor color = default,
+        SKColor ptColor = default) where TPoint: IPoint
     {
-        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (start == null)
-            throw new ArgumentNullException(nameof(start));
+        ArgumentNullException.ThrowIfNull(start);
 
-        if (end == null)
-            throw new ArgumentNullException(nameof(end));
+        ArgumentNullException.ThrowIfNull(end);
 
         if (color == default)
-            color = Color.Gold;
+            color = SKColors.Gold;
 
         if (ptColor == default)
-            ptColor = Color.Magenta;
+            ptColor = SKColors.Magenta;
 
         foreach ((var x, var y) in new Line(start, end).Points())
-            image[Math.Clamp(Convert.ToInt32(x), 0, image.Width - 1), Math.Clamp(Convert.ToInt32(y), 0, image.Height - 1)] = color;
+            canvas[Math.Clamp(Convert.ToInt32(x), 0, canvas.Width - 1), Math.Clamp(Convert.ToInt32(y), 0, canvas.Height - 1)] = color;
 
-        //image.Mutate(context =>
-        //    context.DrawLines(color, 1, new PointF(start.X, start.Y), new PointF(end.X, end.Y)));
-
-        image[Math.Clamp(Convert.ToInt32(start.X), 0, image.Width - 1), Math.Clamp(Convert.ToInt32(start.Y), 0, image.Height - 1)]
+        canvas[Math.Clamp(Convert.ToInt32(start.X), 0, canvas.Width - 1), Math.Clamp(Convert.ToInt32(start.Y), 0, canvas.Height - 1)]
             = ptColor;
 
-        image[Math.Clamp(Convert.ToInt32(end.X), 0, image.Width - 1), Math.Clamp(Convert.ToInt32(end.Y), 0, image.Height - 1)] = ptColor;
+        canvas[Math.Clamp(Convert.ToInt32(end.X), 0, canvas.Width - 1), Math.Clamp(Convert.ToInt32(end.Y), 0, canvas.Height - 1)] = ptColor;
 
-        return image;
+        return canvas;
     }
 
     /// <summary>
-    ///     Draws a path along a number of path connectors on an image.
+    ///     Draws a path along a number of path connectors on a canvas.
     /// </summary>
-    /// <param name="image">
-    ///     The image to draw on.
+    /// <param name="canvas">
+    ///     The canvas to draw on.
     /// </param>
     /// <param name="navMesh">
     ///     The navmesh this path is for.
@@ -189,46 +183,46 @@ public static class ImageExtensions
     ///     The color to draw the path.
     /// </param>
     /// <returns>
-    ///     <see cref="Image{TPixel}" />
+    ///     <see cref="PixelCanvas" />
     ///     <br />
-    ///     The image with the path drawn on it.
+    ///     The canvas with the path drawn on it.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     image
+    ///     canvas
     /// </exception>
     /// <exception cref="ArgumentNullException">
     ///     pathConnectors
     /// </exception>
-    public static Image<Rgba32> DrawPath<TNode, TEdge>(
-        this Image<Rgba32> image,
+    public static PixelCanvas DrawPath<TNode, TEdge>(
+        this PixelCanvas canvas,
         MeshBase<TNode, TEdge> navMesh,
         IEnumerable<TEdge?> pathConnectors,
-        Color color = default) where TEdge: IGraphEdge<TNode>, new()
-                               where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+        SKColor color = default) where TEdge: IGraphEdge<TNode>, new()
+                                 where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
 
     {
-        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(canvas);
 
         ArgumentNullException.ThrowIfNull(pathConnectors);
 
         IEnumerable<IPoint> SelectPoints(IEnumerable<TEdge?> connectors)
         {
             foreach (var edge in connectors)
-                if (edge != null)
+                if (edge is not null)
                 {
                     yield return navMesh.ApplyOffset(edge.Start.Vertex);
                     yield return navMesh.ApplyOffset(edge.End.Vertex);
                 }
         }
 
-        return image.DrawPath(SelectPoints(pathConnectors), color);
+        return canvas.DrawPath(SelectPoints(pathConnectors), color);
     }
 
     /// <summary>
-    ///     Draws a path along a number of points on an image.
+    ///     Draws a path along a number of points on a canvas.
     /// </summary>
-    /// <param name="image">
-    ///     The image to draw on.
+    /// <param name="canvas">
+    ///     The canvas to draw on.
     /// </param>
     /// <param name="points">
     ///     The points to draw the path along.
@@ -237,33 +231,33 @@ public static class ImageExtensions
     ///     The color to draw the path.
     /// </param>
     /// <returns>
-    ///     <see cref="Image{TPixel}" />
+    ///     <see cref="PixelCanvas" />
     ///     <br />
-    ///     The image with the path drawn on it.
+    ///     The canvas with the path drawn on it.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     image
+    ///     canvas
     /// </exception>
     /// <exception cref="ArgumentNullException">
     ///     points
     /// </exception>
-    public static Image<Rgba32> DrawPath<TPoint>(this Image<Rgba32> image, IEnumerable<TPoint> points, Color color = default)
+    public static PixelCanvas DrawPath<TPoint>(this PixelCanvas canvas, IEnumerable<TPoint> points, SKColor color = default)
         where TPoint: IPoint
     {
-        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(canvas);
 
         ArgumentNullException.ThrowIfNull(points);
 
         if (color == default)
-            color = Color.Gold;
+            color = SKColors.Gold;
 
         _ = points.Aggregate((prev, cur) =>
         {
-            image.DrawLine(prev, cur, color);
+            canvas.DrawLine(prev, cur, color);
 
             return cur;
         });
 
-        return image;
+        return canvas;
     }
 }

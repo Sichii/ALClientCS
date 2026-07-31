@@ -199,4 +199,65 @@ public class GameDataLoadCharacterization
                 .Should()
                 .Be(200);
     }
+
+    /// <summary>
+    ///     The drop entries are the one positional shape whose third slot means two different things, so all three
+    ///     forms are pinned here rather than only the count.
+    /// </summary>
+    [Test]
+    public void T1_Drops_Bind()
+    {
+        GameData.Drops
+                .Gold
+                .Base
+                .Should()
+                .Be(0.64f);
+
+        GameData.Drops
+                .Gold
+                .X50
+                .Should()
+                .BeApproximately(1f / 480f, 0.000001f);
+
+        GameData.Drops
+                .Monsters
+                .Should()
+                .HaveCount(87);
+
+        // [rate, item] - the plain form, 220 of the 323 entries
+        var seashell = GameData.Drops.Monsters["crab"]
+                               .Single(drop => drop.Name == "seashell");
+
+        seashell.Rate
+                .Should()
+                .Be(0.005f);
+
+        seashell.Quantity
+                .Should()
+                .Be(1);
+
+        seashell.IsChest
+                .Should()
+                .BeFalse();
+
+        // [rate, item, quantity] - the third slot as a count
+        GameData.Drops.Monsters["goo"]
+                .Single(drop => drop.Name == "shells")
+                .Quantity
+                .Should()
+                .Be(50);
+
+        // [rate, "open", table] - the third slot as the name of a further table, which the second slot would
+        // otherwise hold. Binding this positionally would read the marker as the item and the table as a count
+        var chest = GameData.Drops.Monsters["rgoo"]
+                            .Single(drop => drop.IsChest);
+
+        chest.Name
+             .Should()
+             .Be("lglitch");
+
+        chest.Rate
+             .Should()
+             .Be(0.025f);
+    }
 }

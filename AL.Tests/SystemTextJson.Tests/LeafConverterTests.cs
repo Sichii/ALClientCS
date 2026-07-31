@@ -2,6 +2,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Json.SystemTextJson;
 using FluentAssertions;
@@ -121,6 +122,15 @@ public sealed class LeafConverterTests
              .Should()
              .Be(4);
     }
+
+    //the game data writes GSkill.target as a real boolean, not the string the enum aliases. Before the True/False
+    //arms every such value degraded to the zero member - so "target":true read as "not single target" - and warned
+    //once per load. TargetType rather than a local fixture, because it is the enum that actually receives one.
+    [Test]
+    public void TolerantEnum_BooleanToken_RoutesThroughAliases()
+        => JsonSerializer.Deserialize<TargetType>("true", Opts())
+                         .Should()
+                         .Be(TargetType.Any);
 
     [Test]
     public void TolerantEnum_KnownAlias_And_CaseInsensitive_Parse()

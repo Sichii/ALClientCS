@@ -2,7 +2,6 @@
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
-using AL.Core.Helpers;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;

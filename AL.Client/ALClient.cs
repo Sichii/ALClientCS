@@ -66,6 +66,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     { MonsterName : { MapAccessor: GoldValue } }
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
+        = new Dictionary<string, IReadOnlyDictionary<string, int>>();
 
     /// <summary>
     ///     The emotions this character has unlocked and their unlock timestamps. Populated from
@@ -108,6 +109,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The <see cref="Character" />'s unique identifier, as fetched via the <see cref="API" />.
     /// </summary>
     public string? Identifier { get; private set; }
+
+    /// <summary>
+    ///     Whether this is a PvP server. Populated from
+    ///     <c>
+    ///         welcome
+    ///     </c>
+    ///     .
+    /// </summary>
+    /// <remarks>
+    ///     Only half of the game's own rule — the server counts you as in PvP when either this or the map's own
+    ///     <c>
+    ///         pvp
+    ///     </c>
+    ///     flag is set (node/server_functions.js:470).
+    /// </remarks>
+    public bool IsPvPServer { get; private set; }
 
     /// <summary>
     ///     A collection of all of the cosmetics owned by this character. Populated from
@@ -955,11 +972,43 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public string? FatalError { get; private set; }
 
+    /// <summary>
+    ///     Raised after a successful automatic reconnect. The socket object has been replaced; any subscriptions made against
+    ///     the previous socket are dead and must be re-registered.
+    /// </summary>
+    public event EventHandler? OnReconnected;
+
+    /// <summary>
+    ///     Raised when the server supplied a parting reason for a disconnect (e.g.
+    ///     <c>
+    ///         "limitdc"
+    ///     </c>
+    ///     ).
+    /// </summary>
+    public event EventHandler<string>? OnDisconnectReason;
+
+    /// <summary>
+    ///     <inheritdoc cref="ALSocketClient.OnLimitDcReport" />
+    ///     Stable across reconnects.
+    /// </summary>
+    public event EventHandler<LimitDcReportData>? OnLimitDcReport;
+
     protected async Task ReconnectAsync()
     {
         //read the server's parting reason off the old socket before disposing it - dispose does not clear
         //the captured value, but the field must be read before Socket is reassigned below.
         var reason = Socket.LastDisconnectReason;
+
+        if (reason != null)
+            try
+            {
+                OnDisconnectReason?.Invoke(this, reason);
+            } catch (Exception e)
+            {
+                //a subscriber's failure must not escape ReconnectAsync - that would skip the dispose,
+                //the "limits" fatal check, and the retry loop below
+                Logger.Error($"OnDisconnectReason subscriber threw. {e}");
+            }
 
         try
         {
@@ -1011,6 +1060,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 await InternalConnectAsync();
 
+                try
+                {
+                    OnReconnected?.Invoke(this, EventArgs.Empty);
+                } catch (Exception e)
+                {
+                    //a subscriber's failure is not a failed reconnect - do not let it re-enter the retry loop
+                    Logger.Error($"OnReconnected subscriber threw. {e}");
+                }
+
                 return;
             } catch
             {
@@ -1042,6 +1100,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         await using var @lock = await Sync.WaitAsync();
 
         Logger.Warn("Disconnecting");
+
+        //stopped here rather than left to OnDisconnected: an intentional disconnect clears Connected before the
+        //socket raises its event, so DisconnectedEvent suppresses OnDisconnected and these two would go on polling
+        //a closed socket, logging an EmitAsync throw every tick. Before the disconnect, so an in-flight request
+        //finishes rather than failing on its way out
+        await PingManager.StopAsync();
+        await EntityManager.StopAsync();
 
         await Socket.DisconnectAsync();
     }
@@ -1258,7 +1323,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.TooFar when targetId.EqualsI(data.TargetId!) => source.TrySetResult(
                         $"Attack on {targetId} failed. (too far: {data.Distance:N2})"),
                     GameResponseType.Cooldown when targetId.EqualsI(data.TargetId!) => source.TrySetResult(
-                        $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS:N2}"),
+                        $"Attack on {targetId} failed. (on cooldown: {data.CooldownMS:N2})"),
 
                     //attack has no mp cost in the game data, so its no_mp frame is bare;
                     //skills that do have one are rejected earlier and carry a place
@@ -1286,7 +1351,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = false;
 
-                if (data.AttackerId.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && data.Type!.EqualsI("attack"))
+                if (data.AttackerId.EqualsI(Character.Id) && data.Target.EqualsI(targetId) && "attack".EqualsI(data.Type!))
                     result = source.TrySetResult(data);
 
                 return Task.FromResult(result);
@@ -1686,7 +1751,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.MiscFail when data.Place!.EqualsI("compound") => source.TrySetResult(
+                    GameResponseType.MiscFail when "compound".EqualsI(data.Place!) => source.TrySetResult(
                         "Failed to compound. (misc, more than 1 issue)"),
 
                     //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
@@ -1696,7 +1761,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
                     GameResponseType.CompoundCant               => source.TrySetResult("Failed to compound. (items not compoundable)"),
                     GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
-                    GameResponseType.Exception when data.Place!.EqualsI("compound") => source.TrySetResult(
+                    GameResponseType.Exception when "compound".EqualsI(data.Place!) => source.TrySetResult(
                         "Failed to compound. (exception, major issues)"),
                     GameResponseType.CantInBank => source.TrySetResult("Failed to compound. (can't compound from bank)"),
                     GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult(
@@ -1781,7 +1846,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.MiscFail when data.Place!.EqualsI("compound") => source.TrySetResult(
+                    GameResponseType.MiscFail when "compound".EqualsI(data.Place!) => source.TrySetResult(
                         "Failed to compound. (misc, more than 1 issue)"),
 
                     //this actually occurs when "clevel" is set to the wrong value, but that should only happen if index1 is the wrong item, or no item.
@@ -1791,7 +1856,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CompoundMismatch           => source.TrySetResult("Failed to compound. (items not the same)"),
                     GameResponseType.CompoundCant               => source.TrySetResult("Failed to compound. (items not compoundable)"),
                     GameResponseType.CompoundInvalidOffering    => source.TrySetResult("Failed to compound. (offering is not an offering)"),
-                    GameResponseType.Exception when data.Place!.EqualsI("compound") => source.TrySetResult(
+                    GameResponseType.Exception when "compound".EqualsI(data.Place!) => source.TrySetResult(
                         "Failed to compound. (exception, major issues)"),
                     GameResponseType.CantInBank => source.TrySetResult("Failed to compound. (can't compound from bank)"),
                     GameResponseType.Distance when "compound".EqualsI(data.Place!) => source.TrySetResult(
@@ -2103,7 +2168,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.DisappearingText,
             data =>
             {
-                if (data.Id.EqualsI(Name) && data.Message.EqualsI("can't equip"))
+                //Name is the receiver: an anchorless disappearing_text carries no id, and EqualsI throws on a
+                //null receiver while tolerating a null argument
+                if (Name.EqualsI(data.Id!) && data.Message.EqualsI("can't equip"))
                     source.TrySetResult($"Failed to equip item {item.Name}. (wrong slot)");
 
                 return TaskCache.FALSE;
@@ -2366,6 +2433,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var delay = new DynamicDelay();
 
+        //how long is left of this leg. Deliberately the whole of it, and not shortened by half a round trip so the
+        //caller can emit the next leg early: returning before the server considers the leg finished is a lie every
+        //other part of this method is built on not being told. The desync detector below sees frames from a leg the
+        //caller has already moved on from, the position handed to the next emit is one the server has not agreed to
+        //yet, and the settle at the bottom clears Moving while the character is still walking. Measured against a
+        //quiet baseline, adding that compensation took "Correcting position" from about one line per thousand to
+        //eleven, and removing the settle to forty.
+        //
+        //The pause it was aimed at is real - a caller does stand on each vertex of a path for a round trip - but it
+        //belongs to whatever is scheduling the caller, not here.
+        TimeSpan RemainingDelay() => TimeSpan.FromSeconds(Character.Distance(point) / Character.Speed);
+
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
             async data =>
@@ -2418,7 +2497,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         Character.SetMoving(point);
                 }
 
-                await delay.SetDelayAsync(TimeSpan.FromSeconds(Character.Distance(point) / Character.Speed));
+                await delay.SetDelayAsync(RemainingDelay());
 
                 return false;
             });
@@ -2455,7 +2534,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 m = Character.MapChangeCount
             });
 
-        var initialDelay = TimeSpan.FromSeconds(Character.Distance(point) / Character.Speed);
+        var initialDelay = RemainingDelay();
         Character.SetMoving(point);
         setMovingAt = DateTime.UtcNow;
 
@@ -2519,6 +2598,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">
     ///     Failed to open chest {chestId}. ({reason})
     /// </exception>
+    /// <exception cref="TimeoutException">
+    ///     Network operation timed out after {timeout}ms.
+    /// </exception>
+    /// <remarks>
+    ///     Only a chest_opened frame removes the chest from <see cref="Chests" />, so an open that fails or times out
+    ///     prunes it here instead - otherwise the chest stays in the collection and every later sweep retries it.
+    /// </remarks>
     public async Task<ChestOpenedData> OpenChestAsync(string chestId)
     {
         if (string.IsNullOrEmpty(chestId))
@@ -2546,7 +2632,25 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 id = chestId
             });
 
-        return await source.Task.WithNetworkTimeout();
+        Expectation<ChestOpenedData> expectation;
+
+        try
+        {
+            expectation = await source.Task.WithNetworkTimeout();
+        } catch (TimeoutException)
+        {
+            //loot_failed and loot_no_space answer with a game_response this never listens for, so the timeout is the
+            //only signal either one gives; caught specifically so anything else still surfaces as the bug it is
+            Chests.Remove(chestId, out _);
+
+            throw;
+        }
+
+        //a gone frame prunes itself through OnChestOpened, but any other failure would leave the chest behind
+        if (!expectation.IsSuccessful)
+            Chests.Remove(chestId, out _);
+
+        return expectation;
     }
 
     /// <summary>
@@ -3060,6 +3164,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
+        //only the path that actually sends the invite emits the game_log above; the other three answer with a
+        //game_response and nothing else (node/server.js:10914-10929), so without these every invite to someone
+        //offline, already partied, or over the cap costs a full network timeout
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    //the invite is redundant, not failed - the server already considers them partied
+                    GameResponseType.AlreadyInParty when "party".EqualsI(data.Place!) => source.TrySetResult(Expectation.Success),
+                    GameResponseType.PartyFull when "party".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to invite {name} to the party. (party full)"),
+                    GameResponseType.Invalid when "party".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to invite {name} to the party. (not online)"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
         await Socket.EmitAsync(
             ALSocketEmitType.Party,
             new
@@ -3218,7 +3343,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (ends.Length == 0)
             throw new ArgumentNullException(nameof(endDestinations));
 
-        var path = Pathfinder.FindPathAsync(Character.ToLocation(), ends, useTownIfOptimal);
+        var start = Character.ToLocation();
+        var path = Pathfinder.FindPathAsync(start, ends, useTownIfOptimal);
+
+        //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
+        //the silent exits below are ordinary, and a caller only ever sees this method return
+        var edgesWalked = 0;
 
         await foreach (var edge in path)
         {
@@ -3228,17 +3358,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             try
             {
                 await HandlePathConnectorAsync(edge, cancellationToken);
+                edgesWalked++;
             } catch (OperationCanceledException)
             {
                 break;
             } catch (InvalidOperationException e)
             {
+                Logger.Debug($"Path leg {edge.Type} to {edge.End.Vertex} failed after {edgesWalked} leg(s). {e.Message}");
+
                 if (e.Message.ContainsI("failed to town"))
                     await SmartMoveAsync(ends, false, cancellationToken);
 
                 break;
             }
         }
+
+        if (edgesWalked == 0)
+            Logger.Debug($"No path walked from {start} to {string.Join(", ", ends.Select(end => end.ToString()))}.");
     }
 
     /// <summary>
@@ -4049,6 +4185,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Socket == null)
             throw new NullReferenceException(nameof(Socket));
 
+        //re-point the re-surfaced event at whichever socket is current. the named handler makes the
+        //detach exact, so re-attaching to the same socket cannot stack duplicate delegates
+        Socket.OnLimitDcReport -= RaiseLimitDcReport;
+        Socket.OnLimitDcReport += RaiseLimitDcReport;
+
         Socket.On<StartData>(ALSocketMessageType.Start, OnStartAsync);
         Socket.On<ChestOpenedData>(ALSocketMessageType.ChestOpened, OnChestOpened);
         Socket.On<CharacterData>(ALSocketMessageType.Character, OnCharacterAsync);
@@ -4079,6 +4220,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         EntityManager.AttachListener();
     }
+
+    private void RaiseLimitDcReport(object? sender, LimitDcReportData report) => OnLimitDcReport?.Invoke(this, report);
 
     protected Task<bool> OnChestOpened(ChestOpenedData data)
     {
@@ -4470,6 +4613,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new Exception(
                 $"Logged into wrong server. Expected: {Server.Region} {Server.Identifier}  Current: {data.Region} {data.Identifier}");
 
+        IsPvPServer = data.PvP;
+
         await Socket.EmitAsync(
             ALSocketEmitType.Loaded,
             new
@@ -4535,7 +4680,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.DisappearingText,
             data =>
             {
-                if (data.Id.EqualsI(Character.Name) && data.Message.EqualsI("not ready"))
+                //Character.Name is the receiver: the gold/xp disappearing_texts a kill emits carry no id, and
+                //EqualsI throws on a null receiver while tolerating a null argument
+                if (Character.Name.EqualsI(data.Id!) && data.Message.EqualsI("not ready"))
                     source.TrySetResult($"Failed to use {description}. (not ready)");
 
                 return TaskCache.FALSE;
@@ -4569,7 +4716,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected EntityBase? GetEntity(string id) => Players.GetValueOrDefault(id) as EntityBase ?? Monsters.GetValueOrDefault(id);
 
-    protected (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
+    /// <summary>
+    ///     Finds a bank slot for the given inventory item: validates an explicit pack/slot pair, otherwise prefers stacking
+    ///     onto an existing partial stack, else the first empty slot in an accessible pack on the current bank map. Requires
+    ///     being in the bank (
+    ///     <see cref="Bank" />
+    ///     populated).
+    /// </summary>
+    public (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
         IIndexer<IInventoryItem> indexedInventoryItem,
         BankPack? bankPack = null,
         int? bankSlot = null)
@@ -4757,7 +4911,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         }).Select(index => (BankPack)index);
     }
 
-    protected async Task WaitForBankAsync()
+    /// <summary>
+    ///     Completes when bank data is populated after entering a bank map. Times out with the network timeout if the bank
+    ///     frame never arrives.
+    /// </summary>
+    public async Task WaitForBankAsync()
     {
         //check if bank is already populated
         if (Bank != null)

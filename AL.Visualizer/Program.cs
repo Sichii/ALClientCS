@@ -8,7 +8,6 @@ using AL.Pathfinding.Model;
 using AL.Visualizer;
 using AL.Visualizer.Extensions;
 using Chaos.Extensions.Common;
-using SixLabors.ImageSharp;
 #endregion
 
 const string USAGE = """
@@ -83,10 +82,10 @@ if (dumpMaps)
         if (navMesh == null)
             continue;
 
-        using var image = Visualizer.CreateGridImage(navMesh)
-                                    .DrawEdges(navMesh);
+        var image = Visualizer.CreateGridImage(navMesh)
+                              .DrawEdges(navMesh);
 
-        await image.SaveAsync(Path.Combine(outputDir, $"{map.Accessor}.png"));
+        await image.SaveAsPngAsync(Path.Combine(outputDir, $"{map.Accessor}.png"));
     }
 else
 {
@@ -97,8 +96,7 @@ else
     var counter = 1;
 
     await foreach (var image in images)
-        using (image)
-            await image.SaveAsync(Path.Combine(outputDir, $"img{counter++}.png"));
+        await image.SaveAsPngAsync(Path.Combine(outputDir, $"img{counter++}.png"));
 }
 
 Console.WriteLine($"Wrote images to {outputDir}");

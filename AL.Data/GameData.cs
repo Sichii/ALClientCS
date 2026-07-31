@@ -14,6 +14,7 @@ using AL.Data.Conditions;
 using AL.Data.Craft;
 using AL.Data.Dimensions;
 using AL.Data.Dismantle;
+using AL.Data.Drops;
 using AL.Data.Events;
 using AL.Data.Games;
 using AL.Data.Geometry;
@@ -60,6 +61,11 @@ public record GameData
     [GameDataRoot]
     public static DismantleDatum Dismantle { get; private set; }
 
+    //defaulted for the same reason Multipliers is: a payload missing "drops" degrades to an empty table rather
+    //than throwing, and every consumer already has to handle a monster that drops nothing
+    [GameDataRoot]
+    public static GDrops Drops { get; private set; } = new();
+
     [GameDataRoot]
     public static EventsDatum Events { get; private set; }
 
@@ -81,9 +87,10 @@ public record GameData
     [GameDataRoot]
     public static MonstersDatum Monsters { get; private set; }
 
-    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing
+    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing. The setter is
+    //what Bind needs to reach it at all - get-only, it was skipped by the setter filter and every ratio stayed 0
     [GameDataRoot]
-    public static GMultipliers Multipliers { get; } = new();
+    public static GMultipliers Multipliers { get; private set; } = new();
 
     [GameDataRoot]
     public static NPCsDatum NPCs { get; private set; }
@@ -157,11 +164,16 @@ public record GameData
                    ?? throw new InvalidOperationException("Game data is not a JSON object.");
 
         var members = typeof(GameData).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                                      .Where(property => property.GetCustomAttribute<GameDataRootAttribute>() is not null
-                                                         && property.GetSetMethod(true) is not null);
+                                      .Where(property => property.GetCustomAttribute<GameDataRootAttribute>() is not null);
 
         foreach (var member in members)
         {
+            //this used to be part of the filter above, which silently skipped a get-only member and left it on
+            //its initializer forever - Multipliers read 0 for every ratio that way. A missing setter is a
+            //declaration error, so say so at init rather than serving zeroes for the process's lifetime
+            if (member.GetSetMethod(true) is null)
+                throw new InvalidOperationException($"[GameDataRoot] {member.Name} has no setter, so it can never bind.");
+
             var wireName = member.GetCustomAttribute<JsonPropertyNameAttribute>()
                                  ?.Name
                            ?? member.Name;
@@ -463,7 +475,7 @@ public record GameData
 
     private static void EnrichQuests()
     {
-        Log.Debug("Enrishing quest metadata");
+        Log.Debug("Enriching quest metadata");
 
         var quests = new Dictionary<Quest, GNPC>();
 

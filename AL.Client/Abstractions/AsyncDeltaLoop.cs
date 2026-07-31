@@ -23,9 +23,10 @@ public abstract class AsyncDeltaLoop
     /// <summary>
     ///     The source of the cancellation token for the currently running loop.
     ///     <br />
-    ///     A new one is created when <see cref="StopAsync" /> is called.
+    ///     Cancelled by <see cref="StopAsync" /> and replaced by <see cref="Start" />, so a loop that has been
+    ///     stopped can be started again.
     /// </summary>
-    protected CancellationTokenSource Ctx { get; }
+    protected CancellationTokenSource Ctx { get; private set; }
 
     protected abstract float PollingRate { get; }
 
@@ -59,22 +60,30 @@ public abstract class AsyncDeltaLoop
     {
         try
         {
+            //StopAsync cancels this source and nothing else replaces it, so a restart - which is what a reconnect
+            //does, having stopped the loops on the way in - would otherwise fall straight out of the while below.
+            //The stale source is left to the GC rather than disposed: a StopAsync may still be inside CancelAsync
+            if (Ctx.IsCancellationRequested)
+                Ctx = new CancellationTokenSource();
+
+            //captured, so a later restart swapping the field cannot resurrect this iteration
+            var ctx = Ctx;
             var deltaTime = new DeltaTime();
             var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(1000 / PollingRate));
 
-            while (!Ctx.Token.IsCancellationRequested)
+            while (!ctx.Token.IsCancellationRequested)
             {
-                await timer.WaitForNextTickAsync(Ctx.Token);
+                await timer.WaitForNextTickAsync(ctx.Token);
                 var delta = deltaTime.GetDelta;
 
                 try
                 {
                     await using var @lock = await Sync.WaitAsync();
 
-                    if (Ctx.IsCancellationRequested)
+                    if (ctx.IsCancellationRequested)
                         return;
 
-                    await DoWorkAsync(delta, Ctx.Token);
+                    await DoWorkAsync(delta, ctx.Token);
                 } catch (Exception ex)
                 {
                     Client.Logger.Error(ex);

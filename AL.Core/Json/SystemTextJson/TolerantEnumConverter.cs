@@ -23,7 +23,10 @@ namespace AL.Core.Json.SystemTextJson;
 /// </typeparam>
 public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum: struct, Enum
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(TolerantEnumConverter<TEnum>));
+    //the name, not the type: a closed generic's logger name is its assembly-qualified name, which the layout's
+    //shortName truncates at the last dot - "0, Culture=neutral, PublicKeyToken=null]]". The message below already
+    //carries the enum's name
+    private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumConverter<TEnum>));
 
     //tolerance that hides schema drift is worse than the drift, so each unknown value is reported once.
     //Per-TEnum is equivalent to a global table here - the key is already prefixed with the enum's name.
@@ -67,6 +70,14 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
             //Newtonsoft's StringEnumConverter allows integer values by default; preserve that path
             case JsonTokenType.Number when reader.TryGetInt64(out var num):
                 return (TEnum)Enum.ToObject(typeof(TEnum), num);
+
+            //the game data writes some flags as real booleans rather than the strings the enum aliases
+            //(GSkill.target is `true`, not `"true"`), so route them through the same aliases
+            case JsonTokenType.True:
+                return ParseTolerant("true");
+
+            case JsonTokenType.False:
+                return ParseTolerant("false");
 
             case JsonTokenType.Null:
                 return default;

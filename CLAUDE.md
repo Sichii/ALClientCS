@@ -64,7 +64,7 @@ ALClientCS.slnx (net10.0)
 ├── AL.Pathfinding     — nav mesh triangulation (Poly2Tri) + A* (OptimizedPriorityQueue)
 ├── AL.Client          — ALClient and per-class subclasses; the public entry point
 ├── AL.MemberGenerator — codegen console tool, emits a `dataMembers` folder (not shipped)
-├── AL.Visualizer      — standalone CLI that renders navmeshes/paths to PNG via ImageSharp (not shipped)
+├── AL.Visualizer      — standalone CLI that renders navmeshes/paths to PNG via SkiaSharp (not shipped)
 └── AL.Tests           — TUnit + FluentAssertions
 ```
 
@@ -160,9 +160,12 @@ Files open with a `#region` / `#endregion` wrapped using block. Keep that shape 
 
 ## Current State
 
-Mid-refactor and **the solution does not currently build**: `AL.Client/Ranger.cs(704,18): error CS1643: Not all code paths return a value in lambda expression of type 'Func<GameResponseData, Task<bool>>'`, plus 53 warnings (mostly CS8604 nullable-argument in `Ranger.cs`). There are ~19 uncommitted modified files. The last commit describes the state plainly: *".net 9 update - remove overuse of async/await - added a proper deltaTime usage pattern using PeriodicTimer - updated G.Data - updated enums - likely still unusable, more updates to come"*.
+**The solution builds clean** — 0 warnings, 0 errors, both standalone and as part of `ALBot.slnx`. The `Ranger.cs`
+CS1643 and the ~53 nullable warnings this section used to describe are fixed. There is still a body of uncommitted
+work in the tree.
 
-Because `ALBot` builds these projects from source, that error surfaces there too — a `dotnet build` failure in ALBot is often this, not ALBot's own code.
+Because `ALBot` builds these projects from source, a `dotnet build` failure over there may still originate here —
+check the project path in the error before debugging ALBot.
 
 ## Credits
 

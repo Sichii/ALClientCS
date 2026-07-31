@@ -198,14 +198,15 @@ public sealed class EnumToleranceMatrixCharacterization
     ///     population fail loudly.
     /// </summary>
     /// <remarks>
-    ///     Every one of the 369 value-position cells across all 41 tolerant enums agrees with the pin exactly — including the
-    ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and exception-type names never
-    ///     even come into it. The whole measured divergence is the five unknown-key cells, one per dictionary-key enum, which
-    ///     is exactly what the plan predicted.
+    ///     368 of the 369 value-position cells across all 41 tolerant enums agree with the pin exactly — including the shapes
+    ///     the converter degrades rather than throws on, so no cell reaches an exception and exception-type names never even
+    ///     come into it. The measured divergence is the five unknown-key cells, one per dictionary-key enum, exactly what the
+    ///     plan predicted, plus the one boolean-token cell corrected after the migration.
     /// </remarks>
     private static readonly IReadOnlyDictionary<string, int> ExpectedDivergenceCounts = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        ["2_dictionaryKeyDegradesInsteadOfThrowing"] = 5
+        ["2_dictionaryKeyDegradesInsteadOfThrowing"] = 5,
+        ["3_boolTokenRoutedThroughAliases"] = 1
     };
 
     /// <summary>
@@ -233,7 +234,16 @@ public sealed class EnumToleranceMatrixCharacterization
             //through ReadAsPropertyName and degrades it to the zero member, matching value position.
             : pinned.StartsWith("THROW", StringComparison.Ordinal) && stj.StartsWith("count=", StringComparison.Ordinal)
                 ? "2_dictionaryKeyDegradesInsteadOfThrowing"
-                : UNEXPECTED;
+
+                //the second deliberate improvement, and a correction rather than a port artifact: the game data
+                //writes GSkill.target as a real boolean, which the pinned baseline degraded to the zero member -
+                //so "target":true read as "not single target", the opposite of what it means. Read now routes a
+                //boolean token through the enum's aliases, and TargetType is the only enum declaring one for
+                //"true". The count pin below is what keeps this arm tight: a second enum aliasing a boolean, or
+                //any other cell drifting into this shape, moves it off 1 and fails.
+                : location.EndsWith("9_boolTrue", StringComparison.Ordinal)
+                    ? "3_boolTokenRoutedThroughAliases"
+                    : UNEXPECTED;
 
         if (!byClass.TryGetValue(key, out var list))
             byClass[key] = list = [];

@@ -1,6 +1,7 @@
 #region
 using AL.APIClient.Model;
 using AL.SocketClient.Definitions;
+using AL.SocketClient.SocketModel;
 #endregion
 
 namespace AL.SocketClient.Interfaces;
@@ -117,6 +118,11 @@ public interface IALSocketClient : IAsyncDisposable
 
     // ReSharper disable once EventNeverSubscribedTo.Global
     event EventHandler<string> OnDisconnected;
+
+    /// <summary>
+    ///     Raised when the server sends a rate-limit kick report immediately before disconnecting.
+    /// </summary>
+    event EventHandler<LimitDcReportData>? OnLimitDcReport;
 
     /// <summary>
     ///     If certain constraints restrict you from using the disposable pattern, this can be used to unsubscribe a callback.

@@ -1,5 +1,4 @@
 #region
-using System.Text.RegularExpressions;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Extensions;
@@ -107,16 +106,22 @@ public class Merchant : ALClient
             });
 
     /// <summary>
-    ///     Asynchronously uses MassProduction, refilling the potions of everyone in your party.
+    ///     Asynchronously uses MassProduction, buffing your next upgrade or compound to take half the time.
     /// </summary>
+    /// <remarks>
+    ///     A one-shot buff, spent by the next upgrade or compound and expiring 10 seconds after the cast either way.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massproduction'. ({reason})
     /// </exception>
     public Task MassProductionAsync() => UseSkillCoreAsync("massproduction");
 
     /// <summary>
-    ///     Asynchronously uses MassProductionPP.
+    ///     Asynchronously uses MassProductionPP, buffing your next upgrade or compound to take a tenth of the time.
     /// </summary>
+    /// <remarks>
+    ///     A one-shot buff, spent by the next upgrade or compound and expiring 10 seconds after the cast either way.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massproductionpp'. ({reason})
     /// </exception>

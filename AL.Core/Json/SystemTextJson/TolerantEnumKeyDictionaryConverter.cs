@@ -26,7 +26,9 @@ public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConve
     where TKey: struct, Enum
     where TValue: notnull
 {
-    private static readonly ILog Log = LogManager.GetLogger(typeof(TolerantEnumKeyDictionaryConverter<TKey, TValue>));
+    //the name, not the type: a closed generic's logger name is its assembly-qualified name, which the layout's
+    //shortName truncates to the tail of the last type argument. The message below already carries TKey's name
+    private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumKeyDictionaryConverter<TKey, TValue>));
 
     //tolerance that hides schema drift is worse than the drift, so each unknown key is reported once per closed
     //generic - a TKey shared by two TValues can warn twice, which is cheaper than a global table to dedupe it

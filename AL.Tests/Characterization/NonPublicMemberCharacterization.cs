@@ -126,18 +126,21 @@ public sealed class NonPublicMemberCharacterization
         Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {auditGap}");
 
         // Finding, and the reason an attribute-gated audit is unsafe under STJ exactly as it was under the old
-        // serializer: 150 instance properties in the six assemblies have a non-public setter, and only 113 carry
-        // [JsonInclude]/[JsonPropertyName], so an audit keyed on the attribute is blind to 37 of them — e.g.
+        // serializer: 151 instance properties in the six assemblies have a non-public setter, and only 113 carry
+        // [JsonInclude]/[JsonPropertyName], so an audit keyed on the attribute is blind to 38 of them — e.g.
         // EntityBase.In (the server sends "in", nothing binds it), EntityBase.PresentFields, the
         // Emotion/Friends/OwnedCosmetics setters that moved onto ALClient, and ALSocketClient.LastDisconnectReason
         // / ALClient.FatalError, all populated imperatively. Not missed bindings, but exactly what an
         // attribute-keyed audit cannot see. Key on "non-public accessor", never on "has an attribute".
+        // ALClient.IsPvPServer is the newest of them: OnWelcomeAsync assigns it off the welcome frame, so it is
+        // imperative like the rest and 37 -> 38.
         auditGap.Should()
-                .Be(37);
+                .Be(38);
 
-        // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150, unchanged.
+        // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
+        // ALClient.IsPvPServer, now 151.
         allInstanceNonPublicSetters.Should()
-                                   .Be(150);
+                                   .Be(151);
     }
 
     [Test]

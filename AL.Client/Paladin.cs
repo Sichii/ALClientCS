@@ -3,7 +3,6 @@ using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
 using AL.Core.Definitions;
-using AL.Core.Helpers;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
 #endregion

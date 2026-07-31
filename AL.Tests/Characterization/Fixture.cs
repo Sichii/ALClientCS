@@ -107,7 +107,7 @@ public static class Fixture
         Normalize(generated)
             .Should()
             .Be(
-                Normalize(committed!),
+                Normalize(committed),
                 $"the System.Text.Json path no longer reproduces '{fileName}'; re-commit the generated copy only if the change is intended");
     }
 

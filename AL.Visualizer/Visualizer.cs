@@ -3,10 +3,10 @@ using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
 using AL.Visualizer.Extensions;
+using AL.Visualizer.Model;
 using Chaos.Extensions.Common;
 using Priority_Queue;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using SkiaSharp;
 #endregion
 
 namespace AL.Visualizer;
@@ -23,18 +23,18 @@ public static class Visualizer
     ///     The navmesh to create an image for.
     /// </param>
     /// <returns>
-    ///     <see cref="Image{TPixel}" />
+    ///     <see cref="PixelCanvas" />
     ///     <br />
     ///     An image representing the map. It's not exact (it doesnt use tiles), but it gives you a useable 1 to 1
     ///     visualization.
     ///     <br />
-    ///     You can use <see cref="SixLabors.ImageSharp.ImageExtensions" /> to layer on more information about the
+    ///     You can use <see cref="PixelCanvasExtensions" /> to layer on more information about the
     ///     <see cref="MeshBase{TNode,TEdge}" /> .
     /// </returns>
     /// <exception cref="ArgumentNullException">
     ///     navMesh
     /// </exception>
-    public static Image<Rgba32> CreateGridImage<TNode, TEdge>(MeshBase<TNode, TEdge> navMesh) where TEdge: IGraphEdge<TNode>, new()
+    public static PixelCanvas CreateGridImage<TNode, TEdge>(MeshBase<TNode, TEdge> navMesh) where TEdge: IGraphEdge<TNode>, new()
         where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
 
     {
@@ -43,43 +43,43 @@ public static class Visualizer
         var pointMap = navMesh.PointMap;
         var width = pointMap.GetLength(0);
         var height = pointMap.GetLength(1);
-        var image = new Image<Rgba32>(width, height, Color.White);
+        var canvas = new PixelCanvas(width, height, SKColors.White);
 
         for (var x = 0; x < width; x++)
             for (var y = 0; y < height; y++)
-                image[x, y] = PointTypeToColor(pointMap[x, y]);
+                canvas[x, y] = PointTypeToColor(pointMap[x, y]);
 
-        return image;
+        return canvas;
     }
 
-    public static async IAsyncEnumerable<Image<Rgba32>> DrawPath<TGraph, TMesh, TNode, TEdge>(
+    public static async IAsyncEnumerable<PixelCanvas> DrawPath<TGraph, TMesh, TNode, TEdge>(
         TGraph graph,
         IAsyncEnumerable<TEdge> path,
-        Color color = default) where TGraph: GraphBase<TMesh, TNode, TEdge>
-                               where TEdge: IGraphEdge<TNode>, new()
-                               where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
-                               where TMesh: MeshBase<TNode, TEdge>
+        SKColor color = default) where TGraph: GraphBase<TMesh, TNode, TEdge>
+                                 where TEdge: IGraphEdge<TNode>, new()
+                                 where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+                                 where TMesh: MeshBase<TNode, TEdge>
 
     {
         TMesh? currentMesh = null;
-        Image<Rgba32>? currentImage = null;
+        PixelCanvas? currentCanvas = null;
         var currentPath = new List<TEdge>();
 
         await foreach (var edge in path)
         {
             if ((currentMesh == null) || !currentMesh.Map.EqualsI(edge.Start.Vertex.Map))
             {
-                if ((currentMesh != null) && (currentImage != null))
+                if ((currentMesh != null) && (currentCanvas != null))
                 {
-                    currentImage.DrawPath(currentMesh, currentPath, color);
+                    currentCanvas.DrawPath(currentMesh, currentPath, color);
                     currentPath.Clear();
 
-                    yield return currentImage;
+                    yield return currentCanvas;
                 }
 
                 currentMesh = graph.NavMeshes[edge.Start.Vertex.Map];
 
-                currentImage = CreateGridImage(currentMesh)
+                currentCanvas = CreateGridImage(currentMesh)
                     .DrawEdges(currentMesh);
             }
 
@@ -89,35 +89,35 @@ public static class Visualizer
             currentPath.Add(edge);
         }
 
-        if (currentImage == null)
+        if (currentCanvas == null)
             yield break;
 
-        currentImage.DrawPath(currentMesh!, currentPath, color);
+        currentCanvas.DrawPath(currentMesh!, currentPath, color);
 
-        yield return currentImage;
+        yield return currentCanvas;
     }
 
-    private static Color PointTypeToColor(PointType type)
+    private static SKColor PointTypeToColor(PointType type)
     {
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (type)
         {
             case PointType.None:
-                return Color.DarkBlue;
+                return SKColors.DarkBlue;
             case PointType.Wall:
-                return Color.Black;
+                return SKColors.Black;
             case PointType.Walkable:
-                return Color.Green;
+                return SKColors.Green;
             case PointType.Inline:
-                return Color.Yellow;
+                return SKColors.Yellow;
             case PointType.Vertex:
-                return Color.Red;
+                return SKColors.Red;
             default:
                 if (type.HasFlag(PointType.Vertex))
-                    return Color.Red;
+                    return SKColors.Red;
 
                 if (type.HasFlag(PointType.Inline))
-                    return Color.Yellow;
+                    return SKColors.Yellow;
 
                 throw new ArgumentOutOfRangeException($"Unknown point type {(int)type}");
         }
