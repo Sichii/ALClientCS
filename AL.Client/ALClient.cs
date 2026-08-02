@@ -201,6 +201,28 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public FormattedLogger Logger { get; }
 
     /// <summary>
+    ///     The smallest socket round trip seen in the last fifty pings, floored at 100ms until the first one lands.
+    /// </summary>
+    /// <remarks>
+    ///     The same figure the position compensation is scaled by, exposed because a behaviour that holds a distance
+    ///     from something has to know how much ground that something covers between a read of its position and the
+    ///     server acting on the move produced from that read.
+    /// </remarks>
+    public TimeSpan MinimumRoundTrip => PingManager.MinimumOffset;
+
+    /// <summary>
+    ///     What this character has spent of the server's call budget in the last <see cref="CallCost.WINDOW" />,
+    ///     broken down by whoever <see cref="CallMeter.SourceResolver" /> names and by emit type. Fed off
+    ///     <see cref="OnEmit" />, so it counts what reached the wire and survives a reconnect.
+    /// </summary>
+    public CallMeter CallMeter { get; }
+
+    /// <summary>
+    ///     <see cref="CallMeter" />'s window, taken against the server's own running total.
+    /// </summary>
+    public CallBudgetSnapshot CallBudget => CallMeter.Snapshot(Character.CodeCost);
+
+    /// <summary>
     ///     A collection of the monsters being kept track of.
     ///     <br />
     ///     <b>
@@ -276,10 +298,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Server = null!;
 
         Character = new Character();
+
+        //two boxes, because the game uses two: the small foot-print everything walks and pathfinds with, and the whole
+        //sprite that range is resolved against
         Character.SetBoundingBase(PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE);
+        Character.SetHitBox(GameData.DEFAULT_CHARACTER_HIT_BOX);
 
         PingManager = new PingManager(this);
         EntityManager = new EntityManager(this);
+
+        //on the re-raised event rather than the socket's, so the meter keeps counting through a reconnect
+        CallMeter = new CallMeter();
+        OnEmit += (_, emitType) => CallMeter.Record(emitType);
     }
 
     public async ValueTask DisposeAsync() => await DisconnectAsync();
@@ -700,19 +730,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Checks if a target is within trade range
     /// </summary>
-    public bool WithinTradeRange(Player player) => Character.EdgeToEdgeDistance(player) < CORE_CONSTANTS.TRADE_RANGE;
+    public bool WithinTradeRange(Player player)
+        => Character.HitBox
+                    .EdgeToEdgeDistance(player.HitBox)
+           < CORE_CONSTANTS.TRADE_RANGE;
 
     /// <summary>
     ///     Checks if a target is within range
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
     /// </exception>
-    public bool WithinRange(IRectangle target, float range, DistanceType distanceType)
+    public bool WithinRange(EntityBase target, float range, DistanceType distanceType)
         => distanceType switch
         {
             DistanceType.CenterToCenter => Character.Distance(target) < range,
-            DistanceType.EdgeToCenter => Character.EdgeToCenterDistance(target) < range,
-            DistanceType.EdgeToEdge => Character.EdgeToEdgeDistance(target) < range,
+            DistanceType.EdgeToCenter => Character.HitBox.EdgeToCenterDistance(target) < range,
+            DistanceType.EdgeToEdge => Character.HitBox.EdgeToEdgeDistance(target.HitBox) < range,
             _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
         };
 
@@ -746,7 +779,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     target
     /// </exception>
-    public bool WithinSkillRange(IRectangle target, string skillName, DistanceType distanceType = DistanceType.EdgeToEdge)
+    public bool WithinSkillRange(EntityBase target, string skillName, DistanceType distanceType = DistanceType.EdgeToEdge)
     {
         if (string.IsNullOrEmpty(skillName))
             throw new ArgumentNullException(nameof(skillName));
@@ -772,11 +805,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         range += data.RangeBonus;
         range *= 0.95f; //for safety
 
+        //hit boxes, the same pair WithinRange resolves against. Measured off the collision foot-print instead - which
+        //is what this did - a warrior reads about half its real reach and never closes the difference, because every
+        //movement component stops where this says it may stop
         return distanceType switch
         {
             DistanceType.CenterToCenter => Character.Distance(target) < range,
-            DistanceType.EdgeToCenter => Character.EdgeToCenterDistance(target) < range,
-            DistanceType.EdgeToEdge => Character.EdgeToEdgeDistance(target) < range,
+            DistanceType.EdgeToCenter => Character.HitBox.EdgeToCenterDistance(target) < range,
+            DistanceType.EdgeToEdge => Character.HitBox.EdgeToEdgeDistance(target.HitBox) < range,
             _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
         };
     }
@@ -811,7 +847,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (nData.Role == NPCRole.Transport)
             range = CORE_CONSTANTS.TRANSPORTER_RANGE;
 
-        return Character.EdgeToEdgeDistance(npc)
+        //centre to centre, unlike everything combat resolves: the server splits these two apart, measuring what an
+        //attack or a trade reaches with hit boxes but what an NPC will serve you from with plain positions. Measuring
+        //this one edge to edge asks for a shorter distance than the server does and gets refused at the counter
+        return Character.Distance(npc)
                         .IsLess(range, CORE_CONSTANTS.EPSILON);
     }
     #endregion
@@ -986,6 +1025,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     ).
     /// </summary>
     public event EventHandler<string>? OnDisconnectReason;
+
+    /// <summary>
+    ///     <inheritdoc cref="ALSocketClient.OnEmit" />
+    ///     Stable across reconnects.
+    /// </summary>
+    public event EventHandler<ALSocketEmitType>? OnEmit;
 
     /// <summary>
     ///     <inheritdoc cref="ALSocketClient.OnLimitDcReport" />
@@ -2431,19 +2476,61 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         DateTime? setMovingAt = default;
         var correctionAttempted = false;
 
+        //the server's move_num as of this leg's emit. Stamped only by start_moving_element, so a frame still
+        //carrying this number was generated before the server accepted this leg and cannot be describing it -
+        //which is what separates a frame that is merely late from one telling us something new
+        ulong moveNumAtEmit = 0;
+
+        //whether the ground moved under this leg. transport_player_to relocates the character without setting abs,
+        //so a transport, door or magiport reaches the staleness test below looking exactly like a stale frame - and
+        //the repair would answer it by stamping an old map's coordinate over the new position. Read from new_map
+        //rather than from the frame's own m, which the frame does carry: a frame generated before the transport
+        //still holds the old m, and that is precisely the frame that has to be rejected
+        var mapChanged = false;
+
         var delay = new DynamicDelay();
 
-        //how long is left of this leg. Deliberately the whole of it, and not shortened by half a round trip so the
-        //caller can emit the next leg early: returning before the server considers the leg finished is a lie every
-        //other part of this method is built on not being told. The desync detector below sees frames from a leg the
-        //caller has already moved on from, the position handed to the next emit is one the server has not agreed to
-        //yet, and the settle at the bottom clears Moving while the character is still walking. Measured against a
-        //quiet baseline, adding that compensation took "Correcting position" from about one line per thousand to
-        //eleven, and removing the settle to forty.
+        //how far this leg is, fixed at the emit. The remaining time below is measured against this and the clock
+        //rather than against Character, and that is the whole point of it being here
+        var legLength = 0f;
+
+        //how long is left of this leg - the whole of it, exactly. The next leg's emit then reaches the server right
+        //as it finishes this one: landing early is forgiven completely (the walk bends mid-flight), landing late
+        //stands the character there for the difference. Exactness only became achievable when the host raised the
+        //Windows timer interrupt to 1ms - on the default 15.625ms tick every one of these waits fired +5..+14ms
+        //late, which was a stand at every vertex. Shortening the wait to compensate was tried twice and both are
+        //gone: by the whole compensation lies to the desync detector, hands the next emit a position the server
+        //never agreed to, and settles Moving off mid-walk ("Correcting position" x11 per thousand, x40 without the
+        //settle); by the ping jitter gap measured ~0 on a stable connection, because the lateness was never network
+        //jitter to begin with.
         //
-        //The pause it was aimed at is real - a caller does stand on each vertex of a path for a round trip - but it
-        //belongs to whatever is scheduling the caller, not here.
-        TimeSpan RemainingDelay() => TimeSpan.FromSeconds(Character.Distance(point) / Character.Speed);
+        //Read off the clock rather than off Character. Every frame re-anchors Character to where the server was one
+        //trip ago, advanced by the *minimum* ping seen in 200 seconds and so by less than the trip it is covering -
+        //and the callback below resets this deadline on each one. Measured against a leg it takes to be the
+        //position that has to arrive, so the leg stopped ending when we got there and started ending when the
+        //server was seen to get there, about a round trip late. In a trace of four characters, legs that happened
+        //to receive no frame landed within 10ms of their reckoning where legs that received one landed 127ms late,
+        //which is the same number as the round trip.
+        TimeSpan RemainingDelay()
+        {
+            var speed = Character.Speed;
+
+            //a stopped character never finishes the leg on its own; the callers all bound this with their own gates
+            if (speed <= 0)
+                return TimeSpan.Zero;
+
+            //before the leg starts ticking there is no elapsed to measure it against
+            if (setMovingAt is not { } startedAt)
+                return TimeSpan.FromSeconds(legLength / speed);
+
+            //the current speed applied to the whole leg rather than integrated over it, so a change mid-leg is
+            //answered approximately - the leg it lands in ends a little early or late and the next one is exact
+            //again. Which is the point of keeping the reset at all: a slowness or an expiring charge is a real
+            //answer to "how long is left", where a position read a trip late is not
+            var covered = speed * (DateTime.UtcNow - startedAt).TotalSeconds;
+
+            return TimeSpan.FromSeconds(Math.Max(0d, (legLength - covered) / speed));
+        }
 
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
@@ -2455,6 +2542,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var now = DateTime.UtcNow;
 
                 var elapsed = now.Subtract(setMovingAt.Value);
+
+                //already standing on it, so the leg is over whatever the rest of the frame says. Both ways of getting
+                //here are ordinary: the server ends a walk by clearing moving with going left at the destination, and
+                //it drops a move to where the character already is without answering at all - its own handler requires
+                //the destination to differ from the position it holds. Read off the frame rather than off Character,
+                //since our own position is compensated forward and would call the leg done before the server has
+                if (data.X.IsNear(point.X, CORE_CONSTANTS.EPSILON) && data.Y.IsNear(point.Y, CORE_CONSTANTS.EPSILON))
+                {
+                    source.TrySetResult(Expectation.Success);
+
+                    return false;
+                }
 
                 //if the movement data doesnt look right
                 if (!data.Moving
@@ -2477,11 +2576,53 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         return false;
                     }
 
-                    //if we should have reasonably received correct movement data
-                    if (elapsed > (PingManager.MinimumOffset * 3))
+                    //the merge above has already taken this frame's position, and a frame the server generated
+                    //before it accepted this leg carries the one it was standing on - a rewind of however long the
+                    //frame was in flight, read as truth by every range check until the leg ends. Put our own
+                    //reckoning back, but only where the frame proves it is the stale kind. move_num is what proves
+                    //it: bumped only where a movement starts, so a number we already held cannot describe this leg,
+                    //while a higher one means the server has our move and any disagreement is news - it stopped us,
+                    //and reckoning on through that would invent a walk that is not happening. abs rides along for
+                    //the cases it does cover, but it is an entity flag rather than a player one and the character's
+                    //own transports never set it, so mapChanged above is what actually guards a relocation.
+                    //Known gap: a speed change mid-walk also bumps move_num, so one stale-but-moving frame from the
+                    //previous leg can pass as fresh. It is ping compensated and lands near the corner, so the
+                    //rewind it carries is small
+                    if (!mapChanged && !data.ABS && (data.MoveNum <= moveNumAtEmit))
+                        Character.UpdateLocation(
+                            startLoc.OffsetTowards(point, Character.Speed / 1000f * (float)elapsed.TotalMilliseconds));
+
+                    //if we should have reasonably received correct movement data. MinimumOffset is the smallest round
+                    //trip seen in the last 50 pings, so this grace is a multiple of the best case being asked to
+                    //cover the typical one - the multiplier is what absorbs the jitter between them
+                    if (elapsed > (PingManager.MinimumOffset * 4))
                     {
-                        //request new movement data from the server
-                        Logger.Debug("Correcting position");
+                        //what the frame actually said, not just that it disagreed - three different faults reach here
+                        //and read identically without it: the server reporting the walk already over, a frame that is
+                        //merely late and still describes the leg before this one, and a destination neither side
+                        //asked for. Carries the grace it cleared, since whether that grace is wide enough is the
+                        //question a late frame raises
+                        Logger.Debug(
+                            $"Correcting position: frame says moving={data.Moving} going=({data.GoingX:N0}, {data.GoingY:N0}), "
+                            + $"leg wants {point.ToPoint()}, {elapsed.TotalMilliseconds:N0}ms in "
+                            + $"(grace {(PingManager.MinimumOffset * 4).TotalMilliseconds:N0}ms). "
+
+                            //where our own simulation thinks it is when the server says the walk is over. Compensation
+                            //should leave this ahead of the server, so a remaining distance near zero means the timer
+                            //merely lost a race it was about to win, and a large one means the simulation is lagging
+                            //and the compensation is the thing to look at. minPing is here because it is what the
+                            //compensation is scaled by, and a floor well under the real trip is how it under-shoots
+                            //two different readings on purpose, no longer two spellings of one: the distance is what
+                            //Character says and the ms is what the clock says, so the gap between them is the
+                            //position lag itself - the thing that used to be allowed to move the deadline
+                            + $"We think {Character.Distance(point):N1} left at speed {Character.Speed:N0}, "
+                            + $"{RemainingDelay().TotalMilliseconds:N0}ms on the clock, minPing {PingManager.MinimumOffset.TotalMilliseconds:N0}ms. "
+
+                            //which arm of the staleness test the frame landed in, since the distance above is read
+                            //back off a position the repair may have just rewritten - without this the two cases
+                            //are indistinguishable in the log, and they mean opposite things
+                            + $"move_num {data.MoveNum} vs {moveNumAtEmit} at emit, abs={data.ABS}, mapChanged={mapChanged} "
+                            + $"({(mapChanged || data.ABS || (data.MoveNum > moveNumAtEmit) ? "believed" : "position repaired")})");
 
                         _ = Socket.EmitAsync(
                             ALSocketEmitType.Property,
@@ -2495,6 +2636,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //this could be some other random character data, just set it's movement data to the correct stuff
                     else
                         Character.SetMoving(point);
+
+                    //a frame this branch has just decided not to believe must not move the deadline either. The reset
+                    //below restarts the leg from now, measured against the position the merge has already rewound to
+                    //- so a frame describing the walk before this one buys itself most of the distance a second time,
+                    //and the server stands on the vertex for the difference. Frames that agree still reset, which is
+                    //the case it is for: a speed change mid-leg is a real answer to "how long is left"
+                    return false;
                 }
 
                 await delay.SetDelayAsync(RemainingDelay());
@@ -2506,6 +2654,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.NewMap,
             data =>
             {
+                //every path that gets here relocated the character, so nothing this leg reckoned about where it is
+                //survives - set before the jail branch, which returns a result rather than falling through
+                mapChanged = true;
+
                 var goingLoc = new Location(currentMap, point);
 
                 if (data.Map.EqualsI("jail"))
@@ -2534,8 +2686,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 m = Character.MapChangeCount
             });
 
+        //fixed from the position the emit above just claimed, and before anything reads the remaining time: this is
+        //the one measurement of this leg that no later frame is allowed to move
+        legLength = Character.Distance(point);
+
         var initialDelay = RemainingDelay();
         Character.SetMoving(point);
+
+        //read beside setMovingAt rather than before the emit: the callback below is gated on setMovingAt having a
+        //value, so the two have to become true together or a frame could be judged against an unset baseline
+        moveNumAtEmit = Character.MoveNum;
         setMovingAt = DateTime.UtcNow;
 
         var delayTask = delay.WaitAsync(initialDelay, token);
@@ -2566,8 +2726,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //find out where we're going
         var going = new Point(Character.GoingX, Character.GoingY);
 
-        //if we're still going to the same place
-        if (going.Equals(point))
+        //a destination that is no longer ours means something took the character over - a transport, whose new_map
+        //handling stops the walk and repoints going at the arrival spot, or a second walk if one ever overlapped
+        //this one. Neither may have this leg's endpoint stamped over it.
+        //
+        //A leg that went past the grace is the exception, and the reason this is not just the equality test: the
+        //frame that triggered the correction was merged over going on its way in, and that path deliberately does
+        //not re-assert SetMoving. Reading its leftovers as supersession returns with Moving false and a stale
+        //destination, which freezes the local simulation - every distance the bot reads is then a stale one until
+        //the next tick emits again.
+        //
+        //Moving is what keeps that exception from swallowing a real supersession: a walk that has taken this
+        //character over is by definition still moving, so stopping it here would freeze the leg that replaced this
+        //one. The case being readmitted is the opposite - a stopped frame that left nothing running behind it
+        var stillOurs = going.Equals(point) || (correctionAttempted && !mapChanged && !Character.Moving);
+
+        if (stillOurs)
         {
             //if the task that completed was the source task, throw if it was an error
             if (completedTask != delayTask)
@@ -2577,7 +2751,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             }
 
             Character.StopMoving();
-            Character.UpdateLocation(going);
+
+            //only where the leg is believed to have run its course. On the correction path going holds whatever the
+            //disagreeing frame said, so stamping it would restore the rewind the repair above just undid - and the
+            //StopMoving on the line before has already left the character coherent at its reckoned position
+            if (going.Equals(point))
+                Character.UpdateLocation(going);
         }
     }
 
@@ -3111,10 +3290,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)"),
 
-                    //this is ok because it happens after we receive new player data
+                    //this is ok because it happens after we receive new player data.
+                    //
+                    //the quantity is the server's, not ours: it clamps the order to the stack it actually holds
+                    //(min(item.q, requested)), so a stack that shrank between our read of it and its handler is
+                    //acknowledged for less than we asked - a send that happened, not one that failed. Demanding
+                    //equality left that acknowledgement unmatched and spent the full network timeout on a transfer
+                    //the server had already made, which throws out of whatever was mid-delivery
                     GameResponseType.ItemSent when toPlayerId.EqualsI(data.Name!)
                                                    && (data.Item?.Name.EqualsI(item.Name) == true)
-                                                   && (data.Quantity == quantity) => source.TrySetResult(Expectation.Success),
+                                                   && (data.Quantity <= quantity) => source.TrySetResult(Expectation.Success),
                     _ when data.Failed && "send".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
@@ -3997,6 +4182,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var warpBegin = false;
 
+        //read before the emit: the frame handler below has already merged the incoming counter onto Character by
+        //the time our callback runs, so the comparison has to be against where we started
+        var mapChangeCountAtStart = Character.MapChangeCount;
+
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
             data =>
@@ -4004,7 +4193,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 // ReSharper disable once ConvertIfStatementToSwitchStatement
                 if (!warpBegin && (data.Channeling != null) && data.Channeling.ContainsKey("town"))
                     warpBegin = true;
-                else if (warpBegin && (data.Channeling?.ContainsKey("town") != true))
+
+                //the channel ending is not the same thing as the channel being interrupted - the server deletes it
+                //and then transports, so a recall that lands also produces a frame with no channel on it. The map
+                //change is what tells the two apart, and it is stamped before either of the completion frames goes
+                //out. Without it this raced the new_map carrying the whole entity list, lost every time because a
+                //player frame is a fraction of the size, and reported a landed recall as canceled
+                else if (warpBegin
+                         && (data.Channeling?.ContainsKey("town") != true)
+                         && (data.MapChangeCount == mapChangeCountAtStart))
                     source.TrySetResult("Failed to town. (canceled)");
 
                 return TaskCache.FALSE;
@@ -4190,6 +4387,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Socket.OnLimitDcReport -= RaiseLimitDcReport;
         Socket.OnLimitDcReport += RaiseLimitDcReport;
 
+        Socket.OnEmit -= RaiseEmit;
+        Socket.OnEmit += RaiseEmit;
+
         Socket.On<StartData>(ALSocketMessageType.Start, OnStartAsync);
         Socket.On<ChestOpenedData>(ALSocketMessageType.ChestOpened, OnChestOpened);
         Socket.On<CharacterData>(ALSocketMessageType.Character, OnCharacterAsync);
@@ -4220,6 +4420,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         EntityManager.AttachListener();
     }
+
+    private void RaiseEmit(object? sender, ALSocketEmitType emitType) => OnEmit?.Invoke(this, emitType);
 
     private void RaiseLimitDcReport(object? sender, LimitDcReportData report) => OnLimitDcReport?.Invoke(this, report);
 
@@ -4346,10 +4548,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         //a transport races new_map against in-flight entities for the previous instance (node/server.js:4177):
         //a frame whose instance no longer matches ours is stale and would corrupt the current map's entity
-        //state, so drop it (mirrors js/game.js:2948). EntityBase.In is unbound under Newtonsoft (decision S21),
-        //so a start/player frame does NOT carry the instance - this handler is what keeps Character.In current.
-        //That is why the instance is stamped only AFTER the staleness check passes: a stale frame must never be
-        //allowed to move the character's instance. The first frame after login (In still null) seeds it.
+        //state, so drop it (mirrors js/game.js:2948). The instance is stamped only AFTER the staleness check
+        //passes: a stale frame must never be allowed to move the character's instance. The first frame after
+        //login (In still null) seeds it, though a player frame now carries the instance too.
         if (!string.IsNullOrEmpty(Character.In) && !data.In.EqualsI(Character.In))
             return TaskCache.FALSE;
 
@@ -4863,9 +5064,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //a freshly-sighted monster carries only the soft properties that differ from its def; fill the rest
                 monster.BackfillSoftDefaults();
 
-                monster.SetBoundingBase(
-                    monster.GetData()
-                           .BoundingBase);
+                var monsterData = monster.GetData();
+
+                monster.SetBoundingBase(monsterData.BoundingBase);
+                monster.SetHitBox(monsterData.HitBox);
                 Monsters.TryAdd(monster.Id, monster);
             }
         }
@@ -4892,6 +5094,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             else
             {
                 player.SetBoundingBase(PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE);
+                player.SetHitBox(GameData.DEFAULT_CHARACTER_HIT_BOX);
                 Players.TryAdd(player.Id, player);
             }
         }

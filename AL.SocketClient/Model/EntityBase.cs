@@ -97,6 +97,18 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     public string Id { get; init; } = null!;
 
+    /// <summary>
+    ///     The map or instance this entity is in.
+    /// </summary>
+    /// <remarks>
+    ///     Only a self 'player' frame carries this - player_to_client (node/server.js:732) lists 'in' in the !stranger
+    ///     block alongside 'map'. An entities frame carries it once for the whole frame instead, which is why every
+    ///     entity in one is stamped by hand. Left unbound, the shallow merge behind a player frame wrote null over
+    ///     whatever the last entities frame stamped, and InSameInstanceAs answers false against a null - so the vision
+    ///     sweep evicted every monster and player at once, several times a second.
+    /// </remarks>
+    [JsonPropertyName("in")]
+    [JsonInclude]
     public string? In { get; protected set; }
 
     public bool IsCompensated { get; private set; }
@@ -165,6 +177,15 @@ public abstract class EntityBase : AttributedObjectBase,
         ];
 
     public float Width => HalfWidth * 2;
+
+    /// <summary>
+    ///     The box this entity's <i>range</i> is measured against, as opposed to the collision foot-print the rest of
+    ///     this class presents as its rectangle. It tracks the entity, since it is built over this instance rather
+    ///     than over a snapshot of where it was standing.
+    /// </summary>
+    public IRectangle HitBox { get; private set; } = null!;
+
+    public void SetHitBox(BoundingBase hitBox) => HitBox = new BoundingRectangle(this, hitBox);
 
     public void CompensateOnce(TimeSpan minimumOffset)
     {
@@ -240,7 +261,7 @@ public abstract class EntityBase : AttributedObjectBase,
             return;
 
         var going = new Point(GoingX, GoingY);
-        var distanceDelta = Convert.ToSingle(Speed / 1000 * delta.TotalMilliseconds);
+        var distanceDelta = Convert.ToSingle(Speed * delta.TotalSeconds);
         var distance = this.Distance(going);
 
         if (distance > distanceDelta)
@@ -318,6 +339,10 @@ public abstract class EntityBase : AttributedObjectBase,
                 break;
             case EntityUpdateField.Resistance:
                 Resistance = value;
+
+                break;
+            case EntityUpdateField.Range:
+                Range = value;
 
                 break;
             case EntityUpdateField.Level:

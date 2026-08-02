@@ -43,6 +43,7 @@ public class EmitTypeWireNameTests
     [Arguments(ALSocketEmitType.Pet, "pet")]
     [Arguments(ALSocketEmitType.Whistle, "whistle")]
     [Arguments(ALSocketEmitType.Pets, "pets")]
+    [Arguments(ALSocketEmitType.Cruise, "cruise")]
 
     // existing members that gained a method this phase
     [Arguments(ALSocketEmitType.Command, "cm")]

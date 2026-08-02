@@ -98,6 +98,7 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Cond
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Focus	focus
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	GoingX	going_x
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	GoingY	going_y
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	In	in
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Level	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Map	map
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	MaxHP	max_hp

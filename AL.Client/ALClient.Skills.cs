@@ -105,6 +105,10 @@ public abstract partial class ALClient
     /// <param name="targetId">
     ///     The id of the entity to use the skill on, for skills that take one.
     /// </param>
+    /// <param name="targetIds">
+    ///     Every id a multi-target skill was aimed at. Carried alongside <paramref name="payload" /> rather than read out
+    ///     of it, since each such skill shapes its own arguments. Only used to decide what to drop on a refusal.
+    /// </param>
     /// <param name="completion">
     ///     The signal to await. Defaults to whatever <see cref="SkillCompletion.ForSkill" /> derives from G.
     /// </param>
@@ -144,7 +148,8 @@ public abstract partial class ALClient
         Func<GameResponseData, string?>? extraFailure = null,
         bool collectActions = false,
         int? inventorySlot = null,
-        object? payload = null)
+        object? payload = null,
+        IReadOnlyList<string>? targetIds = null)
     {
         if (string.IsNullOrEmpty(skillName))
             throw new ArgumentNullException(nameof(skillName));
@@ -204,6 +209,24 @@ public abstract partial class ALClient
                 //a replay of an already-settled operation must not complete this await
                 if (data.Stale)
                     return TaskCache.FALSE;
+
+                //a refused cast is the only notice the client gets that an id it still believes in is gone. The server
+                //says nothing when it drops an entity you can see, and the multi-target handlers skip a bad id without
+                //naming it - answering no_target only once every one of them failed. So the ids the cast was built from
+                //are the whole record of what to drop, and dropping all of them is deliberate: the handler also skips an
+                //id for being out of range, invincible or yourself, and any of those is re-sent on the next entities
+                //frame. One that is gone never is. This is the generic path on purpose - every targeted skill, every
+                //class, including the ones not written yet
+                if (skillName.EqualsI(data.Place!)
+                    && ((data.ResponseType == GameResponseType.NoTarget) || (data.Reason?.EqualsI("no_target") == true)))
+                {
+                    if (targetId != null)
+                        DestroyEntity(targetId);
+
+                    if (targetIds != null)
+                        foreach (var id in targetIds)
+                            DestroyEntity(id);
+                }
 
                 var extraReason = extraFailure?.Invoke(data);
 

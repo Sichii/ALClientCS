@@ -120,6 +120,12 @@ public interface IALSocketClient : IAsyncDisposable
     event EventHandler<string> OnDisconnected;
 
     /// <summary>
+    ///     Raised after each emit reaches the wire, carrying what was sent. Every one of those is billed against the
+    ///     server's <see cref="CallCost.LIMIT" />, so this is the hook for metering who is spending the budget.
+    /// </summary>
+    event EventHandler<ALSocketEmitType>? OnEmit;
+
+    /// <summary>
     ///     Raised when the server sends a rate-limit kick report immediately before disconnecting.
     /// </summary>
     event EventHandler<LimitDcReportData>? OnLimitDcReport;

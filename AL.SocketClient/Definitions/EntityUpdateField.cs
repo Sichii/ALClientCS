@@ -42,6 +42,15 @@ public enum EntityUpdateField : uint
     MoveNum = 1u << 13,
     Moving = 1u << 14,
     MP = 1u << 15,
+
+    /// <summary>
+    ///     Never actually carried by an entity frame - <c>monster_to_client</c> (<c>node/server.js:878</c>) lists it
+    ///     in neither its soft set nor its hard one, so a monster's reach only ever comes from <c>G.monsters</c>. The
+    ///     flag exists so that backfilling it runs through the same path as every other def-sourced value rather than
+    ///     being a special case beside them, and so a frame that did carry one would still win.
+    /// </summary>
+    Range = 1u << 22,
+
     Resistance = 1u << 16,
     Speed = 1u << 17,
     Target = 1u << 18,

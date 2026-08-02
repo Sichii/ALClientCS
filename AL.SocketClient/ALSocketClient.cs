@@ -121,7 +121,7 @@ public sealed class ALSocketClient : IALSocketClient
                     var report = response.GetValue<LimitDcReportData>();
 
                     Logger.Warn(
-                        $"Rate-limited: {report.TotalCalls} total calls, exceeded a call-cost limit of {report.CallLimit} in 4s. {report.Calls}");
+                        $"Rate-limited: {report.TotalCalls} total calls, exceeded a call-cost limit of {report.CallLimit} in 4s. {report.Calls?.ToJsonString()}");
 
                     OnLimitDcReport?.Invoke(this, report);
                 } catch (Exception e)
@@ -201,22 +201,28 @@ public sealed class ALSocketClient : IALSocketClient
                                   .ToLowerInvariant(),
                         data)
                     .ConfigureAwait(false);
+
+        //after the await, so a throw on the way to the wire is not billed to anyone - the server never saw it
+        OnEmit?.Invoke(this, emitType);
     }
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     ///     Socket is null or closed.
     /// </exception>
-    public Task EmitAsync(ALSocketEmitType emitType)
+    public async Task EmitAsync(ALSocketEmitType emitType)
     {
         Logger.Trace($"{emitType}");
 
         if ((Socket == null) || !Connected)
             throw new InvalidOperationException("Socket is null or closed.");
 
-        return Socket.EmitAsync(
-            EnumHelper.ToString(emitType)
-                      .ToLowerInvariant());
+        await Socket.EmitAsync(
+                        EnumHelper.ToString(emitType)
+                                  .ToLowerInvariant())
+                    .ConfigureAwait(false);
+
+        OnEmit?.Invoke(this, emitType);
     }
 
     //private async void EventHandler(object? sender, SocketIO e) => await HandleEventAsync(e.Value);
@@ -273,6 +279,12 @@ RAW JSON:
     ///     An event fired when the socket disconnects unintentionally.
     /// </summary>
     public event EventHandler<string>? OnDisconnected;
+
+    /// <summary>
+    ///     Raised after each emit reaches the wire, carrying what was sent. Every one of those is billed against the
+    ///     server's <see cref="CallCost.LIMIT" />, so this is the hook for metering who is spending the budget.
+    /// </summary>
+    public event EventHandler<ALSocketEmitType>? OnEmit;
 
     /// <summary>
     ///     Raised when the server sends a rate-limit kick report immediately before disconnecting.
@@ -381,6 +393,12 @@ RAW JSON:
             var dataObject = getValue(response, 0);
             Logger.Trace($"{messageType}, {response}");
 
+            //deliberately not serialized into one ordered chain, which was tried and reverted. It did what it
+            //said - frames merged in arrival order, and the duplicate "Correcting position" lines that come of
+            //two of them racing one detector went away - but every handler then waited behind the one in front,
+            //and this client's whole position model is latency-compensated against readings that assume it did
+            //not. Desync got worse on three counts at once: corrections, dead targets attacked, and multishots
+            //the server answered no_target because it disagreed about where the character was standing
             Task.Run(async () =>
             {
                 try

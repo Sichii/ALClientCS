@@ -96,6 +96,14 @@ public class Ranger : ALClient
 
         return UseSkillCoreAsync(
             "5shot",
+            targetIds:
+            [
+                targetId1,
+                targetId2,
+                targetId3,
+                targetId4,
+                targetId5
+            ],
             completion: SkillCompletion.ResponseData,
             extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null,
             collectActions: true,
@@ -302,6 +310,12 @@ public class Ranger : ALClient
 
         return UseSkillCoreAsync(
             "3shot",
+            targetIds:
+            [
+                targetId1,
+                targetId2,
+                targetId3
+            ],
             completion: SkillCompletion.ResponseData,
             extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null,
             collectActions: true,

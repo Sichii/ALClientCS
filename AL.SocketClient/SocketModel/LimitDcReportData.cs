@@ -25,11 +25,19 @@ public sealed record LimitDcReportData
     public double CallLimit { get; init; }
 
     /// <summary>
-    ///     The accrued call-cost breakdown for the 4-second window, keyed by call name (mixed value types, so kept as a raw
-    ///     object).
+    ///     The accrued call-cost breakdown for the 4-second window: an
+    ///     <b>
+    ///         array
+    ///     </b>
+    ///     of
+    ///     <c>
+    ///         [timestamp, method, cost]
+    ///     </c>
+    ///     triples, one per run of consecutive same-method calls (add_call_cost, node/server_functions.js:4621, folds a
+    ///     repeat into the previous entry rather than appending). Mixed element types, so kept raw.
     /// </summary>
     [JsonPropertyName("calls")]
-    public JsonObject? Calls { get; init; }
+    public JsonArray? Calls { get; init; }
 
     /// <summary>
     ///     The offending method - present only on the exception-path variant (node/server.js:4383).

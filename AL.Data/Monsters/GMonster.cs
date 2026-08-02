@@ -58,6 +58,17 @@ public sealed record GMonster : AttributedRecordBase
     public BoundingBase BoundingBase { get; set; } = null!;
 
     /// <summary>
+    ///     The box this monster's <i>range</i> is measured against - the whole sprite, centred horizontally and rising
+    ///     from its feet. Deliberately not <see cref="BoundingBase" />, which is the much smaller foot-print the game
+    ///     walks and pathfinds with: an attack reaches the sprite, a step collides with the base.
+    /// </summary>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
+    [JsonIgnore]
+    public BoundingBase HitBox { get; set; } = null!;
+
+    /// <summary>
     ///     If this monster
     ///     <see cref="Rage">
     ///         rages

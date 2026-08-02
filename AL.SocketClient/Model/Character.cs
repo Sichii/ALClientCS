@@ -54,12 +54,15 @@ public class Character : Player, IEquatable<Character>
     public new string? Code { get; protected set; }
 
     /// <summary>
-    ///     A value indicating the impact of the network calls this character is making.
+    ///     What the network calls this character has made are costing it. Not all calls are equal, and this is not a
+    ///     count - see <see cref="Definitions.CallCost" /> for the table the server prices them from.
     ///     <br />
-    ///     Not all network calls are equal in value. This number resets to 0 every second.
+    ///     It is a <b>sliding</b> window rather than a resetting counter: the server drops entries older than
+    ///     <see cref="Definitions.CallCost.WINDOW" /> off the front before every read, so a burst decays over that
+    ///     long instead of clearing on a tick boundary.
     ///     <br />
     ///     <b>
-    ///         If this number goes above 200, you will be disconnected.
+    ///         Above <see cref="Definitions.CallCost.LIMIT" /> the server sends a limitdcreport and disconnects.
     ///     </b>
     /// </summary>
     [JsonPropertyName("cc")]

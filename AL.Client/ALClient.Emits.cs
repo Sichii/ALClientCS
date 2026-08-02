@@ -26,6 +26,21 @@ public abstract partial class ALClient
                 gold,
                 odds
             });
+
+    /// <summary>
+    ///     Sets an upper cap on this character's movement speed (node/server.js:5122).
+    /// </summary>
+    /// <remarks>
+    ///     A cap and not a setting: the server applies it as <c>min(speed, cruise || 200000)</c> after every other
+    ///     modifier, so it can only ever slow the character. It persists on the player until changed, so a caller
+    ///     that stops wanting it has to clear it rather than falling silent - and <b>zero is the clear</b>, being
+    ///     falsy in that expression. The payload is a bare number, matching the handler's own
+    ///     <c>function (speed)</c> signature; the server parses it with <c>parseInt</c> and floors the resulting
+    ///     speed at 5.
+    ///     <br />
+    ///     It costs 10 call units of the 200 a character has every four seconds - the move emit costs 1.5.
+    /// </remarks>
+    public Task CruiseAsync(int speed) => Socket.EmitAsync(ALSocketEmitType.Cruise, speed);
     #endregion
 
     #region Chat

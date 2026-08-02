@@ -186,6 +186,18 @@ public record GameData
         }
     }
 
+    /// <summary>
+    ///     What a monster with no entry in the dimensions table is squared off at before its size multiplier.
+    /// </summary>
+    private const float UNSIZED_HIT_BOX = 24f;
+
+    /// <summary>
+    ///     The hit box every player is measured against for range: 26 wide and 36 tall, fixed for everyone rather than
+    ///     read from the dimensions table, which carries a different height for the same entry and is not what range
+    ///     is resolved with. Their <i>collision</i> box is a separate and much smaller thing - the pathfinding default.
+    /// </summary>
+    public static readonly BoundingBase DEFAULT_CHARACTER_HIT_BOX = new(13f, 36f, 0f);
+
     public static void BuildBoundingBases()
     {
         Log.Debug("Building monster bounding bases");
@@ -200,10 +212,11 @@ public record GameData
             if ((dimensions.Count > 0) && (dimensions.ElementAtOrDefault(3) != 0))
             {
                 h = dimensions.ElementAtOrDefault(3);
+
+                //v + vn has to stay under 12
                 v = Math.Min(9.9f, dimensions.ElementAtOrDefault(4));
             } else
             {
-                //TODO: Unsure if this is correct, the source's way of getting this data potentially includes UI data (get_width)
                 h = Math.Min(12f, dimensions.ElementAtOrDefault(0) * 0.8f);
 
                 if (h == 0)
@@ -211,12 +224,28 @@ public record GameData
                     h = 8;
                     v = 7;
                 } else
-
-                    //TODO: Unsure if this is correct, the source's way of getting this data potentially includes UI data (get_height)
                     v = Math.Min(9.9f, dimensions.ElementAtOrDefault(1) / 4f);
             }
 
+            //this is the collision box the game walks and pathfinds with, and is deliberately not the hit box below -
+            //range is resolved against the whole sprite, but movement against a small foot-print at its base
             monster.BoundingBase = new BoundingBase(h, v, VN);
+
+            //the hit box every range check is resolved against, which is the sprite rather than the foot-print above:
+            //centred horizontally and rising from the monster's feet, so the whole height sits on one side of it. A
+            //monster the table has no entry for is squared off at 24 rather than left without a box, and the handful
+            //carrying a size multiplier are scaled and rounded before anything measures them - a crab is half size,
+            //so getting this wrong is worth several units on the most common target there is
+            var hitWidth = dimensions.Count > 0 ? dimensions.ElementAtOrDefault(0) : UNSIZED_HIT_BOX;
+            var hitHeight = dimensions.Count > 0 ? dimensions.ElementAtOrDefault(1) : UNSIZED_HIT_BOX;
+
+            if (monster.Size != 0f)
+            {
+                hitWidth = MathF.Round(hitWidth * monster.Size);
+                hitHeight = MathF.Round(hitHeight * monster.Size);
+            }
+
+            monster.HitBox = new BoundingBase(hitWidth / 2f, hitHeight, 0f);
         }
     }
 

@@ -126,21 +126,22 @@ public sealed class NonPublicMemberCharacterization
         Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {auditGap}");
 
         // Finding, and the reason an attribute-gated audit is unsafe under STJ exactly as it was under the old
-        // serializer: 151 instance properties in the six assemblies have a non-public setter, and only 113 carry
+        // serializer: 152 instance properties in the six assemblies have a non-public setter, and only 114 carry
         // [JsonInclude]/[JsonPropertyName], so an audit keyed on the attribute is blind to 38 of them — e.g.
-        // EntityBase.In (the server sends "in", nothing binds it), EntityBase.PresentFields, the
-        // Emotion/Friends/OwnedCosmetics setters that moved onto ALClient, and ALSocketClient.LastDisconnectReason
-        // / ALClient.FatalError, all populated imperatively. Not missed bindings, but exactly what an
-        // attribute-keyed audit cannot see. Key on "non-public accessor", never on "has an attribute".
-        // ALClient.IsPvPServer is the newest of them: OnWelcomeAsync assigns it off the welcome frame, so it is
-        // imperative like the rest and 37 -> 38.
+        // EntityBase.PresentFields, the Emotion/Friends/OwnedCosmetics setters that moved onto ALClient, and
+        // ALSocketClient.LastDisconnectReason / ALClient.FatalError, all populated imperatively. Not missed
+        // bindings, but exactly what an attribute-keyed audit cannot see. Key on "non-public accessor", never on
+        // "has an attribute". ALClient.IsPvPServer took it 37 -> 38: OnWelcomeAsync assigns it off the welcome
+        // frame, so it is imperative like the rest. EntityBase.HitBox took it 38 -> 39 — the box range is measured
+        // against, built from game data at first sighting rather than sent. EntityBase.In brought it back to 38:
+        // it was the standing example of a blind-spot member, and turned out to be a real missed binding.
         auditGap.Should()
                 .Be(38);
 
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
-        // ALClient.IsPvPServer, now 151.
+        // ALClient.IsPvPServer, 151 until EntityBase.HitBox, now 152.
         allInstanceNonPublicSetters.Should()
-                                   .Be(151);
+                                   .Be(152);
     }
 
     [Test]
@@ -200,13 +201,15 @@ public sealed class NonPublicMemberCharacterization
         // Phase 7 moved Emotion/Friends/OwnedCosmetics off Character onto ALClient (not an entity frame type),
         // dropping frame-reachable 92 -> 89 and covered 59 -> 56; MaxMP/Focus merely relocated Player -> EntityBase.
         // Phase 11 added eight Character owner-stats (an entity frame type): frame-reachable 89 -> 97.
+        // Binding EntityBase.In took it 97 -> 98.
         frameReachable.Should()
-                      .HaveCount(97);
+                      .HaveCount(98);
 
         // Phase 11: five of the eight new Character stats (max_xp/goldm/xpm/luckm/cash) are non-default in the
         // captured start frame; incdmgamp/mcourage/pcourage stay default. covered 56 -> 61.
+        // EntityBase.In binds "main" off every one of them: covered 61 -> 62.
         covered.Should()
-               .HaveCount(61, "the start/player/entities frames drive 61 setters away from their defaults");
+               .HaveCount(62, "the start/player/entities frames drive 62 setters away from their defaults");
 
         // The 36 setters no captured frame exercises to a non-default value. These are the members a
         // migration reviewer must eyeball by hand — no value assertion can guard them here. The 23
@@ -428,12 +431,12 @@ public sealed class NonPublicMemberCharacterization
              .Should()
              .Be("main");
 
-        // In carries no serialization attribute at all, so it is absent from the census, and STJ skips a
-        // protected setter without [JsonInclude] — it stays null even though the wire sends "in":"main".
-        // Pinned per decision 9 / S21.
+        // In was unbound until 2026-08-02 and read null here even though the wire sends "in":"main". A player
+        // frame flows through ShallowMerge, so unbound meant null written over the live instance several times a
+        // second, and every instance-checked distance answered MaxValue.
         start.In
              .Should()
-             .BeNull("EntityBase.In is deliberately left unbound");
+             .Be("main");
 
         start.MaxHP
              .Should()

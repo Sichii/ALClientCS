@@ -57,6 +57,11 @@ public static class MonsterExtensions
         monster.BackfillSoftDefault(EntityUpdateField.Armor, def.Armor);
         monster.BackfillSoftDefault(EntityUpdateField.Resistance, def.Resistance);
 
+        //never on the wire at all, unlike every other line here: monster_to_client sends neither a soft nor a hard
+        //'range', so without this every live monster reads a reach of zero. Silent everywhere it matters - a kite
+        //sizes its stand-off against nothing, and a lap scores being stood on as perfectly safe
+        monster.BackfillSoftDefault(EntityUpdateField.Range, def.Range);
+
         //the server sends level only when > 1 (node/server.js:922), so an absent level means 1, not the int default 0
         monster.BackfillSoftDefault(EntityUpdateField.Level, 1);
     }

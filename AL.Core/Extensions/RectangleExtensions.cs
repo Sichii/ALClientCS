@@ -105,11 +105,13 @@ public static class RectangleExtensions
 
         ArgumentNullException.ThrowIfNull(other);
 
-        return rect.Contains(other)
-            ? 0f
-            : rect.Vertices
-                  .Select(point => point.Distance(other))
-                  .Min();
+        //per-axis separation, not the nearest vertex: an axis the point already lies within contributes nothing, which
+        //is what makes this agree with the server. Taking the closest corner instead measures around the rectangle and
+        //answers too large for anything alongside it
+        var dx = MathF.Max(MathF.Max(other.X - rect.Right, rect.Left - other.X), 0f);
+        var dy = MathF.Max(MathF.Max(other.Y - rect.Bottom, rect.Top - other.Y), 0f);
+
+        return MathEx.Hypot(dx, dy);
     }
 
     /// <summary>
@@ -139,11 +141,15 @@ public static class RectangleExtensions
 
         ArgumentNullException.ThrowIfNull(other);
 
-        return rect.Intersects(other)
-            ? 0f
-            : rect.Vertices
-                  .SelectMany(point => other.Vertices.Select(point.Distance))
-                  .Min();
+        //the gap on each axis independently, each clamped at zero, then combined. An axis the two already overlap on
+        //contributes nothing, so two boxes side by side at the same height are exactly their horizontal gap apart -
+        //which is the measure the server resolves every attack, skill and aggro check with. The nearest-vertex reading
+        //this replaced answered too large whenever the boxes overlapped on one axis without their corners lining up,
+        //and every range check in the client was built on it
+        var dx = MathF.Max(MathF.Max(other.Left - rect.Right, rect.Left - other.Right), 0f);
+        var dy = MathF.Max(MathF.Max(other.Top - rect.Bottom, rect.Top - other.Bottom), 0f);
+
+        return MathEx.Hypot(dx, dy);
     }
 
     /// <summary>

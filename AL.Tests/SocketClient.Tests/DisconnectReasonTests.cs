@@ -25,7 +25,7 @@ public class DisconnectReasonTests
     public void LimitDcReportBindsTheExceptionPathMethod()
     {
         //node/server.js:4379 adds the offending method name
-        const string PAYLOAD = @"{ ""calls"":{}, ""climit"":100, ""total"":50000, ""method"":""move"" }";
+        const string PAYLOAD = @"{ ""calls"":[], ""climit"":100, ""total"":50000, ""method"":""move"" }";
 
         var report = TestJson.Socket<LimitDcReportData>(PAYLOAD);
 
@@ -40,8 +40,11 @@ public class DisconnectReasonTests
     [Test]
     public void LimitDcReportBindsTheServerPayload()
     {
-        //node/server.js:4366 - { calls: socket.calls, climit, total: socket.total_calls }
-        const string PAYLOAD = @"{ ""calls"":{ ""move"":3.5, ""attack"":1 }, ""climit"":100, ""total"":50000 }";
+        //node/server.js:4366 - { calls: socket.calls, climit, total: socket.total_calls }. socket.calls is an
+        //array of [timestamp, method, cost] triples (server_functions.js:4624), not a name-keyed object - reading
+        //it as one threw on every rate-limit kick, which is the one moment the telemetry exists to explain
+        const string PAYLOAD =
+            @"{ ""calls"":[[""2026-08-02T02:55:38.000Z"",""move"",3.5],[""2026-08-02T02:55:38.100Z"",""attack"",1]], ""climit"":100, ""total"":50000 }";
 
         var report = TestJson.Socket<LimitDcReportData>(PAYLOAD);
 
@@ -60,9 +63,18 @@ public class DisconnectReasonTests
               .Should()
               .NotBeNull();
 
-        report.Calls!.ContainsKey("move")
+        report.Calls!
               .Should()
-              .BeTrue();
+              .HaveCount(2);
+
+        //[timestamp, method, cost]
+        report.Calls[0]![1]!.GetValue<string>()
+              .Should()
+              .Be("move");
+
+        report.Calls[0]![2]!.GetValue<double>()
+              .Should()
+              .Be(3.5d);
 
         //method is only present on the exception-path variant (:4383)
         report.Method
