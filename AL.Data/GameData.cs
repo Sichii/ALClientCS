@@ -41,6 +41,15 @@ namespace AL.Data;
 
 public record GameData
 {
+    /// <summary>
+    ///     The npc every exchange with no quest tag of its own is measured against - <c>G.maps.main.exchange</c>,
+    ///     which the map data carries as a placement of this id on <c>main</c> alone. The copy on
+    ///     <c>original_main</c> sits on a map marked ignored, so <see cref="EnrichNPCs" /> never adds it to
+    ///     <c>Locations</c> - the same skip the server's own placement loop takes
+    ///     (<c>js/old_common_functions.js:197</c>, filling <c>map.exchange</c> at <c>:236</c>).
+    /// </summary>
+    private const string EXCHANGE_NPC = "exchange";
+
     private static readonly ILog Log = LogManager.GetLogger(typeof(GameData));
 
     [GameDataRoot]
@@ -263,9 +272,12 @@ public record GameData
                 item.Recipe = recipe;
         }
 
-        //connect item ObtainableFromNPC and ExchangeAtNPC
-        foreach (var npc in NPCs.Values.DistinctBy(npc => npc.Id))
-        {
+        //connect item ObtainableFromNPC. Placed sellers first: this is a first-writer race and CanBuy ends on
+        //ObtainableFromNPC.Locations.Any, so an item resolved to a seller standing only on ignored maps is unbuyable
+        //with nothing logged anywhere. OrderByDescending is stable, so the datum's own order still decides among peers
+        foreach (var npc in NPCs.Values
+                                .DistinctBy(npc => npc.Id)
+                                .OrderByDescending(npc => npc.Locations.Count > 0))
             if (npc.Items != null)
                 foreach (var itemName in npc.Items)
                 {
@@ -280,16 +292,6 @@ public record GameData
                         item.ObtainType = ObtainType.Buy;
                     }
                 }
-
-            if (npc.Token != Token.None)
-            {
-                var item = Items[npc.Token];
-
-                //exchange at (token)
-                if (item is { ExchangeAtNPC: null })
-                    item.ExchangeAtNPC = npc;
-            }
-        }
 
         foreach (var item in Items.Values.DistinctBy(item => item.Accessor))
         {
@@ -311,9 +313,17 @@ public record GameData
                     item.ObtainType = ObtainType.Craft;
                 }
 
-            //exchange at (quest)
-            if ((item.ExchangeAtNPC == null) && (item.Quest != null))
-                item.ExchangeAtNPC = Quests[item.Quest.Value];
+            //exchange at, as the server's own rule: the item's quest npc when it carries a quest tag, and the one
+            //fixed exchange placement otherwise (node/server.js:6073). Stated once rather than filled in from an
+            //npc's token, which named the wrong npc for the four tokens and left the field null for every other
+            //exchangeable - of the 38 items carrying an exchange count in the committed game data, 31 resolve to the
+            //fixed placement and 7 to a
+            //quest npc. Gated on exchangeability because that is what this field means - "if
+            //populated, this item can be exchanged at this npc" - and 2 of the 9 items carrying a quest tag are not
+            //exchangeable at all. GetValueOrDefault rather than the indexer: this runs at data load, where a quest
+            //the npc table has no entry for would throw out of startup instead of leaving one item unresolved
+            if (item.ExchangeCount.HasValue)
+                item.ExchangeAtNPC = item.Quest is { } quest ? Quests.GetValueOrDefault(quest) : NPCs[EXCHANGE_NPC];
         }
 
         foreach ((var tokenName, var buyableItems) in Tokens.Entries)
@@ -577,12 +587,14 @@ public record GameData
         //populate quest dictionary with npcs
         EnrichQuests();
 
-        //connect various data points
+        //connect various data points. NPCs before items, because the item pass now prefers a seller that is actually
+        //placed and GNPC.Locations is empty until EnrichNPCs fills it - EnrichMaps has already put the per-map entries
+        //and npc.Data in place, which is all EnrichNPCs itself needs
         EnrichRecipes();
         EnrichMaps();
+        EnrichNPCs();
         EnrichItems();
         EnrichMonsters();
-        EnrichNPCs();
         BuildBoundingBases();
 
         stopwatch.Stop();

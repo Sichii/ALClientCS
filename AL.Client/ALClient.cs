@@ -54,6 +54,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private readonly FifoAutoReleasingSemaphoreSlim Sync = new(1, 1);
 
     /// <summary>
+    ///     Slots in one bank pack. Not derivable from the pack the server sent: it pushes items on
+    ///     (<c>node/server.js:2018</c>) and pads nothing, so the array is only as long as the pack's highest occupied
+    ///     slot and a pack bought but never used arrives as an empty one.
+    /// </summary>
+    private const int BANK_PACK_SIZE = 42;
+
+    /// <summary>
     ///     This will be populated and persist after the first time this character enters the bank.
     /// </summary>
     public BankInfo? Bank { get; private set; }
@@ -481,8 +488,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return false;
 
         foreach ((var quantity, var name, var level) in data.Recipe!.Items)
-            if (Character.Inventory.FindItem(name, level, (int?)quantity) == null)
-                if (!includeBank || (Bank?.FindItem(name, level, (int?)quantity) == null))
+            if (Character.Inventory.FindItem(name, level, quantityMin: (int)quantity) == null)
+                if (!includeBank || (Bank?.FindItem(name, level, quantityMin: (int)quantity) == null))
                     return false;
 
         return !distanceCheck
@@ -524,7 +531,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if ((data?.ExchangeCount == null) || (data.ExchangeAtNPC == null))
             return false;
 
-        if (Character.Inventory.CountOf(itemName) < data.ExchangeCount)
+        //a single slot holding the whole count, not a total across several - the server refuses a submitted slot
+        //short of it (node/server.js:6078) rather than summing, so two half-stacks that pass CountOf still fail
+        //the emit
+        if (Character.Inventory.FindItem(itemName, quantityMin: data.ExchangeCount.Value) == null)
             return false;
 
         return !distanceCheck
@@ -821,8 +831,28 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Checks if you are within range of an NPC, using a range depending on the NPC.
     /// </summary>
     /// <param name="npcId">
-    ///     The id of the NPC.
+    ///     The id of the NPC - its key in <c>G.npcs</c>, which is also what an NPC entity carries in its
+    ///     <see cref="Player.NPCName" />.
     /// </param>
+    /// <remarks>
+    ///     Measured against the game data's placements rather than against the live entity, and that is a fix rather
+    ///     than a preference: an NPC <i>is</i> in <see cref="Players" />, but never under this id. It is keyed by its
+    ///     display name - <c>Cue</c>, <c>Ponty</c>, <c>Ace</c> - while the key this takes is the one in
+    ///     <c>G.npcs</c>, which the entity carries in its <see cref="Player.NPCName" /> instead. So the
+    ///     <c>TryGetValue</c> this used to do missed every time and the method answered false for every NPC on every
+    ///     map, silently.
+    ///     <br />
+    ///     What that id looks like exactly is unsettled, which is the other reason not to key off it. The captured
+    ///     start frame in <c>AL.Tests</c> holds <c>{"npc":"pvp","id":"Ace"}</c> where <c>G.npcs.pvp.name</c> is
+    ///     <c>Ace</c>; the cloned server's <c>create_npc</c> would make that <c>$Ace</c>
+    ///     (<c>node/server_functions.js:1495</c>), and <c>player_to_client</c> carries a commented-out
+    ///     <c>data.id="$"+data.id</c> from some earlier arrangement (<c>node/server.js:803</c>). The capture also
+    ///     lacks the <c>name</c> that the same <c>is_npc</c> branch sets, so it did not come through that branch as
+    ///     written and its age is unknown. The display name is the constant across all of it; the prefix is not.
+    ///     <br />
+    ///     Placements are also the better source. They do not need the NPC to be inside the client's vision radius,
+    ///     and they carry the map, which the entity comparison did not check. <c>CanBuy</c> already measures this way.
+    /// </remarks>
     /// <exception cref="ArgumentNullException">
     ///     npcId
     /// </exception>
@@ -833,9 +863,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         if (string.IsNullOrEmpty(npcId))
             throw new ArgumentNullException(nameof(npcId));
-
-        if (!Players.TryGetValue(npcId, out var npc))
-            return false;
 
         var nData = GameData.NPCs[npcId];
 
@@ -850,8 +877,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //centre to centre, unlike everything combat resolves: the server splits these two apart, measuring what an
         //attack or a trade reaches with hit boxes but what an NPC will serve you from with plain positions. Measuring
         //this one edge to edge asks for a shorter distance than the server does and gets refused at the counter
-        return Character.Distance(npc)
-                        .IsLess(range, CORE_CONSTANTS.EPSILON);
+        return nData.Locations
+                    .Any(location => Character.DistanceWithMapCheck(location)
+                                              .IsLess(range, CORE_CONSTANTS.EPSILON));
     }
     #endregion
 
@@ -1959,7 +1987,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">
     ///     Failed to craft {itemName}. ({reason})
     /// </exception>
-    public async Task<InventoryIndexer> CraftAsync(string itemName)
+    public Task<InventoryIndexer> CraftAsync(string itemName)
     {
         if (string.IsNullOrEmpty(itemName))
             throw new ArgumentNullException(nameof(itemName));
@@ -1969,20 +1997,72 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (recipe == null)
             throw new InvalidOperationException($"Failed to craft {itemName}. (not craftable)");
 
-        if (recipe.Cost > Character.Gold)
-            throw new InvalidOperationException($"Failed to craft {itemName}. (not enough gold)");
-
         var slots = new List<int>();
 
         foreach ((var quantity, var name, var level) in recipe.Items)
         {
-            var result = Character.Inventory.FindItem(name, level, (int?)quantity);
+            //exact stack preferred, over-sized one as fallback: the server only consults can_add_item when no
+            //submitted slot is exact (node/server.js:6021-6031), so an exact match keeps space true and a full
+            //inventory craftable - falling back to quantityMin is what makes an over-sized stack legal at all,
+            //since the server's own rule is at-least rather than exact
+            var result = Character.Inventory.FindItem(name, level, (int?)quantity)
+                         ?? Character.Inventory.FindItem(name, level, quantityMin: (int)quantity);
 
             if (result == null)
                 throw new InvalidOperationException($"Failed to craft {itemName}. (missing component)");
 
             slots.Add(result.Index);
         }
+
+        return CraftAsync(itemName, slots);
+    }
+
+    /// <summary>
+    ///     Asynchronously crafts an item out of slots the caller chose.
+    /// </summary>
+    /// <param name="itemName">
+    ///     The name of the item to craft.
+    /// </param>
+    /// <param name="inventorySlots">
+    ///     One inventory slot per recipe input, in the recipe's own order.
+    /// </param>
+    /// <remarks>
+    ///     For a caller that keeps part of its inventory out of play. The overload above scans from index 0 and
+    ///     prefers a slot holding exactly the recipe amount - which for a non-stackable input is every slot holding
+    ///     one - so it will consume a low-indexed copy in preference to a higher-indexed over-sized one, and nothing
+    ///     on this side knows which slots a caller considers off limits. Choosing the slots is the only way to say so
+    ///     without restating the exact-before-over-sized preference, which exists to keep the server's <c>space</c>
+    ///     flag true and is not the caller's to re-derive.
+    /// </remarks>
+    /// <returns>
+    ///     <see cref="InventoryIndexer" />
+    ///     <br />
+    ///     Information about the item that was crafted, and it's position in the inventory.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     itemName
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to craft {itemName}. ({reason})
+    /// </exception>
+    public async Task<InventoryIndexer> CraftAsync(string itemName, IReadOnlyList<int> inventorySlots)
+    {
+        if (string.IsNullOrEmpty(itemName))
+            throw new ArgumentNullException(nameof(itemName));
+
+        var recipe = GameData.Craft[itemName];
+
+        if (recipe == null)
+            throw new InvalidOperationException($"Failed to craft {itemName}. (not craftable)");
+
+        //the emit is a grid of (position, slot) pairs one per input, so a short or long list is a malformed craft
+        //rather than one the server can refuse intelligibly
+        if (inventorySlots.Count != recipe.Items.Count)
+            throw new InvalidOperationException(
+                $"Failed to craft {itemName}. (expected {recipe.Items.Count} slots, got {inventorySlots.Count})");
+
+        if (recipe.Cost > Character.Gold)
+            throw new InvalidOperationException($"Failed to craft {itemName}. (not enough gold)");
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
         var previousInventory = Character.Inventory.AsIndexed();
@@ -2024,7 +2104,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketEmitType.Craft,
             new
             {
-                items = slots.Select((inventorySlot, gridPosition) => new[]
+                items = inventorySlots.Select((inventorySlot, gridPosition) => new[]
                 {
                     gridPosition,
                     inventorySlot
@@ -2273,7 +2353,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (itemData == null)
             throw new InvalidOperationException("Failed to exchange. (no data, contact me)");
 
-        if ((itemData.ExchangeAtNPC == null) || !itemData.ExchangeCount.HasValue)
+        //exchangeability is the count alone, and asking for ExchangeAtNPC beside it refused 31 of the committed game data's 38
+        //exchangeables outright: it was enriched only from an npc's token or the item's own quest, so gems,
+        //boxes and every envelope carry none. Where an item is exchanged is a distance question the server settles
+        //itself against the quest npc or the fixed exchange placement (node/server.js:6072-6077), not an existence one
+        if (!itemData.ExchangeCount.HasValue)
             throw new InvalidOperationException("Failed to exchange. (item not exchangeable)");
 
         if (itemData.ExchangeCount > item.Quantity)
@@ -3809,10 +3893,29 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.Character,
             data =>
             {
+                //bounds-checked: a frame carrying a shorter inventory than the one these slots were read from would
+                //otherwise throw inside the callback, and the emit is already with the server by then
+                if ((data.Inventory == null) || (inventorySlot1 >= data.Inventory.Count) || (inventorySlot2 >= data.Inventory.Count))
+                    return TaskCache.FALSE;
+
                 var cItem1 = data.Inventory[inventorySlot1];
                 var cItem2 = data.Inventory[inventorySlot2];
 
-                if ((cItem1 == item2) && (cItem2 == item1))
+                if (Swapped(cItem1, item2) && Swapped(cItem2, item1))
+                {
+                    source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                }
+
+                //the server merges rather than swaps when the two stack, landing the whole stack in the first slot
+                //and emptying the second (node/server.js:8354). That is this call succeeding, not failing
+                if ((item1 != null)
+                    && (item2 != null)
+                    && (cItem2 == null)
+                    && (cItem1 != null)
+                    && cItem1.Name.EqualsI(item1.Name)
+                    && (cItem1.Quantity == (item1.Quantity + item2.Quantity)))
                     source.TrySetResult(Expectation.Success);
 
                 return TaskCache.FALSE;
@@ -3828,6 +3931,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
+
+        //what identifies a slot's contents, and deliberately not Item's own equality: Item is a record, so the
+        //synthesized Equals folds in PossiblePrefixes - an IReadOnlyList<string> that EqualityComparer.Default
+        //compares by reference. Two deserializations of the same item never share that list, so a whole-item
+        //comparison across two frames is false for everything except a pair of nulls, and this call could only ever
+        //time out and throw on a swap that had in fact already happened
+        static bool Swapped(Item? slot, Item? expected)
+            => ((slot == null) == (expected == null))
+               && ((slot == null)
+                   || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
     }
 
     /// <summary>
@@ -4374,6 +4487,92 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         return await source.Task.WithNetworkTimeout();
     }
+
+    /// <summary>
+    ///     Asynchronously withdraws an item from the bank without naming a destination, so the server picks the
+    ///     landing slot and folds the item into a stack the inventory already holds.
+    /// </summary>
+    /// <param name="bankPack">
+    ///     The bankPack to withdraw from.
+    /// </param>
+    /// <param name="bankSlot">
+    ///     The slot within the bankPack to withdraw from.
+    /// </param>
+    /// <returns>
+    ///     The inventory slot the item landed in - an existing stack's slot whenever it merged.
+    /// </returns>
+    /// <remarks>
+    ///     <see cref="WithdrawItemAsync" /> cannot do this: naming <c>inv</c> takes the server's raw swap branch,
+    ///     which assigns the slot outright, where an unnamed one takes the pull branch and its <c>add_item</c>
+    ///     (<c>node/server.js:8548</c>). That merge is what puts a whole quantity in the one slot a craft or an
+    ///     exchange reads it from, and it needs no free slot at all when a stacking partner is held
+    ///     (<c>js/old_common_functions.js:405</c>). The cost is that the reserved-range discipline a caller gets by
+    ///     naming the slot does not apply - the server merges into the first partner it finds, reserved or not.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to withdraw item {item}. ({reason})
+    /// </exception>
+    public async Task<int> WithdrawItemMergingAsync(BankPack bankPack, int bankSlot)
+    {
+        if (Character.Bank == null)
+            throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (not in bank)");
+
+        var availableBanks = GetAvailableBankPacks();
+
+        if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
+            throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
+
+        var item = bankedItems[bankSlot];
+
+        if (item == null)
+            throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (no item)");
+
+        var source = new TaskCompletionSource<Expectation<int>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        //the game_response is the only frame that can settle this. The character frame the server sends first
+        //(node/server.js:8556) carries no slot number, and the destination is not known here to watch one - that is
+        //the whole point of the operation. Both outcomes land on this message: the landing slot in inv, or the
+        //refusal, and place names the socket method either was answered from (node/server_functions.js:2827, :2855)
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (data.Place?.EqualsI("bank") != true)
+                    return TaskCache.FALSE;
+
+                //the server echoes str on every item branch of this handler and on none of the gold ones, so a
+                //frame naming a different bank slot is another operation's answer. A refusal names no slot at all
+                //and so settles on place alone, which is right: two bank refusals are the same outcome either way
+                if ((data.BankSlot is { } answered) && (answered != bankSlot))
+                    return TaskCache.FALSE;
+
+                if (data.Failed)
+                    source.TrySetResult($"Failed to withdraw item {item.Name}. ({data.ResponseType})");
+                else if (data.Success)
+                    source.TrySetResult(
+                        data.InventorySlot is { } landed
+                            ? new Expectation<int>(landed)
+
+                            //the bank slot was already empty by the time the emit landed: the server answers success
+                            //having moved nothing, so this is the refusal rather than a whole timeout spent waiting
+                            //for a frame that is never coming
+                            : new Expectation<int>($"Failed to withdraw item {item.Name}. (nothing in {bankPack}:{bankSlot})"));
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Bank,
+            new
+            {
+                operation = "swap",
+                str = bankSlot,
+                pack = bankPack.ToString()
+                               .ToLower()
+            });
+
+        return await source.Task.WithNetworkTimeout();
+    }
     #endregion
 
     #region Events
@@ -4721,6 +4920,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data.QueuedActionInfo != null)
             Character.Update(data.QueuedActionInfo);
 
+        //the other half of the frame, and the only place it is ever sent: the prediction under an in-progress upgrade
+        //or compound, carrying that operation's roll as its digits are revealed. Dropping it - which this used to do -
+        //leaves the placeholder in the inventory holding whatever it was deserialized with, so the roll reads as
+        //absent for the whole operation and there is no other frame that would correct it
+        if (data.Prediction is { } prediction)
+            Character.Update(data.Slot, prediction);
+
         return TaskCache.FALSE;
     }
 
@@ -4866,8 +5072,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Consumes a potion or regen. The server acknowledges it with an eval carrying the shared pot cooldown, and refuses
-    ///     it with a "not ready" disappearing text. <paramref name="description" /> names the item in that failure.
+    ///     Consumes a potion or regen. The server acknowledges it with an eval carrying the shared pot cooldown, and
+    ///     refuses it with a failed game_response. <paramref name="description" /> names the item in that failure.
     /// </summary>
     private async Task ConsumeAsync(
         ALSocketEmitType emitType,
@@ -4877,14 +5083,29 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using var disappearingTextCallback = Socket.On<DisappearingTextData>(
-            ALSocketMessageType.DisappearingText,
+        //the refusal arm, and it has to be this event: the shared potion cooldown answers
+        //`fail_response("not_ready", {ms})` (node/server.js:7202), which is a game_response and nothing else. This
+        //used to watch for a "not ready" disappearing text, a string the server does not contain - so the single
+        //most common outcome of all, using a potion a moment early, matched no expectation at all and spent the
+        //whole network timeout before throwing one that named the wrong problem
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
             data =>
             {
-                //Character.Name is the receiver: the gold/xp disappearing_texts a kill emits carry no id, and
-                //EqualsI throws on a null receiver while tolerating a null argument
-                if (Character.Name.EqualsI(data.Id!) && data.Message.EqualsI("not ready"))
-                    source.TrySetResult($"Failed to use {description}. (not ready)");
+                if (!data.Failed)
+                    return TaskCache.FALSE;
+
+                switch (data.ResponseType)
+                {
+                    case GameResponseType.NotReady:
+                        source.TrySetResult($"Failed to use {description}. (not ready for another {data.CooldownMS ?? 0:N0}ms)");
+
+                        break;
+                    case GameResponseType.ItemLocked:
+                        source.TrySetResult($"Failed to use {description}. (item is locked)");
+
+                        break;
+                }
 
                 return TaskCache.FALSE;
             });
@@ -4931,7 +5152,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         //if both indexes are specified, just check that they are valid.
         if (bankPack.HasValue && bankSlot.HasValue)
-            if (!Bank!.TryGetValue(bankPack.Value, out var bankedItems) || (bankedItems[bankSlot.Value] != null))
+            if (!Bank!.TryGetValue(bankPack.Value, out var bankedItems)
+                || ((bankSlot.Value < bankedItems.Count) && (bankedItems[bankSlot.Value] != null)))
                 return null;
             else
                 return (bankPack.Value, bankSlot.Value);
@@ -4950,11 +5172,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (!Bank!.TryGetValue(bankPackIndex, out var bankItems))
                 continue;
 
-            //for each item in this bank pack
-            var itemSlotIndex = 0;
-
-            foreach (var bankedItem in bankItems)
+            //every slot of the pack, not every entry of the array the server sent. bank_add_item pushes
+            //(node/server.js:2018) and pads nothing, so a pack arrives trimmed to its highest occupied slot and a
+            //freshly bought one arrives as []. The server counts all 42 either way (js/old_common_functions.js:412),
+            //so anything past the array's end is a free slot rather than no slot
+            for (var itemSlotIndex = 0; itemSlotIndex < BANK_PACK_SIZE; itemSlotIndex++)
             {
+                var bankedItem = itemSlotIndex < bankItems.Count ? bankItems[itemSlotIndex] : null;
+
                 //if the slot is empty
                 if (bankedItem == null)
                 {
@@ -4973,8 +5198,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                     //-1 allows the item to automatically stack
                     return (bankPackIndex, -1);
-
-                itemSlotIndex++;
             }
         }
 
@@ -5105,11 +5328,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (string.IsNullOrEmpty(Character.Map))
             throw new ArgumentNullException(nameof(Character.Map));
 
+        //bank_packs (js/old_common_functions.js:54) puts items0-7 on "bank", items8-23 on "bank_b" and items24-47
+        //on "bank_u". BankPack.None occupies 0, so each pack's enum value is its number plus one
         return (Character.Map switch
         {
-            "bank"   => Enumerable.Range(1, 7),
-            "bank_b" => Enumerable.Range(9, 15),
-            "bank_u" => Enumerable.Range(25, 23),
+            "bank"   => Enumerable.Range(1, 8),
+            "bank_b" => Enumerable.Range(9, 16),
+            "bank_u" => Enumerable.Range(25, 24),
             _        => throw new InvalidOperationException("Not in a bank")
         }).Select(index => (BankPack)index);
     }

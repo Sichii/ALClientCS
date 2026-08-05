@@ -58,13 +58,17 @@ public abstract class DatumBase<T>
             if (value == null)
                 continue;
 
-            cache[propertyInfo.Name] = value;
-
-            //the 73 wire names that differ from the CLR name by more than case are only reachable through this alias
+            //the wire name goes in first so that it is the key the entry keeps. This cache is case-insensitive, so
+            //writing the CLR spelling afterwards updates the value and leaves the original key in place - which is
+            //why every accessor read back off these keys used to come out PascalCase
             var jsonPropertyNameInfo = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>();
 
             if (jsonPropertyNameInfo != null)
                 cache[jsonPropertyNameInfo.Name] = value;
+
+            //a distinct key only for the wire names that differ from the CLR name by more than case
+            if (!cache.ContainsKey(propertyInfo.Name))
+                cache[propertyInfo.Name] = value;
         }
     }
 

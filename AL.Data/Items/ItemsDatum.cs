@@ -1602,7 +1602,7 @@ public class ItemsDatum : DatumBase<GItem>
         base.BuildLookupTable();
 
         //map accessors are populated based on the string from the server, not the local copy.
-        foreach ((var accessor, var item) in Entries.Reverse())
+        foreach ((var accessor, var item) in Entries)
             if (string.IsNullOrEmpty(item.Accessor))
                 item.Accessor = accessor;
     }

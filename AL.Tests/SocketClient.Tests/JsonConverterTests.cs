@@ -804,6 +804,20 @@ public class JsonConverterTests
 
         obj.Should()
            .NotBeNull();
+
+        //the top-level num is the inventory slot the operation runs in - the same ref.num the q entry carries - and
+        //p is that slot's prediction, whose nums are the roll's digits as they are revealed
+        obj!.Slot
+           .Should()
+           .Be(1);
+
+        obj.Prediction
+           .Should()
+           .NotBeNull();
+
+        obj.Prediction!.Nums
+           .Should()
+           .Equal(1, 0);
     }
 
     [Test]

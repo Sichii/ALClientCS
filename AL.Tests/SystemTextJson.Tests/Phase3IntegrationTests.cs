@@ -1,5 +1,6 @@
 #region
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Json;
@@ -7,6 +8,7 @@ using AL.Data.Geometry;
 using AL.Data.Items;
 using AL.Data.Maps;
 using AL.Data.Skills;
+using AL.Tests.Characterization;
 using FluentAssertions;
 #endregion
 
@@ -157,6 +159,32 @@ public sealed class Phase3IntegrationTests
         JsonSerializer.Deserialize<GItem>("""{"s":7}""", ALJson.Options)!.StackSize
                       .Should()
                       .Be(7);
+
+        //an absent s never reaches the converter at all, so this is the property initializer rather than the
+        //converter default - the same 1, by a different route, and worth pinning separately
+        JsonSerializer.Deserialize<GItem>("{}", ALJson.Options)!.StackSize
+                      .Should()
+                      .Be(1);
+    }
+
+    [Test]
+    public void GItem_StackSize_EveryWireSpellingIsNumeric()
+    {
+        //the design tables spell most stackables "s":true, and the converter above would read a boolean as its
+        //falsy default of 1 - so every stackable would report a cap of one and read as not stackable at all. That
+        //never happens, because design/items.js:7441-7443 rewrites true to 9999 before the server serialises G, and
+        //the wire this snapshot captured is what the client actually fetches. Pinned because the boolean spelling in
+        //the design tables is convincing enough to have been mistaken for a live defect: if a host ever serves the
+        //raw spelling this fails here rather than silently disabling every stack in the client
+        Fixture.Section("items")
+               .AsObject()
+               .Where(entry => entry.Value is JsonObject wire && wire.ContainsKey("s"))
+               .Select(entry => entry.Value!["s"]!.GetValueKind())
+               .Distinct()
+               .Should()
+               .ContainSingle()
+               .Which.Should()
+               .Be(JsonValueKind.Number);
     }
 
     [Test]

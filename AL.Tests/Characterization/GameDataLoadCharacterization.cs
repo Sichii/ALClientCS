@@ -1,5 +1,6 @@
 #region
 using System.Reflection;
+using AL.Core.Definitions;
 using AL.Data;
 using FluentAssertions;
 #endregion
@@ -111,6 +112,84 @@ public class GameDataLoadCharacterization
                 .Count
                 .Should()
                 .Be(1);
+    }
+
+    /// <summary>
+    ///     ExchangeAtNPC is enriched for every item carrying an exchange count, which is what makes the exchange
+    ///     errand able to walk anywhere for one. The counts are asserted rather than a null check because the
+    ///     direction that matters is the reverse one: the field was previously filled in from an NPC's token, which
+    ///     reached four items, and narrowing it back that far would look harmless and leave 34 exchangeables with
+    ///     nowhere to go. These are the snapshot's counts, not the served table's, which carries 39 - and the errands'
+    ///     prose cites the snapshot too, attributing it, so this assertion is what holds those comments as well as the
+    ///     rule. That is the whole reason to cite the fixture: it is the only number anything can check.
+    /// </summary>
+    [Test]
+    public void T1_ExchangeAtNPC_CoversEveryExchangeable()
+    {
+        var exchangeables = GameData.Items
+                                    .Values
+                                    .DistinctBy(item => item.Accessor)
+                                    .Where(item => item.ExchangeCount.HasValue)
+                                    .ToList();
+
+        exchangeables.Count
+                     .Should()
+                     .Be(38);
+
+        exchangeables.Should()
+                     .OnlyContain(item => item.ExchangeAtNPC != null);
+
+        // the server measures a quest-tagged exchangeable against that quest's NPC and everything else against the
+        // one fixed placement (node/server.js:6073), so the split is the rule itself rather than a tally
+        exchangeables.Count(item => item.ExchangeAtNPC!.Id == "exchange")
+                     .Should()
+                     .Be(31);
+
+        exchangeables.Count(item => item.ExchangeAtNPC!.Id != "exchange")
+                     .Should()
+                     .Be(7);
+
+        GameData.Items["leather"]!
+                .ExchangeAtNPC!.Id
+                .Should()
+                .Be("leathermerchant");
+
+        GameData.Items["gem0"]!
+                .ExchangeAtNPC!.Id
+                .Should()
+                .Be("exchange");
+    }
+
+    /// <summary>
+    ///     Every buyable item resolves to a seller that is actually standing somewhere. <c>EnrichItems</c> races
+    ///     first-writer-wins over <c>NPCs.Values</c>, which is declaration order rather than wire order, and
+    ///     <c>CanBuy</c> ends on <c>ObtainableFromNPC.Locations.Any(…)</c> - so an item resolved to a seller placed
+    ///     only on <c>ignore: true</c> maps is unbuyable with nothing logged at all, which is what the placed-first
+    ///     ordering there exists to prevent.
+    ///     <br />
+    ///     <b>What this does and does not pin.</b> It cannot distinguish the ordering being present from absent,
+    ///     because on this snapshot every item's first seller happens to be placed already - the fix is a no-op on
+    ///     today's data and only removes the hazard. What it does catch is the data moving underneath: `pots` and
+    ///     `weapons` both carry item lists and stand only on <c>old_main</c>/<c>original_main</c>, so the day a seller
+    ///     ahead of them loses its placement, or one of their 8 items loses its other seller, this goes red instead of
+    ///     the merchant silently buying nothing. Inverting the ordering to prefer unplaced sellers fails it, which is
+    ///     how it was checked.
+    /// </summary>
+    [Test]
+    public void T1_ObtainableFromNPC_ResolvesToAPlacedSeller()
+    {
+        var buyables = GameData.Items
+                               .Values
+                               .DistinctBy(item => item.Accessor)
+                               .Where(item => item.ObtainType == ObtainType.Buy)
+                               .ToList();
+
+        buyables.Count
+                .Should()
+                .Be(50);
+
+        buyables.Should()
+                .OnlyContain(item => item.ObtainableFromNPC!.Locations.Count > 0);
     }
 
     [Test]

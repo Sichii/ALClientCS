@@ -179,8 +179,7 @@ public class MapsDatum : DatumBase<GMap>
         base.BuildLookupTable();
 
         //map accessors are populated based on the string from the server, not the local copy.
-        foreach ((var accessor, var map) in Entries.Reverse()
-                                                   .DistinctBy(kvp => kvp.Value.Key))
+        foreach ((var accessor, var map) in Entries.DistinctBy(kvp => kvp.Value.Key))
             map.Accessor = accessor;
     }
 }

@@ -61,6 +61,14 @@ public sealed record Item : IInventoryItem
     public string Name { get; init; } = null!;
 
     [JsonPropertyName("ps")]
+    /// <remarks>
+    ///     <b>This property breaks <see cref="Item" />'s value equality, so do not compare two items with
+    ///     <c>==</c>.</b> A record's synthesized <c>Equals</c> folds every property in through
+    ///     <c>EqualityComparer&lt;T&gt;.Default</c>, which for a list is <i>reference</i> equality - and two
+    ///     deserializations of the same item never share this instance. So <c>==</c> is false for every pair except
+    ///     two nulls, silently, and a caller waiting for a frame to report an item it already knows waits forever.
+    ///     Compare the fields that identify a slot's contents (name, level, quantity) instead.
+    /// </remarks>
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
     /// <summary>

@@ -17,6 +17,13 @@ namespace AL.SocketClient.SocketModel;
 public sealed record GameResponseData : IOptionalObject
 {
     /// <summary>
+    ///     The bank slot a bank item operation moved an item out of or into, echoed back from the emit. Null on the
+    ///     gold operations, which name no slot, so it is what correlates one item swap's answer to its own emit.
+    /// </summary>
+    [JsonPropertyName("str")]
+    public int? BankSlot { get; init; }
+
+    /// <summary>
     ///     A client-event tag. The server sends either
     ///     <c>
     ///         true
@@ -95,6 +102,14 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     [JsonPropertyName("in_progress")]
     public bool InProgress { get; init; }
+
+    /// <summary>
+    ///     The inventory slot a bank item operation moved an item into, or null when the operation moved no item.
+    ///     The server picks the slot itself when the emit names none, which is the one way a withdraw folds into a
+    ///     stack the inventory already holds.
+    /// </summary>
+    [JsonPropertyName("inv")]
+    public int? InventorySlot { get; init; }
 
     /// <summary>
     ///     The item you calculated chance for.

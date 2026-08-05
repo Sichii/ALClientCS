@@ -402,7 +402,7 @@ public class MonstersDatum : DatumBase<GMonster>
         base.BuildLookupTable();
 
         //map accessors are populated based on the string from the server, not the local copy.
-        foreach ((var accessor, var monster) in Entries.Reverse())
+        foreach ((var accessor, var monster) in Entries)
             if (string.IsNullOrEmpty(monster.Accessor))
                 monster.Accessor = accessor;
     }

@@ -449,7 +449,12 @@ public enum ALSocketMessageType
     TradeHistory,
 
     [EnumMember(Value = "game_event")]
-    GameEvent
+    GameEvent,
+
+    //private chat. Appended rather than filed beside ChatLog because this enum has its own row in
+    //enum-tolerance-matrix.json pinning what raw ordinal 17 resolves to, and no member here carries an explicit
+    //value - so inserting above renumbers every later ordinal and fails that snapshot
+    Pm
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

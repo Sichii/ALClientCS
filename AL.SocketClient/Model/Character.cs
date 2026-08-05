@@ -243,4 +243,28 @@ public class Character : Player, IEquatable<Character>
         StopMoving();
         UpdateLocation((IInstancedLocation)data);
     }
+
+    /// <summary>
+    ///     Folds an in-progress upgrade or compound's detail onto the inventory slot it belongs to.
+    /// </summary>
+    /// <remarks>
+    ///     The server sends this on <c>q_data</c> and only there - it names the slot and carries the operation's
+    ///     prediction, and it never restates the inventory. So a consumer that only merges character frames sees the
+    ///     placeholder but never the detail underneath it, which is where the roll's digits live and where they are
+    ///     revealed one at a time as the animation counts down.
+    /// </remarks>
+    /// <param name="inventorySlot">
+    ///     The slot holding the operation's placeholder.
+    /// </param>
+    /// <param name="prediction">
+    ///     The operation's current detail.
+    /// </param>
+    public void Update(int inventorySlot, Prediction prediction)
+    {
+        ArgumentNullException.ThrowIfNull(prediction);
+
+        //null before the first character frame lands, which a q_data cannot precede in practice but costs nothing
+        //to allow for
+        Inventory?.SetPrediction(inventorySlot, prediction);
+    }
 }

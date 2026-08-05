@@ -141,8 +141,12 @@ public static class EntityExtensions
         }
 
         var interval = GameData.Conditions.Burned.IntervalMS;
-        var remainingTicks = Math.Floor(burning.DurationMs / interval);
-        var damagePer = burning.Intensity / 5;
+
+        //RemainingMs, not DurationMs - the latter is the wire value from whenever the frame arrived
+        var remainingTicks = Math.Floor(burning.RemainingMs / interval);
+
+        //intensity is damage per second, so a tick is worth its share of one
+        var damagePer = (burning.Intensity * interval) / 1000f;
 
         return (remainingTicks * damagePer) > entity.HP;
     }

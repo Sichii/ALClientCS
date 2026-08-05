@@ -168,6 +168,14 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// <summary>
     ///     The number of this item that can be placed in a stack.
     /// </summary>
+    /// <remarks>
+    ///     The design tables spell most stackables <c>"s":true</c>, and the converter here reads a boolean as its falsy
+    ///     default of 1 - which would report "not stackable" for the majority of stackable items. That never happens,
+    ///     and reading the converter alone genuinely suggests otherwise: the game data's own trailing pass rewrites
+    ///     <c>s === true</c> to 9999 as <c>G</c> is built (<c>design/items.js:7441</c>, reached because the server
+    ///     evals the file whole), so this property only ever receives a number or no <c>s</c> at all.
+    ///     <c>Phase3IntegrationTests</c> pins that against the committed wire snapshot.
+    /// </remarks>
     [JsonPropertyName("s")]
     [JsonConverter(typeof(StjConverters.FalsyStackSizeConverter))]
     public int StackSize { get; init; } = 1;

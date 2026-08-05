@@ -8,7 +8,15 @@ namespace AL.Client.Managers;
 /// <param name="Name">
 ///     A source label, or an emit type, depending on which grouping the row came from.
 /// </param>
-public sealed record CallBudgetRow(string Name, double Cost, int Emits);
+public sealed record CallBudgetRow(string Name, double Cost, int Emits)
+{
+    /// <summary>
+    ///     The same spend broken down one level further, or empty when this row is already the finest grain asked
+    ///     for. An init property rather than a fourth positional parameter, so every existing construction site and
+    ///     deconstruction of this record keeps working untouched.
+    /// </summary>
+    public IReadOnlyList<CallBudgetRow> Children { get; init; } = [];
+}
 
 /// <param name="ServerCost">
 ///     The server's own accrued cost for this window, from the last
@@ -102,12 +110,30 @@ public sealed class CallMeter
             window.Sum(entry => entry.Cost),
             window.Length,
             Group(window, entry => entry.Source),
-            Group(window, entry => entry.Emit.ToString()));
+
+            //nested, because "which call is expensive" and "who is making it" are one question rather than two -
+            //the two flat lists cannot be crossed after the fact, since each has already summed the other away
+            Group(window, entry => entry.Emit.ToString(), inner => Group(inner, entry => entry.Source)));
     }
 
-    private static IReadOnlyList<CallBudgetRow> Group(IReadOnlyList<Entry> window, Func<Entry, string> key)
+    /// <param name="children">
+    ///     Given the entries of one group, the breakdown to hang under it. Null leaves the row a leaf.
+    /// </param>
+    private static IReadOnlyList<CallBudgetRow> Group(
+        IReadOnlyList<Entry> window,
+        Func<Entry, string> key,
+        Func<IReadOnlyList<Entry>, IReadOnlyList<CallBudgetRow>>? children = null)
         => window.GroupBy(key)
-                 .Select(group => new CallBudgetRow(group.Key, group.Sum(entry => entry.Cost), group.Count()))
+                 .Select(
+                     group =>
+                     {
+                         var rows = group.ToList();
+
+                         return new CallBudgetRow(group.Key, rows.Sum(entry => entry.Cost), rows.Count)
+                         {
+                             Children = children?.Invoke(rows) ?? []
+                         };
+                     })
                  .OrderByDescending(row => row.Cost)
                  .ToList();
 

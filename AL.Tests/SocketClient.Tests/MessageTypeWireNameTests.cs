@@ -37,6 +37,8 @@ public class MessageTypeWireNameTests
     [Arguments("kill_credit", ALSocketMessageType.KillCredit)]
     [Arguments("trade_history", ALSocketMessageType.TradeHistory)]
     [Arguments("game_event", ALSocketMessageType.GameEvent)]
+    [Arguments("chat_log", ALSocketMessageType.ChatLog)]
+    [Arguments("pm", ALSocketMessageType.Pm)]
     public void WireNameParsesToMessageType(string wireName, ALSocketMessageType expected)
     {
         var parsed = EnumHelper.TryParse(wireName, out ALSocketMessageType actual);

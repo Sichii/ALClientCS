@@ -106,6 +106,36 @@ public class Merchant : ALClient
             });
 
     /// <summary>
+    ///     Asynchronously uses MassExchange, buffing your next exchange to take half the time.
+    /// </summary>
+    /// <remarks>
+    ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way.
+    ///     <br />
+    ///     Neither this nor <see cref="MassExchangePPAsync" /> is reachable from the suite, and it is not an oversight:
+    ///     the committed <c>data.json</c> predates the pair, carrying neither in <c>G.skills</c> nor in
+    ///     <c>G.conditions</c>, so <c>CanUseSkill</c> answers false for both against the snapshot. The live API supplies
+    ///     them (<c>design/skills.js:375-396</c>), so runtime is unaffected - but anything counted off that fixture is
+    ///     stale, and no test covers these two.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'massexchange'. ({reason})
+    /// </exception>
+    public Task MassExchangeAsync() => UseSkillCoreAsync("massexchange");
+
+    /// <summary>
+    ///     Asynchronously uses MassExchangePP, buffing your next exchange to take a tenth of the time.
+    /// </summary>
+    /// <remarks>
+    ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way. Applied
+    ///     after <see cref="MassExchangeAsync" /> rather than instead of it (node/server.js:6085-6093), so with both
+    ///     up an exchange runs in a twentieth of its time.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'massexchangepp'. ({reason})
+    /// </exception>
+    public Task MassExchangePPAsync() => UseSkillCoreAsync("massexchangepp");
+
+    /// <summary>
     ///     Asynchronously uses MassProduction, buffing your next upgrade or compound to take half the time.
     /// </summary>
     /// <remarks>
