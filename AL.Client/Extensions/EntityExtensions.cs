@@ -14,6 +14,10 @@ namespace AL.Client.Extensions;
 /// </summary>
 public static class EntityExtensions
 {
+    //the floor on how often an instance updates - the server caps both the loop's own reschedule and its
+    //per-instance gate there - and every timed condition ticks on that grid rather than on its own interval
+    private const double INSTANCE_UPDATE_MS = 75;
+
     /// <summary>
     ///     Calculates the final damage value
     /// </summary>
@@ -140,15 +144,20 @@ public static class EntityExtensions
                 return false;
         }
 
+        //the server polls conditions once per instance update rather than scheduling them, so a burn fires on the
+        //first update at or after its interval - three of them at 210ms. Counting raw intervals reads an eighth
+        //more ticks than ever land, and every phantom tick is a monster the combat lanes decline to shoot
         var interval = GameData.Conditions.Burned.IntervalMS;
+        var tickMs = Math.Ceiling(interval / INSTANCE_UPDATE_MS) * INSTANCE_UPDATE_MS;
 
         //RemainingMs, not DurationMs - the latter is the wire value from whenever the frame arrived
-        var remainingTicks = Math.Floor(burning.RemainingMs / interval);
+        var remainingTicks = Math.Floor(burning.RemainingMs / tickMs);
 
-        //intensity is damage per second, so a tick is worth its share of one
-        var damagePer = (burning.Intensity * interval) / 1000f;
+        //a fifth of the intensity, rounded up - the server's own constant, and independent of the interval beside
+        //it. "Damage equal to its intensity per second" is folklore either way: the two together come to 0.85x that
+        var damagePerTick = Math.Ceiling(burning.Intensity / 5f);
 
-        return (remainingTicks * damagePer) > entity.HP;
+        return (remainingTicks * damagePerTick) > entity.HP;
     }
 
     /// <summary>
