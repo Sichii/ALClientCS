@@ -174,6 +174,23 @@ public static class Pathfinder
         return mesh.IsWall(location);
     }
 
+    /// <inheritdoc cref="MeshBase{TNode,TEdge}.IsWalkable" />
+    /// <param name="location">
+    ///     The location to check.
+    /// </param>
+    /// <remarks>
+    ///     Answers <c>false</c> for a map with no mesh rather than throwing the way <see cref="IsWall" /> does: a map
+    ///     the pathfinder never modelled is one nothing can be routed onto, which is the same answer callers want.
+    /// </remarks>
+    public static bool IsWalkable(ILocation location)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        return GetNavMesh(location.Map)
+                   ?.IsWalkable(location)
+               ?? false;
+    }
+
     private static NavMesh? TryBuildNavMesh(string name, GMap map)
     {
         var geometry = GameData.Geometry[name];

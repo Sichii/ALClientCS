@@ -256,6 +256,43 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     }
 
     /// <summary>
+    ///     Checks if a point is somewhere a character could actually stand, which is a stronger question than
+    ///     <see cref="IsWall" /> answers. The mesh is built by flooding out from the map's own spawn points, so a
+    ///     point the flood never reached is one no walk can end on - open water and the void outside an arena are both
+    ///     wall-free and both unreachable. The server decides the same way and defeats a character that lands off it.
+    /// </summary>
+    /// <param name="point">
+    ///     The point to check.
+    /// </param>
+    /// <returns>
+    ///     <see cref="bool" />
+    ///     <br />
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the flood fill reached the point, otherwise
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     - including for a point outside the map's own extents.
+    /// </returns>
+    public virtual bool IsWalkable(IPoint point)
+    {
+        var offsetLoc = ApplyOffset(point);
+        var x = Convert.ToInt32(offsetLoc.X);
+        var y = Convert.ToInt32(offsetLoc.Y);
+
+        //the point map is sized to the map's extents and indexed directly, so an out of bounds point throws rather
+        //than answering - and nothing outside the map was ever standable anyway
+        if ((x < 0) || (y < 0) || (x >= PointMap.GetLength(0)) || (y >= PointMap.GetLength(1)))
+            return false;
+
+        //every value the fill writes carries the Walkable bit; None and Wall are the two that do not
+        return PointMap[x, y]
+            .HasFlag(PointType.Walkable);
+    }
+
+    /// <summary>
     ///     This method reverses the offset applied in <see cref="ApplyOffset" />.
     /// </summary>
     /// <param name="point">

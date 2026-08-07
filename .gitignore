@@ -379,8 +379,5 @@ CLAUDE.local.md
 # Local design specs and implementation plans (AI workflow output)
 docs/
 
-# graphify knowledge-graph output
-graphify-out/
-
 # memsearch index/tool state
 .memsearch/

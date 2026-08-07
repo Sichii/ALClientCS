@@ -115,13 +115,48 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
 
         ArgumentNullException.ThrowIfNull(ends);
 
-        var endsArr = ends.Cast<ILocation>()
-                          .ToArray();
+        var endsArr = ends.ToArray();
 
         if (endsArr.Length == 0)
             yield break;
 
-        var path = base.FindPathAsync(start, endsArr, useTownIfOptimal);
+        //a short hop with a clear line needs no search. The dijkstra below is serialized process-wide, so every
+        //character waits on every other one's path, and short hops are most of what gets asked for.
+        //
+        //Bounded by the town heuristic because towning is the only same-map alternative a clear straight line can
+        //lose to, and any path using it costs at least that. Doors and transports are cheaper by heuristic - 50
+        //against 500 - but a cross-map exit is filtered out by the same-map test below, and a same-map one lands
+        //back at its own door, so neither competes with a walk that is already the shortest one there is.
+        //
+        //One destination only, which is what keeps that argument sound. Against a set, the nearest same-map
+        //candidate is not the cheapest answer - a destination one door away costs the transport heuristic of 50 and
+        //beats a clear 490-unit walk - so a shortcut that committed to the near one would quietly return a worse
+        //path than the search. It would also widen two smaller holes: CanMove indexes the point map unchecked, so
+        //every extra candidate is another chance to throw on an out of bounds point, and skipping the search skips
+        //the throw for a destination whose map has no mesh
+        if ((endsArr.Length == 1) && NavMeshes.TryGetValue(start.Map, out var navMesh))
+            foreach (var end in endsArr.Where(e => e.OnSameMapAs(start) && (start.Distance(e) < CONSTANTS.TOWN_HEURISTIC)))
+            {
+                //stop at the near edge of the destination rather than its centre, the same shortcut
+                //FindDistanceShortcuts applies to a searched path
+                var target = end.OffsetTowards(start, end.Radius);
+
+                //the offset clamps to the start when already inside the radius, so there is nothing to walk
+                if (IPoint.Comparer.Equals(target, start))
+                    yield break;
+
+                if (!navMesh.CanMove(start, target))
+                    continue;
+
+                var startNode = navMesh.ConstructNode(start);
+                var endNode = navMesh.ConstructNode(new Location(start.Map, target));
+
+                yield return navMesh.ConstructEdge(startNode, endNode, EdgeType.Walk);
+
+                yield break;
+            }
+
+        var path = base.FindPathAsync(start, endsArr.Cast<ILocation>(), useTownIfOptimal);
 
         await foreach (var edge in EnhancePathAsync(path))
             yield return edge;

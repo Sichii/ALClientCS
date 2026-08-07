@@ -1,4 +1,5 @@
 #region
+using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
@@ -10,6 +11,60 @@ namespace AL.Tests.Pathfinding.Tests;
 
 public class DirectedGraphTests : PathfindingTestBed
 {
+    [Test]
+    public async Task FindPathDirectWalkTest()
+    {
+        //200 units of open ground north of main's spawn, so the search should be skipped entirely for one walk
+        //that stops at the near edge of the destination's radius rather than at its centre
+        var start = new Location("main", 0, 0);
+        var endLoc = new Location("main", 0, 200);
+        var end = new Destination(endLoc, 40);
+
+        var path = await Pathfinder.FindPathAsync(start, [end])
+                                   .ToArrayAsync();
+
+        path.Should()
+            .ContainSingle();
+
+        path[0]
+            .Type
+            .Should()
+            .Be(EdgeType.Walk);
+
+        path[0]
+            .End
+            .Vertex
+            .Distance(endLoc)
+            .Should()
+            .BeApproximately(40f, 0.1f);
+    }
+
+    /// <summary>
+    ///     The half of the fast path that matters more than the hit: a destination it must not answer still reaches
+    ///     the search. A shortcut that swallowed one would walk the character into whatever is between the two, and
+    ///     the symptom - a walk that goes nowhere - reads identically to a path the search failed to find.
+    /// </summary>
+    [Test]
+    public async Task FindPathDefersToTheSearchWhereTheShortcutDoesNotApply()
+    {
+        //100 units apart with a wall between them, which is what makes the pair worth hardcoding
+        var blocked = await Pathfinder.FindPathAsync(new Location("main", -1582, 496), [new Destination(new Location("main", -1582, 396), 0)])
+                                      .ToArrayAsync();
+
+        blocked.Length
+               .Should()
+               .BeGreaterThan(1, "a blocked straight line has to be routed around rather than walked through");
+
+        //and the bound on the other guard: a clear line long enough that towning could have beaten it is the search's
+        //call to make, which is what turns TOWN_HEURISTIC into a decision rather than an incidental constant
+        var far = await Pathfinder.FindPathAsync(new Location("main", 0, 0), [new Destination(new Location("main", 0, 1400), 0)])
+                                  .ToArrayAsync();
+
+        far.Length
+           .Should()
+           .BeGreaterThan(1, "a walk past the town heuristic is one the search has to price against towning");
+    }
+
     [Test]
     public async Task FindPathFromTownNodeTest()
     {
