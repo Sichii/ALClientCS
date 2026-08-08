@@ -18,7 +18,12 @@ namespace AL.Data.Maps;
 public record GDoor : IRectangle
 {
     /// <summary>
-    ///     If a door is 2-way, this is the id of the spawn when coming back through this door.
+    ///     If a door is 2-way, this is the id of the spawn when coming back through this door. The server measures
+    ///     the door's range from that spawn rather than from the door, so a door carrying no such id is one it
+    ///     cannot resolve at all - it faults reading the spawn, and the door opens from nowhere.
+    ///     <br />
+    ///     An absent id deserializes to the same nought a real spawn 0 does, so the two are not distinguishable
+    ///     here. Nothing downstream needs them to be: see <c>GameData.DoorReachableRegion</c>.
     /// </summary>
     [JsonArrayIndex(6)]
     public float CurrentMapSpawnId { get; init; }

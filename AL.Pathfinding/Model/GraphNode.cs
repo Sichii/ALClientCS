@@ -16,6 +16,13 @@ public sealed class GraphNode : FastPriorityQueueNode, IGraphNode<GraphEdge>
     public ICollection<GraphEdge> Edges { get; init; } = null!;
     public GraphEdge? Parent { get; set; }
     public float Radius { get; init; }
+
+    /// <summary>
+    ///     Where this node may be acted on from, when that is more than the one circle <see cref="Radius" /> can
+    ///     describe. Null for an ordinary vertex, which is every node that is not an exit.
+    /// </summary>
+    public IReadOnlyList<ICircle>? ReachableFrom { get; init; }
+
     public ILocation Vertex { get; init; } = null!;
     public bool Equals(IGraphNode<GraphEdge>? other) => other is not null && ILocation.Comparer.Equals(Vertex, other.Vertex);
 

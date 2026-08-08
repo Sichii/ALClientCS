@@ -1,6 +1,7 @@
 #region
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
+using AL.Data;
 using AL.Pathfinding.Abstractions;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Interfaces;
@@ -60,6 +61,10 @@ public sealed class NavMesh : MeshBase<GraphNode, GraphEdge>
         {
             Vertex = vertex,
             Radius = radius,
+
+            //an exit is the one vertex whose reachable area is not a single circle - the server measures a door as
+            //a box, so it carries the circles that cover it
+            ReachableFrom = (vertex as Exit)?.ReachableFrom,
             Edges = new HashSet<GraphEdge>()
         };
     }

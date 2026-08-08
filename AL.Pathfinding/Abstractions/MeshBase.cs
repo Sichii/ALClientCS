@@ -147,10 +147,27 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     {
         var startOffset = ApplyOffset(start);
         var endOffset = ApplyOffset(end);
+        var width = PointMap.GetLength(0);
+        var height = PointMap.GetLength(1);
 
-        return !startOffset.RayTraceTo(endOffset)
-                           .Any(p => PointMap[Convert.ToInt32(p.X), Convert.ToInt32(p.Y)]
-                               .HasFlag(PointType.Wall));
+        //(int) rather than Convert.ToInt32, which rounds and range checks - RayTraceTo only ever
+        //yields whole numbers, and this runs once per grid cell the line crosses
+        foreach (var point in startOffset.RayTraceTo(endOffset))
+        {
+            var x = (int)point.X;
+            var y = (int)point.Y;
+
+            //same reckoning as IsWalkable - the point map is indexed directly, so a line leaving the map's extents
+            //would throw rather than answer, and nothing out there was walkable anyway
+            if ((x < 0) || (y < 0) || (x >= width) || (y >= height))
+                return false;
+
+            if (PointMap[x, y]
+                .HasFlag(PointType.Wall))
+                return false;
+        }
+
+        return true;
     }
 
     protected internal virtual EdgeType ConnectorTypeSelector(ILocation start, ILocation end)

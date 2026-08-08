@@ -2,6 +2,7 @@
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Core.Interfaces;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Model;
 using FluentAssertions;
@@ -266,5 +267,31 @@ public class CoreTests
         rect.EdgeToCenterDistance(new Point(13, 4))
             .Should()
             .BeApproximately(5f, 0.001f);
+    }
+
+    /// <summary>
+    ///     MeshBase.CanMove truncates each traced point to index the point map, which is only the same answer as
+    ///     rounding while every point lands on a whole number. Nothing about the signature says so, and a fractional
+    ///     point would move a wall by one cell rather than fail, so it is pinned here.
+    /// </summary>
+    [Test]
+    public void RayTraceYieldsWholeNumbersFromFractionalEnds()
+    {
+        //fractional on both ends, both signs, and a few slopes - including the two degenerate axis-aligned cases
+        IPoint[] starts = [new Point(0.4f, 0.6f), new Point(-7.25f, 3.75f), new Point(12.5f, -12.5f)];
+        IPoint[] ends = [new Point(9.9f, -4.1f), new Point(-7.25f, 20.5f), new Point(30.5f, -12.5f)];
+
+        foreach (var start in starts)
+            foreach (var end in ends)
+                foreach (var traced in start.RayTraceTo(end))
+                {
+                    traced.X
+                          .Should()
+                          .Be(MathF.Truncate(traced.X), $"the trace from {start} to {end} has to land on whole numbers");
+
+                    traced.Y
+                          .Should()
+                          .Be(MathF.Truncate(traced.Y), $"the trace from {start} to {end} has to land on whole numbers");
+                }
     }
 }

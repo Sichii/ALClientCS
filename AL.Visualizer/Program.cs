@@ -91,7 +91,18 @@ else
 {
     var path = Pathfinder.FindPathAsync(start, [new Destination(end, 0)]);
 
-    var images = Visualizer.DrawPath<DirectedGraph, NavMesh, GraphNode, GraphEdge>(Pathfinder.DirectedGraph, path);
+    //echo each leg as it is drawn - a town teleport and a smoothed walk are the same straight line on the image
+    async IAsyncEnumerable<GraphEdge> EchoAsync(IAsyncEnumerable<GraphEdge> edges)
+    {
+        await foreach (var edge in edges)
+        {
+            Console.WriteLine($"{edge.Type,-9} {edge.Start.Vertex} -> {edge.End.Vertex} (h {edge.Heuristic:F1})");
+
+            yield return edge;
+        }
+    }
+
+    var images = Visualizer.DrawPath<DirectedGraph, NavMesh, GraphNode, GraphEdge>(Pathfinder.DirectedGraph, EchoAsync(path));
 
     var counter = 1;
 

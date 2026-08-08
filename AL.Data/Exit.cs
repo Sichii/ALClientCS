@@ -1,5 +1,6 @@
 #region
 using AL.Core.Definitions;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 #endregion
 
@@ -14,7 +15,23 @@ public record Exit : ICircle, ILocation
 {
     public bool Locked;
     public string Map { get; init; } = null!;
+
+    /// <summary>
+    ///     A single circle about this exit's own position that is wholly inside <see cref="ReachableFrom" />, for
+    ///     anything that treats an exit as a plain <see cref="ICircle" />. Conservative for a door, exact for a
+    ///     transporter.
+    /// </summary>
     public float Radius { get; init; }
+
+    /// <summary>
+    ///     Where you have to stand for the server to let you through, as the union of these circles. One for a
+    ///     transporter, which the server measures centre to centre; four for a door, which it does not. See
+    ///     <c>GameData.DoorReachableRegion</c> for how a door's are derived and what they cover.
+    ///     <br />
+    ///     Compared by reference, as any collection on a record is - do not lean on an <see cref="Exit" />'s
+    ///     synthesized equality. The hand-written overloads below compare position, which is what callers want.
+    /// </summary>
+    public IReadOnlyList<ICircle> ReachableFrom { get; init; }
 
     /// <summary>
     ///     The location this exit leads to.
@@ -38,7 +55,9 @@ public record Exit : ICircle, ILocation
         IPoint point,
         ILocation toLocation,
         int toSpawnIndex,
-        ExitType type)
+        ExitType type,
+        float radius,
+        IReadOnlyList<ICircle>? reachableFrom = null)
     {
         Map = map;
         X = point.X;
@@ -46,14 +65,10 @@ public record Exit : ICircle, ILocation
         ToLocation = toLocation;
         ToSpawnIndex = toSpawnIndex;
         Type = type;
+        Radius = radius;
 
-        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-        Radius = type switch
-        {
-            ExitType.Door        => CONSTANTS.DOOR_RANGE,
-            ExitType.Transporter => CONSTANTS.TRANSPORTER_RANGE,
-            _                    => throw new ArgumentOutOfRangeException(nameof(type))
-        };
+        //a transporter is measured centre to centre from where it stands, so its own circle is the whole region
+        ReachableFrom = reachableFrom ?? [new Circle(point, radius)];
     }
 
     public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);

@@ -950,6 +950,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected async Task InternalConnectAsync()
     {
+        LoggedIn = false;
         AttachListeners();
 
         var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1011,7 +1012,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        await Socket.ConnectAsync(Server);
+        //timed out for the same reason the handshake below is: without one, a connect that never completes never
+        //throws either, so ReconnectAsync's retry loop never runs, FatalError is never set, and nothing anywhere
+        //learns the character is down. The socket is left open on a timeout - ReconnectAsync disposes it.
+        await Socket.ConnectAsync(Server)
+                    .WithTimeout(10000);
 
         var result = await source.Task.WithTimeout(10000);
         result.ThrowIfUnsuccessful();
@@ -1019,6 +1024,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Socket.OnDisconnected += OnDisconnected;
         EntityManager.Start();
         PingManager.Start();
+        LoggedIn = true;
     }
 
     /// <summary>
@@ -1038,6 +1044,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     while the client is healthy.
     /// </summary>
     public string? FatalError { get; private set; }
+
+    /// <summary>
+    ///     Whether the handshake has completed and this character is actually in the world. False from the moment a
+    ///     drop is noticed until <c>start</c> arrives on the replacement socket.
+    ///     <br />
+    ///     <b>This is the readiness flag to gate work on, not <see cref="ALSocketClient.Connected" />.</b> That one is
+    ///     open for the whole connect, because the server's <c>welcome</c> can land before <c>ConnectAsync</c> returns
+    ///     and the auth emit answering it has to get out. So it reads true over a socket that has no transport yet, or
+    ///     one whose transport died before it ever authenticated - and a caller that treats it as "logged in" resumes
+    ///     a script into a socket every emit throws on.
+    ///     <br />
+    ///     The client maintains this across every connect, drop and reconnect; the setter is open so a harness driving
+    ///     a stub socket can stand a client up without one. Nothing inside the client branches on it.
+    /// </summary>
+    public bool LoggedIn { get; set; }
 
     /// <summary>
     ///     Raised after a successful automatic reconnect. The socket object has been replaced; any subscriptions made against
@@ -1068,6 +1089,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected async Task ReconnectAsync()
     {
+        LoggedIn = false;
+
         //read the server's parting reason off the old socket before disposing it - dispose does not clear
         //the captured value, but the field must be read before Socket is reassigned below.
         var reason = Socket.LastDisconnectReason;
@@ -1153,6 +1176,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     return;
                 }
 
+                //the attempt owns the socket it failed on: a connect that timed out is still open, and Socket is
+                //about to be overwritten by the next pass. Left undisposed it is an unauthenticated session the
+                //server keeps counting against this character.
+                try
+                {
+                    await Socket.DisposeAsync();
+                } catch
+                {
+                    //ignored
+                }
+
                 //the browser's base reconnect delay is a 3-4s wait (js/game.js:224-249), not the flat 10s this
                 //used - which, stacked on the 10s login timeout, cost 20s on every transient drop.
                 Logger.Error("Reconnect failed, waiting 4s to retry...");
@@ -1172,6 +1206,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         await using var @lock = await Sync.WaitAsync();
 
+        LoggedIn = false;
         Logger.Warn("Disconnecting");
 
         //stopped here rather than left to OnDisconnected: an intentional disconnect clears Connected before the

@@ -77,7 +77,14 @@ public class Character : Player, IEquatable<Character>
     public int EmptySlots { get; protected set; }
 
     /// <summary>
-    ///     While you are not attacking, your range increases by 5/second, up to a max of 25.
+    ///     A lag allowance the server spends on your behalf: one budget per character, shared by every skill including
+    ///     attack. It starts at 25 and refills 5 per second back to that cap, unconditionally - attacking does not
+    ///     hold it back.
+    ///     <br />
+    ///     A cast lands when the distance is within <c>range + xrange</c>, and one that needed the allowance drains it
+    ///     by however much of it was used. A cast past that is refused with <c>too_far</c> and costs nothing, so the
+    ///     budget only ever pays for casts that worked. Nothing refuses while it holds, which is why a range check
+    ///     measuring against the nominal range alone reads as correct right up until it runs dry.
     /// </summary>
     [JsonPropertyName("xrange")]
     [JsonInclude]
