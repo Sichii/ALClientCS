@@ -137,7 +137,7 @@ public static class EnumHelper
     }
 
     /// <summary>
-    ///     Non-generic <see cref="TryParse{T}(string?, out T?)" />, for callers that only know the enum type at runtime (e.g.
+    ///     Non-generic <see cref="TryParse{T}(string, out T)" />, for callers that only know the enum type at runtime (e.g.
     ///     a converter over an open generic). Honours <see cref="EnumMemberAttribute" /> the same way.
     /// </summary>
     public static bool TryParse(Type enumType, string? str, out object? result)

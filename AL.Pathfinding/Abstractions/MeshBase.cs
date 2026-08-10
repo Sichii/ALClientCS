@@ -327,7 +327,7 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     ///     (processing intensive)
     /// </summary>
     /// <returns>
-    ///     <see cref="ICollection{T}" /> of <see cref="TEdge" />
+    ///     <see cref="ICollection{T}" /> of <typeparamref name="TEdge" />
     ///     <br />
     ///     A collection of all edges contained within this mesh. If an edge would lead to another mesh, it is ignored.
     /// </returns>
@@ -380,7 +380,7 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     ///     This method will traverse all unique edges and return all unique nodes. (processing intensive)
     /// </summary>
     /// <returns>
-    ///     <see cref="ICollection{T}" /> of <see cref="TEdge" />
+    ///     <see cref="ICollection{T}" /> of <typeparamref name="TNode" />
     ///     <br />
     ///     A collection of all nodes contained within this mesh.
     /// </returns>

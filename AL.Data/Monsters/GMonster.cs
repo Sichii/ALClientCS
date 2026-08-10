@@ -16,7 +16,7 @@ namespace AL.Data.Monsters;
 public sealed record GMonster : AttributedRecordBase
 {
     /// <summary>
-    ///     If true, all attacks will do only 1 damage to this monster.
+    ///     If true, every hit on this monster is cut to 1 damage, or 2 on a crit (node/server.js:3618).
     /// </summary>
     [JsonPropertyName("1hp")]
     public bool _1hp { get; init; }
@@ -27,7 +27,7 @@ public sealed record GMonster : AttributedRecordBase
     public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } = new Dictionary<string, GMonsterAbility>();
 
     /// <summary>
-    ///     This unique accessor for this monster.
+    ///     The key this monster is filed under in <see cref="GameData.Monsters" />.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -35,21 +35,20 @@ public sealed record GMonster : AttributedRecordBase
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
-    ///     A list of the achievements associated with this monster.
+    ///     Kill-count tiers that award permanent stats. Every tier at or below your kill total applies, and only
+    ///     while the monster tracker is equipped (node/server.js:1331).
     /// </summary>
     public IReadOnlyList<GKillAchievement> Achievements { get; init; } = new List<GKillAchievement>();
 
     /// <summary>
-    ///     The chance of this monster to attack you when you enter it's range.
-    ///     <br />
-    ///     This number is usually 0-1, but can sometimes be higher (10, 100)
-    ///     <br />
-    ///     TODO: Figure out what 10, 100 mean
+    ///     The chance this monster joins the pool of monsters that hit passers-by without targeting them. Rolled
+    ///     at most once every 1.2 seconds, and anything at or above 1 always passes (node/server.js:12791).
     /// </summary>
     public float Aggro { get; init; }
 
     /// <summary>
-    ///     The bounding base of this monster. (h, v, vn)
+    ///     The collision footprint this monster walks and pathfinds with, from the sprite's (h, v, vn). Much
+    ///     smaller than <see cref="HitBox" />, which is what a range is measured against.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -69,22 +68,23 @@ public sealed record GMonster : AttributedRecordBase
     public BoundingBase HitBox { get; set; } = null!;
 
     /// <summary>
-    ///     If this monster
-    ///     <see cref="Rage">
-    ///         rages
-    ///     </see>
-    ///     onto you, it will move at this speed.
+    ///     The speed this monster moves at the moment it has a target - any target, not just a
+    ///     <see cref="Rage" /> lock. It replaces <see cref="AttributedRecordBase.Speed" /> outright rather than adding to it, and is
+    ///     often several times larger. A <see cref="Supporter" /> following another monster uses it too, capped
+    ///     at that monster's speed plus 4 (node/server.js:1629).
     /// </summary>
     [JsonPropertyName("charge")]
     public float ChargeSpeed { get; init; }
 
     /// <summary>
-    ///     If true, all participants/parties will receive a reward for this kill.
+    ///     If true, everyone who damaged this monster is rewarded in proportion to what they contributed, rather
+    ///     than only whoever it was targeting (node/server.js:2584).
     /// </summary>
     public bool Cooperative { get; init; }
 
     /// <summary>
-    ///     If true, this monster does not level up, even when killing players.
+    ///     If true, this monster is skipped by the timer that levels idle monsters up, and accrues no bonus gold
+    ///     from the player it is fighting. Killing a player still levels it (node/server.js:14413, :12407).
     /// </summary>
     public bool Cute { get; init; }
 
@@ -95,27 +95,32 @@ public sealed record GMonster : AttributedRecordBase
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     The default estimated difficulty of this monster.
+    ///     A hand-set difficulty rating. It scales the pack's gold and a player's contribution score, and a
+    ///     monster rated 0 drops no gold at all (node/server.js:2136). Most monsters do not carry one.
     /// </summary>
     public float Difficulty { get; init; }
 
     /// <summary>
-    ///     If true, this monster will try to teleport away.
+    ///     If true, every projectile fired at this monster teleports it somewhere random on the map, unless a
+    ///     field generator stands within 300 units, which dampens it instead (node/server.js:3237).
     /// </summary>
     public bool Escapist { get; init; }
 
     /// <summary>
-    ///     If true, this monster can appear on any map.
+    ///     If true, the loot chest for this kill is placed at the killing player's own position and map rather
+    ///     than the monster's (node/server.js:2142). Only the Grinch carries it.
     /// </summary>
     public bool Global { get; init; }
 
     /// <summary>
-    ///     If true, the item "mpxgloves" will be 5x as effective against this monster.
+    ///     If true, the mana-restoring proc that "mpxgloves" grants is five times as likely against this monster
+    ///     (node/server_functions.js:2806), and a <see cref="Supporter" /> only heals monsters sharing the flag.
     /// </summary>
     public bool Humanoid { get; init; }
 
     /// <summary>
-    ///     If true, this monster can only be damaged by basic attacks.
+    ///     If true, only basic attacks and the handful of skills flagged pierces_immunity damage this monster;
+    ///     everything else is refused as skill_immune (node/server.js:3132). It also cannot be frozen or burned.
     /// </summary>
     public bool Immune { get; init; }
 
@@ -133,7 +138,8 @@ public sealed record GMonster : AttributedRecordBase
     public Direction InitialDirection { get; init; }
 
     /// <summary>
-    ///     A multiplier for how much gold a monster drops. (probably used to calculate base_gold values)
+    ///     Always zero. No monster in the game data carries this key and the server never reads it - gold comes
+    ///     from the monster's own gold entry and <see cref="Difficulty" />.
     /// </summary>
     public float Lucrativeness { get; init; }
 
@@ -143,12 +149,13 @@ public sealed record GMonster : AttributedRecordBase
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     If true, this monster does not attack back when attacked.
+    ///     If true, hitting this monster does not make it target you (node/server.js:3864).
     /// </summary>
     public bool Passive { get; init; }
 
     /// <summary>
-    ///     If true, this monster can cause <see cref="Condition.Poisoned" />.
+    ///     If true, this monster spawns permanently under the poisonous condition, which is what makes its hits
+    ///     apply <see cref="Condition.Poisoned" /> (node/server.js:12056).
     /// </summary>
     public bool Poisonous { get; init; }
 
@@ -158,32 +165,33 @@ public sealed record GMonster : AttributedRecordBase
     public string? Projectile { get; init; }
 
     /// <summary>
-    ///     The chance of this monster to lock onto you.
-    ///     <br />
-    ///     If Rage = 10: monster will always lock onto you when you enter it's range. If Rage = 100: monster will always lock
-    ///     onto you when you enter it's spawn boundary
-    ///     <br />
+    ///     Feeds two rolls. When this monster hits a passer-by it also locks onto them with this chance
+    ///     (node/server.js:13594). Separately, once 20 seconds pass without it being attacked it gives up pursuit
+    ///     with chance 1 - rage * 0.99, so a value above about 1.02 never gets bored (:12871).
     /// </summary>
     public float Rage { get; init; }
 
     /// <summary>
     ///     The time it takes for this monster to respawn after being killed, in seconds.
     ///     <br />
-    ///     If this is -1, the monster does not respawn automatically.
+    ///     If this is -1 the monster does not respawn automatically, and neither does a <see cref="Special" /> one.
     ///     <br />
-    ///     Wizard: For >200 second respawn monsters, the variance is from 0.6 to 2.2 of their base time
+    ///     At or below 200 the wait is this many seconds plus up to 0.9s of jitter; above 200 it is 0.72x to 1.2x
+    ///     this value (node/server.js:11874).
     /// </summary>
     [JsonPropertyName("respawn")]
     public float Respawn { get; init; }
 
     /// <summary>
-    ///     When this monster is killed, it gives this buff.
+    ///     A condition granted on the kill, for the condition's own default duration, to everyone who shares the
+    ///     reward (node/server.js:2599).
     /// </summary>
     [JsonPropertyName("rbuff")]
     public Condition RewardBuff { get; init; }
 
     /// <summary>
-    ///     Whether ot not this monster roams outside of it's initial spawn boundary.
+    ///     Whether or not this monster roams outside of its initial spawn boundary. The map's own entry for it can
+    ///     set the same thing, and either one is enough (node/server.js:13016).
     /// </summary>
     public bool Roam { get; init; }
 
@@ -204,14 +212,15 @@ public sealed record GMonster : AttributedRecordBase
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If populated, this monster will spawn other monsters.
+    ///     . If populated, this monster spawns other monsters while it has a target, next to that target.
     ///     <br />
-    ///     This list contains the delay between spawns, and the name of the monster is spawns on that delay.
+    ///     Each entry is the delay in milliseconds and the name of the monster spawned on it (node/server.js:12795).
     /// </summary>
     public IReadOnlyList<(float SpawnDelay, string MonsterName)>? Spawns { get; init; }
 
     /// <summary>
-    ///     Whether or not this is a special monster. Generally means the monster is a boss/event monster, and/or is announced.
+    ///     If true, this monster never respawns on its own once killed, and levels up twenty times more slowly
+    ///     than an ordinary one (node/server.js:11864, :12404). Set on bosses and event monsters.
     /// </summary>
     public bool Special { get; init; }
 
@@ -221,17 +230,21 @@ public sealed record GMonster : AttributedRecordBase
     public bool Stationary { get; init; }
 
     /// <summary>
-    ///     If true, this monster will heal other monsters and itself in encounters.
+    ///     If true, this monster follows another monster within 300 units that shares its <see cref="Humanoid" />
+    ///     flag, and aims its healing ability at that one whenever it is within 120 rather than at itself
+    ///     (node/server.js:12764, :12584).
     /// </summary>
     public bool Supporter { get; init; }
 
     /// <summary>
-    ///     If true, this monster is a trap.
+    ///     If true, this is a player-placed device rather than a wild monster - only the field generator and the
+    ///     zapper carry it. The server tags the live entity from how it was spawned, not from this flag.
     /// </summary>
     public bool Trap { get; init; }
 
     /// <summary>
-    ///     TODO: Unknown
+    ///     If true, the client leaves this monster out of its monster list (js/html.js:2400). Set on the target
+    ///     dummies and one debug monster.
     /// </summary>
     public bool Unlist { get; init; }
 }

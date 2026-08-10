@@ -1,8 +1,10 @@
 #region
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
+using AL.Core.Attributes;
 using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
@@ -37,7 +39,30 @@ public abstract class EntityBase : AttributedObjectBase,
                                    IKeyPresenceCapturable,
                                    IEquatable<EntityBase>
 {
+    //every member of the movement block, so the wholesale path runs the same merge the gated one does
+    private const EntityUpdateField MOVEMENT_FIELDS = EntityUpdateField.X
+                                                      | EntityUpdateField.Y
+                                                      | EntityUpdateField.GoingX
+                                                      | EntityUpdateField.GoingY
+                                                      | EntityUpdateField.Angle
+                                                      | EntityUpdateField.MoveNum
+                                                      | EntityUpdateField.Moving
+                                                      | EntityUpdateField.Map
+                                                      | EntityUpdateField.In;
+
     protected BoundingBase BoundingBase = null!;
+
+    /// <summary>
+    ///     Serializes every write to the movement block. Three threads write it - the 30Hz delta loop, the socket's
+    ///     receive callbacks and the consumer's own movement calls - and each write is a read-compute-write, so a
+    ///     correction landing mid-computation was silently clobbered by a step derived from the position before it.
+    ///     Readers are deliberately left lock-free; only writers serialize.
+    ///     <br />
+    ///     Deserialization is the one writer that does not take it: <c>[JsonInclude]</c> drives the narrowed setters
+    ///     straight through. That is safe only because a freshly-deserialized entity is thread-local until it is
+    ///     published, and it would stop being safe the day a frame is deserialized <i>into</i> a live entity.
+    /// </summary>
+    private protected readonly Lock MovementLock = new();
 
     /// <summary>
     ///     TODO: what's this?
@@ -49,7 +74,8 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     If moving, this is the angle they are moving at. (in degrees +/- 180)
     /// </summary>
     [JsonInclude]
-    public float Angle { get; protected set; }
+    [ShallowMergeIgnore]
+    public float Angle { get; private set; }
 
     /// <summary>
     ///     The conditions this entity has.
@@ -83,14 +109,16 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     [JsonPropertyName("going_x")]
     [JsonInclude]
-    public float GoingX { get; protected set; }
+    [ShallowMergeIgnore]
+    public float GoingX { get; private set; }
 
     /// <summary>
     ///     If this entity is moving, this is the Y coordinate they are moving to.
     /// </summary>
     [JsonPropertyName("going_y")]
     [JsonInclude]
-    public float GoingY { get; protected set; }
+    [ShallowMergeIgnore]
+    public float GoingY { get; private set; }
 
     /// <summary>
     ///     <see cref="Player" /> name, or <see cref="Monster" /> unique id.
@@ -109,7 +137,8 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </remarks>
     [JsonPropertyName("in")]
     [JsonInclude]
-    public string? In { get; protected set; }
+    [ShallowMergeIgnore]
+    public string? In { get; private set; }
 
     public bool IsCompensated { get; private set; }
 
@@ -118,7 +147,8 @@ public abstract class EntityBase : AttributedObjectBase,
 
     [JsonPropertyName("map")]
     [JsonInclude]
-    public string Map { get; protected set; } = null!;
+    [ShallowMergeIgnore]
+    public string Map { get; private set; } = null!;
 
     [JsonPropertyName("max_hp")]
     [JsonInclude]
@@ -133,10 +163,12 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     [JsonPropertyName("move_num")]
     [JsonInclude]
-    public ulong MoveNum { get; protected set; }
+    [ShallowMergeIgnore]
+    public ulong MoveNum { get; private set; }
 
     [JsonInclude]
-    public bool Moving { get; protected set; }
+    [ShallowMergeIgnore]
+    public bool Moving { get; private set; }
 
     /// <summary>
     ///     Which wire keys the frame this entity was deserialized from actually carried. Set by <see cref="MarkPresent" />
@@ -153,10 +185,12 @@ public abstract class EntityBase : AttributedObjectBase,
     public string? Target { get; protected set; }
 
     [JsonInclude]
-    public float X { get; protected set; }
+    [ShallowMergeIgnore]
+    public float X { get; private set; }
 
     [JsonInclude]
-    public float Y { get; protected set; }
+    [ShallowMergeIgnore]
+    public float Y { get; private set; }
 
     public float Bottom => Y + VerticalNotNorth;
     public float HalfWidth => BoundingBase.HalfWidth;
@@ -185,16 +219,125 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     public IRectangle HitBox { get; private set; } = null!;
 
+    /// <summary>
+    ///     Where this entity is and where it is walking, read as one coherent value under the lock every writer takes.
+    ///     Use it where two of these have to agree with each other - a position against the destination it was derived
+    ///     from, say. Single-property reads stay lock-free and are unaffected.
+    /// </summary>
+    public MovementBlock Movement
+    {
+        get
+        {
+            lock (MovementLock)
+                return ReadMovement();
+        }
+    }
+
     public void SetHitBox(BoundingBase hitBox) => HitBox = new BoundingRectangle(this, hitBox);
 
-    public void CompensateOnce(TimeSpan minimumOffset)
+    /// <summary>
+    ///     Applies a server frame's movement wholesale, exactly as sent - a key the frame omitted lands as its
+    ///     deserialized default rather than keeping what was there. No arbitration either: a frame that disagrees with
+    ///     local reckoning still wins, which is what the shallow merge behind a character frame always did.
+    /// </summary>
+    /// <remarks>
+    ///     Wholesale rather than gated on <see cref="PresentFields" /> on purpose, and the difference is real: a
+    ///     character frame omits every movement key until the character's first move of the session, so a committed
+    ///     capture carries <c>x</c>, <c>y</c>, <c>map</c> and <c>in</c> and none of <c>moving</c>, <c>going_x</c>,
+    ///     <c>going_y</c>, <c>angle</c> or <c>move_num</c> (<c>player_to_client</c> sends a key only when the server's
+    ///     player object has one, <c>node/server.js:778</c>). Gating would let a reconnect's start frame leave a
+    ///     persistent character walking to the destination of a leg on the server it just left.
+    /// </remarks>
+    /// <param name="frame">
+    ///     The freshly-deserialized frame to take movement from.
+    /// </param>
+    public void AcceptMovement(EntityBase frame)
     {
-        if (IsCompensated)
-            throw new InvalidOperationException("Object already compensated.");
+        ArgumentNullException.ThrowIfNull(frame);
 
-        IsCompensated = true;
+        //read the frame's block before taking our own lock, so no two entity locks are ever held at once
+        var incoming = frame.Movement;
 
-        Update(minimumOffset);
+        lock (MovementLock)
+            ApplyMovement(MergeMovement(ReadMovement(), incoming, MOVEMENT_FIELDS));
+    }
+
+    public void CompensateOnce(TimeSpan offset)
+    {
+        //Update re-enters this lock, which System.Threading.Lock permits
+        lock (MovementLock)
+        {
+            if (IsCompensated)
+                throw new InvalidOperationException("Object already compensated.");
+
+            IsCompensated = true;
+
+            Update(offset);
+        }
+    }
+
+    //the one place the block is read as a group, and the one place any member of it is assigned. Both assume the
+    //caller already holds MovementLock - nothing else in this class or Character may touch the members directly
+    private protected MovementBlock ReadMovement()
+        => new(
+            X,
+            Y,
+            GoingX,
+            GoingY,
+            Angle,
+            MoveNum,
+            Moving,
+            Map,
+            In);
+
+    private protected void ApplyMovement(MovementBlock movement)
+    {
+        Debug.Assert(MovementLock.IsHeldByCurrentThread, "the movement block may only be assigned while holding MovementLock");
+
+        X = movement.X;
+        Y = movement.Y;
+        GoingX = movement.GoingX;
+        GoingY = movement.GoingY;
+        Angle = movement.Angle;
+        MoveNum = movement.MoveNum;
+        Moving = movement.Moving;
+        Map = movement.Map!;
+        In = movement.In;
+    }
+
+    //the one place a server frame becomes movement, for both paths that apply one. Whichever fields the mask lets
+    //through land together; the rest keep what they had. When an arbitration rule arrives - ignore a frame whose
+    //move_num is behind, snap past a distance threshold - this is where it goes, and it is written once
+    private protected static MovementBlock MergeMovement(MovementBlock current, MovementBlock incoming, EntityUpdateField present)
+    {
+        if ((present & EntityUpdateField.Angle) != 0)
+            current = current with { Angle = incoming.Angle };
+
+        if ((present & EntityUpdateField.GoingX) != 0)
+            current = current with { GoingX = incoming.GoingX };
+
+        if ((present & EntityUpdateField.GoingY) != 0)
+            current = current with { GoingY = incoming.GoingY };
+
+        if ((present & EntityUpdateField.In) != 0)
+            current = current with { In = incoming.In };
+
+        if ((present & EntityUpdateField.Map) != 0)
+            current = current with { Map = incoming.Map };
+
+        if ((present & EntityUpdateField.MoveNum) != 0)
+            current = current with { MoveNum = incoming.MoveNum };
+
+        if ((present & EntityUpdateField.Moving) != 0)
+            current = current with { Moving = incoming.Moving };
+
+        if ((present & EntityUpdateField.X) != 0)
+            current = current with { X = incoming.X };
+
+        if ((present & EntityUpdateField.Y) != 0)
+            current = current with { Y = incoming.Y };
+
+        return current;
     }
 
     public virtual bool Equals(EntityBase? other) => other is not null && Id.Equals(other.Id);
@@ -225,7 +368,9 @@ public abstract class EntityBase : AttributedObjectBase,
             "going_x"    => EntityUpdateField.GoingX,
             "going_y"    => EntityUpdateField.GoingY,
             "hp"         => EntityUpdateField.HP,
+            "in"         => EntityUpdateField.In,
             "level"      => EntityUpdateField.Level,
+            "map"        => EntityUpdateField.Map,
             "max_hp"     => EntityUpdateField.MaxHP,
             "max_mp"     => EntityUpdateField.MaxMP,
             "move_num"   => EntityUpdateField.MoveNum,
@@ -256,28 +401,49 @@ public abstract class EntityBase : AttributedObjectBase,
                 Conditions.Remove(kvp.Key, out _);
         }
 
-        //if not moving, or less than 1ms has passed, or already at destination, then dont update
-        if (!Moving || (X.IsNear(GoingX, CONSTANTS.EPSILON) && Y.IsNear(GoingY, CONSTANTS.EPSILON)))
-            return;
-
-        var going = new Point(GoingX, GoingY);
-        var distanceDelta = Convert.ToSingle(Speed * delta.TotalSeconds);
-        var distance = this.Distance(going);
-
-        if (distance > distanceDelta)
-            distance = distanceDelta;
-        else
+        //the whole read-compute-write is inside the lock, not just the write. A correction landing between the read
+        //and the write is otherwise clobbered by a step derived from the position it just replaced, silently
+        lock (MovementLock)
         {
-            Moving = false;
-            X = GoingX;
-            Y = GoingY;
+            var movement = ReadMovement();
 
-            return;
+            //if not moving, or less than 1ms has passed, or already at destination, then dont update
+            if (!movement.Moving
+                || (movement.X.IsNear(movement.GoingX, CONSTANTS.EPSILON) && movement.Y.IsNear(movement.GoingY, CONSTANTS.EPSILON)))
+                return;
+
+            var going = new Point(movement.GoingX, movement.GoingY);
+            var distanceDelta = Convert.ToSingle(Speed * delta.TotalSeconds);
+            var distance = this.Distance(going);
+
+            if (distance > distanceDelta)
+                distance = distanceDelta;
+            else
+            {
+                ApplyMovement(
+                    movement with
+                    {
+                        X = movement.GoingX,
+                        Y = movement.GoingY,
+                        Moving = false
+                    });
+
+                return;
+            }
+
+            //steer by where going is from here, rather than by the heading the leg started with. Several paths write
+            //x/y between ticks without re-deriving Angle - the server's correction handler, MoveAsync's in-leg repair,
+            //the character branch of an entities frame - and a stale heading resumes from the new position along a line
+            //parallel to the one it should be on, until the overshoot clamp finally trips
+            (var newX, var newY) = this.AngularOffset(going.AngularRelationTo(this), distance);
+
+            ApplyMovement(
+                movement with
+                {
+                    X = newX,
+                    Y = newY
+                });
         }
-
-        (var newX, var newY) = this.AngularOffset(Angle, distance);
-        X = newX;
-        Y = newY;
     }
 
     /// <summary>
@@ -352,11 +518,20 @@ public abstract class EntityBase : AttributedObjectBase,
         }
     }
 
-    public void CorrectAndCompensate(IPoint point, TimeSpan minimumOffset)
+    public void CorrectAndCompensate(IPoint point, TimeSpan offset)
     {
-        IsCompensated = false;
-        UpdateLocation(point);
-        CompensateOnce(minimumOffset);
+        //materialised before the lock: point can be another live entity, and calling into a foreign implementation
+        //while holding this entity's lock is how a deadlock gets built later
+        var corrected = new Point(point.X, point.Y);
+
+        //one atomic operation, not two - a reckoning tick that landed between them would step from the corrected
+        //position and then be compensated from a position it had already left. Both nested calls re-enter the lock
+        lock (MovementLock)
+        {
+            IsCompensated = false;
+            UpdateLocation(corrected);
+            CompensateOnce(offset);
+        }
     }
 
     public override bool Equals(object? obj) => Equals(obj as EntityBase);
@@ -388,20 +563,19 @@ public abstract class EntityBase : AttributedObjectBase,
 
         var present = @new.PresentFields;
 
+        //taken before our own lock, so no two entity locks are ever held at once
+        var incoming = @new.Movement;
+
+        //each member stays individually gated: a partial delta must not overwrite a field the server omitted. What
+        //the lock adds is that whichever ones the frame did carry land together
+        lock (MovementLock)
+            ApplyMovement(MergeMovement(ReadMovement(), incoming, present));
+
         if ((present & EntityUpdateField.ABS) != 0)
             ABS = @new.ABS;
 
-        if ((present & EntityUpdateField.Angle) != 0)
-            Angle = @new.Angle;
-
         if ((present & EntityUpdateField.Armor) != 0)
             Armor = @new.Armor;
-
-        if ((present & EntityUpdateField.GoingX) != 0)
-            GoingX = @new.GoingX;
-
-        if ((present & EntityUpdateField.GoingY) != 0)
-            GoingY = @new.GoingY;
 
         if ((present & EntityUpdateField.HP) != 0)
             HP = @new.HP;
@@ -418,20 +592,8 @@ public abstract class EntityBase : AttributedObjectBase,
         if ((present & EntityUpdateField.Level) != 0)
             Level = @new.Level;
 
-        if ((present & EntityUpdateField.MoveNum) != 0)
-            MoveNum = @new.MoveNum;
-
-        if ((present & EntityUpdateField.Moving) != 0)
-            Moving = @new.Moving;
-
         if ((present & EntityUpdateField.Speed) != 0)
             Speed = @new.Speed;
-
-        if ((present & EntityUpdateField.X) != 0)
-            X = @new.X;
-
-        if ((present & EntityUpdateField.Y) != 0)
-            Y = @new.Y;
 
         if ((present & EntityUpdateField.XP) != 0)
             XP = @new.XP;
@@ -456,39 +618,62 @@ public abstract class EntityBase : AttributedObjectBase,
     }
 
     /// <summary>
-    ///     Updates the instanced location of this entity.
+    ///     Updates the instanced location of this entity. The instance, the map and the position land together, so no
+    ///     reader ever sees the new map at the old position.
     /// </summary>
     /// <param name="location">
     ///     An instanced location.
     /// </param>
-    /// <exception cref="ArgumentException">
-    ///     Invalid argument.
+    /// <exception cref="ArgumentNullException">
+    ///     location
     /// </exception>
     public void UpdateLocation(IInstancedLocation location)
     {
-        if (location.Equals(default))
-            throw new ArgumentException("Invalid argument.", nameof(location));
+        ArgumentNullException.ThrowIfNull(location);
 
-        In = location.In;
-        UpdateLocation((ILocation)location);
+        //read the argument before the lock: ALClient hands a live Player here, and calling into a foreign
+        //implementation while holding this entity's lock is how a deadlock gets built later
+        var @in = location.In;
+        var map = location.Map;
+        var x = location.X;
+        var y = location.Y;
+
+        lock (MovementLock)
+            ApplyMovement(
+                ReadMovement() with
+                {
+                    X = x,
+                    Y = y,
+                    Map = map,
+                    In = @in
+                });
     }
 
     /// <summary>
-    ///     Updates the location of this entity.
+    ///     Updates the map and position of this entity, as one write.
     /// </summary>
     /// <param name="location">
     ///     A location.
     /// </param>
-    /// <exception cref="ArgumentException">
-    ///     Invalid argument.
+    /// <exception cref="ArgumentNullException">
+    ///     location
     /// </exception>
     public void UpdateLocation(ILocation location)
     {
-        if (location.Equals(default))
-            throw new ArgumentException("Invalid argument.", nameof(location));
+        ArgumentNullException.ThrowIfNull(location);
 
-        Map = location.Map;
-        UpdateLocation((IPoint)location);
+        var map = location.Map;
+        var x = location.X;
+        var y = location.Y;
+
+        lock (MovementLock)
+            ApplyMovement(
+                ReadMovement() with
+                {
+                    X = x,
+                    Y = y,
+                    Map = map
+                });
     }
 
     /// <summary>
@@ -497,16 +682,23 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <param name="point">
     ///     A coordinate point.
     /// </param>
-    /// <exception cref="ArgumentException">
-    ///     Invalid argument.
+    /// <exception cref="ArgumentNullException">
+    ///     point
     /// </exception>
     public void UpdateLocation(IPoint point)
     {
-        if (point.Equals(default))
-            throw new ArgumentException("Invalid argument.", nameof(point));
+        ArgumentNullException.ThrowIfNull(point);
 
-        X = point.X;
-        Y = point.Y;
+        var x = point.X;
+        var y = point.Y;
+
+        lock (MovementLock)
+            ApplyMovement(
+                ReadMovement() with
+                {
+                    X = x,
+                    Y = y
+                });
     }
 
     /// <summary>
@@ -532,7 +724,12 @@ public abstract class EntityBase : AttributedObjectBase,
         if (string.IsNullOrEmpty(map))
             throw new ArgumentNullException(nameof(map));
 
-        In = @in;
-        Map = map;
+        lock (MovementLock)
+            ApplyMovement(
+                ReadMovement() with
+                {
+                    Map = map,
+                    In = @in
+                });
     }
 }

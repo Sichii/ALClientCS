@@ -36,7 +36,17 @@ public enum EntityUpdateField : uint
     GoingX = 1u << 7,
     GoingY = 1u << 8,
     HP = 1u << 9,
+
+    /// <summary>
+    ///     Only a self <c>player</c> frame carries <c>in</c> and <c>map</c> - <c>player_to_client</c>
+    ///     (<c>node/server.js:804</c>) lists them in its !stranger block alone, and <c>monster_to_client</c>
+    ///     (<c>:875</c>) has neither. So no object inside an entities frame sets these, and a monster's or a
+    ///     stranger's map keeps coming from the frame-level stamp that <c>UpdateMap</c> applies by hand.
+    /// </summary>
+    In = 1u << 23,
+
     Level = 1u << 10,
+    Map = 1u << 24,
     MaxHP = 1u << 11,
     MaxMP = 1u << 12,
     MoveNum = 1u << 13,

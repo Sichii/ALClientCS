@@ -208,14 +208,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public FormattedLogger Logger { get; }
 
     /// <summary>
-    ///     The smallest socket round trip seen in the last fifty pings, floored at 100ms until the first one lands.
+    ///     A fast socket round trip for this connection: the 5th percentile of the last fifty pings, floored at
+    ///     100ms until the first one lands.
     /// </summary>
     /// <remarks>
-    ///     The same figure the position compensation is scaled by, exposed because a behaviour that holds a distance
-    ///     from something has to know how much ground that something covers between a read of its position and the
-    ///     server acting on the move produced from that read.
+    ///     Exposed because a behaviour that holds a distance from something has to know how much ground that
+    ///     something covers between a read of its position and the server acting on the move produced from that read.
     /// </remarks>
-    public TimeSpan MinimumRoundTrip => PingManager.MinimumOffset;
+    public TimeSpan LowPercentileRoundTrip => PingManager.LowPercentileOffset;
 
     /// <summary>
     ///     What this character has spent of the server's call budget in the last <see cref="CallCost.WINDOW" />,
@@ -921,6 +921,82 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         await using var @lock = await Sync.WaitAsync();
         await InternalConnectAsync();
+    }
+
+    /// <summary>
+    ///     Moves this character to another server without rebuilding the client. The socket is replaced and
+    ///     <see cref="OnReconnected" /> is raised, which is the road an automatic reconnect already takes - so a
+    ///     consumer that re-registers its subscriptions on that event needs no second code path for this.
+    ///     <br />
+    ///     <see cref="LoggedIn" /> is false for the whole swap, so anything gating work on it stands down and picks
+    ///     itself back up. What the character owns travels with it: inventory, gold, the bank and the position are on
+    ///     the character's own record rather than on the server it was last seen from.
+    /// </summary>
+    /// <remarks>
+    ///     The intentional disconnect is what keeps the automatic reconnect out of this. <c>ALSocketClient</c> clears
+    ///     its <c>Connected</c> flag before the transport drops, so its own handler suppresses
+    ///     <see cref="OnDisconnected" /> and nothing races us back to the server we are leaving.
+    ///     <br />
+    ///     What is <b>not</b> guarded is a genuine drop landing in the same moment. <see cref="ReconnectAsync" /> takes
+    ///     no lock, so both would be assigning <see cref="Socket" /> and the last writer decides where the character
+    ///     ends up. Nothing here can detect that; a caller that cares should re-read <see cref="Server" /> afterwards
+    ///     and ask again. Closing it properly means putting <see cref="ReconnectAsync" /> under <c>Sync</c> too, which
+    ///     is a wider change than this one.
+    ///     <br />
+    ///     A refused login on the far server throws, leaving the client holding a socket that never authenticated and
+    ///     <see cref="LoggedIn" /> false. Deliberately not handled here - the socket we came from is already gone, so
+    ///     there is nothing to fall back to at this level. The caller decides.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Server {region} {identifier} not found.
+    /// </exception>
+    public async Task ChangeServerAsync(ServerRegion region, ServerId identifier)
+    {
+        await using var @lock = await Sync.WaitAsync();
+
+        if ((Server.Region == region) && (Server.Identifier == identifier))
+            return;
+
+        //resolved before anything is torn down, so a server this account cannot see costs the lookup and nothing else
+        var serversAndCharacters = await API.GetServersAndCharactersAsync();
+
+        var serverInfo = serversAndCharacters.Servers.FirstOrDefault(
+                             server => (server.Region == region) && (server.Identifier == identifier))
+                         ?? throw new InvalidOperationException($@"Server {region} {identifier} not found.");
+
+        Logger.Warn($"Changing server to {serverInfo.Key}");
+
+        LoggedIn = false;
+
+        //stopped ahead of the socket for the reason DisconnectAsync stops them there: the suppressed OnDisconnected
+        //never runs, so these two would go on polling a closed socket and log an EmitAsync throw every tick
+        await PingManager.StopAsync();
+        await EntityManager.StopAsync();
+
+        try
+        {
+            await Socket.DisconnectAsync();
+        } catch
+        {
+            //ignored - the socket we are leaving is unreachable either way
+        }
+
+        Server = serverInfo;
+
+        //a fresh one rather than the old one reconnected: ALSocketClient disposes its inner socket on disconnect and
+        //refuses to open again, which is why the reconnect path builds one too
+        Socket = new ALSocketClient(new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>()));
+
+        await InternalConnectAsync();
+
+        try
+        {
+            OnReconnected?.Invoke(this, EventArgs.Empty);
+        } catch (Exception e)
+        {
+            //a subscriber's failure is not a failed change of server - the socket is live and authenticated
+            Logger.Error($"OnReconnected subscriber threw. {e}");
+        }
     }
 
     /// <summary>
@@ -2711,10 +2787,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         Character.UpdateLocation(
                             startLoc.OffsetTowards(point, Character.Speed / 1000f * (float)elapsed.TotalMilliseconds));
 
-                    //if we should have reasonably received correct movement data. MinimumOffset is the smallest round
-                    //trip seen in the last 50 pings, so this grace is a multiple of the best case being asked to
+                    //if we should have reasonably received correct movement data. LowPercentileOffset is a fast round
+                    //trip for this connection, so this grace is a multiple of the best case being asked to
                     //cover the typical one - the multiplier is what absorbs the jitter between them
-                    if (elapsed > (PingManager.MinimumOffset * 4))
+                    if (elapsed > (PingManager.LowPercentileOffset * 4))
                     {
                         //what the frame actually said, not just that it disagreed - three different faults reach here
                         //and read identically without it: the server reporting the walk already over, a frame that is
@@ -2724,18 +2800,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         Logger.Debug(
                             $"Correcting position: frame says moving={data.Moving} going=({data.GoingX:N0}, {data.GoingY:N0}), "
                             + $"leg wants {point.ToPoint()}, {elapsed.TotalMilliseconds:N0}ms in "
-                            + $"(grace {(PingManager.MinimumOffset * 4).TotalMilliseconds:N0}ms). "
+                            + $"(grace {(PingManager.LowPercentileOffset * 4).TotalMilliseconds:N0}ms). "
 
                             //where our own simulation thinks it is when the server says the walk is over. Compensation
                             //should leave this ahead of the server, so a remaining distance near zero means the timer
                             //merely lost a race it was about to win, and a large one means the simulation is lagging
-                            //and the compensation is the thing to look at. minPing is here because it is what the
+                            //and the compensation is the thing to look at. fastPing is here because it is what the
                             //compensation is scaled by, and a floor well under the real trip is how it under-shoots
                             //two different readings on purpose, no longer two spellings of one: the distance is what
                             //Character says and the ms is what the clock says, so the gap between them is the
                             //position lag itself - the thing that used to be allowed to move the deadline
                             + $"We think {Character.Distance(point):N1} left at speed {Character.Speed:N0}, "
-                            + $"{RemainingDelay().TotalMilliseconds:N0}ms on the clock, minPing {PingManager.MinimumOffset.TotalMilliseconds:N0}ms. "
+                            + $"{RemainingDelay().TotalMilliseconds:N0}ms on the clock, fastPing {PingManager.LowPercentileOffset.TotalMilliseconds:N0}ms. "
 
                             //which arm of the staleness test the frame landed in, since the distance above is read
                             //back off a position the repair may have just rewritten - without this the two cases
@@ -2794,12 +2870,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
+        //one coherent read: a frame landing between the two would put a position on the wire the character never
+        //stood on, and the server quantises both ends of a move onto a 10-unit lattice and jails you for landing
+        //off its flood fill
+        var from = Character.Movement;
+
         await Socket.EmitAsync(
             ALSocketEmitType.Move,
             new
             {
-                x = Character.X,
-                y = Character.Y,
+                x = from.X,
+                y = from.Y,
                 going_x = point.X,
                 going_y = point.Y,
                 m = Character.MapChangeCount
@@ -2807,14 +2888,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //fixed from the position the emit above just claimed, and before anything reads the remaining time: this is
         //the one measurement of this leg that no later frame is allowed to move
-        legLength = Character.Distance(point);
+        legLength = new Point(from.X, from.Y).Distance(point);
 
         var initialDelay = RemainingDelay();
-        Character.SetMoving(point);
 
-        //read beside setMovingAt rather than before the emit: the callback below is gated on setMovingAt having a
+        //taken off the write itself rather than read back afterwards: a frame landing between the two would raise
+        //this past the number this leg was started with, which flips the staleness test above from "position
+        //repaired" to "believed" for a genuinely stale frame
+        moveNumAtEmit = Character.SetMoving(point)
+                                 .MoveNum;
+
+        //set beside moveNumAtEmit rather than before the emit: the callback below is gated on setMovingAt having a
         //value, so the two have to become true together or a frame could be judged against an unset baseline
-        moveNumAtEmit = Character.MoveNum;
         setMovingAt = DateTime.UtcNow;
 
         var delayTask = delay.WaitAsync(initialDelay, token);
@@ -2824,7 +2909,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //if cancellation is requested, emit a walk to where we're already standing.
         if (token?.IsCancellationRequested == true)
         {
-            var finalDestination = Character.ToPoint();
+            var stoppingAt = Character.Movement;
+            var finalDestination = new Point(stoppingAt.X, stoppingAt.Y);
             Logger.Debug($"Move to {point.ToPoint()} canceled. Stopping at {finalDestination}");
             point = finalDestination;
 
@@ -2832,8 +2918,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 ALSocketEmitType.Move,
                 new
                 {
-                    x = Character.X,
-                    y = Character.Y,
+                    x = stoppingAt.X,
+                    y = stoppingAt.Y,
                     going_x = point.X,
                     going_y = point.Y,
                     m = Character.MapChangeCount
@@ -2842,8 +2928,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
         }
 
+        //one read for the destination and the moving flag both: stillOurs below is exactly the question of whether
+        //those two agree, and a frame landing between two separate reads answers it with halves of different states
+        var arrival = Character.Movement;
+
         //find out where we're going
-        var going = new Point(Character.GoingX, Character.GoingY);
+        var going = new Point(arrival.GoingX, arrival.GoingY);
 
         //a destination that is no longer ours means something took the character over - a transport, whose new_map
         //handling stops the walk and repoints going at the arrival spot, or a second walk if one ever overlapped
@@ -2858,7 +2948,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //Moving is what keeps that exception from swallowing a real supersession: a walk that has taken this
         //character over is by definition still moving, so stopping it here would freeze the leg that replaced this
         //one. The case being readmitted is the opposite - a stopped frame that left nothing running behind it
-        var stillOurs = going.Equals(point) || (correctionAttempted && !mapChanged && !Character.Moving);
+        var stillOurs = going.Equals(point) || (correctionAttempted && !mapChanged && !arrival.Moving);
 
         if (stillOurs)
         {
@@ -3096,6 +3186,38 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             });
 
         await Socket.EmitAsync(ALSocketEmitType.LostAndFound);
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
+
+
+    /// <summary>
+    ///     Asynchronously fetches the server's gold reserve (node/server.js:7334), the pool that gates merchant
+    ///     donation xp rate, slots odds, the maximum dice bet, and the dice house edge. Unlike
+    ///     <see cref="RequestLostAndFoundItemsAsync" />, the info branch returns before either the donation or the
+    ///     distance check runs, so this needs no prior donation and no proximity to the lost-and-found NPC.
+    /// </summary>
+    /// <returns>
+    ///     The server's current gold reserve.
+    /// </returns>
+    public async Task<float> RequestServerGoldAsync()
+    {
+        var source = new TaskCompletionSource<Expectation<float>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.LostAndFoundInfo => source.TrySetResult(data.Gold),
+                    _                                 => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(ALSocketEmitType.LostAndFound, "info");
 
         return (await source.Task.WithNetworkTimeout()).Result;
     }
@@ -4725,8 +4847,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected async Task<bool> OnCharacterAsync(CharacterData data)
     {
-        data.CompensateOnce(PingManager.MinimumOffset);
+        data.CompensateOnce(PingManager.LowPercentileOffset);
         ShallowMerge<Character>.Merge(data, Character);
+
+        //the merge no longer carries position/destination - those seven are excluded from it so every write to them
+        //goes through the one locked path. Applied here instead, exactly as sent, with no arbitration
+        Character.AcceptMovement(data);
 
         //keep a copy of the bank data
         if (data.Bank != null)
@@ -4752,7 +4878,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnCorrectionAsync(CorrectionData data)
     {
-        Character.CorrectAndCompensate(data, PingManager.MinimumOffset);
+        Character.CorrectAndCompensate(data, PingManager.LowPercentileOffset);
 
         return TaskCache.FALSE;
     }
@@ -4989,7 +5115,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the name is already resolved to the shared skill and the ms already multiplied, so this must not
         //go through SetCooldown. the attack_ms correction can be negative, which the browser clamps to 0.
         var cooldownInfo = new CooldownInfo(Math.Max(0f, data.TimeoutMs));
-        cooldownInfo.CompensateOnce(PingManager.MinimumOffset);
+        cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
 
         Cooldowns.AddOrUpdate(data.SkillName, cooldownInfo, (_, _) => cooldownInfo);
 
@@ -5295,7 +5421,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 cooldownMs ??= data.CooldownMS;
 
             var cooldownInfo = new CooldownInfo(cooldownMs.Value * cooldownMultiplier);
-            cooldownInfo.CompensateOnce(PingManager.MinimumOffset);
+            cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
 
             Cooldowns.AddOrUpdate(skillName, cooldownInfo, (_, _) => cooldownInfo);
         }
@@ -5313,7 +5439,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         foreach (var monster in monsters)
         {
             monster.UpdateMap(@in, map);
-            monster.CompensateOnce(PingManager.MinimumOffset);
+            monster.CompensateOnce(PingManager.LowPercentileOffset);
 
             if (Monsters.TryGetValue(monster.Id, out var existingMonster))
                 existingMonster.Update(monster);
@@ -5343,7 +5469,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         foreach (var player in players)
         {
             player.UpdateMap(@in, map);
-            player.CompensateOnce(PingManager.MinimumOffset);
+            player.CompensateOnce(PingManager.LowPercentileOffset);
 
             if (player.Equals(Character))
                 Character.UpdateLocation(player);

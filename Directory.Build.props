@@ -19,10 +19,16 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- Documentation files in every configuration, not only Release: the downstream ALBot game-data explorer reads
+         these summaries at runtime, and it runs in Debug. 1591 is off because the generated datum classes carry
+         hundreds of members no summary would say anything useful about. -->
+    <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <DebugSymbols>true</DebugSymbols>
         <NoWarn>1701;1702;1591</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
 
 </Project>

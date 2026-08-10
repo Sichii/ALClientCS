@@ -15,17 +15,19 @@ namespace AL.Data.Monsters;
 public sealed record GMonsterAbility : AttributedRecordBase
 {
     /// <summary>
-    ///     Whether or not this is an aura ability.
+    ///     If true, this ability applies its <see cref="Condition" /> to every player within <see cref="Radius" />
+    ///     each time it comes off cooldown, with no attack roll (node/server.js:12655).
     /// </summary>
     public bool Aura { get; init; }
 
     /// <summary>
-    ///     The condition this ability applies.
+    ///     The condition this ability applies. Only an <see cref="Aura" /> carries one.
     /// </summary>
     public Condition Condition { get; init; }
 
     /// <summary>
-    ///     The cooldown of this ability in milliseconds.
+    ///     The cooldown of this ability in milliseconds. A monster spawns with a random fraction of it already
+    ///     elapsed, so a pack does not fire in unison (node/server.js:12069).
     /// </summary>
     [JsonPropertyName("cooldown")]
     public float CooldownMS { get; init; }
@@ -33,19 +35,23 @@ public sealed record GMonsterAbility : AttributedRecordBase
     /// <summary>
     ///     Whether or not this ability applies <see cref="AL.Core.Definitions.Condition.Cursed" />
     ///     <br />
-    ///     This will not show up as the <see cref="Condition" /> for this ability.
+    ///     This will not show up as the <see cref="Condition" /> for this ability. The server does not read the
+    ///     flag either - it hard-codes the one ability that carries it, "putrid", which curses and poisons
+    ///     whoever hits the monster (node/server.js:3651).
     /// </summary>
     public bool Curse { get; init; }
 
     /// <summary>
     ///     Whether or not this ability applies <see cref="AL.Core.Definitions.Condition.Poisoned" />.
     ///     <br />
-    ///     This will not show up as the <see cref="Condition" /> for this ability.
+    ///     This will not show up as the <see cref="Condition" /> for this ability. See <see cref="Curse" /> - the
+    ///     same "putrid" branch applies both, and the flag itself is never read.
     /// </summary>
     public bool Poison { get; init; }
 
     /// <summary>
-    ///     Whether or not this ability does pure damage.
+    ///     Whether or not this ability does pure damage. Descriptive only: nothing reads it, and the skill the
+    ///     ability fires already carries its own damage type.
     /// </summary>
     [JsonPropertyName("pure")]
     public bool PureDamage { get; set; }
@@ -53,20 +59,23 @@ public sealed record GMonsterAbility : AttributedRecordBase
     /// <summary>
     ///     If this is an aura ability, this is the radius of the aura.
     ///     <br />
-    ///     If this is not an aura, this is the radius of ability effect.
+    ///     If this is not an aura, this is the radius of ability effect. Compared against an edge-to-edge
+    ///     hit box separation, not a centre-to-centre one (js/old_common_functions.js:618).
     /// </summary>
     public float Radius { get; init; }
 
     /// <summary>
-    ///     Whether or not this ability's condition stacks infinitely.
+    ///     On a burn ability, drops the divider the burn stack builds against from 3 to 1.5, so this monster's
+    ///     <see cref="AL.Core.Definitions.Condition.Burned" /> gains intensity about twice as fast and forgoes the
+    ///     duration extension the ordinary divider gets (node/server.js:3636).
     ///     <br />
-    ///     Currently only used for <see cref="AL.Core.Definitions.Condition.Burned" />, which will not show up as the
-    ///     <see cref="Condition" /> for this ability.
+    ///     That condition will not show up as the <see cref="Condition" /> for this ability.
     /// </summary>
     public bool Unlimited { get; init; }
 
     /// <summary>
-    ///     The amount of heal/damage/amount for this ability.
+    ///     The magnitude of this ability, whichever of the three wire spellings carried it: "heal", "damage" or
+    ///     "amount". Zero when the ability takes none of them.
     /// </summary>
 
     //the annotated backing field owns the "amount" wire key; without this the accessor claims it too and the

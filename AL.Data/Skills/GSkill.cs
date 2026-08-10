@@ -16,7 +16,8 @@ namespace AL.Data.Skills;
 public sealed record GSkill : AttributedRecordBase
 {
     /// <summary>
-    ///     If populated, when this skill is used this action text will appear on the GUI.
+    ///     A label on the skill's effect - "heal" for the two heals, "rate" for alchemy. Only those three carry
+    ///     one, and nothing in the server or the official client reads it.
     /// </summary>
     public string? Action { get; init; }
 
@@ -72,7 +73,8 @@ public sealed record GSkill : AttributedRecordBase
     public string? Consume { get; init; }
 
     /// <summary>
-    ///     The cooldown of this ability in milliseconds.
+    ///     The cooldown of this skill in milliseconds. The four long channelled skills spell it "reuse_cooldown"
+    ///     instead; the server takes whichever is set and so does this (node/server.js:8900).
     /// </summary>
     [JsonPropertyName("cooldown")]
     [JsonInclude]
@@ -98,12 +100,15 @@ public sealed record GSkill : AttributedRecordBase
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     The duration of this skill.
+    ///     The duration of this skill in milliseconds. A skill that names a <see cref="Condition" /> and sets no
+    ///     duration of its own is given that condition's duration when the game data is built
+    ///     (design/skills.js:1210), so this is often copied rather than authored.
     /// </summary>
     public float Duration { get; init; }
 
     /// <summary>
-    ///     Whether or not this skill has a hostile effect.
+    ///     Marks the skill as an attack. It is refused on a <see cref="AL.Data.Maps.GMap.Safe" /> map and cannot be aimed at
+    ///     yourself (node/server.js:8930, :8945).
     /// </summary>
     public bool Hostile { get; init; }
 
@@ -151,7 +156,8 @@ public sealed record GSkill : AttributedRecordBase
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     If true, this skill is not casted; it's always one.
+    ///     If true, this skill is never cast; it is always on. A monster keeps running its passive skills even
+    ///     while stunned or frozen (node/server.js:12565).
     /// </summary>
     public bool Passive { get; init; }
 
@@ -181,11 +187,8 @@ public sealed record GSkill : AttributedRecordBase
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If populated, this skill requires items to be present in your inventory.
-    ///     <br />
-    ///     This list contains the items required to have in your inventory to use this skill.
-    ///     <br />
-    ///     They are not necessarily consumed, look at <see cref="Consume" /> for that.
+    ///     . Always null. No skill in the game data carries an "inventory" key - an item requirement is written as
+    ///     <see cref="RequiredSlotItems" /> or <see cref="Consume" /> instead.
     /// </summary>
     [JsonPropertyName("inventory")]
     public IReadOnlyList<string>? RequiredInventoryItems { get; init; }
@@ -196,7 +199,8 @@ public sealed record GSkill : AttributedRecordBase
     ///     </b>
     ///     . If populated, this skill requires an item to be equipped.
     ///     <br />
-    ///     This list contains an item name that need to be equipped, and all the slots that item can go in.
+    ///     Each entry pairs a slot with the item that has to be in it. Several entries are alternatives, not all
+    ///     required - a zapper in either ring slot enables zapperzap.
     /// </summary>
     [JsonPropertyName("slot")]
     public IReadOnlyList<(EquipmentSlot Slot, string ItemName)>? RequiredSlotItems { get; init; }
@@ -210,7 +214,9 @@ public sealed record GSkill : AttributedRecordBase
     }
 
     /// <summary>
-    ///     If populated, this is the name of the skill this skill shares a cooldown with.
+    ///     If populated, this is the name of the skill this skill shares a cooldown with. Both the length and the
+    ///     last-used timestamp come from that skill, so using either starts the timer for both
+    ///     (node/server.js:8895).
     ///     <br />
     ///     Check <see cref="CooldownMultiplier" /> for a cooldown multiplier.
     /// </summary>
@@ -218,7 +224,8 @@ public sealed record GSkill : AttributedRecordBase
     public string? SharedCooldown { get; init; }
 
     /// <summary>
-    ///     The kind of targeting this skill uses. Only populated for single target skills
+    ///     What this skill may be aimed at: a monster, a player, or either. Absent means the skill takes no target
+    ///     at all, and aiming at the wrong kind is refused as "invalid_target" (node/server.js:8936).
     /// </summary>
     [JsonPropertyName("target")]
     public TargetType TargetType { get; init; }
@@ -234,7 +241,8 @@ public sealed record GSkill : AttributedRecordBase
     public SkillType Type { get; init; }
 
     /// <summary>
-    ///     If true, this skill is useable on monsters.
+    ///     If true, this skill is useable on monsters. Only three skills state it either way, and what the server
+    ///     actually enforces is <see cref="TargetType" />.
     /// </summary>
     [JsonPropertyName("monsters")]
     public bool UseableOnMonsters { get; init; }

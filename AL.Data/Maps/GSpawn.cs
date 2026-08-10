@@ -19,7 +19,8 @@ namespace AL.Data.Maps;
 ///     The direction the object is oriented towards.
 /// </param>
 /// <param name="Distance">
-///     The distance from the spawn in which you can spawn.
+///     The width of the square you are scattered across on arrival, so you land up to half of it away from
+///     <paramref name="X" />/<paramref name="Y" /> on each axis. Zero on most spawns (node/server.js:4133).
 /// </param>
 /// <seealso cref="AL.Core.Geometry.Orientation" />
 public record GSpawn(

@@ -13,7 +13,15 @@ namespace AL.Data;
 /// <seealso cref="ILocation" />
 public record Exit : ICircle, ILocation
 {
+    /// <summary>
+    ///     Whether this exit is still shut. A field, not a property, and nothing in this library ever sets it -
+    ///     a door's own lock lives on <see cref="AL.Data.Maps.GDoor.LockType" />.
+    /// </summary>
     public bool Locked;
+
+    /// <summary>
+    ///     The accessor of the map this exit is on - the near side, not where it leads.
+    /// </summary>
     public string Map { get; init; } = null!;
 
     /// <summary>
@@ -38,6 +46,9 @@ public record Exit : ICircle, ILocation
     /// </summary>
     public ILocation ToLocation { get; init; } = null!;
 
+    /// <summary>
+    ///     Which of the destination map's spawns you arrive at, as an index into its spawn list.
+    /// </summary>
     public int ToSpawnIndex { get; init; }
 
     /// <summary>
@@ -45,9 +56,19 @@ public record Exit : ICircle, ILocation
     /// </summary>
     public ExitType Type { get; init; }
 
+    /// <summary>
+    ///     The x coordinate of the exit itself - the door's centre, or where the transporter stands.
+    /// </summary>
     public float X { get; init; }
+
+    /// <summary>
+    ///     The y coordinate of the exit itself - the door's centre, or where the transporter stands.
+    /// </summary>
     public float Y { get; init; }
 
+    /// <summary>
+    ///     The exit's own position, so it can stand in as the centre of its <see cref="Radius" /> circle.
+    /// </summary>
     public ILocation Center => this;
 
     internal Exit(

@@ -16,13 +16,16 @@ namespace AL.Data.Drops;
 public sealed record GDrops
 {
     /// <summary>
-    ///     The constants behind a kill's gold reward.
+    ///     The constants behind a kill's gold reward. They scale the monster's own gold figure, which is then
+    ///     multiplied by its level and your share of the kill (node/server.js:2118).
     /// </summary>
     [JsonPropertyName("gold")]
     public GGoldDrop Gold { get; init; } = new();
 
     /// <summary>
-    ///     Each monster's own drop table, keyed by monster accessor. Rolled once per entry on every kill.
+    ///     Each monster's own drop table, keyed by monster accessor. Every entry is rolled separately on every
+    ///     kill, so a table naming one item twice gives it two independent chances and the rates add
+    ///     (node/server.js:2197).
     /// </summary>
     [JsonPropertyName("monsters")]
     public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Monsters { get; init; }

@@ -14,18 +14,19 @@ public sealed record GTrap
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If populated, this is the vertices of the polygon of the trap.
+    ///     . The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance tick
+    ///     (node/server.js:13632).
     ///     <br />
     /// </summary>
     public Polygon? Polygon { get; init; }
 
     /// <summary>
-    ///     The coordinate of the trap.
+    ///     Where a spikes trap sits. Standing on it costs 50 hp per instance tick (node/server.js:13623).
     /// </summary>
     public Point Position { get; init; }
 
     /// <summary>
-    ///     The type of trap.
+    ///     The type of trap. Spikes use <see cref="Position" />, debuff traps use <see cref="Polygon" />.
     /// </summary>
     public TrapType Type { get; init; }
 }

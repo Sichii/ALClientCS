@@ -168,6 +168,154 @@ public class CoreTests
     }
 
     /// <summary>
+    ///     Several paths write an entity's position between ticks without re-deriving <see cref="EntityBase.Angle" />
+    ///     - the server's correction handler, the in-leg repair, the character branch of an entities frame. A step
+    ///     that steered by the stored heading would resume from the corrected position along the old line, walking
+    ///     parallel to the one it should be on until the overshoot clamp finally tripped. Pinned here alongside the
+    ///     two edges the derived heading still has to keep: a step short of the goal, and one that would pass it.
+    /// </summary>
+    [Test]
+    public void AStepHeadsAtGoingFromWhereverThePositionWasWritten()
+    {
+        const float SPEED = 100f;
+        const float TOLERANCE = 0.01f;
+
+        //ten units of ground per step
+        var step = TimeSpan.FromSeconds(0.1);
+
+        var character = new Character();
+        character.BackfillSoftDefault(EntityUpdateField.Speed, SPEED);
+        character.UpdateLocation(new Point(200, -300));
+        character.SetMoving(new Point(300, -300));
+
+        //an ordinary step: due east, ten of the hundred units
+        character.Update(step);
+
+        character.X
+                 .Should()
+                 .BeApproximately(210f, TOLERANCE);
+
+        character.Y
+                 .Should()
+                 .BeApproximately(-300f, TOLERANCE);
+
+        //what a correction does - a position off the line the leg started on, with Angle left pointing due east
+        character.UpdateLocation(new Point(210, -250));
+        character.Update(step);
+
+        //90 across and 50 up is a 102.96 unit leg, so ten units of it is 8.74 across and 4.86 up. Steering by the
+        //stored heading would instead hold Y at -250 and put X at 220
+        character.X
+                 .Should()
+                 .BeApproximately(218.74f, TOLERANCE);
+
+        character.Y
+                 .Should()
+                 .BeApproximately(-254.86f, TOLERANCE);
+
+        //arrival is unchanged: a step that would pass going snaps to it and stops
+        character.UpdateLocation(new Point(295, -300));
+        character.Update(step);
+
+        character.X
+                 .Should()
+                 .BeApproximately(300f, TOLERANCE);
+
+        character.Y
+                 .Should()
+                 .BeApproximately(-300f, TOLERANCE);
+
+        character.Moving
+                 .Should()
+                 .BeFalse();
+    }
+
+    /// <summary>
+    ///     An entity's movement is written by three threads that never coordinated: the 30Hz reckoning loop, the
+    ///     socket's receive callbacks, and the consumer's own movement calls. Each write is a read-compute-write, so a
+    ///     write landing inside another one used to be clobbered by a value derived from the state it replaced.
+    /// </summary>
+    /// <remarks>
+    ///     The invariant is the group, not any single value: only two writers ever clear
+    ///     <see cref="EntityBase.Moving" />, and both set the destination and the position together, so a stopped
+    ///     entity standing anywhere other than its destination is a write that landed in halves. Run against the
+    ///     unsynchronized version this fails within a few hundred rounds; run against the locked one the stopped state
+    ///     is stable, because the reckoning loop does nothing at all while <see cref="EntityBase.Moving" /> is false.
+    /// </remarks>
+    [Test]
+    public async Task AMovementWriteLandsAsAWholeOrNotAtAll()
+    {
+        const int ROUNDS = 20000;
+        const float SPEED = 45f;
+
+        var start = new Point(0, -1000);
+
+        //far enough that the walk never arrives, so every round races a mid-leg step rather than an arrival
+        var destination = new Point(100000, -1000);
+
+        var character = new Character();
+        character.BackfillSoftDefault(EntityUpdateField.Speed, SPEED);
+        character.UpdateLocation(start);
+
+        var step = TimeSpan.FromMilliseconds(1000d / 30d);
+        var stopRequested = false;
+
+        //held as text so a failure names the halves that disagreed rather than just the type
+        string? violation = null;
+
+        var reckoner = Task.Run(
+            () =>
+            {
+                while (!Volatile.Read(ref stopRequested))
+                    character.Update(step);
+            });
+
+        var mover = Task.Run(
+            () =>
+            {
+                //seeded so a failure reproduces: the spin is what slides the stop across the step's compute window
+                var random = new Random(20260809);
+
+                //in a finally: the reckoner spins until this is set, so a throw anywhere above would hang
+                //Task.WhenAll forever, and a hung suite is what gets a test deleted rather than fixed
+                try
+                {
+                    for (var round = 0; round < ROUNDS; round++)
+                    {
+                        character.UpdateLocation(start);
+                        character.SetMoving(destination);
+                        Thread.SpinWait(random.Next(0, 400));
+                        character.StopMoving();
+
+                        var movement = character.Movement;
+
+                        if (movement.Moving)
+                            continue;
+
+                        if (movement.X.IsNear(movement.GoingX, CONSTANTS.EPSILON)
+                            && movement.Y.IsNear(movement.GoingY, CONSTANTS.EPSILON))
+                            continue;
+
+                        violation = $"round {round}: stopped at ({movement.X:N2}, {movement.Y:N2}) "
+                                    + $"but going to ({movement.GoingX:N2}, {movement.GoingY:N2})";
+
+                        break;
+                    }
+                } finally
+                {
+                    Volatile.Write(ref stopRequested, true);
+                }
+            });
+
+        await Task.WhenAll(reckoner, mover);
+
+        violation.Should()
+                 .BeNull(
+                     "a stopped entity stands on its destination - a position that disagrees with it is a step "
+                     + "that was computed before a stop and written after it");
+    }
+
+    /// <summary>
     ///     The server resolves every attack, skill and aggro check with the gap on each axis independently, each
     ///     clamped at zero. An axis the two boxes already overlap on contributes nothing, so two entities standing
     ///     alongside each other are exactly their horizontal gap apart however tall either of them is.

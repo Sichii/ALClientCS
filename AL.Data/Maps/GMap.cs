@@ -19,13 +19,15 @@ public sealed record GMap
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
-    ///     If true, the map has no walls.
+    ///     If true, the server builds no walkable-area map for this one, so no position is out of bounds and no
+    ///     move can be jailed for landing off it (node/server_functions.js:4010).
     /// </summary>
     [JsonPropertyName("no_bounds")]
     public bool Boundless { get; init; }
 
     /// <summary>
-    ///     Certain maps have a multiplier for the chance for <see cref="Condition.Burned" /> to apply.
+    ///     Scales the chance an attacker's burn proc lands here (node/server.js:3202). Zero means the map sets
+    ///     none, which the server reads as 1.
     /// </summary>
     [JsonPropertyName("burn_multiplier")]
     public float BurnMultiplier { get; init; }
@@ -40,7 +42,8 @@ public sealed record GMap
     ///         Currently not used.
     ///     </b>
     ///     <br />
-    ///     A value used to determine how often items drop.
+    ///     A value used to determine how often items drop. The server hardcoded it to 1000 for every map and left
+    ///     a note saying so (node/server.js:2106).
     /// </summary>
     [JsonPropertyName("drop_norm")]
     public float DropNorm { get; init; }
@@ -60,7 +63,8 @@ public sealed record GMap
     public IReadOnlyList<Exit> Exits { get; internal set; } = new List<Exit>();
 
     /// <summary>
-    ///     Certain maps have a multiplier for the chance for <see cref="Condition.Frozen" /> to apply.
+    ///     Scales the chance an attacker's freeze proc lands here (node/server.js:3187). Zero means the map sets
+    ///     none, which the server reads as 1.
     /// </summary>
     [JsonPropertyName("freeze_multiplier")]
     public float FreezeMultiplier { get; init; }
@@ -86,19 +90,21 @@ public sealed record GMap
     public bool Instance { get; init; }
 
     /// <summary>
-    ///     Whether or not this map is irregular. You must "leave" irregular maps, rather than use a door.
+    ///     If true, the client leaves this map out of its travel list and the server skips it when scanning every
+    ///     map for monsters (js/html.js:4960, node/server.js:4950). Jail, the duel and code lands, the resort and
+    ///     the test map carry it.
     /// </summary>
     public bool Irregular { get; init; }
 
     /// <summary>
-    ///     An internal key for the map. (not the same as the string used to access this map object)
-    ///     <br />
-    ///     TODO: Is this used?
+    ///     Names the map's geometry document in the server's database, as "MP_" plus this value
+    ///     (node/server.js:392). Not the string used to access this map object.
     /// </summary>
     public string Key { get; init; } = null!;
 
     /// <summary>
-    ///     Whether or not you can lose items/gold/exp when dying.
+    ///     Dead. Nothing in the server or the official client reads it, and the one map that declares it declares
+    ///     it false, so this is always false.
     /// </summary>
     public bool Loss { get; init; }
 
@@ -108,7 +114,9 @@ public sealed record GMap
     public IReadOnlyList<GMapMonster> Monsters { get; init; } = new List<GMapMonster>();
 
     /// <summary>
-    ///     Seems only one character on your account can be in a map with this flag at a time?
+    ///     Marks a bank level. Entering mounts the account-wide bank onto the character and leaving unmounts it,
+    ///     both asynchronous, and a second attempt while one is in flight fails as "bank_opi"
+    ///     (node/server.js:5449).
     /// </summary>
     public bool Mount { get; init; }
 
@@ -143,13 +151,20 @@ public sealed record GMap
     public bool PvP { get; init; }
 
     /// <summary>
-    ///     If true, monsters do not spawn on this map.
+    ///     If true, nothing hostile can be done here: a player's attack is refused as "friendly" and a hostile
+    ///     skill as "skill_cant_safe" (node/server.js:3139, :8930). These maps also carry no monsters.
     /// </summary>
     public bool Safe { get; init; }
 
     /// <summary>
-    ///     TODO: Unknown
+    ///     Softens the stakes of PvP on this map. Only applies while the server itself is not a PvP server.
     /// </summary>
+    /// <remarks>
+    ///     A kill here transfers no gold and costs the loser no xp, and monster packs pay double gold as they do on
+    ///     any PvP map. Item loss is not softened: this flag never feeds the server's own PvP test, so a kill still
+    ///     drops recently looted items, and that mark only clears on banking or at the next login once an hour old.
+    ///     Dying to a monster costs full xp here, because the tenfold discount other PvP maps grant is cancelled.
+    /// </remarks>
     [JsonPropertyName("safe_pvp")]
     public bool SafePvP { get; init; }
 
@@ -164,7 +179,8 @@ public sealed record GMap
     public IReadOnlyList<GTrap> Traps { get; init; } = new List<GTrap>();
 
     /// <summary>
-    ///     TODO: Unknown
+    ///     If true, the client leaves this map out of its travel list, though it is a perfectly ordinary map
+    ///     otherwise (js/html.js:4959).
     /// </summary>
     public bool Unlist { get; init; }
 

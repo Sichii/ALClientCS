@@ -47,13 +47,15 @@ public record GDoor : IRectangle
     public float Height { get; init; }
 
     /// <summary>
-    ///     The key needed to unlock this door.
+    ///     The key item needed to unlock this door. Only a door whose <see cref="LockType" /> is a key carries
+    ///     one.
     /// </summary>
     [JsonArrayIndex(8)]
     public KeyType KeyType { get; init; }
 
     /// <summary>
-    ///     The type of lock on this door.
+    ///     What stops you walking through: a key, a gatekeeper monster, or a bank level you have not unlocked
+    ///     (node/server.js:5429, :5442).
     /// </summary>
     [JsonArrayIndex(7)]
     [JsonInclude]
@@ -77,11 +79,32 @@ public record GDoor : IRectangle
     [JsonArrayIndex(1)]
     public float Y { get; init; }
 
+    /// <summary>
+    ///     The y coordinate of the lower edge. Y grows downward, so this is the larger of the two.
+    /// </summary>
     public float Bottom => Y + Height / 2;
+
+    /// <summary>
+    ///     The x coordinate of the left edge - except it returns X + Width / 2, which is the right one.
+    ///     <see cref="Right" /> has the same fault in reverse.
+    /// </summary>
     public float Left => X + Width / 2;
+
+    /// <summary>
+    ///     The x coordinate of the right edge - except it returns X - Width / 2, which is the left one. See
+    ///     <see cref="Left" />.
+    /// </summary>
     public float Right => X - Width / 2;
+
+    /// <summary>
+    ///     The y coordinate of the upper edge. Y grows downward, so this is the smaller of the two.
+    /// </summary>
     public float Top => Y - Height / 2;
 
+    /// <summary>
+    ///     The four corners of the door rectangle. Each is built with its y value passed as x and its x value as
+    ///     y, so every corner comes back transposed.
+    /// </summary>
     public IReadOnlyList<IPoint> Vertices
         =>
         [
@@ -96,5 +119,8 @@ public record GDoor : IRectangle
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    /// <summary>
+    ///     Records locally that this door has been opened. It sends nothing; the server decides for itself.
+    /// </summary>
     public void Unlock() => LockType = LockType.Unlocked;
 }

@@ -221,8 +221,16 @@ public class Merchant : ALClient
     }
 
     /// <summary>
-    ///     Asynchronously opens the merchant stand, favoring the computer.
+    ///     Asynchronously opens the merchant stand, favoring a computer.
     /// </summary>
+    /// <remarks>
+    ///     Both halves match on the item's type rather than on its name. A computer is preferred because it opens a
+    ///     <c>cstand</c>, which grants 24 trade slots below level 70 where a plain stand grants 16
+    ///     (<c>node/server_functions.js:3572</c>) - and matching by type is what makes a <c>supercomputer</c> count,
+    ///     it being typed <c>computer</c> and carrying the same <c>cstand</c>. Named, it matched neither arm, so a
+    ///     merchant carrying one and no plain stand could not open a stand at all. Every item of either type carries
+    ///     a stand, so neither arm can pick one the server then refuses.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to open stand. ({reason})
     /// </exception>
@@ -231,7 +239,9 @@ public class Merchant : ALClient
         if (Character.Stand != Stand.None)
             return;
 
-        var stand = Character.Inventory.FindItem("computer")
+        var stand = Character.Inventory.FindItem(item => item.GetData()
+                                                             ?.Type
+                                                         == ItemType.Computer)
                     ?? Character.Inventory.FindItem(item => item.GetData()
                                                                 ?.Type
                                                             == ItemType.Stand);

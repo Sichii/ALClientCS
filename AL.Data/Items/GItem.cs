@@ -19,7 +19,8 @@ namespace AL.Data.Items;
 public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
 {
     /// <summary>
-    ///     The unique accessor for this item.
+    ///     This item's key in the game's item table - <c>hpot0</c>, <c>firebow</c>. Filled in from that key by this
+    ///     library rather than sent by the server.
     /// </summary>
     public string Accessor { get; internal set; } = null!;
 
@@ -36,8 +37,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If null, this item is not compoundable. If NOT null, this dictionary contains the <see cref="ALAttribute" />
-    ///     modifications per compound level.
+    ///     . If null, this item is not compoundable. If NOT null, the <see cref="ALAttribute" /> gain added once per
+    ///     compound level, scaled up past +4 - 1.25x at +5, 1.5x at +6, 2x at +7, 3x from +8 on.
     /// </summary>
     [JsonPropertyName("compound")]
     public IReadOnlyDictionary<ALAttribute, float>? CompoundModifiers { get; init; }
@@ -49,8 +50,9 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     If this item is an elixir, this is the duration of the elixir's effect in hours.
+    ///     If this item is an elixir, how long its effect lasts, in hours.
     /// </summary>
+    [JsonPropertyName("duration")]
     public float? DurationHrs { get; init; }
 
     /// <summary>
@@ -72,20 +74,21 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public int? ExchangeCount { get; init; }
 
     /// <summary>
-    ///     If populated, this item gives some attribute when consumed.
-    ///     <br />
-    ///     These are the attributes it gives.
+    ///     If populated, what consuming this item gives, as attribute and amount pairs. An amount can be negative,
+    ///     and every amount is halved while the character is poisoned.
     /// </summary>
     public IReadOnlyList<(ALAttribute Attribute, float Amount)>? Gives { get; init; }
 
     /// <summary>
-    ///     The default gold value of this item if selling to an NPC merchant.
+    ///     What an NPC charges for one of this item. Selling one back pays 60% of it - see
+    ///     <see cref="AL.Data.Multipliers.GMultipliers.BuyToSell" />.
     /// </summary>
     [JsonPropertyName("g")]
     public float GoldValue { get; init; }
 
     /// <summary>
-    ///     If populated, this is the grade of the item. (scrolls, and various other items)
+    ///     If populated, this item's own fixed grade - scrolls, offerings, chrysalises. A fractional wire value is
+    ///     rounded, so <c>scroll4</c>'s 3.6 arrives here as 4.
     /// </summary>
     public int? Grade { get; set; }
 
@@ -93,8 +96,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If populated, this item is compoundable or upgradeable. This list contains the levels at which the grade
-    ///     increases.
+    ///     . If populated, this item is compoundable or upgradeable. Four levels: the ones at which the item's grade
+    ///     steps to 1, 2, 3 and 4. When absent the server uses 9, 10, 11, 12.
     /// </summary>
     public IReadOnlyList<int>? Grades { get; init; }
 
@@ -104,19 +107,21 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public bool Ignore { get; init; }
 
     /// <summary>
-    ///     The name of the item.
+    ///     The item's display name, as the game shows it. <see cref="Accessor" /> is the key it is filed under.
     /// </summary>
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     If populated, this item is obtainable from this NPC via a quest.
+    ///     If populated, the key of the NPC tied to this item. The server reads it only to find the NPC on main that
+    ///     redeems a token, defaulting to the item's own name plus "s".
     ///     <br />
-    ///     Check <see cref="ObtainableFromNPC" /> for that data.
+    ///     Check <see cref="ObtainableFromNPC" /> for that NPC's data.
     /// </summary>
     public string? NPC { get; init; }
 
     /// <summary>
-    ///     If populated, this item can be obtained from this NPC.
+    ///     If populated, one NPC this item can be obtained from. Several NPCs may sell the same item; this library
+    ///     picks one of them, preferring a seller that is actually placed on a map. The server does not choose it.
     ///     <br />
     ///     Check <see cref="ObtainType" /> for the method of obtaining.
     /// </summary>
@@ -126,6 +131,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public GNPC? ObtainableFromNPC { get; internal set; }
 
     /// <summary>
+    ///     How <see cref="ObtainableFromNPC" /> was reached: bought from that NPC's shop, crafted from a recipe,
+    ///     exchanged for tokens, or handed over for a quest. Unknown when no NPC was found.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -133,7 +140,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public ObtainType ObtainType { get; internal set; }
 
     /// <summary>
-    ///     If this item is a weapon, this is the name of the projectile it Emits when attacking.
+    ///     If this item is a weapon, the key of the projectile it fires when attacking.
     /// </summary>
     public string? Projectile { get; init; }
 
@@ -145,9 +152,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public Quest? Quest { get; init; }
 
     /// <summary>
-    ///     If populated. this item is craftable.
-    ///     <br />
-    ///     This is the recipe to craft this item.
+    ///     If populated, the recipe that crafts this item. Only the craft table is wired up here - an item's
+    ///     dismantle recipe is not reachable from this property.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -155,13 +161,14 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public Recipe? Recipe { get; internal set; }
 
     /// <summary>
-    ///     If this is an equipment item, this is the number of stats this item will give at level 0.
+    ///     If this is a stat scroll, the stat it grants. Equipment sends a number in the same <c>stat</c> slot, and
+    ///     that number lands on <see cref="ALAttribute.Stat" /> instead.
     /// </summary>
     [JsonIgnore]
     public ALAttribute ScrollStat { get; private set; }
 
     /// <summary>
-    ///     If this is an equipment item, the set this item belongs to.
+    ///     If this is an equipment item, the armor set it belongs to. Wearing more pieces of one set adds a bonus.
     /// </summary>
     public ArmorSet Set { get; init; }
 
@@ -186,7 +193,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public float Tier { get; init; }
 
     /// <summary>
-    ///     The type of item.
+    ///     The item's category. For equipment this is the slot it goes in; otherwise a kind such as elixir or token.
     /// </summary>
     public ItemType Type { get; init; }
 
@@ -194,14 +201,15 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If null, this item is not upgradeable. If NOT null, this dictionary contains the <see cref="ALAttribute" />
-    ///     modifications per upgrade level.
+    ///     . If null, this item is not upgradeable. If NOT null, the <see cref="ALAttribute" /> gain added once per
+    ///     upgrade level, scaled up past +6 - 1.25x at +7, 1.5x at +8, 2x at +9, 3x at +10, 1.25x at +11 and +12.
     /// </summary>
     [JsonPropertyName("upgrade")]
     public IReadOnlyDictionary<ALAttribute, float>? UpgradeModifiers { get; init; }
 
     /// <summary>
-    ///     If this item is a weapon, this is the type of weapon.
+    ///     If this item is a weapon, the type of weapon. <see cref="AL.Data.Classes.GClass" /> keys its lists of
+    ///     wieldable weapons by this.
     /// </summary>
     [JsonPropertyName("wtype")]
     public WeaponType WeaponType { get; init; }

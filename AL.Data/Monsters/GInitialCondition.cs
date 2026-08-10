@@ -1,3 +1,7 @@
+#region
+using System.Text.Json.Serialization;
+#endregion
+
 namespace AL.Data.Monsters;
 
 /// <summary>
@@ -8,7 +12,8 @@ namespace AL.Data.Monsters;
 public record GInitialCondition
 {
     /// <summary>
-    ///     The duration in milliseconds.
+    ///     How long the monster spawns holding this condition, in milliseconds.
     /// </summary>
+    [JsonPropertyName("ms")]
     public float DurationMS { get; init; }
 }

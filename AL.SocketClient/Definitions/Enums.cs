@@ -360,7 +360,11 @@ public enum GameResponseType
 
     //the code, distinct from the GameResponseData.InProgress flag - blessing is already running
     [EnumMember(Value = "in_progress")]
-    InProgressResponse
+    InProgressResponse,
+
+    //the lost-and-found gold reserve read (node/server.js:7334); needs no prior donation and no distance check
+    [EnumMember(Value = "lostandfound_info")]
+    LostAndFoundInfo
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

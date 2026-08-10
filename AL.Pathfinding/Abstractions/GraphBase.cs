@@ -204,7 +204,7 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
     ///     Whether or not to consider using the town skill
     /// </param>
     /// <returns>
-    ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="TEdge" />
+    ///     <see cref="IAsyncEnumerable{T}" /> of <typeparamref name="TEdge" />
     /// </returns>
     /// <exception cref="ArgumentNullException">
     ///     start

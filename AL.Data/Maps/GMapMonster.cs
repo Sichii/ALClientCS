@@ -25,7 +25,7 @@ public sealed record GMapMonster
 
     //polygon
     /// <summary>
-    ///     The number of this monster that spawns on this map.
+    ///     The population the server keeps alive for this entry - a kill is replaced rather than added to.
     /// </summary>
     public int Count { get; init; }
 
@@ -39,12 +39,15 @@ public sealed record GMapMonster
     public GMonster? Data { get; internal set; }
 
     /// <summary>
-    ///     Whether or not this monster is required to be killed to access an area.
+    ///     While any monster from this entry is alive, a door marked "protected" on the same instance refuses
+    ///     passage with "transport_cant_protection" (node/server.js:5432).
     /// </summary>
     public bool GateKeeper { get; init; }
 
     /// <summary>
-    ///     Whether or not this monster levels up on it's own, without having to kill players.
+    ///     Keeps the pack full and its members weak. A kill respawns at once while the population is below two
+    ///     thirds, two extras spawn below half, and each level gained adds far less than usual
+    ///     (node/server.js:11872, :12114, :1656).
     /// </summary>
     public bool Grow { get; init; }
 
@@ -55,7 +58,8 @@ public sealed record GMapMonster
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     TODO: Unknown
+    ///     For an entry that gives a single position instead of a boundary, the half-width of the square the
+    ///     monster spawns and wanders in around it (node/server.js:12000, :12982).
     /// </summary>
     public int Radius { get; init; }
 
@@ -63,8 +67,9 @@ public sealed record GMapMonster
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If populated, specifies the boundary in which the entire spawn of this monster will swarm you at
-    ///     <see cref="GMonster.ChargeSpeed" />.
+    ///     . If populated, standing anywhere inside this rectangle makes every monster from this entry drop what
+    ///     it was doing and come for you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds
+    ///     per instance, and high enough bling against cuteness can cancel it (node/server.js:12432).
     /// </summary>
     [JsonPropertyName("rage")]
     public MapRectangle? RageRect { get; init; }
@@ -75,12 +80,15 @@ public sealed record GMapMonster
     public bool Roam { get; init; }
 
     /// <summary>
-    ///     Specifies the way in which this monster spawns/respawns.
+    ///     Specifies the way in which this monster spawns/respawns. "randomrespawn" picks one of the entry's
+    ///     boundaries at random each time, which chooses the map as well as the rectangle (node/server.js:11944).
     /// </summary>
+    [JsonPropertyName("stype")]
     public SpawnType SpawnType { get; init; }
 
     /// <summary>
-    ///     Whether or not this is a special monster. Generally means the monster is a boss/event monster, and/or is announced.
+    ///     If true, monsters from this entry never respawn on their own once killed, the same as
+    ///     <see cref="GMonster.Special" /> but decided per map rather than per monster (node/server.js:11866).
     /// </summary>
     public bool Special { get; init; }
 

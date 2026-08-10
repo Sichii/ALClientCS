@@ -29,7 +29,8 @@ public sealed record GMapNPC
     public GNPC? Data { get; internal set; }
 
     /// <summary>
-    ///     The id/accessor of this NPC.
+    ///     The key this NPC is filed under in <see cref="GameData.NPCs" />. Not the id the live entity arrives
+    ///     with - that is the display <see cref="Name" />, so do not look one up by this.
     /// </summary>
     public string Id { get; init; } = null!;
 
@@ -45,7 +46,8 @@ public sealed record GMapNPC
     public IReadOnlyList<Location> Locations { get; init; } = new List<Location>();
 
     /// <summary>
-    ///     Whether or not this NPC walks in a loop between it's possible positions.
+    ///     Always false. No NPC placement in the game data carries the key and the server never reads it; a
+    ///     wandering NPC is kept inside <see cref="Boundary" /> instead (node/server.js:13911).
     /// </summary>
     public bool Loop { get; init; }
 

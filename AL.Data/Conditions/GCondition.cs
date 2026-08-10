@@ -26,7 +26,8 @@ public sealed record GCondition : AttributedRecordBase
     public bool Aura { get; init; }
 
     /// <summary>
-    ///     Whether or not you are blocked from taking actions.
+    ///     Marks a condition that stops you acting entirely - stunned, deep freeze, fingered and stoned are the
+    ///     four that carry it.
     /// </summary>
     public bool Blocked { get; init; }
 
@@ -36,13 +37,15 @@ public sealed record GCondition : AttributedRecordBase
     public bool Buff { get; init; }
 
     /// <summary>
-    ///     For the condition "Reflection", the maximum amount of reflection you can have.
+    ///     For the condition "Reflection", the ceiling on reflection while it holds. The published server source
+    ///     reads it nowhere, so take it as the data's intent rather than an observed rule.
     /// </summary>
     [JsonPropertyName("cap_reflection")]
     public int CapReflection { get; init; }
 
     /// <summary>
-    ///     Whether or not you are channeling with this condition.
+    ///     Marks a channelled action - the town warp, fishing, mining and pickpocket carry it. These sit in the
+    ///     character's channelling collection rather than among its conditions.
     /// </summary>
     public bool Channel { get; init; }
 
@@ -53,30 +56,35 @@ public sealed record GCondition : AttributedRecordBase
     public bool Debuff { get; init; }
 
     /// <summary>
-    ///     If populated, the resistance stat that reduces this condition's chance to apply or its duration.
+    ///     If populated, the resistance stat that shrugs this condition off outright. The server rolls it as a
+    ///     flat percentage and, on a hit, does not apply the condition at all (node/server_functions.js:2715).
     /// </summary>
     [JsonPropertyName("defense")]
     public ALAttribute Defense { get; init; }
 
     /// <summary>
-    ///     If populated, the minimum duration of this condition in milliseconds. (Ms, not minutes.)
+    ///     If populated, the floor of a randomised duration in milliseconds, with <see cref="DurationMs" /> as the
+    ///     ceiling. For fishing and mining the server reads the matching pair off the skill, not off the condition.
     /// </summary>
     [JsonPropertyName("duration_min")]
     public int DurationMinMs { get; init; }
 
     /// <summary>
-    ///     The duration of this condition in milliseconds.
+    ///     The duration of this condition in milliseconds. Used whenever whatever applies the condition does not
+    ///     name a duration of its own (node/server_functions.js:2714).
     /// </summary>
     [JsonPropertyName("duration")]
     public int DurationMs { get; init; }
 
     /// <summary>
-    ///     The amount this condition heals. (per interval)
+    ///     The amount this condition heals, once per <see cref="IntervalMS" />. An immune monster heals nothing
+    ///     (node/server.js:12522).
     /// </summary>
     public int Heal { get; init; }
 
     /// <summary>
-    ///     TODO: Unknown
+    ///     Names another condition. Only the fire-essence burn carries it, pointing at a name that is defined
+    ///     nowhere in the game data and read nowhere in the server, so nothing acts on it.
     /// </summary>
     public string? Intensity { get; init; }
 
@@ -92,18 +100,21 @@ public sealed record GCondition : AttributedRecordBase
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     Whether or not this condition will persist after logging out.
+    ///     If true, a cleanse does not strip this condition: both the purify skill and the debuff-clearing
+    ///     consumables skip it (node/server.js:3593, :7238).
     /// </summary>
     public bool Persistent { get; init; }
 
     /// <summary>
-    ///     <see cref="ALAttribute.Speed" /> will be set to this value.
+    ///     Caps <see cref="ALAttribute.Speed" /> at this value - tangle sets 24, hard shell 10, dash 500. The
+    ///     published server source applies it nowhere, so take it as the data's intent, not an observed rule.
     /// </summary>
     [JsonPropertyName("set_speed")]
     public int SetSpeed { get; init; }
 
     /// <summary>
-    ///     Whether or not this condition is related to things outside of the game.
+    ///     Marks a bookkeeping condition such as an unverified account. The client lists these on their own,
+    ///     apart from buffs and debuffs (js/html.js:4869).
     /// </summary>
     public bool Technical { get; init; }
 
@@ -113,7 +124,8 @@ public sealed record GCondition : AttributedRecordBase
     public bool UI { get; init; }
 
     /// <summary>
-    ///     Whether or not you can move and channel this ability at the same time.
+    ///     Whether moving leaves this channelled action running. Moving cancels every channel without it, and
+    ///     only the town warp has it (node/server.js:10051). True for anything that is not a channel at all.
     /// </summary>
     [JsonIgnore]
     public bool CanMove => !Channel || _canMove;

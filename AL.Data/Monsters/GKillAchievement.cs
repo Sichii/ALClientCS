@@ -9,16 +9,18 @@ namespace AL.Data.Monsters;
 ///     Represents an achievement you get from killing a certain amount of a monster.
 /// </summary>
 /// <param name="RequiredPoints">
-///     The amount of points required to get this achievement.
+///     How many of this monster you must have killed. Tiers are cumulative - every one at or below your kill
+///     count is granted (node/server.js:1334).
 /// </param>
 /// <param name="RewardType">
-///     The type of achievement. (stats or nothing)
+///     What the tier hands out. The server only acts on "stat".
 /// </param>
 /// <param name="Attribute">
 ///     The attribute this achievement grants, if any.
 /// </param>
 /// <param name="Amount">
-///     The amount of the attribute this achievement grants.
+///     How much of <paramref name="Attribute" /> is added, and it only counts while the monster tracker is
+///     equipped.
 /// </param>
 public record GKillAchievement(
     [property: JsonArrayIndex(0)]

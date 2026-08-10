@@ -1,6 +1,7 @@
 #region
 using System.Linq.Expressions;
 using System.Reflection;
+using AL.Core.Attributes;
 #endregion
 
 namespace AL.Client.Helpers;
@@ -31,21 +32,28 @@ public static class ShallowMerge<T> where T: class
                                        .Compile();
     }
 
+    //what keeps the movement block out today is the accessor, not the attribute: the only T ever instantiated is
+    //Character, a private setter declared on EntityBase is not inherited, and so CanWrite already reads false from
+    //Character. ShallowMergeIgnore is the guard for the case the accessor cannot cover - a block property declared
+    //on the merged type itself, or a setter someone widens back
+    private static bool IsMergeable(PropertyInfo property)
+        => property.CanRead && property.CanWrite && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
+
     private static IEnumerable<PropertyInfo> GetRecursiveProperties(Type type)
         => !type.IsInterface
             ? type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                  .Where(p => p.CanRead && p.CanWrite)
+                  .Where(IsMergeable)
             : new[]
                 {
                     type
                 }.Concat(type.GetInterfaces())
                  .SelectMany(i => i.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                 .Where(p => p.CanRead && p.CanWrite)
+                 .Where(IsMergeable)
                  .DistinctBy(p => p.Name);
 
     /// <summary>
     ///     Merges all (public/non-public) instanced properties from <paramref name="fromObj" /> into
-    ///     <paramref name="targetObj" />
+    ///     <paramref name="targetObj" />, except any marked <see cref="ShallowMergeIgnoreAttribute" />
     ///     <br />
     ///     The first time this runs (for each type), an expression tree will be compiled and stored.
     /// </summary>

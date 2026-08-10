@@ -5,7 +5,9 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Craft;
 
 /// <summary>
-///     <inheritdoc />
+///     <inheritdoc cref="DatumBase{T}" />
+///     <br />
+///     The craft table: every craftable item, keyed by the item it produces, each holding the recipe that makes it.
 /// </summary>
 /// <seealso cref="DatumBase{T}" />
 public class CraftDatum : DatumBase<Recipe>

@@ -100,13 +100,13 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </summary>
     public float RemainingMs => DurationMs - (float)Elapsed.TotalMilliseconds;
 
-    public void CompensateOnce(TimeSpan minimumOffset)
+    public void CompensateOnce(TimeSpan offset)
     {
         if (IsCompensated)
             throw new InvalidOperationException("Object already compensated.");
 
         IsCompensated = true;
-        Elapsed += minimumOffset;
+        Elapsed += offset;
     }
 
     /// <inheritdoc />

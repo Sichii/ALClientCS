@@ -1,6 +1,7 @@
 #region
 using System.Text.Json.Serialization;
 using AL.Core.Extensions;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.SocketClient.SocketModel;
 #endregion
@@ -212,15 +213,32 @@ public class Character : Player, IEquatable<Character>
     ///     Sets this character as moving to a point.
     /// </summary>
     /// <param name="point">
+    ///     Where to walk to.
     /// </param>
     /// <returns>
+    ///     The movement block this left the character holding. Returned so a caller needing the move number this
+    ///     walk was started with reads it from the same write rather than from a second, later look at the character.
     /// </returns>
-    public void SetMoving(IPoint point)
+    public MovementBlock SetMoving(IPoint point)
     {
-        GoingX = point.X;
-        GoingY = point.Y;
-        Angle = point.AngularRelationTo(this);
-        Moving = true;
+        //materialised before the lock: ALClient hands a live Player here, and calling into a foreign implementation
+        //while holding this character's lock is how a deadlock gets built later
+        var going = new Point(point.X, point.Y);
+
+        lock (MovementLock)
+        {
+            var movement = ReadMovement() with
+            {
+                GoingX = going.X,
+                GoingY = going.Y,
+                Angle = going.AngularRelationTo(this),
+                Moving = true
+            };
+
+            ApplyMovement(movement);
+
+            return movement;
+        }
     }
 
     /// <summary>
@@ -228,9 +246,18 @@ public class Character : Player, IEquatable<Character>
     /// </summary>
     public void StopMoving()
     {
-        Moving = false;
-        GoingX = X;
-        GoingY = Y;
+        lock (MovementLock)
+        {
+            var movement = ReadMovement();
+
+            ApplyMovement(
+                movement with
+                {
+                    GoingX = movement.X,
+                    GoingY = movement.Y,
+                    Moving = false
+                });
+        }
     }
 
     /// <summary>
@@ -247,8 +274,14 @@ public class Character : Player, IEquatable<Character>
         ArgumentNullException.ThrowIfNull(data);
 
         MapChangeCount = data.MapChangeCount;
-        StopMoving();
-        UpdateLocation((IInstancedLocation)data);
+
+        //one atomic operation, not two - a reckoning tick landing between them would walk the character away from
+        //the arrival spot the stop just pinned. Both nested calls re-enter the lock
+        lock (MovementLock)
+        {
+            StopMoving();
+            UpdateLocation((IInstancedLocation)data);
+        }
     }
 
     /// <summary>

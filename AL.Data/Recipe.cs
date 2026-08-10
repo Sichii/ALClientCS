@@ -11,18 +11,20 @@ namespace AL.Data;
 public sealed record Recipe
 {
     /// <summary>
-    ///     The cost of the recipe in gold.
+    ///     The gold charged to run this recipe, on top of the items it consumes.
     /// </summary>
     public long Cost { get; init; }
 
     /// <summary>
-    ///     The name, quantity, and level of the items associated with the recipe.
+    ///     The items on the other side of the recipe: what crafting consumes, or what dismantling hands back. The
+    ///     level is an exact requirement when crafting, and is zero unless the recipe names one.
     /// </summary>
     public IReadOnlyList<(float Quantity, string ItemName, int Level)> Items { get; init; }
         = new List<(float Quantity, string ItemName, int Level)>();
 
     /// <summary>
-    ///     The NPC this item is crafted or dismantled at.
+    ///     The NPC a craft recipe is run at - its quest NPC when it has a quest tag, the craftsman otherwise. Null on
+    ///     a dismantle recipe, which the server still requires the craftsman for.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -30,9 +32,9 @@ public sealed record Recipe
     public GNPC NPC { get; internal set; } = null!;
 
     /// <summary>
-    ///     If populated, this is the tag of the NPC this recipe is related to.
+    ///     If populated, the quest tag of the NPC this recipe must be run beside.
     ///     <br />
-    ///     Otherwise this recipe is crafted at the craftsman.
+    ///     Otherwise this recipe is crafted at the craftsman. No dismantle recipe carries one.
     /// </summary>
     public Quest? Quest { get; init; }
 }

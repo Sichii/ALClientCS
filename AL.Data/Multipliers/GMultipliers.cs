@@ -16,13 +16,14 @@ public sealed record GMultipliers
     public float BuyToSell { get; init; }
 
     /// <summary>
-    ///     The number of bonus shells granted on a shell purchase.
+    ///     A percent bonus added on top of a shell purchase, so 20 means 20% more shells. Zero outside an event.
     /// </summary>
     [JsonPropertyName("extra_shells")]
     public int ExtraShells { get; init; }
 
     /// <summary>
-    ///     The multiplier applied to items recovered from the lost-and-found.
+    ///     The multiplier on an item's value when buying it back from the lost-and-found NPC. Cash items get no
+    ///     separate rate here, unlike at second-hands.
     /// </summary>
     [JsonPropertyName("lostandfound_mult")]
     public float LostAndFoundMult { get; init; }
@@ -41,7 +42,7 @@ public sealed record GMultipliers
     public float SecondHandsMult { get; init; }
 
     /// <summary>
-    ///     The gold value of a single shell.
+    ///     The gold a single shell is worth when buying shells with gold.
     /// </summary>
     [JsonPropertyName("shells_to_gold")]
     public int ShellsToGold { get; init; }

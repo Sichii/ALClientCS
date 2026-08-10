@@ -39,87 +39,328 @@ public enum TargetType
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ALAttribute
 {
+    /// <summary>
+    ///     No attribute. The default for an unset value; the server never sends a key that maps here.
+    /// </summary>
     None,
+
+    /// <summary>
+    ///     Physical defense, fed to the server's diminishing-returns curve. The first 100 points cut incoming
+    ///     physical damage by 0.1% each, tapering to 0.04% per point past 800.
+    /// </summary>
     Armor,
+
+    /// <summary>
+    ///     How many physically-attacking monsters may target you before fear sets in, which cuts speed and attack
+    ///     sharply. Magical and pure attackers count against MagicalCourage and PureCourage instead.
+    /// </summary>
     Courage,
 
+    /// <summary>
+    ///     Percent chance to shrug off frozen and deepfreezed outright. An all-or-nothing roll as the condition
+    ///     lands, not damage reduction.
+    /// </summary>
     [EnumMember(Value = "fzresistance")]
     FreezeResistance,
 
+    /// <summary>
+    ///     Percent chance to shrug off burned outright, rolled as the condition lands.
+    /// </summary>
     [EnumMember(Value = "firesistance")]
     FireResistance,
 
+    /// <summary>
+    ///     Percent chance to shrug off poisoned outright, rolled as the condition lands.
+    /// </summary>
     [EnumMember(Value = "pnresistance")]
     PoisonResistance,
 
+    /// <summary>
+    ///     The game's own notes call this status resistance and intend it to shorten debuffs, but no live server
+    ///     code reads it. Stuns are resisted by PhysicalResistance instead, despite this member's name.
+    /// </summary>
     [EnumMember(Value = "stresistance")]
     StunResistance,
 
+    /// <summary>
+    ///     Percent chance to resist the stunned condition outright. The game's notes call it impact resistance; it
+    ///     does not reduce physical damage, which is Armor's job.
+    /// </summary>
     [EnumMember(Value = "phresistance")]
     PhysicalResistance,
+
+    /// <summary>
+    ///     Magic defense, run through the same diminishing-returns curve as Armor. The per-element resistances are
+    ///     unrelated: those roll to block a condition rather than reducing damage.
+    /// </summary>
     Resistance,
+
+    /// <summary>
+    ///     Percent chance to bounce an incoming magical attack back at its caster and take nothing. Capped at 30,
+    ///     or 50 while the reflection buff is up.
+    /// </summary>
     Reflection,
+
+    /// <summary>
+    ///     Percent of an incoming physical hit dealt straight back to a melee attacker, one whose range is under
+    ///     75. Measured against the raw hit, before your armor reduced it.
+    /// </summary>
     DReturn,
+
+    /// <summary>
+    ///     Percent chance to dodge an incoming physical attack entirely. Capped at 50, and it does nothing against
+    ///     magical damage.
+    /// </summary>
     Evasion,
+
+    /// <summary>
+    ///     Percent chance that your own attacks miss. A self-inflicted penalty carried by alcohol and by two-handed
+    ///     bows; nothing on a target makes an incoming attack miss.
+    /// </summary>
     Miss,
+
+    /// <summary>
+    ///     On equipment, points added to maximum hp. On a monster or character record it is the hp pool itself.
+    /// </summary>
     Hp,
+
+    /// <summary>
+    ///     On equipment, points added to maximum mp. On a monster or character record it is the mp pool itself.
+    /// </summary>
     Mp,
+
+    /// <summary>
+    ///     Armor piercing, subtracted from the target's armor before the damage curve. Driving the total negative
+    ///     is worth up to 32% extra damage, where the curve stops.
+    /// </summary>
     APiercing,
+
+    /// <summary>
+    ///     Resistance piercing, subtracted from the target's resistance before the damage curve. The magical
+    ///     counterpart of APiercing.
+    /// </summary>
     RPiercing,
+
+    /// <summary>
+    ///     Percent chance for a hit to crit. A crit deals double damage before CritDamage adds to it.
+    /// </summary>
     Crit,
+
+    /// <summary>
+    ///     Percentage points added to the 2x crit multiplier, so 60 makes a crit hit for 2.6x. Worth nothing on its
+    ///     own without Crit.
+    /// </summary>
     CritDamage,
+
+    /// <summary>
+    ///     Base damage per hit, before the server's 10% random spread, Output and the target's defenses. A weapon's
+    ///     attack is also scaled by the wielder's main stat.
+    /// </summary>
     Attack,
+
+    /// <summary>
+    ///     Attack range in game units. Ranges are measured edge-to-edge between hit boxes, not centre to centre.
+    /// </summary>
     Range,
+
+    /// <summary>
+    ///     Attacks per second, on two scales. A class's base and a monster's own value are the rate itself, roughly
+    ///     0.35 to 1.6; anything layered on by gear or a condition is hundredths, so 60 means +0.6.
+    /// </summary>
     Frequency,
+
+    /// <summary>
+    ///     Percent of the damage dealt returned to the attacker as hp.
+    /// </summary>
     Lifesteal,
+
+    /// <summary>
+    ///     Percent of the damage dealt drained from the target and given to the attacker as mp.
+    /// </summary>
     ManaSteal,
+
+    /// <summary>
+    ///     Marks a monster that steals gold when it hits you. A flag rather than a magnitude: the amount taken is 1
+    ///     to 12 gold whatever the value says.
+    /// </summary>
     GoldSteal,
+
+    /// <summary>
+    ///     Movement speed in game units per second. A character sits near 45 to 55; the server floors it at 5.
+    /// </summary>
     Speed,
+
+    /// <summary>
+    ///     Generic stat points on scrollable gear rather than a stat of its own. They convert wholesale into
+    ///     whichever stat the item was scrolled to, scaled by that stat's own rate.
+    /// </summary>
     Stat,
+
+    /// <summary>
+    ///     Strength. Adds armor, maximum hp and a little speed, and scales weapon damage for warriors and paladins.
+    /// </summary>
     Str,
+
+    /// <summary>
+    ///     Intelligence. Adds resistance, maximum mp and a little attack speed, and scales weapon damage for mages,
+    ///     priests and merchants.
+    /// </summary>
     Int,
+
+    /// <summary>
+    ///     Dexterity. Adds movement speed and attack speed, and scales weapon damage for rangers and rogues.
+    /// </summary>
     Dex,
+
+    /// <summary>
+    ///     Vitality. Adds maximum hp and nothing else, giving more per point the higher your level.
+    /// </summary>
     Vit,
+
+    /// <summary>
+    ///     Fortitude. Reduces damage taken from other players only, each point counting as 5 defense. Nothing to do
+    ///     with Str, despite reading like an abbreviation of it.
+    /// </summary>
     For,
+
+    /// <summary>
+    ///     Percentage points added to the drop-luck multiplier, so 20 makes luckm 1.2.
+    /// </summary>
     Luck,
+
+    /// <summary>
+    ///     Percent multiplier on your attack. Most classes start at 100 and a priest at 40; the server floors the
+    ///     total at 5.
+    /// </summary>
     Output,
+
+    /// <summary>
+    ///     Splash intensity for magical hits. The splash reaches intensity/3.6 units and lands for that percent of
+    ///     a full hit, still reduced by each victim's resistance.
+    /// </summary>
     Blast,
+
+    /// <summary>
+    ///     Splash intensity for physical hits, worked out exactly as Blast is. The pairing runs the opposite way
+    ///     round from what the two names suggest.
+    /// </summary>
     Explosion,
 
+    /// <summary>
+    ///     Percent chance a physical hit stuns its target. Only rolled on attacks that proc effects.
+    /// </summary>
     [EnumMember(Value = "stun")]
     StunChance,
+
+    /// <summary>
+    ///     On equipment, percentage points added to the xp multiplier. On a monster it is the xp the kill awards.
+    /// </summary>
     XP,
+
+    /// <summary>
+    ///     Percentage points added to the gold multiplier. Not an item's price, which is a separate field.
+    /// </summary>
     Gold,
+
+    /// <summary>
+    ///     Healing power. A priest's is set equal to their attack; on a condition or a monster ability it is the hp
+    ///     restored on each tick.
+    /// </summary>
     Heal,
 
+    /// <summary>
+    ///     The fraction of healing a condition lets through, 0.25 on poison. The server hard-codes the same number
+    ///     rather than reading this key, so treat it as descriptive.
+    /// </summary>
     [EnumMember(Value = "healm")]
     HealMod,
 
+    /// <summary>
+    ///     A condition's multiplier on attack speed, as a fraction, where Frequency is the rate itself. The server
+    ///     hard-codes the multiplier rather than reading this key.
+    /// </summary>
     [EnumMember(Value = "frequencym")]
     FrequencyMod,
 
+    /// <summary>
+    ///     The fraction of a potion's effect a condition lets through, 0.5 on poison. The server hard-codes the
+    ///     halving rather than reading this key.
+    /// </summary>
     [EnumMember(Value = "potionsm")]
     PotionsMod,
+
+    /// <summary>
+    ///     Lowers the chance a monster picks you as its target. Only the gap to Bling counts: the server rolls
+    ///     against (bling - cuteness)/100.
+    /// </summary>
     Cuteness,
+
+    /// <summary>
+    ///     Carried by a handful of joke items and shown in the client's tooltip, but no live server code reads it.
+    /// </summary>
     Charisma,
 
+    /// <summary>
+    ///     Percent off the mp a skill costs, applied both to the affordability check and to the deduction. Separate
+    ///     from MpCost, which is the mp a normal attack spends.
+    /// </summary>
     [EnumMember(Value = "mp_reduction")]
     MPReduction,
+
+    /// <summary>
+    ///     Raises the chance a monster picks you as its target, the inverse of Cuteness. The server rolls against
+    ///     (bling - cuteness)/100.
+    /// </summary>
     Bling,
+
+    /// <summary>
+    ///     Carried by a single item and shown in the client's tooltip, but no live server code reads it.
+    /// </summary>
     Awesomeness,
 
     //needed because AL.Data.Classes. doublehands/mainhand/offhand use it as a mod
+    /// <summary>
+    ///     Mp spent per normal attack. The class sets the base and gear adjusts it, then it grows with level and
+    ///     with your crit, lifesteal and piercing.
+    /// </summary>
     [EnumMember(Value = "mp_cost")]
     MpCost,
 
+    /// <summary>
+    ///     The first of two free-form numbers an item's ability or aura carries. Its meaning belongs to that
+    ///     ability, and is most often a percent proc chance.
+    /// </summary>
     [Obsolete("No idea what this is.")]
     Attr0,
 
+    /// <summary>
+    ///     The second free-form number an item's ability or aura carries. Rarely populated, and its meaning
+    ///     likewise belongs to the ability.
+    /// </summary>
     [Obsolete("No idea what this is.")]
     Attr1,
 
+    /// <summary>
+    ///     Percent chance a fishing rod or pickaxe breaks on a successful gather. Upgrading the tool lowers it.
+    /// </summary>
     [Obsolete("Data bug, don't use.")]
-    Breaks
+    Breaks,
+
+    //appended rather than placed beside Courage: a numeric wire value is parsed as an ordinal, so inserting a
+    //member mid-enum silently repoints every member after it
+    /// <summary>
+    ///     How many magical attackers this can be engaged by before fear sets in. The server counts magical
+    ///     attackers separately from physical and pure ones, and compares each count against its own limit.
+    /// </summary>
+    [EnumMember(Value = "mcourage")]
+    MagicalCourage,
+
+    /// <summary>
+    ///     How many pure-damage attackers this can be engaged by before fear sets in. The rarest of the three, and
+    ///     the one paladins carry most of.
+    /// </summary>
+    [EnumMember(Value = "pcourage")]
+    PureCourage
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

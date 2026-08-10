@@ -606,9 +606,13 @@ public record GameData
             else
                 recipe.NPC = craftsman;
 
+        //no dismantle recipe carries a quest tag today, but the fallback matters: the server requires the craftsman
+        //for every dismantle (node/server.js:5892), and NPC is non-nullable
         foreach (var recipe in Dismantle.Values)
             if (recipe.Quest.HasValue && (recipe.Quest.Value != Quest.None))
                 recipe.NPC = Quests[recipe.Quest.Value];
+            else
+                recipe.NPC = craftsman;
     }
 
     private static void FixLines()

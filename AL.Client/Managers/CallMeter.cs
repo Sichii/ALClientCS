@@ -8,6 +8,12 @@ namespace AL.Client.Managers;
 /// <param name="Name">
 ///     A source label, or an emit type, depending on which grouping the row came from.
 /// </param>
+/// <param name="Cost">
+///     The summed cost of every emit in this row, by <see cref="CallCost.Of" />.
+/// </param>
+/// <param name="Emits">
+///     How many emits this row's cost was summed from.
+/// </param>
 public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 {
     /// <summary>
@@ -28,6 +34,15 @@ public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 /// </param>
 /// <param name="Cost">
 ///     What the emits in the window cost at minimum, by <see cref="CallCost.Of" />.
+/// </param>
+/// <param name="Emits">
+///     How many emits the window covers.
+/// </param>
+/// <param name="BySource">
+///     The window's cost broken down by whatever <see cref="CallMeter.SourceResolver" /> named the caller.
+/// </param>
+/// <param name="ByEmitType">
+///     The window's cost broken down by socket emit type, each row further broken down by source.
 /// </param>
 public sealed record CallBudgetSnapshot(
     double ServerCost,
@@ -116,6 +131,12 @@ public sealed class CallMeter
             Group(window, entry => entry.Emit.ToString(), inner => Group(inner, entry => entry.Source)));
     }
 
+    /// <param name="window">
+    ///     The entries to group into rows.
+    /// </param>
+    /// <param name="key">
+    ///     What to group each entry by - the row's <see cref="CallBudgetRow.Name" />.
+    /// </param>
     /// <param name="children">
     ///     Given the entries of one group, the breakdown to hang under it. Null leaves the row a leaf.
     /// </param>
