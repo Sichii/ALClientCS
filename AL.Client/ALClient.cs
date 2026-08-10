@@ -4499,17 +4499,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
 
-        token?.Register(() =>
-        {
-            _ = Socket.EmitAsync(
-                ALSocketEmitType.Stop,
-                new
-                {
-                    action = "town"
-                });
-            Logger.Info("Town recall canceled");
-            source.TrySetResult(Expectation.Success);
-        });
+        //disposed with the call: an undisposed registration outlives the recall it was for and fires on whatever
+        //cancels that token next, stopping a town nobody is channeling and logging the cancellation of a recall that
+        //landed minutes ago
+        using var cancelRegistration = token?.Register(
+            () =>
+            {
+                _ = Socket.EmitAsync(
+                    ALSocketEmitType.Stop,
+                    new
+                    {
+                        action = "town"
+                    });
+                Logger.Info("Town recall canceled");
+                source.TrySetResult(Expectation.Success);
+            })
+                          ?? default;
 
         var expectation = await source.Task.WithTimeout(5000);
         expectation.ThrowIfUnsuccessful();
