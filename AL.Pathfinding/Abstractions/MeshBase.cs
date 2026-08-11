@@ -302,11 +302,18 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     ///     <c>
     ///         false
     ///     </c>
-    ///     .
+    ///     - including for a point outside the map's own extents, which is answered as wall.
     /// </returns>
     public virtual bool IsWall(IPoint point)
     {
         (var x, var y) = ToCell(point);
+
+        //the point map is sized to the map's extents and indexed directly, so an out of bounds point threw rather
+        //than answering - which took down whichever handler asked. Answered as wall to match the two neighbours:
+        //CanMove refuses a line that leaves the extents and IsWalkable refuses a point past them, and every caller
+        //asks this as "may the character stand here", where off the map is no
+        if ((x < 0) || (y < 0) || (x >= PointMap.GetLength(0)) || (y >= PointMap.GetLength(1)))
+            return true;
 
         return PointMap[x, y]
             .HasFlag(PointType.Wall);

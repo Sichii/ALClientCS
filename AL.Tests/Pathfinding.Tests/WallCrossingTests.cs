@@ -179,6 +179,78 @@ public class WallCrossingTests : PathfindingTestBed
                 .BeEmpty();
     }
 
+    /// <summary>
+    ///     The bend between two legs, which is what actually gets walked when a leg's emit lands before the server has
+    ///     finished the one before it: the move handler re-aims from part-way along the previous leg to this leg's end,
+    ///     over a line the search never validated. <c>SmartMoveAsync</c> stands still for a round trip wherever the
+    ///     raster refuses that line, so what has to hold is that the raster is not the more permissive of the two - a
+    ///     bend it waves through and the geometry refuses is a bend the guard never fires on.
+    /// </summary>
+    [Test]
+    public async Task NoBendTheGuardAllowsCrossesGeometry()
+    {
+        var rng = new Random(31337);
+        var failures = new List<string>();
+
+        foreach ((var map, var geo) in MeshedMaps())
+            for (var trial = 0; trial < TRIALS_PER_MAP; trial++)
+            {
+                var start = RandomWalkable(rng, map, geo);
+                var end = RandomWalkable(rng, map, geo);
+
+                if ((start is null) || (end is null))
+                    break;
+
+                var path = await FindPathOrEmptyAsync(start, end);
+
+                for (var index = 1; index < path.Length; index++)
+                {
+                    if (!IsSameMapWalk(path[index], map) || !IsSameMapWalk(path[index - 1], map))
+                        continue;
+
+                    var bendFrom = path[index - 1]
+                        .Start
+                        .Vertex;
+
+                    var bendTo = path[index]
+                        .End
+                        .Vertex;
+
+                    //the guard's own question. Where it answers no the walk stands still and there is no bend to make
+                    if (!Pathfinder.CanMove(bendFrom, bendTo))
+                        continue;
+
+                    if (ServerCanMove(geo, bendFrom, bendTo))
+                        continue;
+
+                    failures.Add($"{map}: bend over leg {index} of {path.Length}. {Describe(geo, map, bendFrom, bendTo)}");
+                }
+            }
+
+        failures.Should()
+                .BeEmpty();
+    }
+
+    /// <summary>
+    ///     A point off the map's own extents is answered rather than thrown over. The point map is sized to those
+    ///     extents and indexed directly, and the throw took down whichever handler asked - on a jail frame that was
+    ///     the handler which relocates the character, so the local position stayed on the map it had just left.
+    /// </summary>
+    [Test]
+    public void IsWallAnswersForAPointOffTheMap()
+    {
+        foreach ((var map, var geo) in MeshedMaps())
+        {
+            Pathfinder.IsWall(new Location(map, geo.MinX - 500, geo.MinY - 500))
+                      .Should()
+                      .BeTrue();
+
+            Pathfinder.IsWall(new Location(map, geo.MaxX + 500, geo.MaxY + 500))
+                      .Should()
+                      .BeTrue();
+        }
+    }
+
     private static async Task<List<string>> CrossingsAsync(string map, GGeometry geo, ILocation start, ILocation end)
     {
         var failures = new List<string>();

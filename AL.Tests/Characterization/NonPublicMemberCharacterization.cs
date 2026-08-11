@@ -136,14 +136,17 @@ public sealed class NonPublicMemberCharacterization
         // against, built from game data at first sighting rather than sent. EntityBase.In brought it back to 38:
         // it was the standing example of a blind-spot member, and turned out to be a real missed binding.
         // GDrops.Tables, GItem.ExchangeRewards and GMap.Drops took it 38 -> 41 — all three are enrichment, built by
-        // GameData's own passes out of what the wire already carried rather than bound from it.
+        // GameData's own passes out of what the wire already carried rather than bound from it. ALClient.IsRecalling
+        // took it 41 -> 42: UseTownAsync raises it around its own emit, so it is intent the client holds rather than
+        // anything the server ever sends.
         auditGap.Should()
-                .Be(41);
+                .Be(42);
 
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
-        // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, now 155.
+        // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
+        // ALClient.IsRecalling, now 156.
         allInstanceNonPublicSetters.Should()
-                                   .Be(155);
+                                   .Be(156);
     }
 
     [Test]

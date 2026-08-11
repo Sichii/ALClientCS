@@ -2857,11 +2857,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 if (data.Map.EqualsI("jail"))
                 {
-                    var standingLocation = Character.ToLocation();
-                    var standingOnWall = Pathfinder.IsWall(standingLocation);
-
-                    var goingLocation = new Location(Character.Map, Character.GoingX, Character.GoingY);
-                    var validPath = Pathfinder.CanMove(standingLocation, goingLocation);
+                    //this leg's own two endpoints, which are the pair the server hashed. Reading them back off
+                    //Character answers about the jail spawn instead: OnNewMapAsync is subscribed at setup and so
+                    //runs ahead of this one, and it has already relocated the character by the time this asks
+                    var standingOnWall = Pathfinder.GetNavMesh(startLoc.Map) is not null && Pathfinder.IsWall(startLoc);
+                    var validPath = Pathfinder.CanMove(startLoc, goingLoc);
 
                     source.TrySetResult(
                         $"Sent to jail from {startLoc} (IsWall: {standingOnWall}), moving to {goingLoc} (Valid: {validPath})");
@@ -3804,6 +3804,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the silent exits below are ordinary, and a caller only ever sees this method return
         var edgesWalked = 0;
 
+        //the start of the leg last walked, for the bend guard below. Null after anything that is not a walk, since
+        //a door or a recall leaves the character somewhere no previous leg leads out of
+        ILocation? bendFrom = null;
+
         await foreach (var edge in path)
         {
             if (cancellationToken is { IsCancellationRequested: true })
@@ -3811,8 +3815,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             try
             {
+                //a leg ends on a dead-reckoned timer rather than on the server confirming it, and a move that
+                //arrives mid-walk is re-aimed from wherever the server actually is - start_moving_element takes
+                //from_x off the player rather than off the emit, and the move handler hashes only the two endpoints
+                //without tracing between them. So an emit landing early bends the walk from part-way along the
+                //previous leg straight to this vertex, which is a line the search never validated: around a corner
+                //it is the corner the path was routed around, walked through. Standing still for a round trip is
+                //what makes the bend impossible, and it is only paid where the bend would cross something - open
+                //ground, which is most of every path, tests clear and waits for nothing.
+                //Two of them rather than one, because the trip has to be cleared by the emit and the jitter between
+                //a fast trip and a typical one is what the multiplier absorbs - the same shape as the correction
+                //grace above
+                if ((edge.Type == EdgeType.Walk) && (bendFrom is not null) && !Pathfinder.CanMove(bendFrom, edge.End.Vertex))
+                    await Task.Delay(PingManager.LowPercentileOffset * 2, cancellationToken ?? CancellationToken.None);
+
                 await HandlePathConnectorAsync(edge, cancellationToken);
                 edgesWalked++;
+                bendFrom = edge.Type == EdgeType.Walk ? edge.Start.Vertex : null;
             } catch (OperationCanceledException)
             {
                 break;
@@ -4476,6 +4495,35 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             "regen_mp");
 
     /// <summary>
+    ///     Invoked once immediately before a recall is emitted, if set. A consumer's chance to arrange whatever has to
+    ///     be true before the three second channel starts.
+    /// </summary>
+    /// <remarks>
+    ///     Anything that hits the character deletes every channel it has, and so does equipping an item, so a defence
+    ///     against either has to be standing before the emit - there is no point inside the channel at which it can be
+    ///     arranged. This is the one seam every recall passes through, a pathfound one included.
+    ///     <br />
+    ///     Awaited, so the recall waits on it and a hook that throws takes the recall down with it.
+    /// </remarks>
+    public Func<CancellationToken, Task>? BeforeTownRecall { get; set; }
+
+    /// <summary>
+    ///     True from the moment a recall is emitted until it has landed, been refused, or been given up on.
+    /// </summary>
+    /// <remarks>
+    ///     <c>Character.Channeling</c> carries the recall only once the server has
+    ///     answered for it, so anything reading that to decide whether to stand down is blind for the round trip
+    ///     after the emit - and an attack, a drink or an equip landing inside that window empties the whole channel
+    ///     dictionary on the server before the client ever knew there was one to protect. That is a cancellation the
+    ///     character causes itself, and it reads as a recall failing for no reason.
+    ///     <br />
+    ///     This is the same question asked about intent rather than about confirmation, so it covers the window as
+    ///     well. Not raised until <see cref="BeforeTownRecall" /> has returned, since the cover that hook arranges is
+    ///     itself a cast that would stand down against it.
+    /// </remarks>
+    public bool IsRecalling { get; private set; }
+
+    /// <summary>
     ///     Asynchronously uses the town ability to go to spawn index 0 on the current map.
     /// </summary>
     /// <param name="token">
@@ -4488,6 +4536,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task UseTownAsync(CancellationToken? token = null)
     {
+        //before anything else this method sets up: the hook is allowed to spend time, and a callback registered
+        //around it would be listening through frames belonging to whatever it does. Ahead of IsRecalling as well,
+        //since the cover the hook arranges is itself a cast the flag would stand down
+        if (BeforeTownRecall is not null)
+            await BeforeTownRecall(token ?? CancellationToken.None);
+
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var warpBegin = false;
@@ -4542,27 +4596,36 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
+        //raised before the emit rather than off the server's answer, which is the whole reason it exists
+        IsRecalling = true;
 
-        //disposed with the call: an undisposed registration outlives the recall it was for and fires on whatever
-        //cancels that token next, stopping a town nobody is channeling and logging the cancellation of a recall that
-        //landed minutes ago
-        using var cancelRegistration = token?.Register(
-            () =>
-            {
-                _ = Socket.EmitAsync(
-                    ALSocketEmitType.Stop,
-                    new
-                    {
-                        action = "town"
-                    });
-                Logger.Info("Town recall canceled");
-                source.TrySetResult(Expectation.Success);
-            })
-                          ?? default;
+        try
+        {
+            await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
 
-        var expectation = await source.Task.WithTimeout(5000);
-        expectation.ThrowIfUnsuccessful();
+            //disposed with the call: an undisposed registration outlives the recall it was for and fires on whatever
+            //cancels that token next, stopping a town nobody is channeling and logging the cancellation of a recall
+            //that landed minutes ago
+            using var cancelRegistration = token?.Register(
+                () =>
+                {
+                    _ = Socket.EmitAsync(
+                        ALSocketEmitType.Stop,
+                        new
+                        {
+                            action = "town"
+                        });
+                    Logger.Info("Town recall canceled");
+                    source.TrySetResult(Expectation.Success);
+                })
+                              ?? default;
+
+            var expectation = await source.Task.WithTimeout(5000);
+            expectation.ThrowIfUnsuccessful();
+        } finally
+        {
+            IsRecalling = false;
+        }
     }
 
     /// <summary>
@@ -5100,19 +5163,25 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected async Task<bool> OnNewMapAsync(NewMapData data)
     {
-        if (data.Map.EqualsI("jail"))
-        {
-            var standingLocation = Character.ToLocation();
-            var standingOnWall = Pathfinder.IsWall(standingLocation);
-            var goingLocation = new Location(Character.Map, Character.GoingX, Character.GoingY);
-            var validPath = Pathfinder.CanMove(standingLocation, goingLocation);
-
-            Logger.Error(
-                $"Sent to jail from {Character.ToLocation()} (IsWall: {standingOnWall}), moving to {goingLocation} (Valid: {validPath})");
-        }
+        //read before the relocation below, which is what makes them the place the violation happened rather than
+        //the jail spawn - every entry this had ever written read "from jail", because by the time it asked, the
+        //character had already been moved there
+        var wasAt = Character.ToLocation();
+        var wasGoing = new Location(Character.Map, Character.GoingX, Character.GoingY);
 
         Projectiles.Clear();
         Character.UpdateLocation(data);
+
+        //after the relocation, and never before it: the mesh lookups below can throw, and a diagnostic that throws
+        //used to take the relocation down with it - which left the character holding the old map's coordinates
+        //while the server had it somewhere else, and those coordinates are what the next move emit claims
+        if (data.Map.EqualsI("jail") && (Pathfinder.GetNavMesh(wasAt.Map) is not null))
+        {
+            var standingOnWall = Pathfinder.IsWall(wasAt);
+            var validPath = Pathfinder.CanMove(wasAt, wasGoing);
+
+            Logger.Error($"Sent to jail from {wasAt} (IsWall: {standingOnWall}), moving to {wasGoing} (Valid: {validPath})");
+        }
 
         await OnEntitiesAsync(data.Entities);
 
