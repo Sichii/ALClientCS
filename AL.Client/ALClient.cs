@@ -3744,10 +3744,35 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     locations
     /// </exception>
-    public async Task SmartMoveAsync<T>(
+    public Task SmartMoveAsync<T>(
         IEnumerable<T> endDestinations,
         bool useTownIfOptimal = true,
         CancellationToken? cancellationToken = null) where T: ILocation, ICircle
+        => SmartMoveAsync(endDestinations, useTownIfOptimal, townBlockedOn: null, cancellationToken);
+
+    /// <summary>
+    ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding, with town
+    ///     recall suppressed on one map.
+    /// </summary>
+    /// <param name="endDestinations">
+    ///     A collection of potential end locations.
+    /// </param>
+    /// <param name="useTownIfOptimal">
+    ///     Whether or not to consider using town ability. What the caller asked for, kept whole across a refusal.
+    /// </param>
+    /// <param name="townBlockedOn">
+    ///     The map a recall was just refused on, or null. The server refuses one while more than five things are
+    ///     targeting the character, which is a fact about standing here rather than about the trip - so it is the map
+    ///     that carries the suppression, and leaving it brings the option back.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     A token used to cancel this action.
+    /// </param>
+    private async Task SmartMoveAsync<T>(
+        IEnumerable<T> endDestinations,
+        bool useTownIfOptimal,
+        string? townBlockedOn,
+        CancellationToken? cancellationToken) where T: ILocation, ICircle
     {
         if (endDestinations.Equals(default))
             throw new ArgumentNullException(nameof(endDestinations));
@@ -3770,7 +3795,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new ArgumentNullException(nameof(endDestinations));
 
         var start = Character.ToLocation();
-        var path = Pathfinder.FindPathAsync(start, ends, useTownIfOptimal);
+
+        //a town connector is only ever added at the path's start node, so whether recall is on the table is decided
+        //once, here, and only against the map being left
+        var path = Pathfinder.FindPathAsync(start, ends, useTownIfOptimal && (townBlockedOn?.EqualsI(start.Map) != true));
 
         //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
         //the silent exits below are ordinary, and a caller only ever sees this method return
@@ -3788,14 +3816,26 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             } catch (OperationCanceledException)
             {
                 break;
-            } catch (InvalidOperationException e)
+            } catch (Exception e) when (e is InvalidOperationException or TimeoutException)
             {
                 Logger.Debug($"Path leg {edge.Type} to {edge.End.Vertex} failed after {edgesWalked} leg(s). {e.Message}");
 
-                if (e.Message.ContainsI("failed to town"))
-                    await SmartMoveAsync(ends, false, cancellationToken);
+                //the rest of the trip is walked, but the refusal is only carried as far as this map. A recall that
+                //timed out is carried the same way as one that was refused: the confirmation is the only thing
+                //missing either way, and abandoning the trip over it leaves the character where it started
+                if ((edge.Type == EdgeType.Town) || e.Message.ContainsI("failed to town"))
+                    await SmartMoveAsync(ends, useTownIfOptimal, Character.Map, cancellationToken);
 
                 break;
+            }
+
+            //whatever was targeting the character is gone with the map, so recall is worth planning around again -
+            //and the path in hand was planned without it, so getting the option back means planning again
+            if (townBlockedOn?.EqualsI(Character.Map) == false)
+            {
+                await SmartMoveAsync(ends, useTownIfOptimal, townBlockedOn: null, cancellationToken);
+
+                return;
             }
         }
 
@@ -4491,8 +4531,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                if (data.ResponseType == GameResponseType.TransportFailed)
+                //cant_escape is the tank's refusal: the server refuses a recall while more than five things are
+                //targeting you. Without an arm here it matched nothing, so a character holding aggro burned the whole
+                //timeout on every attempt and never fell back to walking
+                if (data.ResponseType is GameResponseType.TransportFailed)
                     source.TrySetResult("Failed to town. (failed)");
+                else if (data.ResponseType is GameResponseType.CantEscape)
+                    source.TrySetResult("Failed to town. (can't escape)");
 
                 return TaskCache.FALSE;
             });
@@ -5173,8 +5218,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         });
 
                     break;
+
+                // token exchanges and poof have no queued action to clear
                 default:
-                    throw new ArgumentOutOfRangeException($"Unknown upgrade type {(int)data.QueuedActionType}.");
+                    break;
             }
 
         return TaskCache.FALSE;

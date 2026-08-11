@@ -236,6 +236,26 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
         if (!NavMeshes.TryGetValue(start.Map, out var startNavMesh))
             throw new InvalidOperationException($"No mesh found for map {start.Map}");
 
+        //the first leg is stitched straight from wherever the character is to a mesh node, and nothing validates it.
+        //From a point the flood fill never reached that node is chosen out of the whole mesh by raw distance, so it
+        //is routinely the one on the far side of the line - and the server performs the walk, because its move
+        //handler only hashes the two endpoints onto the smap lattice and never traces what is between them. Stepping
+        //back onto standable ground first is what keeps that leg short and honest
+        TEdge? unstickEdge = default;
+
+        if (!startNavMesh.IsWalkable(start) && startNavMesh.TryFindNearestWalkable(start, out var steppedOut))
+        {
+            var stuckLoc = new Location(start.Map, start);
+            var freeLoc = new Location(start.Map, steppedOut);
+
+            unstickEdge = startNavMesh.ConstructEdge(
+                startNavMesh.ConstructNode(stuckLoc),
+                startNavMesh.ConstructNode(freeLoc),
+                EdgeType.Walk);
+
+            start = freeLoc;
+        }
+
         var startNode = startNavMesh.ConstructNode(start);
         var bestStartNode = startNavMesh.FindBestNode(start);
         var startEdge = startNavMesh.ConstructEdge(startNode, bestStartNode, EdgeType.Walk);
@@ -301,12 +321,36 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
                 current.Closed = true;
             }
 
+            //the loop above only leaves early on an end node, so anything else means the queue ran dry: every node
+            //reachable from the start was searched and none of the destinations was among them. An instance map is
+            //the ordinary way to get here - nothing connects one to the walkable graph - and InvalidOperationException
+            //is what callers already treat as a walk that cannot be made, where the lookup's own throw named a node
+            //from wherever the search happened to stop and read as a bug in the graph
+            if ((current == null) || !endNodeLookup.TryGetValue(current, out var endPoint))
+                throw new InvalidOperationException(
+                    $"No path from {start} to {string.Join(", ", endsArr.Select(end => end.ToString()))}");
+
             //get the true end node from the lookup, create a node and edge from it and add it to the path
-            var endNav = NavMeshes[current!.Vertex.Map];
-            var endPoint = endNodeLookup[current];
-            var endNode = endNav.ConstructNode(endPoint);
-            var endEdge = endNav.ConstructEdge(current, endNode, EdgeType.Walk);
-            path.Push(endEdge);
+            var endNav = NavMeshes[current.Vertex.Map];
+
+            //the closing leg is the start leg's mirror and unvalidated for the same reason, and a destination the
+            //flood fill never reached is an ordinary input - a stopping point a caller derived, or an entity the
+            //server has parked against a line. Walking to it costs a wall crossing on the way in and risks the jail
+            //on arrival, since the smap hash of a destination off the fill is what that handler actually punishes
+            if (endNav.CanMove(current.Vertex, endPoint))
+                path.Push(endNav.ConstructEdge(current, endNav.ConstructNode(endPoint), EdgeType.Walk));
+            else if (endNav.TryFindNearestWalkable(endPoint, out var nearestStandable)
+                     && endNav.CanMove(current.Vertex, nearestStandable))
+            {
+                //the radius does not survive this, so the walk runs to the point rather than stopping at the near
+                //edge of the destination. Only reachable for a destination that could not be walked to as asked
+                var standableLoc = new Location(endPoint.Map, nearestStandable);
+
+                path.Push(endNav.ConstructEdge(current, endNav.ConstructNode(standableLoc), EdgeType.Walk));
+            }
+
+            //and where neither is reachable the path simply stops at the last mesh node, which is as close as the
+            //character can legitimately get. Callers already treat a walk that does not arrive as ordinary
 
             while (current is { Parent: not null })
             {
@@ -316,6 +360,10 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
                 path.Push(edge);
                 current = parentNode;
             }
+
+            //last onto the stack is first off it, so the step out of the wall leads the path it was made for
+            if (unstickEdge is not null)
+                path.Push(unstickEdge);
         } finally
         {
             foreach (var townConnector in townConnectors)

@@ -4,6 +4,7 @@ using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
+using AL.Data.Drops;
 using AL.Data.NPCs;
 using StjConverters = AL.Core.Json.SystemTextJson;
 #endregion
@@ -68,10 +69,22 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <br />
     ///     This is the amount of the item that is exchanged at once.
     ///     <br />
-    ///     Check <see cref="ExchangeAtNPC" /> for the npc to exchange at.
+    ///     Check <see cref="ExchangeAtNPC" /> for the npc to exchange at, and <see cref="ExchangeRewards" /> for what
+    ///     comes back - which depends on the level exchanged when the item compounds or upgrades
+    ///     (node/server.js:6067).
     /// </summary>
     [JsonPropertyName("e")]
     public int? ExchangeCount { get; init; }
+
+    /// <summary>
+    ///     If populated, what an exchange of this item rolls on, keyed by the level exchanged. An item that neither
+    ///     compounds nor upgrades carries a single entry at 0; one that does carries an entry per level the game has
+    ///     a table for, and a level absent from it cannot be exchanged at all.
+    /// </summary>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
+    public IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewards { get; internal set; }
 
     /// <summary>
     ///     If populated, what consuming this item gives, as attribute and amount pairs. An amount can be negative,

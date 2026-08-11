@@ -47,13 +47,23 @@ public class DirectedGraphTests : PathfindingTestBed
     [Test]
     public async Task FindPathDefersToTheSearchWhereTheShortcutDoesNotApply()
     {
-        //100 units apart with a wall between them, which is what makes the pair worth hardcoding
-        var blocked = await Pathfinder.FindPathAsync(new Location("main", -1582, 496), [new Destination(new Location("main", -1582, 396), 0)])
+        //100 units apart with a wall between them, which is what makes the pair worth hardcoding. The far side is
+        //also off the flood fill, so nothing may end on it either - what is held is that no leg crosses the wall,
+        //rather than a leg count, since a walk that stops short of an unreachable destination is one edge
+        var blockedEnd = new Location("main", -1582, 396);
+
+        var blocked = await Pathfinder.FindPathAsync(new Location("main", -1582, 496), [new Destination(blockedEnd, 0)])
                                       .ToArrayAsync();
 
-        blocked.Length
-               .Should()
-               .BeGreaterThan(1, "a blocked straight line has to be routed around rather than walked through");
+        blocked.Should()
+               .OnlyContain(
+                   edge => Pathfinder.CanMove(edge.Start.Vertex, edge.End.Vertex),
+                   "a blocked straight line has to be routed around rather than walked through");
+
+        blocked.Should()
+               .NotContain(
+                   edge => Pathfinder.IsWalkable(edge.End.Vertex) == false,
+                   "no leg may end somewhere the flood fill never reached");
 
         //and the bound on the other guard: a clear line long enough that towning could have beaten it is the search's
         //call to make, which is what turns TOWN_HEURISTIC into a decision rather than an incidental constant

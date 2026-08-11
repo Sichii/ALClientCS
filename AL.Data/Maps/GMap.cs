@@ -1,6 +1,7 @@
 #region
 using System.Text.Json.Serialization;
 using AL.Core.Definitions;
+using AL.Data.Drops;
 using AL.Data.Geometry;
 using Chaos.Extensions.Common;
 #endregion
@@ -47,6 +48,15 @@ public sealed record GMap
     /// </summary>
     [JsonPropertyName("drop_norm")]
     public float DropNorm { get; init; }
+
+    /// <summary>
+    ///     The map's own drop table, rolled on kills anywhere on it in addition to the monster's own. Empty for a map
+    ///     the game gives none.
+    /// </summary>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
+    public IReadOnlyList<GDrop> Drops { get; internal set; } = [];
 
     /// <summary>
     ///     If this is an event map, this will contain the name of the event this map is for.

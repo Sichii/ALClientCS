@@ -236,15 +236,55 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected internal virtual TNode FindBestNode(ILocation vertex)
     {
-        var possibleNodes = GetContainingTriangle(vertex) ?? this.AsEnumerable();
+        //inside a triangle every vertex of it is reachable in a straight line, so the nearest one needs no checking
+        if (GetContainingTriangle(vertex) is { } containing)
+            return containing.Where(n => n.Edges.Count >= 2)
+                             .MinBy(n => n.Vertex.FastDistance(vertex))!;
 
-        return possibleNodes.Where(n => n.Edges.Count >= 2)
-                            .MinBy(n => n.Vertex.FastDistance(vertex))!;
+        //no triangle holds it. Containment is a strict barycentric test, so this is not only a point off the mesh -
+        //a point sitting on a triangle's own edge fails it too, which is where a character parked against a wall
+        //stands. Nearest by raw distance is what this used to answer, and the leg to it is the one leg the search
+        //never validates, so across a line is exactly what it picked
+        var nearest = this.Where(n => n.Edges.Count >= 2)
+                          .OrderBy(n => n.Vertex.FastDistance(vertex))
+                          .Take(Definitions.CONSTANTS.REACHABLE_NODE_CANDIDATES)
+                          .ToArray();
+
+        foreach (var candidate in nearest)
+            if (CanMove(vertex, candidate.Vertex))
+                return candidate;
+
+        //nothing near is reachable, which a point genuinely inside a wall answers this way for every node. The
+        //nearest one keeps the search able to run; the caller is what has to decide whether the leg may be walked
+        return nearest.FirstOrDefault()
+               ?? this.Where(n => n.Edges.Count >= 2)
+                      .MinBy(n => n.Vertex.FastDistance(vertex))!;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected internal virtual IGenericTriangle<TNode>? GetContainingTriangle(ILocation vertex)
         => Triangles.FirstOrDefault(t => t.Contains<TNode, TEdge>(vertex));
+
+    /// <summary>
+    ///     The point map cell a point falls in. Flooring rather than rounding, because that is what
+    ///     <c>RayTraceTo</c> does and therefore what <see cref="CanMove" /> measures a walk against - a cell holds the
+    ///     unit square that starts at it. Rounding here instead put the two a cell apart for any coordinate past the
+    ///     half, so a point this called walkable was one <see cref="CanMove" /> refused to set out from, and every
+    ///     candidate a search offered it was rejected on the first traced cell.
+    /// </summary>
+    /// <param name="point">
+    ///     The point to locate.
+    /// </param>
+    /// <returns>
+    ///     The point map indices for the point, which may be outside the map's own extents.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    protected internal (int X, int Y) ToCell(IPoint point)
+    {
+        var offsetLoc = ApplyOffset(point);
+
+        return ((int)MathF.Floor(offsetLoc.X), (int)MathF.Floor(offsetLoc.Y));
+    }
 
     /// <summary>
     ///     Checks if a point is a wall.
@@ -266,9 +306,9 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     /// </returns>
     public virtual bool IsWall(IPoint point)
     {
-        var offsetLoc = ApplyOffset(point);
+        (var x, var y) = ToCell(point);
 
-        return PointMap[Convert.ToInt32(offsetLoc.X), Convert.ToInt32(offsetLoc.Y)]
+        return PointMap[x, y]
             .HasFlag(PointType.Wall);
     }
 
@@ -295,9 +335,7 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     /// </returns>
     public virtual bool IsWalkable(IPoint point)
     {
-        var offsetLoc = ApplyOffset(point);
-        var x = Convert.ToInt32(offsetLoc.X);
-        var y = Convert.ToInt32(offsetLoc.Y);
+        (var x, var y) = ToCell(point);
 
         //the point map is sized to the map's extents and indexed directly, so an out of bounds point throws rather
         //than answering - and nothing outside the map was ever standable anyway
@@ -321,6 +359,85 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
     ///     A new point with it's coordinate offset back to it's original coordinates.
     /// </returns>
     public virtual IPoint RemoveOffset(IPoint point) => new Point(point.X - XOffset, point.Y - YOffset);
+
+    /// <summary>
+    ///     Finds the closest point the flood fill reached, for a point it did not. The wall raster is padded by the
+    ///     character's own collision base, which is the same limit the server clamps a character to when it slides
+    ///     along a line - so the two boundaries coincide and an ordinary graze puts a legal position inside the
+    ///     padding. This is what turns that back into somewhere a walk can start or end.
+    /// </summary>
+    /// <param name="point">
+    ///     The point to search around.
+    /// </param>
+    /// <param name="walkable">
+    ///     The closest walkable point, when one was found within
+    ///     <see cref="Definitions.CONSTANTS.MAX_UNSTICK_DISTANCE" />.
+    /// </param>
+    /// <returns>
+    ///     <see cref="bool" />
+    ///     <br />
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if a walkable point was found, otherwise
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    /// <remarks>
+    ///     Nearest wins with no regard for which side of the padding it lies on, so a point sitting past the middle of
+    ///     a band can be answered with the far side of it. The answer is never further than the point is deep, though,
+    ///     since it reached the padding from ground that close: measured at 0% for a point one unit in and 1-2% for
+    ///     two to five, which is the whole range a clamp against a line or a lattice-snapped arrival produces. Closing
+    ///     it needs the side the character came from, which is a caller's to know and not in this signature.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    protected internal virtual bool TryFindNearestWalkable(IPoint point, out IPoint walkable)
+    {
+        walkable = Point.None;
+
+        (var centerX, var centerY) = ToCell(point);
+        var width = PointMap.GetLength(0);
+        var height = PointMap.GetLength(1);
+
+        for (var ring = 0; ring <= Definitions.CONSTANTS.MAX_UNSTICK_DISTANCE; ring++)
+        {
+            var bestDistance = int.MaxValue;
+
+            for (var dx = -ring; dx <= ring; dx++)
+                for (var dy = -ring; dy <= ring; dy++)
+                {
+                    //only the ring's own edge - everything inside it was covered by a smaller ring
+                    if ((Math.Abs(dx) != ring) && (Math.Abs(dy) != ring))
+                        continue;
+
+                    var x = centerX + dx;
+                    var y = centerY + dy;
+
+                    if ((x < 0) || (y < 0) || (x >= width) || (y >= height))
+                        continue;
+
+                    if (!PointMap[x, y]
+                            .HasFlag(PointType.Walkable))
+                        continue;
+
+                    var distance = (dx * dx) + (dy * dy);
+
+                    if (distance >= bestDistance)
+                        continue;
+
+                    bestDistance = distance;
+                    walkable = RemoveOffset(new Point(x, y));
+                }
+
+            //the ring is walked whole before answering, since a corner of it is further away than a side
+            if (bestDistance < int.MaxValue)
+                return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     ///     Edges can be added apart from the triangles. This method will traverse all unique edges and return them.

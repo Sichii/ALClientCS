@@ -51,6 +51,9 @@ public record GameData
     /// </summary>
     private const string EXCHANGE_NPC = "exchange";
 
+    /// <summary>The highest level an exchange prize table is looked for at. The game's grade tables stop at 12.</summary>
+    private const int MAX_EXCHANGE_LEVEL = 12;
+
     private static readonly ILog Log = LogManager.GetLogger(typeof(GameData));
 
     [GameDataRoot]
@@ -324,7 +327,14 @@ public record GameData
             //exchangeable at all. GetValueOrDefault rather than the indexer: this runs at data load, where a quest
             //the npc table has no entry for would throw out of startup instead of leaving one item unresolved
             if (item.ExchangeCount.HasValue)
+            {
                 item.ExchangeAtNPC = item.Quest is { } quest ? Quests.GetValueOrDefault(quest) : NPCs[EXCHANGE_NPC];
+
+                //the prizes, keyed the way the server keys the table it rolls: the item's name plus its level when
+                //the item compounds or upgrades, and the bare name otherwise (node/server.js:6067-6068). Assembled
+                //here and nowhere else - a drop id built a second time is one that drifts
+                item.ExchangeRewards = ExchangeRewardsFor(item);
+            }
         }
 
         foreach ((var tokenName, var buyableItems) in Tokens.Entries)
@@ -346,6 +356,26 @@ public record GameData
             }
     }
 
+    /// <summary>Every prize table this item can be exchanged for, by level, or <c>null</c> where the data has none.</summary>
+    private static IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewardsFor(GItem item)
+    {
+        //compound and upgrade arrive as the stat tables they scale, so "either is present" is the server's own test
+        if (item is { CompoundModifiers: null, UpgradeModifiers: null })
+            return Drops.Tables.GetValueOrDefault(item.Accessor) is { } table
+                ? new Dictionary<int, IReadOnlyList<GDrop>> { [0] = table }
+                : null;
+
+        var levelled = new Dictionary<int, IReadOnlyList<GDrop>>();
+
+        //asked level by level rather than scanned, because the id is a string the game writes per level. The bound is
+        //the highest level any grade table reaches; a level past the last table has no prize and is not exchangeable
+        for (var level = 0; level <= MAX_EXCHANGE_LEVEL; level++)
+            if (Drops.Tables.GetValueOrDefault(item.Accessor + level) is { } table)
+                levelled[level] = table;
+
+        return levelled.Count > 0 ? levelled : null;
+    }
+
     private static void EnrichMaps()
     {
         Log.Debug("Enriching map metadata");
@@ -355,6 +385,9 @@ public record GameData
         {
             if (map.Ignore)
                 continue;
+
+            //empty rather than absent for a map with no table, so nothing downstream distinguishes two kinds of nothing
+            map.Drops = Drops.Maps.GetValueOrDefault(map.Accessor) ?? [];
 
             var geometry = Geometry[map.Accessor];
             var exits = (List<Exit>)map.Exits;
@@ -594,6 +627,29 @@ public record GameData
         Quests = quests;
     }
 
+    private static void EnrichDrops()
+    {
+        Log.Debug("Enriching drop tables");
+
+        if (Drops.Unbound is not { Count: > 0 })
+            return;
+
+        var tables = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach ((var dropId, var element) in Drops.Unbound)
+        {
+            //defensive about shape rather than about presence: every leftover key in the committed data is an array
+            //of drop entries, and a future scalar would otherwise throw out of startup
+            if (element.ValueKind != JsonValueKind.Array)
+                continue;
+
+            if (element.Deserialize<IReadOnlyList<GDrop>>() is { } table)
+                tables[dropId] = table;
+        }
+
+        Drops.Tables = tables;
+    }
+
     private static void EnrichRecipes()
     {
         Log.Debug("Enriching recipe metadata");
@@ -659,6 +715,10 @@ public record GameData
 
         //populate quest dictionary with npcs
         EnrichQuests();
+
+        //drops first: the map and item passes below both hang tables off what this builds, and a pass reading an
+        //empty Tables would enrich nothing and say nothing
+        EnrichDrops();
 
         //connect various data points. NPCs before items, because the item pass now prefers a seller that is actually
         //placed and GNPC.Locations is empty until EnrichNPCs fills it - EnrichMaps has already put the per-map entries

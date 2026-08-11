@@ -1,4 +1,5 @@
 #region
+using System.Text.Json;
 using System.Text.Json.Serialization;
 #endregion
 
@@ -8,10 +9,9 @@ namespace AL.Data.Drops;
 ///     The game's drop tables.
 /// </summary>
 /// <remarks>
-///     Only the two the client can act on are bound. The rest of the wire object is the chest tables (one key per
-///     chest, each the same positional shape as <see cref="Monsters" />' entries) and <c>maps</c>, the per-map and
-///     global tables - those still divide by the monster's HP multiplier, so they are a different mechanic and
-///     comparing them against a monster's own table compares unlike quantities.
+///     Every key of the wire object is reachable: <see cref="Gold" />, <see cref="Monsters" />, <see cref="Maps" />
+///     and <see cref="Konami" /> by name, and every remaining table - one per drop id an exchange or a chest rolls
+///     - through <see cref="Tables" />.
 /// </remarks>
 public sealed record GDrops
 {
@@ -30,6 +30,41 @@ public sealed record GDrops
     [JsonPropertyName("monsters")]
     public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Monsters { get; init; }
         = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     The per-map and global tables, keyed by map accessor. These divide by the monster's HP multiplier where a
+    ///     monster's own table does not, so a rate here is not comparable with a rate in <see cref="Monsters" />.
+    /// </summary>
+    [JsonPropertyName("maps")]
+    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Maps { get; init; }
+        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     What the konami code rolls on.
+    /// </summary>
+    [JsonPropertyName("konami")]
+    public IReadOnlyList<GDrop> Konami { get; init; } = [];
+
+    /// <summary>
+    ///     Every other table, keyed by the drop id the server rolls it under: what an exchange or an opened chest
+    ///     hands back. The id is an item's name for most of them, an item's name plus its level for the one
+    ///     exchangeable that takes levels, and neither for the rest - <c>xN</c>, <c>f1</c>, <c>skins</c> and their
+    ///     like name no item at all, which is why this stays reachable rather than being folded entirely into
+    ///     <see cref="AL.Data.Items.GItem.ExchangeRewards" />.
+    /// </summary>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Tables { get; internal set; }
+        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     The wire's remaining keys, held as they arrived until <c>GameData.EnrichDrops</c> turns them into
+    ///     <see cref="Tables" />. Anything the game adds to this object lands here rather than being discarded.
+    /// </summary>
+    [JsonExtensionData]
+    public IDictionary<string, JsonElement>? Unbound { get; init; }
 }
 
 /// <summary>

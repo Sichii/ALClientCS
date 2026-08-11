@@ -339,4 +339,113 @@ public class GameDataLoadCharacterization
              .Should()
              .Be(0.025f);
     }
+
+    /// <summary>
+    ///     The three halves of the drop data that used to be discarded. The prize tables are keyed by the game's own
+    ///     drop id, which is an item name for most of them and something else entirely for the rest.
+    /// </summary>
+    [Test]
+    public void T1_Drops_BindTheRestOfTheTable()
+    {
+        GameData.Drops
+                .Maps
+                .Should()
+                .HaveCount(11);
+
+        //the two the game ships empty, which a shape that only bound non-empty tables would silently lose
+        GameData.Drops
+                .Maps["global"]
+                .Should()
+                .BeEmpty();
+
+        GameData.Drops
+                .Maps["main"]
+                .Should()
+                .Contain(drop => drop.Name == "ringsj");
+
+        GameData.Drops
+                .Konami
+                .Should()
+                .Contain(drop => drop.Name == "goldenpowerglove");
+
+        //63 of the 64 leftover keys - skins is an object rather than a drop list, and the shape guard drops it
+        GameData.Drops
+                .Tables
+                .Should()
+                .HaveCount(63);
+
+        //the typed keys are typed, so none of them reaches the leftovers
+        GameData.Drops
+                .Tables
+                .Keys
+                .Should()
+                .NotContain(["gold", "monsters", "maps", "konami"]);
+
+        //a drop id that is not an item at all, which is why the raw table has to stay reachable
+        GameData.Drops
+                .Tables
+                .Should()
+                .ContainKey("xN");
+
+        GameData.Drops
+                .Tables["GEM0"]
+                .Should()
+                .Contain(drop => drop.Name == "weaponbox");
+    }
+
+    /// <summary>
+    ///     The exchange prizes, keyed the way the server keys them. The lost earring is the whole reason the key is a
+    ///     level rather than a name: its five tables are five different prizes, not five rates on one.
+    /// </summary>
+    [Test]
+    public void T1_ExchangeRewards_AreKeyedByTheLevelExchanged()
+    {
+        //an ordinary exchangeable takes no levels, so the server rolls its bare name and there is one table
+        GameData.Items["gem0"]!
+                .ExchangeRewards
+                .Should()
+                .ContainKey(0)
+                .And
+                .HaveCount(1);
+
+        GameData.Items["lostearring"]!
+                .ExchangeRewards
+                .Should()
+                .ContainKeys(0, 1, 2, 3, 4);
+
+        GameData.Items["lostearring"]!
+                .ExchangeRewards![2]
+                .Select(drop => drop.Name)
+                .Should()
+                .BeEquivalentTo(["wbook1", "t2quiver"]);
+
+        //the +0 table opens another table rather than handing an item over
+        GameData.Items["lostearring"]!
+                .ExchangeRewards![0]
+                .Single()
+                .IsChest
+                .Should()
+                .BeTrue();
+
+        //nothing exchangeable about it, so nothing to roll
+        GameData.Items["hpot0"]!
+                .ExchangeRewards
+                .Should()
+                .BeNull();
+    }
+
+    [Test]
+    public void T1_MapDrops_AreTheMapsOwnTable()
+    {
+        GameData.Maps["main"]!
+                .Drops
+                .Should()
+                .Contain(drop => drop.Name == "ringsj");
+
+        //empty rather than null, so a caller never has to ask which kind of nothing it got
+        GameData.Maps["desertland"]!
+                .Drops
+                .Should()
+                .BeEmpty();
+    }
 }

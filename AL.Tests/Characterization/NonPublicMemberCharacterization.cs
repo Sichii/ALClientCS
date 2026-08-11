@@ -135,13 +135,15 @@ public sealed class NonPublicMemberCharacterization
         // frame, so it is imperative like the rest. EntityBase.HitBox took it 38 -> 39 — the box range is measured
         // against, built from game data at first sighting rather than sent. EntityBase.In brought it back to 38:
         // it was the standing example of a blind-spot member, and turned out to be a real missed binding.
+        // GDrops.Tables, GItem.ExchangeRewards and GMap.Drops took it 38 -> 41 — all three are enrichment, built by
+        // GameData's own passes out of what the wire already carried rather than bound from it.
         auditGap.Should()
-                .Be(38);
+                .Be(41);
 
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
-        // ALClient.IsPvPServer, 151 until EntityBase.HitBox, now 152.
+        // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, now 155.
         allInstanceNonPublicSetters.Should()
-                                   .Be(152);
+                                   .Be(155);
     }
 
     [Test]
