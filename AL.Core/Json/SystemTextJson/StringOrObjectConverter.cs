@@ -1,4 +1,5 @@
 #region
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -82,8 +83,12 @@ public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcl
     // the default object converter instead of re-entering this converter and recursing until the stack overflows.
     public JsonConverterFactory Excluding(Type type) => new StringOrObjectConverterFactory(type);
 
+    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the attribute read is cached
+    private static readonly ConcurrentDictionary<Type, bool> Dual = new();
+
     public override bool CanConvert(Type typeToConvert)
-        => (typeToConvert != Excluded) && typeToConvert.GetCustomAttribute<JsonStringOrObjectAttribute>() is not null;
+        => (typeToConvert != Excluded)
+           && Dual.GetOrAdd(typeToConvert, type => type.GetCustomAttribute<JsonStringOrObjectAttribute>() is not null);
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {

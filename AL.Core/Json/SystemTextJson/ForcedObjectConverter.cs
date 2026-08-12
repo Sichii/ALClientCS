@@ -47,7 +47,7 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
 
     private static readonly (string WireName, Type MemberType, JsonConverter? Converter, Action<T, object?> Set)[] Members = BuildMembers();
 
-    // per (ambient options, member converter) cached options carrying that one converter, so a member's
+    // per (root options, member converter) cached options carrying that one converter, so a member's
     // property-level converter (AfkConverter on RIP/AFK, the tolerant condition-dict converter) is applied to
     // that member only - never leaked onto a same-typed sibling. Per-T costs nothing: BuildMembers instantiates a
     // fresh converter per member, so the keys never collide across T anyway.
@@ -158,16 +158,17 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
     }
 
     private static JsonSerializerOptions WithConverter(JsonSerializerOptions ambient, JsonConverter converter)
-        => MemberOptionsCache.GetValue(ambient, _ => new ConcurrentDictionary<JsonConverter, JsonSerializerOptions>())
+        => MemberOptionsCache.GetValue(ambient, static _ => new ConcurrentDictionary<JsonConverter, JsonSerializerOptions>())
                              .GetOrAdd(
                                  converter,
-                                 toApply =>
+                                 static (toApply, from) =>
                                  {
-                                     var options = new JsonSerializerOptions(ambient);
+                                     var options = new JsonSerializerOptions(from);
                                      options.Converters.Insert(0, toApply);
 
                                      return options;
-                                 });
+                                 },
+                                 ambient);
 
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) => throw new NotSupportedException();
 }
@@ -189,7 +190,13 @@ public sealed class ForcedObjectConverterFactory : JsonConverterFactory
 {
     private const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
-    public override bool CanConvert(Type typeToConvert)
+    //the answer is a property of the type alone, but the question is asked again for every JsonSerializerOptions
+    //instance the nesting converters mint - and each miss walks every member reading attributes
+    private static readonly ConcurrentDictionary<Type, bool> Convertible = new();
+
+    public override bool CanConvert(Type typeToConvert) => Convertible.GetOrAdd(typeToConvert, Evaluate);
+
+    private static bool Evaluate(Type typeToConvert)
         => !typeToConvert.IsAbstract
            && typeof(IEnumerable).IsAssignableFrom(typeToConvert)
            && typeToConvert.GetConstructor(Type.EmptyTypes) is not null

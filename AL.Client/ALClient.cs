@@ -4599,6 +4599,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //raised before the emit rather than off the server's answer, which is the whole reason it exists
         IsRecalling = true;
 
+        //for the cancellation line below, which is the only place the elapsed channel is visible
+        var channelStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+
         try
         {
             await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
@@ -4615,7 +4618,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         {
                             action = "town"
                         });
-                    Logger.Info("Town recall canceled");
+                    //how far in it got, because that is what separates a caller that changed its mind from one whose
+                    //own poll interval is shorter than the channel and so can never let one land
+                    Logger.Info($"Town recall canceled {System.Diagnostics.Stopwatch.GetElapsedTime(channelStarted).TotalMilliseconds:F0}ms into the channel");
                     source.TrySetResult(Expectation.Success);
                 })
                               ?? default;

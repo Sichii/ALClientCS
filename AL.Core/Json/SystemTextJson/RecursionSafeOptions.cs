@@ -64,5 +64,5 @@ public static class RecursionSafeOptions
 
     public static JsonSerializerOptions Without(JsonSerializerOptions outer, Type converterType)
         => Cache.GetValue(outer, static _ => new ConcurrentDictionary<Type, JsonSerializerOptions>())
-                .GetOrAdd(converterType, ct => Build(outer, ct));
+                .GetOrAdd(converterType, static (ct, from) => Build(from, ct), outer);
 }

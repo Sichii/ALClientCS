@@ -136,6 +136,38 @@ public class CollectionIdentityCharacterization
         act.Should()
            .NotThrow();
     }
+
+    #endregion
+
+    #region Inventory.GetEnumerator — SetPrediction lands mid-enumeration
+    [Test]
+    public void T13_InventoryEnumeration_SurvivesSetPrediction()
+    {
+        // q_data arrives on the socket thread and writes one slot in place while a consumer is part way through a
+        // scan of the same inventory. Handing out List<T>'s enumerator made that an InvalidOperationException.
+        var inventory = TestJson.Socket<Inventory>(@"[{""name"":""hpot0""},{""name"":""mpot0""},{""name"":""cscroll0""}]")!;
+
+        var act = () =>
+        {
+            var seen = 0;
+
+            foreach (var _ in inventory)
+            {
+                if (seen == 0)
+                    inventory.SetPrediction(1, new Prediction());
+
+                seen++;
+            }
+
+            return seen;
+        };
+
+        act.Should()
+           .NotThrow()
+           .Which
+           .Should()
+           .Be(3);
+    }
     #endregion
 
     #region Player.Slots — the slot fill runs for a bare Player too

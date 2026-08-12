@@ -77,6 +77,38 @@ public sealed record GMonster : AttributedRecordBase
     public float ChargeSpeed { get; init; }
 
     /// <summary>
+    ///     What this monster actually chases at, which is <see cref="ChargeSpeed" /> when the design data names one
+    ///     and a multiple of <see cref="AttributedRecordBase.Speed" /> when it does not. Only the explicit half is on
+    ///     the wire: the game fills the rest in when it loads G (js/old_common_functions.js:162), so a monster read
+    ///     straight out of the data here has a <see cref="ChargeSpeed" /> of zero rather than the speed it chases at.
+    /// </summary>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
+    [JsonIgnore]
+    public float ChaseSpeed
+    {
+        get
+        {
+            if (ChargeSpeed > 0f)
+                return ChargeSpeed;
+
+            var multiplier = Speed switch
+            {
+                >= 60f => 1.20f,
+                >= 50f => 1.30f,
+                >= 32f => 1.4f,
+                >= 20f => 1.6f,
+                >= 10f => 1.7f,
+                _      => 2f
+            };
+
+            //the game's round(), which is half away from zero rather than the half-to-even MathF.Round does
+            return MathF.Floor((Speed * multiplier) + 0.5f);
+        }
+    }
+
+    /// <summary>
     ///     If true, everyone who damaged this monster is rewarded in proportion to what they contributed, rather
     ///     than only whoever it was targeting (node/server.js:2584).
     /// </summary>

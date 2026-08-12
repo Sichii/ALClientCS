@@ -1,9 +1,11 @@
 #region
 using AL.SocketClient;
 using AL.SocketClient.Definitions;
-using AL.SocketClient.Model;
+using AL.SocketClient.Json.SystemTextJson;
 using AL.SocketClient.SocketModel;
 using FluentAssertions;
+using SocketIO.Core;
+using SocketIO.Serializer.SystemTextJson;
 using SocketIOClient;
 #endregion
 
@@ -12,17 +14,6 @@ namespace AL.Tests.SocketClient.Tests;
 [NotInParallel(ParallelKeys.SOCKET_MESSAGE_HANDLER)]
 public class MessageHandlerTests : SocketTestBed
 {
-    [Test]
-    public void CreateLambdaTest()
-    {
-        static Func<SocketIOResponse, int, object> InternalCreateLambda<T>() => ALSocketClient.CreateLambda(typeof(T));
-
-        var lambda = InternalCreateLambda<SlotItem[]>();
-
-        lambda.Should()
-              .NotBeNull();
-    }
-
     //the wire assumption SendPartyInviteAsync's game_response arm rests on: three of the four server party/invite
     //paths answer with one of these and never emit the "Invited X to party" game_log the success arm waits for
     //(node/server.js:10914-10929), so every invite to someone offline, already partied, or over the cap used to
@@ -92,6 +83,32 @@ public class MessageHandlerTests : SocketTestBed
 
     private const string ANCHORLESS_DISAPPEARING_TEXT_FRAME =
         @"[""disappearing_text"",{""message"":""+1234"",""x"":595.7,""y"":1091.1,""args"":{""color"":""+gold"",""size"":""large""}}]";
+
+    //OnAny binds against the message the transport already parsed, reached through a private field, because every
+    //public route back to it re-serializes the frame first. A library bump that renames that field, or stops
+    //carrying the parsed array, would otherwise drop every frame at runtime with nothing to read but the drop line
+    [Test]
+    public void ResponseCarriesAReadableMessage()
+    {
+        var serializer = new SystemTextJsonSerializer(SocketJson.Options);
+        var message = serializer.Deserialize(EngineIO.V4, $"42{ACTION_FRAME}");
+
+        message.Should()
+               .NotBeNull();
+
+        var response = new SocketIOResponse(message!, null!);
+
+        ALSocketClient.MessageOf(response)
+                      .Should()
+                      .BeSameAs(message);
+
+        message.Should()
+               .BeOfType<JsonMessage>()
+               .Which
+               .JsonArray
+               .Should()
+               .NotBeNullOrEmpty();
+    }
 
     [Test]
     public async Task HandleMessageTest()

@@ -1,5 +1,6 @@
 #region
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -177,9 +178,16 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
     // the default object converter and cannot re-enter its own converter, while nested positional types still match.
     public JsonConverterFactory Excluding(Type type) => new ArrayToObjectConverterFactory(type);
 
+    //shared across every Excluding() copy: the exclusion is a reference compare on the way in, and everything after
+    //it is a property of the type alone. The question is asked again for every JsonSerializerOptions instance the
+    //nesting converters mint, and each miss walks every member reading attributes
+    private static readonly ConcurrentDictionary<Type, bool> Positional = new();
+
     public override bool CanConvert(Type typeToConvert)
-        => (typeToConvert != Excluded)
-           && !typeToConvert.IsAbstract
+        => (typeToConvert != Excluded) && Positional.GetOrAdd(typeToConvert, IsPositional);
+
+    private static bool IsPositional(Type typeToConvert)
+        => !typeToConvert.IsAbstract
            && !typeToConvert.IsPrimitive
            && (typeToConvert.GetProperties(FLAGS)
                             .Any(HasIndex)

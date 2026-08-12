@@ -1,4 +1,5 @@
 #region
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -33,9 +34,14 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 
     private AttributedObjectConverterFactory(Type excluded) => Excluded = excluded;
 
+    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the type test is cached
+    private static readonly ConcurrentDictionary<Type, bool> Harvestable = new();
+
     public override bool CanConvert(Type typeToConvert)
-        => (typeToConvert != Excluded)
-           && typeof(IAttributed).IsAssignableFrom(typeToConvert)
+        => (typeToConvert != Excluded) && Harvestable.GetOrAdd(typeToConvert, IsHarvestable);
+
+    private static bool IsHarvestable(Type typeToConvert)
+        => typeof(IAttributed).IsAssignableFrom(typeToConvert)
            && !typeToConvert.IsAbstract
            && typeToConvert.GetConstructor(Type.EmptyTypes) is not null;
 

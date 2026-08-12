@@ -71,16 +71,21 @@ public sealed class DynamicDelay
                 NewDelay = false;
             }
 
-            try
-            {
-                await Task.Delay(currentDelay, localCtx.Token);
+            //being cancelled is this delay's ordinary outcome rather than a fault: SetDelayAsync cancels and
+            //replaces it on every position update, so awaiting it directly threw and caught about six times a
+            //second across a squad in motion. A cancelled task carries its cancellation as status and only
+            //materializes the exception when awaited, so reading that status through a continuation never throws
+            var elapsed = await Task.Delay(currentDelay, localCtx.Token)
+                                    .ContinueWith(
+                                        static delayed => delayed.IsCompletedSuccessfully,
+                                        TaskContinuationOptions.ExecuteSynchronously);
 
+            if (elapsed)
                 break;
-            } catch (TaskCanceledException)
-            {
-                await using var @lock = await Sync.WaitAsync();
 
-                //if the delay was canceled and no delay was set, we're done
+            await using (await Sync.WaitAsync())
+            {
+                //the delay was cancelled and nothing replaced it, so the wait is over
                 if (!NewDelay)
                     break;
             }

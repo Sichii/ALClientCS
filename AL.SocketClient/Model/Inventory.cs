@@ -15,7 +15,19 @@ public sealed class Inventory : IReadOnlyList<Item?>
     // Backing stays List<Item?> so SetCapacity's downcast holds; the deserializer supplies a List.
     internal Inventory(IReadOnlyList<Item?>? items) => Items = items ?? new List<Item?>();
 
-    public IEnumerator<Item?> GetEnumerator() => Items.GetEnumerator();
+    /// <summary>
+    ///     Walks the slots by index rather than handing out the backing list's enumerator.
+    /// </summary>
+    /// <remarks>
+    ///     <see cref="SetPrediction" /> writes a slot in place off the socket thread, which bumps the list's version
+    ///     and makes every enumerator a consumer is holding throw. Slots are only ever replaced, never inserted or
+    ///     removed, so reading by index sees either the old item or the new one, and neither is a torn read.
+    /// </remarks>
+    public IEnumerator<Item?> GetEnumerator()
+    {
+        for (var index = 0; index < Items.Count; index++)
+            yield return Items[index];
+    }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
