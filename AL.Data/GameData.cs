@@ -19,6 +19,7 @@ using AL.Data.Drops;
 using AL.Data.Events;
 using AL.Data.Games;
 using AL.Data.Geometry;
+using AL.Data.Images;
 using AL.Data.Items;
 using AL.Data.Maps;
 using AL.Data.Monsters;
@@ -88,6 +89,14 @@ public record GameData
     [GameDataRoot]
     public static GeometryDatum Geometry { get; private set; }
 
+    //the three art roots below plus Positions are defaulted for the reason Multipliers is: a payload missing any of
+    //them degrades to an empty table rather than throwing, and nothing that reads them can do more than draw nothing
+    [GameDataRoot]
+    public static IReadOnlyDictionary<string, GImage> Images { get; private set; } = new Dictionary<string, GImage>();
+
+    [GameDataRoot]
+    public static IReadOnlyDictionary<string, GImageSet> ImageSets { get; private set; } = new Dictionary<string, GImageSet>();
+
     [GameDataRoot]
     public static ItemsDatum Items { get; private set; }
 
@@ -108,6 +117,11 @@ public record GameData
     [GameDataRoot]
     public static NPCsDatum NPCs { get; private set; }
 
+    /// <summary>Where every named piece of item art sits on its sheet, keyed by the skin an item names.</summary>
+    [GameDataRoot]
+    public static IReadOnlyDictionary<string, GSpritePosition> Positions { get; private set; }
+        = new Dictionary<string, GSpritePosition>();
+
     [GameDataRoot]
     public static ProjectilesDatum Projectiles { get; private set; }
 
@@ -116,6 +130,10 @@ public record GameData
 
     [GameDataRoot]
     public static SkillsDatum Skills { get; private set; }
+
+    /// <summary>The character and monster sheets, keyed by sheet name rather than by the skins they hold.</summary>
+    [GameDataRoot]
+    public static IReadOnlyDictionary<string, GSprite> Sprites { get; private set; } = new Dictionary<string, GSprite>();
 
     [GameDataRoot]
     public static TitlesDatum Titles { get; private set; }

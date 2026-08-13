@@ -186,6 +186,15 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public ArmorSet Set { get; init; }
 
     /// <summary>
+    ///     Which icon this item draws, as a key into <see cref="GameData.Positions" />.
+    /// </summary>
+    /// <remarks>
+    ///     Usually the item's own key, but a couple of dozen items borrow another's art - every candy re-release draws
+    ///     the original candy - so this is not a name to guess at.
+    /// </remarks>
+    public string? Skin { get; init; }
+
+    /// <summary>
     ///     The number of this item that can be placed in a stack.
     /// </summary>
     /// <remarks>

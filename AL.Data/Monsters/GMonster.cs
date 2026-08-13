@@ -233,6 +233,16 @@ public sealed record GMonster : AttributedRecordBase
     public float Size { get; init; }
 
     /// <summary>
+    ///     Which cell of which sheet this monster is drawn from, as a name appearing in some
+    ///     <see cref="AL.Data.Images.GSprite.Matrix" />.
+    /// </summary>
+    /// <remarks>
+    ///     Usually the monster's own key; a nerfed or juvenile variant borrows the original's art, so this is not a
+    ///     name to guess at.
+    /// </remarks>
+    public string? Skin { get; init; }
+
+    /// <summary>
     ///     A list of areas this Monster can be found.
     /// </summary>
     /// <remarks>
