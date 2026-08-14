@@ -22,6 +22,19 @@ public class DoorReachTests : PathfindingTestBed
     //the server's own limit, spelled out rather than read from CONSTANTS.DOOR_RANGE, which carries a safety shave
     private const float SERVER_DOOR_DIST = 112f;
 
+    /// <summary>
+    ///     How far inside the limit a stop point has to be, rather than merely inside it.
+    /// </summary>
+    /// <remarks>
+    ///     Being inside is not enough, and a suite that only checked that stayed green while every door in the game
+    ///     refused to open. The walk stops on the edge of a reach circle, and the server has the character a few
+    ///     units behind where the client reckons it by the time the emit lands, so a model that clears the limit by
+    ///     nothing clears it by nothing in practice either. Just under the 5.6 units
+    ///     <c>CONSTANTS.RANGE_SHAVE</c> leaves on a door, so returning that shave to the 2.5% it replaced
+    ///     fails here.
+    /// </remarks>
+    private const float REQUIRED_MARGIN = 5f;
+
     //a character's sprite box on the server. restated here for the same reason as the limit above - a test that
     //reads CONSTANTS would agree with it whatever it said
     private const float SERVER_CHARACTER_WIDTH = 26f;
@@ -112,7 +125,7 @@ public class DoorReachTests : PathfindingTestBed
                     ServerDoorDistance(map, door, edgeOfCircle)
                         .Should()
                         .BeLessThan(
-                            SERVER_DOOR_DIST,
+                            SERVER_DOOR_DIST - REQUIRED_MARGIN,
                             $"the door {map.Accessor} => {door.DestinationMap} must open from every point of a circle we would stop on");
                 }
         }
@@ -153,7 +166,9 @@ public class DoorReachTests : PathfindingTestBed
 
             ServerDoorDistance(map, door, standing)
                 .Should()
-                .BeLessThan(SERVER_DOOR_DIST, $"the path stops at {standing} to use the door {map.Accessor} => {door.DestinationMap}");
+                .BeLessThan(
+                    SERVER_DOOR_DIST - REQUIRED_MARGIN,
+                    $"the path stops at {standing} to use the door {map.Accessor} => {door.DestinationMap}");
         }
 
         doorsWalked.Should()
