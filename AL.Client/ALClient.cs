@@ -2878,7 +2878,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //diagnostics only. The move handler deletes every channel whose condition forbids moving through it, town
         //included, so a walk started during a recall is this side killing its own channel - and it is
         //indistinguishable downstream from a monster's hit doing the same thing
-        if (IsRecalling || (Character.Channeling?.ContainsKey("town") == true))
+        //
+        //IsRecalling alone, and never the character's own channel dictionary: nothing clears that until the server's
+        //next frame, so it still reads "town" at the instant a recall lands or is stopped - and a walk emitted there
+        //deletes nothing, because the channel is already over. That half reported 110 walks in a day and not one of
+        //them was inside a live channel. IsRecalling is the wider question anyway, since it is up from the emit
+        //rather than from the server's answer to it
+        if (IsRecalling)
             Logger.Warn($"Walk leg to {point.ToPoint()} emitted while a town recall was up. This deletes the channel.");
 
         await Socket.EmitAsync(
@@ -2921,7 +2927,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             //same deletion as the leg's own emit above, and this is the one that fires while another claimant is
             //taking the movement gate off this walk - which is exactly when a recall is about to be started
-            if (IsRecalling || (Character.Channeling?.ContainsKey("town") == true))
+            if (IsRecalling)
                 Logger.Warn($"Standstill move emitted while a town recall was up. This deletes the channel.");
 
             point = finalDestination;
@@ -4588,8 +4594,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var warpBegin = false;
-
         //read before the emit: the frame handler below has already merged the incoming counter onto Character by
         //the time our callback runs, so the comparison has to be against where we started
         var mapChangeCountAtStart = Character.MapChangeCount;
@@ -4609,9 +4613,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //later, against a 3 second channel and a 5 second timeout
         const double CONFIRMATION_RACE_GRACE_MS = 250d;
 
+        //zero means unconfirmed, so this is both the confirmation flag and the instant it happened. One variable
+        //rather than two because frames are dispatched concurrently: with a separate flag written first, a frame
+        //carrying no channel could see the flag up and the timestamp still zero, measure the grace against
+        //Stopwatch's own origin, and report a recall that went on to land perfectly as canceled
         var confirmedAt = 0L;
 
         double Elapsed() => System.Diagnostics.Stopwatch.GetElapsedTime(channelStarted).TotalMilliseconds;
+
+        //the channel is over the moment its outcome is known. Lowering IsRecalling in the finally instead leaves it
+        //up across the hop that reschedules the awaiter, and a mover walking in that gap warns that it deleted a
+        //channel which had already landed
+        void Resolve(Expectation outcome)
+        {
+            IsRecalling = false;
+            source.TrySetResult(outcome);
+        }
 
         static string ChannelNames(IReadOnlyDictionary<string, ChannelingInfo>? channeling)
             => channeling is { Count: > 0 } ? string.Join(", ", channeling.Keys) : "none";
@@ -4627,12 +4644,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 // ReSharper disable once ConvertIfStatementToSwitchStatement
                 if (data.Channeling?.ContainsKey("town") == true)
                 {
-                    if (!warpBegin)
-                    {
-                        warpBegin = true;
-                        confirmedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+                    if (Interlocked.CompareExchange(ref confirmedAt, System.Diagnostics.Stopwatch.GetTimestamp(), 0) == 0)
                         Logger.Debug($"Town channel confirmed {Elapsed():F0}ms in.");
-                    }
                 }
 
                 //the channel ending is not the same thing as the channel being interrupted - the server deletes it
@@ -4640,9 +4653,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //change is what tells the two apart, and it is stamped before either of the completion frames goes
                 //out. Without it this raced the new_map carrying the whole entity list, lost every time because a
                 //player frame is a fraction of the size, and reported a landed recall as canceled
-                else if (warpBegin && (data.MapChangeCount == mapChangeCountAtStart))
+                else if (Volatile.Read(ref confirmedAt) is var confirmation and not 0 && (data.MapChangeCount == mapChangeCountAtStart))
                 {
-                    var sinceConfirmed = System.Diagnostics.Stopwatch.GetElapsedTime(confirmedAt)
+                    var sinceConfirmed = System.Diagnostics.Stopwatch.GetElapsedTime(confirmation)
                                                           .TotalMilliseconds;
 
                     //the frame the confirmation raced. Logged rather than dropped silently, because the grace being
@@ -4657,7 +4670,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                             $"Town channel gone {Elapsed():F0}ms in. Frame channels [{ChannelNames(data.Channeling)}], map change count {data.MapChangeCount} "
                             + $"against {mapChangeCountAtStart} at start, hp {data.HP:F0} against {hpAtStart:F0} at start, aggro targets {data.AggroTargets}");
 
-                        source.TrySetResult("Failed to town. (canceled)");
+                        Resolve("Failed to town. (canceled)");
                     }
                 }
 
@@ -4668,7 +4681,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.NewMap,
             data =>
             {
-                if (warpBegin && (data.Effect == DisappearEffect.Town))
+                if ((Volatile.Read(ref confirmedAt) != 0) && (data.Effect == DisappearEffect.Town))
                 {
                     Logger.Debug($"Town recall landed {Elapsed():F0}ms in on {data.Map}, map change count {data.MapChangeCount}.");
 
@@ -4677,7 +4690,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //map, since town is this map's own spawn, but the intent is the map that was left
                     TownFailures.TryRemove(data.Map, out _);
 
-                    source.TrySetResult(Expectation.Success);
+                    Resolve(Expectation.Success);
                 }
 
                 return TaskCache.FALSE;
@@ -4693,13 +4706,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (data.ResponseType is GameResponseType.TransportFailed)
                 {
                     Logger.Debug($"Town recall refused {Elapsed():F0}ms in: transport_failed.");
-                    source.TrySetResult("Failed to town. (failed)");
+                    Resolve("Failed to town. (failed)");
                 } else if (data.ResponseType is GameResponseType.CantEscape)
                 {
                     //the server refuses this while more than five things are targeting the character, so what its own
                     //count was is the whole of the diagnosis - and the client's read of it may be nothing at all
                     Logger.Debug($"Town recall refused {Elapsed():F0}ms in: cant_escape. Aggro targets read as {Character.AggroTargets}.");
-                    source.TrySetResult("Failed to town. (can't escape)");
+                    Resolve("Failed to town. (can't escape)");
                 }
 
                 return TaskCache.FALSE;
@@ -4739,7 +4752,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //how far in it got, because that is what separates a caller that changed its mind from one whose
                     //own poll interval is shorter than the channel and so can never let one land
                     Logger.Info($"Town recall canceled {System.Diagnostics.Stopwatch.GetElapsedTime(channelStarted).TotalMilliseconds:F0}ms into the channel");
-                    source.TrySetResult(Expectation.Success);
+                    Resolve(Expectation.Success);
                 })
                               ?? default;
 
