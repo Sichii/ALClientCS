@@ -179,7 +179,7 @@ public class InterfaceAttributeCharacterization
 
         condition.FrequencyMod
                  .Should()
-                 .Be(0.8f);
+                 .Be(0.9f);
     }
 
     /// <summary>

@@ -363,40 +363,40 @@ public class PositionalArrayCharacterization
     //pinned raw-length distributions of the committed snapshot (rawLength -> count)
     private static readonly IReadOnlyDictionary<int, int> TileLengths = new Dictionary<int, int>
     {
-        [4] = 6145,
-        [5] = 1134,
+        [4] = 6390,
+        [5] = 1181,
         [6] = 4
     };
 
     private static readonly IReadOnlyDictionary<int, int> StraightLineLengths = new Dictionary<int, int>
     {
-        [3] = 12830
+        [3] = 13692
     };
 
     private static readonly IReadOnlyDictionary<int, int> DoorLengths = new Dictionary<int, int>
     {
         [6] = 1,
-        [7] = 86,
+        [7] = 87,
         [8] = 4,
-        [9] = 5
+        [9] = 6
     };
 
     private static readonly IReadOnlyDictionary<int, int> SpawnLengths = new Dictionary<int, int>
     {
-        [2] = 88,
-        [3] = 53,
+        [2] = 100,
+        [3] = 48,
         [4] = 5
     };
 
     private static readonly IReadOnlyDictionary<int, int> OrientationLengths = new Dictionary<int, int>
     {
-        [2] = 109,
+        [2] = 135,
         [3] = 7
     };
 
     private static readonly IReadOnlyDictionary<int, int> KillAchievementLengths = new Dictionary<int, int>
     {
-        [4] = 450
+        [4] = 534
     };
 
     private static IReadOnlyDictionary<int, int> Histogram<T>(IReadOnlyList<Parsed<T>> items)

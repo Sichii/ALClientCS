@@ -69,33 +69,34 @@ public class GameDataLoadCharacterization
                 .Keys
                 .Count()
                 .Should()
-                .Be(520);
+                .Be(534);
 
-        // 61 not 69: live G renamed d_a1/d_a2/d_b1/d_g to ucliffs/uhills/spider_instance/gateway, so the datum
-        // no longer declares those keys and the Nov-2024 fixture's four now-unbound entries drop 8 cache keys.
+        // 67 rather than one key per served map: the datum declares the keys, so a map the snapshot carries but the
+        // generated members do not know about binds to nothing, and a wire name differing from its CLR spelling by
+        // more than case is cached under both.
         GameData.Maps
                 .Keys
                 .Count()
                 .Should()
-                .Be(61);
+                .Be(67);
 
         GameData.Monsters
                 .Keys
                 .Count()
                 .Should()
-                .Be(128);
+                .Be(136);
 
         GameData.Skills
                 .Keys
                 .Count()
                 .Should()
-                .Be(127);
+                .Be(130);
 
         GameData.NPCs
                 .Keys
                 .Count()
                 .Should()
-                .Be(127);
+                .Be(129);
     }
 
     [Test]
@@ -106,7 +107,7 @@ public class GameDataLoadCharacterization
         GameData.Maps["main"]!.Exits
                 .Count
                 .Should()
-                .Be(18);
+                .Be(19);
 
         GameData.NPCs["citizen0"]!.Locations
                 .Count
@@ -119,9 +120,9 @@ public class GameDataLoadCharacterization
     ///     errand able to walk anywhere for one. The counts are asserted rather than a null check because the
     ///     direction that matters is the reverse one: the field was previously filled in from an NPC's token, which
     ///     reached four items, and narrowing it back that far would look harmless and leave 34 exchangeables with
-    ///     nowhere to go. These are the snapshot's counts, not the served table's, which carries 39 - and the errands'
-    ///     prose cites the snapshot too, attributing it, so this assertion is what holds those comments as well as the
-    ///     rule. That is the whole reason to cite the fixture: it is the only number anything can check.
+    ///     nowhere to go. These are the snapshot's counts, and the errands' prose cites the snapshot too, attributing
+    ///     it, so this assertion is what holds those comments as well as the rule. That is the whole reason to cite the
+    ///     fixture: it is the only number anything can check.
     /// </summary>
     [Test]
     public void T1_ExchangeAtNPC_CoversEveryExchangeable()
@@ -134,7 +135,7 @@ public class GameDataLoadCharacterization
 
         exchangeables.Count
                      .Should()
-                     .Be(38);
+                     .Be(39);
 
         exchangeables.Should()
                      .OnlyContain(item => item.ExchangeAtNPC != null);
@@ -143,7 +144,7 @@ public class GameDataLoadCharacterization
         // one fixed placement (node/server.js:6073), so the split is the rule itself rather than a tally
         exchangeables.Count(item => item.ExchangeAtNPC!.Id == "exchange")
                      .Should()
-                     .Be(31);
+                     .Be(32);
 
         exchangeables.Count(item => item.ExchangeAtNPC!.Id != "exchange")
                      .Should()
@@ -246,10 +247,10 @@ public class GameDataLoadCharacterization
     [Test]
     public void T1_StaticScalars_Bind()
     {
-        // Version is the strong static-binding canary: 804 pre-migration, 0 if static binding breaks.
+        // Version is the strong static-binding canary: 2538 in the committed snapshot, 0 if static binding breaks.
         GameData.Version
                 .Should()
-                .Be(804);
+                .Be(2538);
 
         // Multipliers replaces the phantom top-level "inflation"/"shells_to_gold" keys; buy_to_sell is the
         // NPC buy-back ratio every sell price derives from, so a 0 here means the nested bind broke.
@@ -301,7 +302,7 @@ public class GameDataLoadCharacterization
         GameData.Drops
                 .Monsters
                 .Should()
-                .HaveCount(87);
+                .HaveCount(99);
 
         // [rate, item] - the plain form, 220 of the 323 entries
         var seashell = GameData.Drops.Monsters["crab"]
@@ -368,11 +369,11 @@ public class GameDataLoadCharacterization
                 .Should()
                 .Contain(drop => drop.Name == "goldenpowerglove");
 
-        //63 of the 64 leftover keys - skins is an object rather than a drop list, and the shape guard drops it
+        //64 of the 65 leftover keys - skins is an object rather than a drop list, and the shape guard drops it
         GameData.Drops
                 .Tables
                 .Should()
-                .HaveCount(63);
+                .HaveCount(64);
 
         //the typed keys are typed, so none of them reaches the leftovers
         GameData.Drops

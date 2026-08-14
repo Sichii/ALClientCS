@@ -4,9 +4,9 @@
     "attributes": [
       {
         "attr": "FrequencyMod",
-        "value": 0.8,
+        "value": 0.9,
         "hasProperty": true,
-        "propertyValue": 0.8
+        "propertyValue": 0.9
       },
       {
         "attr": "HealMod",
