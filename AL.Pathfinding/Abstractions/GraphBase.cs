@@ -221,8 +221,16 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
     /// <remarks>
     ///     If towning is interrupted, this will automatically retry without towning enabled.
     /// </remarks>
+    /// <param name="walkSpeed">
+    ///     The character's own speed, which is what a town channel is priced against - the channel is a duration and
+    ///     every other edge is a distance. Null prices it at the nominal speed.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public virtual async IAsyncEnumerable<TEdge> FindPathAsync(ILocation start, IEnumerable<ILocation> ends, bool useTownIfOptimal = true)
+    public virtual async IAsyncEnumerable<TEdge> FindPathAsync(
+        ILocation start,
+        IEnumerable<ILocation> ends,
+        bool useTownIfOptimal = true,
+        float? walkSpeed = null)
     {
         ArgumentNullException.ThrowIfNull(start);
 
@@ -275,11 +283,17 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
         await Sync.WaitAsync();
         var townConnectors = new List<TEdge>();
 
+        //once per search rather than per edge: every town connector in one search is the same character's channel.
+        //Qualified, because this file aliases CONSTANTS to AL.Core's for EPSILON
+        var townCost = walkSpeed is { } speed
+            ? Definitions.CONSTANTS.TownCost(speed)
+            : Definitions.CONSTANTS.NOMINAL_TOWN_COST;
+
         try
         {
             if (useTownIfOptimal && (startNavMesh.TownNode != null))
             {
-                var townConnector = startNavMesh.ConstructEdge(bestStartNode, startNavMesh.TownNode);
+                var townConnector = startNavMesh.ConstructEdge(bestStartNode, startNavMesh.TownNode, townCost: townCost);
                 bestStartNode.Edges.Add(townConnector);
                 townConnectors.Add(townConnector);
             }
@@ -311,7 +325,7 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
                             && NavMeshes.TryGetValue(edge.End.Vertex.Map, out var navMesh)
                             && (navMesh.TownNode != null))
                         {
-                            var townConnector = navMesh.ConstructEdge(edge.End, navMesh.TownNode, EdgeType.Town);
+                            var townConnector = navMesh.ConstructEdge(edge.End, navMesh.TownNode, EdgeType.Town, townCost);
                             edge.End.Edges.Add(townConnector);
                             townConnectors.Add(townConnector);
                         }

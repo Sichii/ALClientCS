@@ -27,7 +27,11 @@ public sealed class NavMesh : MeshBase<GraphNode, GraphEdge>
             xOffset,
             yOffset) { }
 
-    protected internal override GraphEdge ConstructEdge(GraphNode start, GraphNode end, EdgeType? typeOverride = null)
+    protected internal override GraphEdge ConstructEdge(
+        GraphNode start,
+        GraphNode end,
+        EdgeType? typeOverride = null,
+        float? townCost = null)
     {
         var type = typeOverride ?? ConnectorTypeSelector(start.Vertex, end.Vertex);
 
@@ -36,7 +40,7 @@ public sealed class NavMesh : MeshBase<GraphNode, GraphEdge>
             EdgeType.Leave     => CONSTANTS.TRANSPORT_HEURISTIC,
             EdgeType.Transport => CONSTANTS.TRANSPORT_HEURISTIC,
             EdgeType.Door      => CONSTANTS.TRANSPORT_HEURISTIC,
-            EdgeType.Town      => CONSTANTS.TOWN_HEURISTIC,
+            EdgeType.Town      => townCost ?? CONSTANTS.NOMINAL_TOWN_COST,
             EdgeType.Walk      => CalculateHeuristic(start.Vertex, end.Vertex),
             _                  => throw new ArgumentOutOfRangeException(nameof(type))
         };

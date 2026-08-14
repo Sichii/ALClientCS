@@ -2875,6 +2875,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //off its flood fill
         var from = Character.Movement;
 
+        //diagnostics only. The move handler deletes every channel whose condition forbids moving through it, town
+        //included, so a walk started during a recall is this side killing its own channel - and it is
+        //indistinguishable downstream from a monster's hit doing the same thing
+        if (IsRecalling || (Character.Channeling?.ContainsKey("town") == true))
+            Logger.Warn($"Walk leg to {point.ToPoint()} emitted while a town recall was up. This deletes the channel.");
+
         await Socket.EmitAsync(
             ALSocketEmitType.Move,
             new
@@ -2912,6 +2918,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             var stoppingAt = Character.Movement;
             var finalDestination = new Point(stoppingAt.X, stoppingAt.Y);
             Logger.Debug($"Move to {point.ToPoint()} canceled. Stopping at {finalDestination}");
+
+            //same deletion as the leg's own emit above, and this is the one that fires while another claimant is
+            //taking the movement gate off this walk - which is exactly when a recall is about to be started
+            if (IsRecalling || (Character.Channeling?.ContainsKey("town") == true))
+                Logger.Warn($"Standstill move emitted while a town recall was up. This deletes the channel.");
+
             point = finalDestination;
 
             await Socket.EmitAsync(
@@ -3798,7 +3810,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //a town connector is only ever added at the path's start node, so whether recall is on the table is decided
         //once, here, and only against the map being left
-        var path = Pathfinder.FindPathAsync(start, ends, useTownIfOptimal && (townBlockedOn?.EqualsI(start.Map) != true));
+        //priced against this character's own speed: the channel is a fixed three seconds, so what it is worth is
+        //however far this character would have walked in them. A boosted character reaches for it less readily
+        var path = Pathfinder.FindPathAsync(
+            start,
+            ends,
+            useTownIfOptimal && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
+            Character.Speed);
 
         //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
         //the silent exits below are ordinary, and a caller only ever sees this method return
@@ -3843,7 +3861,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //timed out is carried the same way as one that was refused: the confirmation is the only thing
                 //missing either way, and abandoning the trip over it leaves the character where it started
                 if ((edge.Type == EdgeType.Town) || e.Message.ContainsI("failed to town"))
+                {
+                    //remembered past this call as well as inside it. The suppression above lives for one call, and
+                    //every mover tick makes a fresh one - so whatever stopped the recall, a lane polling at 10Hz
+                    //re-planned straight onto the same town edge and emitted again. Measured at a recall every 400ms
+                    //for forty seconds against a monster that broke each one, which is the whole trip spent standing
+                    //in the pack it was leaving
+                    TownFailures[Character.Map] = System.Diagnostics.Stopwatch.GetTimestamp();
+
                     await SmartMoveAsync(ends, useTownIfOptimal, Character.Map, cancellationToken);
+                }
 
                 break;
             }
@@ -4523,6 +4550,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </remarks>
     public bool IsRecalling { get; private set; }
 
+    /// <summary>Maps this character has lately failed to town off, and when it last failed on each.</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, long> TownFailures = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>How long a failed recall keeps the channel off the table for the map it failed on.</summary>
+    /// <remarks>
+    ///     Every reason a recall fails is a fact about standing here that outlives the attempt: more than five things
+    ///     targeting the character, or one of them landing a hit inside the three second channel. Long enough that a
+    ///     mover polling at 10Hz cannot spend a fight re-emitting the same recall, short enough that a character which
+    ///     has since walked clear gets the option back without anything having to notice.
+    /// </remarks>
+    private static readonly TimeSpan TOWN_FAILURE_MEMORY = TimeSpan.FromSeconds(20);
+
+    /// <summary>Whether the channel is still being kept off the table for <paramref name="map" />.</summary>
+    private bool TownRecentlyFailedOn(string map)
+        => TownFailures.TryGetValue(map, out var failedAt) && (System.Diagnostics.Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
+
+
     /// <summary>
     ///     Asynchronously uses the town ability to go to spawn index 0 on the current map.
     /// </summary>
@@ -4550,23 +4594,72 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the time our callback runs, so the comparison has to be against where we started
         var mapChangeCountAtStart = Character.MapChangeCount;
 
+        //diagnostics only. A recall that reports a cancellation says nothing about what cancelled it, and every way
+        //the channel dies - a hit, our own move emit, an equip - looks identical from here: a frame with the channel
+        //gone. What separates them is when it happened and what else moved on that frame
+        var channelStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        var hpAtStart = Character.HP;
+
+        //how long after the channel is confirmed an absent channel is still read as the frame that predates the
+        //confirmation rather than as a cancellation. Every frame is dispatched on its own task, so the frame carrying
+        //the channel and one written before the server set it are routinely handled in the same millisecond and in
+        //either order - and the second of those satisfies the cancellation test exactly. Measured at 0ms to 52ms
+        //across three characters, each with unchanged hp and an unchanged map change count, on recalls that then
+        //landed. The cost of the grace is that a channel a monster really does break inside it is answered this much
+        //later, against a 3 second channel and a 5 second timeout
+        const double CONFIRMATION_RACE_GRACE_MS = 250d;
+
+        var confirmedAt = 0L;
+
+        double Elapsed() => System.Diagnostics.Stopwatch.GetElapsedTime(channelStarted).TotalMilliseconds;
+
+        static string ChannelNames(IReadOnlyDictionary<string, ChannelingInfo>? channeling)
+            => channeling is { Count: > 0 } ? string.Join(", ", channeling.Keys) : "none";
+
+        Logger.Debug(
+            $"Town recall starting on {Character.Map}. Aggro targets {Character.AggroTargets}, map change count {mapChangeCountAtStart}, "
+            + $"hp {Character.HP:F0}/{Character.MaxHP:F0}, channels [{ChannelNames(Character.Channeling)}]");
+
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
             data =>
             {
                 // ReSharper disable once ConvertIfStatementToSwitchStatement
-                if (!warpBegin && (data.Channeling != null) && data.Channeling.ContainsKey("town"))
-                    warpBegin = true;
+                if (data.Channeling?.ContainsKey("town") == true)
+                {
+                    if (!warpBegin)
+                    {
+                        warpBegin = true;
+                        confirmedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+                        Logger.Debug($"Town channel confirmed {Elapsed():F0}ms in.");
+                    }
+                }
 
                 //the channel ending is not the same thing as the channel being interrupted - the server deletes it
                 //and then transports, so a recall that lands also produces a frame with no channel on it. The map
                 //change is what tells the two apart, and it is stamped before either of the completion frames goes
                 //out. Without it this raced the new_map carrying the whole entity list, lost every time because a
                 //player frame is a fraction of the size, and reported a landed recall as canceled
-                else if (warpBegin
-                         && (data.Channeling?.ContainsKey("town") != true)
-                         && (data.MapChangeCount == mapChangeCountAtStart))
-                    source.TrySetResult("Failed to town. (canceled)");
+                else if (warpBegin && (data.MapChangeCount == mapChangeCountAtStart))
+                {
+                    var sinceConfirmed = System.Diagnostics.Stopwatch.GetElapsedTime(confirmedAt)
+                                                          .TotalMilliseconds;
+
+                    //the frame the confirmation raced. Logged rather than dropped silently, because the grace being
+                    //too short and the grace swallowing a real cancellation look the same from the outside
+                    if (sinceConfirmed < CONFIRMATION_RACE_GRACE_MS)
+                        Logger.Debug($"Town channel absent {Elapsed():F0}ms in, {sinceConfirmed:F0}ms after the confirmation - taken as the frame it raced.");
+                    else
+                    {
+                        //an hp drop across the channel is a hit, which is the server deleting the channel dictionary
+                        //in its damage path rather than anything on this side
+                        Logger.Debug(
+                            $"Town channel gone {Elapsed():F0}ms in. Frame channels [{ChannelNames(data.Channeling)}], map change count {data.MapChangeCount} "
+                            + $"against {mapChangeCountAtStart} at start, hp {data.HP:F0} against {hpAtStart:F0} at start, aggro targets {data.AggroTargets}");
+
+                        source.TrySetResult("Failed to town. (canceled)");
+                    }
+                }
 
                 return TaskCache.FALSE;
             });
@@ -4576,7 +4669,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             data =>
             {
                 if (warpBegin && (data.Effect == DisappearEffect.Town))
+                {
+                    Logger.Debug($"Town recall landed {Elapsed():F0}ms in on {data.Map}, map change count {data.MapChangeCount}.");
+
+                    //one that lands says the channel is usable here after all, so an older failure stops speaking for
+                    //the map. Keyed on where the recall was started rather than where it landed - they are the same
+                    //map, since town is this map's own spawn, but the intent is the map that was left
+                    TownFailures.TryRemove(data.Map, out _);
+
                     source.TrySetResult(Expectation.Success);
+                }
 
                 return TaskCache.FALSE;
             });
@@ -4589,18 +4691,34 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //targeting you. Without an arm here it matched nothing, so a character holding aggro burned the whole
                 //timeout on every attempt and never fell back to walking
                 if (data.ResponseType is GameResponseType.TransportFailed)
+                {
+                    Logger.Debug($"Town recall refused {Elapsed():F0}ms in: transport_failed.");
                     source.TrySetResult("Failed to town. (failed)");
-                else if (data.ResponseType is GameResponseType.CantEscape)
+                } else if (data.ResponseType is GameResponseType.CantEscape)
+                {
+                    //the server refuses this while more than five things are targeting the character, so what its own
+                    //count was is the whole of the diagnosis - and the client's read of it may be nothing at all
+                    Logger.Debug($"Town recall refused {Elapsed():F0}ms in: cant_escape. Aggro targets read as {Character.AggroTargets}.");
                     source.TrySetResult("Failed to town. (can't escape)");
+                }
 
                 return TaskCache.FALSE;
             });
 
+        //diagnostics only. A frame that merely shows the channel gone names nothing that could have deleted it, and
+        //every candidate on this side is an emit: an attack, an equip, a walk, a stop. The hook fires after the wire,
+        //so it bills nothing, and it comes off in the finally below
+        var tracedSocket = Socket;
+
+        //the meter's resolver names the lane the emit is running inside, and this hook runs on the emitting flow, so
+        //the AsyncLocal it reads is still the caller's
+        void TraceEmit(object? _, ALSocketEmitType emitType)
+            => Logger.Debug($"Emitted {emitType} {Elapsed():F0}ms into the town channel, from {CallMeter.SourceResolver?.Invoke() ?? "nowhere named"}.");
+
+        tracedSocket.OnEmit += TraceEmit;
+
         //raised before the emit rather than off the server's answer, which is the whole reason it exists
         IsRecalling = true;
-
-        //for the cancellation line below, which is the only place the elapsed channel is visible
-        var channelStarted = System.Diagnostics.Stopwatch.GetTimestamp();
 
         try
         {
@@ -4629,6 +4747,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             expectation.ThrowIfUnsuccessful();
         } finally
         {
+            tracedSocket.OnEmit -= TraceEmit;
             IsRecalling = false;
         }
     }

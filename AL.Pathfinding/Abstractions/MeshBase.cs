@@ -196,7 +196,9 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
         return EdgeType.Walk;
     }
 
-    protected internal abstract TEdge ConstructEdge(TNode start, TNode end, EdgeType? typeOverride = null);
+    //townCost is what to price a town edge at, from CONSTANTS.TownCost, and null prices it at the nominal speed. Read
+    //only for an edge that turns out to be one - every other type's cost is not speed-derived
+    protected internal abstract TEdge ConstructEdge(TNode start, TNode end, EdgeType? typeOverride = null, float? townCost = null);
 
     protected internal abstract TNode ConstructNode(ILocation vertex);
 

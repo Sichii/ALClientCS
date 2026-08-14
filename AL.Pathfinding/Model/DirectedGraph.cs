@@ -152,7 +152,11 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
     }
 
     /// <inheritdoc cref="GraphBase{TMesh,TNode,TEdge}.FindPathAsync" />
-    public async IAsyncEnumerable<GraphEdge> FindPathAsync<T>(ILocation start, IEnumerable<T> ends, bool useTownIfOptimal = true)
+    public async IAsyncEnumerable<GraphEdge> FindPathAsync<T>(
+        ILocation start,
+        IEnumerable<T> ends,
+        bool useTownIfOptimal = true,
+        float? walkSpeed = null)
         where T: ILocation, ICircle
     {
         ArgumentNullException.ThrowIfNull(start);
@@ -167,18 +171,23 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
         //a short hop with a clear line needs no search. The dijkstra below is serialized process-wide, so every
         //character waits on every other one's path, and short hops are most of what gets asked for.
         //
-        //Bounded by the town heuristic because towning is the only same-map alternative a clear straight line can
-        //lose to, and any path using it costs at least that. Doors and transports are cheaper by heuristic - 50
-        //against 360 - but a cross-map exit is filtered out by the same-map test below, and a same-map one lands
-        //back at its own door, so neither competes with a walk that is already the shortest one there is.
+        //Bounded by the town cost because towning is the only same-map alternative a clear straight line can lose to,
+        //and any path using it costs at least that. The bound is the same speed-derived figure the search itself
+        //prices the channel at, so the two cannot disagree - a faster character both reaches for the channel less
+        //readily and takes this shortcut over a longer walk, which is the same statement twice. Doors and transports
+        //are cheaper by heuristic - 50 against a few hundred - but a cross-map exit is filtered out by the same-map
+        //test below, and a same-map one lands back at its own door, so neither competes with a walk that is already
+        //the shortest one there is.
         //
         //One destination only, which is what keeps that argument sound. Against a set, the nearest same-map
         //candidate is not the cheapest answer - a destination one door away costs the transport heuristic of 50 and
         //beats a clear 350-unit walk - so a shortcut that committed to the near one would quietly return a worse
         //path than the search. It would also widen a smaller hole: skipping the search skips the throw for a
         //destination whose map has no mesh
+        var townCost = walkSpeed is { } speed ? CONSTANTS.TownCost(speed) : CONSTANTS.NOMINAL_TOWN_COST;
+
         if ((endsArr.Length == 1) && NavMeshes.TryGetValue(start.Map, out var navMesh))
-            foreach (var end in endsArr.Where(e => e.OnSameMapAs(start) && (start.Distance(e) < CONSTANTS.TOWN_HEURISTIC)))
+            foreach (var end in endsArr.Where(e => e.OnSameMapAs(start) && (start.Distance(e) < townCost)))
             {
                 //stop at the near edge of the destination rather than its centre, the same shortcut
                 //FindDistanceShortcuts applies to a searched path
@@ -199,7 +208,7 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
                 yield break;
             }
 
-        var path = base.FindPathAsync(start, endsArr.Cast<ILocation>(), useTownIfOptimal);
+        var path = base.FindPathAsync(start, endsArr.Cast<ILocation>(), useTownIfOptimal, walkSpeed);
 
         await foreach (var edge in EnhancePathAsync(path))
             yield return edge;
@@ -214,7 +223,9 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
 
         //EnhancePathAsync flushes on the first non-walk edge, so only the last element can be one.
         //a town edge there outranks every walk before it - you can town from anywhere - so the whole
-        //partition collapses into it without testing a single line of sight
+        //partition collapses into it without testing a single line of sight.
+        //The replacement carries the nominal cost rather than this character's, and nothing reads it: the search that
+        //chose this edge is over, and every consumer of a returned town edge reads its Type alone
         if (last.Type == EdgeType.Town)
         {
             var first = connectors[0];

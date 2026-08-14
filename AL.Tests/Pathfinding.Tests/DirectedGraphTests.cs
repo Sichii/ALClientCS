@@ -66,7 +66,8 @@ public class DirectedGraphTests : PathfindingTestBed
                    "no leg may end somewhere the flood fill never reached");
 
         //and the bound on the other guard: a clear line long enough that towning could have beaten it is the search's
-        //call to make, which is what turns TOWN_HEURISTIC into a decision rather than an incidental constant
+        //call to make, which is what turns the town cost into a decision rather than an incidental constant. Asked
+        //with no speed, so it is priced at CONSTANTS.NOMINAL_TOWN_COST
         var far = await Pathfinder.FindPathAsync(new Location("main", 0, 0), [new Destination(new Location("main", 0, 1400), 0)])
                                   .ToArrayAsync();
 

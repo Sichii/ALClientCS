@@ -90,12 +90,16 @@ public static class Pathfinder
     public static bool CanMove(ILocation start, ILocation end) => DirectedGraph.CanMove(start, end);
 
     /// <inheritdoc cref="GraphBase{TMesh,TNode,TEdge}.FindPathAsync" />
-    public static IAsyncEnumerable<GraphEdge> FindPathAsync<T>(ILocation start, IEnumerable<T> ends, bool useTownIfOptimal = true)
+    public static IAsyncEnumerable<GraphEdge> FindPathAsync<T>(
+        ILocation start,
+        IEnumerable<T> ends,
+        bool useTownIfOptimal = true,
+        float? walkSpeed = null)
         where T: ILocation, ICircle
         =>
 
             //do other things
-            DirectedGraph.FindPathAsync(start, ends, useTownIfOptimal);
+            DirectedGraph.FindPathAsync(start, ends, useTownIfOptimal, walkSpeed);
 
     /// <summary>
     ///     Retreives the navmesh associated with a given map.

@@ -6,13 +6,47 @@ namespace AL.Pathfinding.Definitions;
 
 public static class CONSTANTS
 {
+    /// <summary>How long the town channel runs. The server caps it at 3000ms whatever it was asked for.</summary>
+    public const float TOWN_CHANNEL_SECONDS = 3f;
+
     /// <summary>
-    ///     The cost of a town teleport, in the same walk-distance units every other edge is measured in. The channel
-    ///     itself is 3 seconds - about 150 units at a speed of 50 - so this carries a premium over the raw time, since
-    ///     an interrupted town costs the whole search again. Doubles as the bound on the straight-line shortcut in
-    ///     <c>DirectedGraph.FindPathAsync</c>, which stays sound only while no town path can cost less than it.
+    ///     What the channel is priced at over its raw duration.
     /// </summary>
-    public const float TOWN_HEURISTIC = 360f;
+    /// <remarks>
+    ///     Small, because the speed it is applied to is now the character's own. The flat cost this replaced was 2.4x
+    ///     the raw duration at a base speed, and that factor was carrying the spread between a slowed character and a
+    ///     boosted one rather than any risk - which is what made it wrong for both ends of it.
+    ///     <br />
+    ///     What is left to charge for is the part of the channel a walk of the same length does not cost: an
+    ///     interruption leaves the character where it started, and landing adds 3200ms of penalty cooldown to the next
+    ///     skill where a walk adds none. 1.2 counts about 600ms of that against the three second channel. This is the
+    ///     one number to move to make the bot town more or less readily.
+    /// </remarks>
+    public const float TOWN_RISK_PREMIUM = 1.2f;
+
+    /// <summary>What the channel is priced at when the character's own speed is not to hand.</summary>
+    /// <remarks>
+    ///     A character's base speed before any boost. Used for a frame that has not filled in yet as well, where a
+    ///     literal reading of a zero speed would make the channel free and win every search.
+    /// </remarks>
+    public const float NOMINAL_WALK_SPEED = 50f;
+
+    /// <summary>
+    ///     The cost of a town teleport in the walk-distance units every other edge is measured in: the ground the
+    ///     character would have covered on foot while the channel ran, times <see cref="TOWN_RISK_PREMIUM" />.
+    /// </summary>
+    /// <remarks>
+    ///     Speed-derived rather than flat because the thing being compared is a walk, and how far a walk gets in three
+    ///     seconds is the whole of what makes the trade. A boosted character should reach for the channel less readily
+    ///     than a slow one, and a flat cost had it the same for both.
+    /// </remarks>
+    public static float TownCost(float walkSpeed)
+        => TOWN_CHANNEL_SECONDS * (walkSpeed > 0f ? walkSpeed : NOMINAL_WALK_SPEED) * TOWN_RISK_PREMIUM;
+
+    /// <summary>
+    ///     <see cref="TownCost" /> at <see cref="NOMINAL_WALK_SPEED" />, for a search given no speed to price against.
+    /// </summary>
+    public static readonly float NOMINAL_TOWN_COST = TownCost(NOMINAL_WALK_SPEED);
 
     /// <summary>
     ///     The heuristic value of a transport, door, or leave connection.
