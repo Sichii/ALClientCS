@@ -42,6 +42,61 @@ public static class InventoryExtensions
     }
 
     /// <summary>
+    ///     Finds the inventory slot an unequipped item landed in, preferring a slot that was empty when the unequip
+    ///     was emitted.
+    /// </summary>
+    /// <param name="inventory">
+    ///     The inventory to search.
+    /// </param>
+    /// <param name="occupiedBefore">
+    ///     The indexes of the slots that were occupied when the unequip was emitted.
+    /// </param>
+    /// <param name="itemName">
+    ///     The name of the unequipped item.
+    /// </param>
+    /// <param name="level">
+    ///     The level of the unequipped item.
+    /// </param>
+    /// <returns>
+    ///     <see cref="InventoryIndexer" />
+    ///     <br />
+    ///     The slot the item landed in, or
+    ///     <c>
+    ///         null
+    ///     </c>
+    ///     when no matching item is on a candidate slot yet.
+    /// </returns>
+    /// <remarks>
+    ///     The server's <c>add_item</c> places a non-stackable unequip in the first free slot, while an equip in
+    ///     flight on the same socket swaps in place - the item it displaces lands in the occupied slot the
+    ///     replacement vacated. Requiring a previously-empty slot is what tells those apart when both hands wear the
+    ///     same weapon at the same level, and it also skips a spare copy already sitting in a lower slot. The
+    ///     fallback answers for a stackable merged onto an existing pile, which lands on no empty slot at all.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     inventory
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     occupiedBefore
+    /// </exception>
+    public static InventoryIndexer? FindLandedItem(
+        this Inventory inventory,
+        IReadOnlySet<int> occupiedBefore,
+        string itemName,
+        int level)
+    {
+        ArgumentNullException.ThrowIfNull(inventory);
+
+        ArgumentNullException.ThrowIfNull(occupiedBefore);
+
+        var candidates = inventory.AsIndexed()
+                                  .Where(indexed => indexed.Item.Name.EqualsI(itemName) && (indexed.Item.Level == level))
+                                  .ToList();
+
+        return candidates.FirstOrDefault(indexed => !occupiedBefore.Contains(indexed.Index)) ?? candidates.FirstOrDefault();
+    }
+
+    /// <summary>
     ///     Checks the inventory to see if it contains an item with the given name.
     /// </summary>
     /// <param name="inventory">

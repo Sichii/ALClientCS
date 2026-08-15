@@ -4403,7 +4403,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new InvalidOperationException($"Failed to unequip item {item.Name}. (no space)");
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var previousInventory = Character.Inventory.AsIndexed();
+
+        //indexes rather than items: a character frame replaces Inventory with freshly deserialized Items, so a
+        //set-difference against a snapshot of them subtracts nothing (see the Item == remarks). Which slots were
+        //occupied is the durable fact, and it is what FindLandedItem tells identical items apart with
+        var occupiedBefore = Character.Inventory
+                                      .AsIndexed()
+                                      .Select(indexed => indexed.Index)
+                                      .ToHashSet();
 
         //the refusal arm, and it has to be this event: every refusal in the unequip handler is a fail_response
         //(node/server.js:7298-7314), which lands as a game_response with failed:true and place:"unequip", and the
@@ -4441,11 +4448,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 if (slotItem == null)
                 {
-                    var inventoryItem = Character.Inventory
-                                                 .AsIndexed()
-                                                 .Except(previousInventory)
-                                                 .FirstOrDefault(indexed
-                                                     => indexed.Item.Name.EqualsI(item.Name) && (indexed.Item.Level == item.Level));
+                    //a gear swap keeps an equip in flight beside this unequip, and the item that equip displaces
+                    //can be an identical twin of the one coming off - FindLandedItem tells them apart by which
+                    //slot was empty before the emit
+                    var inventoryItem = Character.Inventory.FindLandedItem(occupiedBefore, item.Name, item.Level);
 
                     if (inventoryItem != null)
                         source.TrySetResult(inventoryItem);
