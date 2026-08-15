@@ -324,17 +324,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <inheritdoc />
     public void Update(TimeSpan delta)
     {
-        foreach (var kvp in Cooldowns.ToList())
-        {
-            kvp.Value.Update(delta);
-
-            if (kvp.Value.CanUse())
-                Cooldowns.Remove(kvp.Key, out _);
-        }
-
-        foreach (var projectile in Projectiles.Values.ToList())
-            if (projectile.Created.AddMilliseconds(projectile.ETA) < DateTime.UtcNow)
-                Projectiles.Remove(projectile.ProjectileId!, out _);
+        //in-place: ToList on these maps throws when a socket write grows them mid-copy
+        Cooldowns.TickAndTryRemoveWhere(delta, cooldown => cooldown.CanUse());
+        Projectiles.TryRemoveWhere(projectile => projectile.Created.AddMilliseconds(projectile.ETA) < DateTime.UtcNow);
 
         Character.Update(delta);
     }
@@ -2324,6 +2316,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new InvalidOperationException($"Failed to deposit item {item.Name}. (no space)");
 
         (bankPack, bankSlot) = optimalIndexes.Value;
+
+        Item? occupant = null;
+
+        if ((bankSlot.Value >= 0)
+            && Bank!.TryGetValue(bankPack.Value, out var occupying)
+            && (bankSlot.Value < occupying.Count))
+            occupant = occupying[bankSlot.Value];
+
         var source = new TaskCompletionSource<Expectation<BankIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
@@ -2342,23 +2342,56 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 if (data.Bank == null)
                     source.TrySetResult($"Failed to deposit item {item.Name}. (not in bank)");
-                else if ((data.Inventory[inventorySlot] == null) && data.Bank.TryGetValue(bankPack.Value, out var bankedItems))
+                else if (data.Bank.TryGetValue(bankPack.Value, out var bankedItems))
                 {
-                    var probableIndex = bankedItems.FindIndex(b
-                        => (b != null) && b.Name.EqualsI(item.Name) && (b.Level == item.Level) && (b.Quantity >= item.Quantity));
+                    //an explicit slot is a swap with whatever was there, so the inventory slot is empty only when
+                    //the target was empty. Name/level/quantity, not Item == : prefixes compare by reference.
+                    if (bankSlot.Value >= 0)
+                    {
+                        var at = bankSlot.Value < bankedItems.Count ? bankedItems[bankSlot.Value] : null;
+                        var invNow = inventorySlot < data.Inventory.Count ? data.Inventory[inventorySlot] : null;
 
-                    if (probableIndex == -1)
-                        return TaskCache.FALSE;
+                        if ((at is null)
+                            || !at.Name.EqualsI(item.Name)
+                            || (at.Level != item.Level)
+                            || (at.Quantity < item.Quantity))
+                            return TaskCache.FALSE;
 
-                    var bankedItem = bankedItems[probableIndex]!;
-
-                    source.TrySetResult(
-                        new BankIndexer
+                        if (occupant is null)
                         {
-                            BankPack = bankPack.Value,
-                            Index = probableIndex,
-                            Item = bankedItem
-                        });
+                            if (invNow is not null)
+                                return TaskCache.FALSE;
+                        } else if ((invNow is null)
+                                   || !invNow.Name.EqualsI(occupant.Name)
+                                   || (invNow.Level != occupant.Level)
+                                   || (invNow.Quantity != occupant.Quantity))
+                            return TaskCache.FALSE;
+
+                        source.TrySetResult(
+                            new BankIndexer
+                            {
+                                BankPack = bankPack.Value,
+                                Index = bankSlot.Value,
+                                Item = at
+                            });
+                    } else if (data.Inventory[inventorySlot] == null)
+                    {
+                        var probableIndex = bankedItems.FindIndex(b
+                            => (b != null) && b.Name.EqualsI(item.Name) && (b.Level == item.Level) && (b.Quantity >= item.Quantity));
+
+                        if (probableIndex == -1)
+                            return TaskCache.FALSE;
+
+                        var bankedItem = bankedItems[probableIndex]!;
+
+                        source.TrySetResult(
+                            new BankIndexer
+                            {
+                                BankPack = bankPack.Value,
+                                Index = probableIndex,
+                                Item = bankedItem
+                            });
+                    }
                 }
 
                 return TaskCache.FALSE;
@@ -4066,14 +4099,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!Character.Bank.TryGetValue(bankPack, out var bank))
             throw new InvalidOperationException($"Failed to swap bank slots {bankSlot1} and {bankSlot2}. (bank unavailable)");
 
-        if ((bankSlot1 < 0) || (bankSlot1 >= bank.Count))
+        if ((uint)bankSlot1 >= BANK_PACK_SIZE)
             throw new ArgumentOutOfRangeException(nameof(bankSlot1));
 
-        if ((bankSlot2 < 0) || (bankSlot2 >= bank.Count))
+        if ((uint)bankSlot2 >= BANK_PACK_SIZE)
             throw new ArgumentOutOfRangeException(nameof(bankSlot2));
 
-        var item1 = bank[bankSlot1];
-        var item2 = bank[bankSlot2];
+        var item1 = At(bank, bankSlot1);
+        var item2 = At(bank, bankSlot2);
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -4087,10 +4120,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (!data.Bank.TryGetValue(bankPack, out var cBank))
                     return TaskCache.FALSE;
 
-                var cItem1 = cBank[bankSlot1];
-                var cItem2 = cBank[bankSlot2];
-
-                if ((cItem1 == item2) && (cItem2 == item1))
+                if (Swapped(At(cBank, bankSlot1), item2) && Swapped(At(cBank, bankSlot2), item1))
                     source.TrySetResult(Expectation.Success);
 
                 return TaskCache.FALSE;
@@ -4108,6 +4138,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
+
+        //Item is a record whose synthesized Equals folds in PossiblePrefixes by reference, so two frames of the
+        //same item never compare equal. Name, level and quantity are what the server actually swapped.
+        static Item? At(IReadOnlyList<Item?> pack, int slot)
+            => (uint)slot < (uint)pack.Count ? pack[slot] : null;
+
+        static bool Swapped(Item? slot, Item? expected)
+            => ((slot == null) == (expected == null))
+               && ((slot == null)
+                   || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
     }
 
     /// <summary>
@@ -5569,13 +5609,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         BankPack? bankPack = null,
         int? bankSlot = null)
     {
-        //if both indexes are specified, just check that they are valid.
+        //if both indexes are specified, the caller named a slot. Occupied is allowed: bank_store swaps with
+        //whatever is there. Past the pack or a pack this map does not serve is not.
         if (bankPack.HasValue && bankSlot.HasValue)
-            if (!Bank!.TryGetValue(bankPack.Value, out var bankedItems)
-                || ((bankSlot.Value < bankedItems.Count) && (bankedItems[bankSlot.Value] != null)))
+        {
+            if (!Bank!.TryGetValue(bankPack.Value, out _) || ((uint)bankSlot.Value >= BANK_PACK_SIZE))
                 return null;
-            else
-                return (bankPack.Value, bankSlot.Value);
+
+            return (bankPack.Value, bankSlot.Value);
+        }
 
         var item = indexedInventoryItem.Item;
         var itemData = item.GetData();

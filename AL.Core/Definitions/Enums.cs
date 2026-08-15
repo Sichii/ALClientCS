@@ -1145,6 +1145,9 @@ public enum UIDataType
     MLuck,
     Scare,
 
+    /// <summary>Rogue Swiftness cast line + consume animation on the receiver.</summary>
+    RSpeed,
+
     [EnumMember(Value = "+$")]
     GainMoney,
 
