@@ -7,6 +7,7 @@ using AL.APIClient.Request;
 using AL.APIClient.Response;
 using Chaos.Extensions.Common;
 using Common.Logging;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using RestSharp;
@@ -25,6 +26,9 @@ public sealed class AlApiClient : IAlApiClient
     public const string DEFAULT_BASE_URL = "https://adventure.land";
 
     private static readonly ILog Logger = LogManager.GetLogger<AlApiClient>();
+
+    //keyed by host so a caller pointed at a different server is not served the public one's tables
+    private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> GameDataCache = new();
 
     private readonly string BaseUrl;
 
@@ -175,7 +179,9 @@ public sealed class AlApiClient : IAlApiClient
         Auth = apiClient.Auth;
     }
 
-    private static IRestClient CreateRestClient(string baseUrl) => new RestClient(baseUrl);
+    // data.js is ~2.6MB and the server often trickles it well past the 100s default.
+    private static IRestClient CreateRestClient(string baseUrl)
+        => new RestClient(new RestClientOptions(baseUrl) { Timeout = TimeSpan.FromMinutes(5) });
 
     /// <summary>
     ///     Asynchronously fetches the "G" data json.
@@ -190,22 +196,42 @@ public sealed class AlApiClient : IAlApiClient
     ///     <br />
     ///     A json string of the "G" data.
     /// </returns>
-    public static async Task<string> GetGameDataAsync(string baseUrl = DEFAULT_BASE_URL)
+    /// <summary>
+    ///     Fetches <c>data.js</c>, once per host for the life of the process.
+    /// </summary>
+    /// <remarks>
+    ///     The body is multiple megabytes and the server can spend minutes sending it, so a second caller downloading
+    ///     it again is the most expensive thing a boot can do. The data is static for a server session anyway. A failed
+    ///     fetch evicts itself, so a transient one does not poison every later caller.
+    /// </remarks>
+    public static Task<string> GetGameDataAsync(string baseUrl = DEFAULT_BASE_URL)
+        => GameDataCache.GetOrAdd(baseUrl, url => new Lazy<Task<string>>(() => FetchGameDataAsync(url)))
+                        .Value;
+
+    private static async Task<string> FetchGameDataAsync(string baseUrl)
     {
         Logger.Info("Fetching game data...");
 
-        using var client = CreateRestClient(baseUrl);
-        var request = new RestRequest("data.js");
+        try
+        {
+            using var client = CreateRestClient(baseUrl);
+            var request = new RestRequest("data.js");
 
-        var response = await client.ExecuteGetAsync(request);
+            var response = await client.ExecuteGetAsync(request);
 
-        if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
-            throw new InvalidOperationException($"Failed to fetch game data. ({response.StatusCode}) {response.ErrorMessage}");
+            if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
+                throw new InvalidOperationException($"Failed to fetch game data. ({response.StatusCode}) {response.ErrorMessage}");
 
-        var startBracketIndex = response.Content.IndexOf('{');
-        var endBrackedIndex = response.Content.LastIndexOf('}');
+            var startBracketIndex = response.Content.IndexOf('{');
+            var endBrackedIndex = response.Content.LastIndexOf('}');
 
-        return response.Content.Substring(startBracketIndex, endBrackedIndex - startBracketIndex + 1);
+            return response.Content.Substring(startBracketIndex, endBrackedIndex - startBracketIndex + 1);
+        } catch
+        {
+            GameDataCache.TryRemove(baseUrl, out _);
+
+            throw;
+        }
     }
 
     /// <summary>
