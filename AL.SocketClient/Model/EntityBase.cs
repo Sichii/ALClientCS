@@ -393,13 +393,7 @@ public abstract class EntityBase : AttributedObjectBase,
 
     public void Update(TimeSpan delta)
     {
-        foreach (var kvp in Conditions.ToList())
-        {
-            kvp.Value.Update(delta);
-
-            if (kvp.Value.RemainingMs <= 0)
-                Conditions.Remove(kvp.Key, out _);
-        }
+        Conditions.TickAndTryRemoveWhere(delta, condition => condition.RemainingMs <= 0);
 
         //the whole read-compute-write is inside the lock, not just the write. A correction landing between the read
         //and the write is otherwise clobbered by a step derived from the position it just replaced, silently
