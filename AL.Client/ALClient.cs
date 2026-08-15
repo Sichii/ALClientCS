@@ -2463,6 +2463,52 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
+        //the refusal arm, and it has to be this event: every refusal in the equip handler is a fail_response
+        //(node/server.js:7054-7274), which lands as a game_response with failed:true and place:"equip" - the
+        //disappearing_text above is only the legacy toast. Without this arm an ordinary refusal matched nothing
+        //and spent the whole network timeout before throwing one that named the wrong problem. Place is the
+        //filter because a gear swap keeps an unequip and an equip in flight on one socket at the same time
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
+                //tolerating a null argument
+                if (!data.Failed || !"equip".EqualsI(data.Place!))
+                    return TaskCache.FALSE;
+
+                switch (data.ResponseType)
+                {
+                    case GameResponseType.Invalid:
+                        source.TrySetResult($"Failed to equip item {item.Name}. (invalid inventory index)");
+
+                        break;
+                    case GameResponseType.NoItem:
+                        source.TrySetResult($"Failed to equip item {item.Name}. (no item at index)");
+
+                        break;
+                    case GameResponseType.ItemBlocked:
+                        source.TrySetResult($"Failed to equip item {item.Name}. (item is blocked)");
+
+                        break;
+                    case GameResponseType.ItemPlaceholder:
+                        source.TrySetResult($"Failed to equip item {item.Name}. (item is an upgrade placeholder)");
+
+                        break;
+                    case GameResponseType.ItemLocked:
+                        source.TrySetResult($"Failed to equip item {item.Name}. (item is locked)");
+
+                        break;
+                    case GameResponseType.CantEquip:
+                        source.TrySetResult(
+                            $"Failed to equip item {item.Name}. (cant_equip - wrong class or slot, or a doublehand while the offhand is on)");
+
+                        break;
+                }
+
+                return TaskCache.FALSE;
+            });
+
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
             data =>
@@ -4358,6 +4404,34 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
         var previousInventory = Character.Inventory.AsIndexed();
+
+        //the refusal arm, and it has to be this event: every refusal in the unequip handler is a fail_response
+        //(node/server.js:7298-7314), which lands as a game_response with failed:true and place:"unequip", and the
+        //character frame below only ever answers for success. Place is the filter because a gear swap keeps an
+        //unequip and an equip in flight on one socket at the same time
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
+                //tolerating a null argument
+                if (!data.Failed || !"unequip".EqualsI(data.Place!))
+                    return TaskCache.FALSE;
+
+                switch (data.ResponseType)
+                {
+                    case GameResponseType.Invalid:
+                        source.TrySetResult($"Failed to unequip item {item.Name}. (no item in that slot)");
+
+                        break;
+                    case GameResponseType.NoSpace:
+                        source.TrySetResult($"Failed to unequip item {item.Name}. (no space)");
+
+                        break;
+                }
+
+                return TaskCache.FALSE;
+            });
 
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
