@@ -4,6 +4,7 @@ using AL.Core.Helpers;
 using AL.Data;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
+using Chaos.Extensions.Common;
 using Condition = AL.Core.Definitions.Condition;
 #endregion
 
@@ -69,10 +70,15 @@ public static class EntityExtensions
                         defense -= GameData.Conditions[Condition.WarCry]!.Resistance;
                 }
 
+                //the server subtracts pierce twice for damage: once from the attacker's live stat and once from
+                //the copy stamped onto the projectile at creation (node/server.js:3179, :3611)
                 defense -= entity.RPiercing;
 
+                //heals subtract pierce once and halve the whole term instead (node/server.js:3553)
                 if (damageType == DamageType.Heal)
                     defense /= 2;
+                else
+                    defense -= entity.RPiercing;
 
                 break;
             }
@@ -92,7 +98,8 @@ public static class EntityExtensions
                         defense -= GameData.Conditions[Condition.WarCry]!.Armor;
                 }
 
-                defense -= entity.APiercing;
+                //pierce counts twice, same as the magical branch
+                defense -= entity.APiercing * 2;
 
                 break;
             }
@@ -169,6 +176,11 @@ public static class EntityExtensions
     /// <param name="projectiles">
     ///     The projectiles to use in the check.
     /// </param>
+    /// <param name="findAttacker">
+    ///     Resolves a projectile's attacker id to a live entity. When provided, each projectile's damage is reduced by
+    ///     the target's armor or resistance less twice the attacker's pierce, matching the server's math. A projectile
+    ///     whose attacker cannot be resolved counts at full damage.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
@@ -181,7 +193,10 @@ public static class EntityExtensions
     ///     </c>
     ///     .
     /// </returns>
-    public static bool WillDieToProjectiles(this EntityBase entity, IEnumerable<ActionData> projectiles)
+    public static bool WillDieToProjectiles(
+        this EntityBase entity,
+        IEnumerable<ActionData> projectiles,
+        Func<string, EntityBase?>? findAttacker = null)
     {
         if ((entity.Evasion > 0) || (entity.Reflection > 0) || (entity.Lifesteal > 0))
             return false;
@@ -192,9 +207,73 @@ public static class EntityExtensions
             return false;
 
         return (projectiles.Where(proj => proj.Target == entity.Id)
-                           .Select(proj => proj.Damage)
+                           .Select(proj => proj.Damage * MitigationAgainst(entity, proj, findAttacker))
                            .Sum()
                 * 0.95)
                > entity.HP;
+    }
+
+    //the fraction of a projectile's damage that gets through the target's defenses. pierce counts twice because
+    //the server subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
+    //(node/server.js:3179, :3611)
+    private static float MitigationAgainst(EntityBase target, ActionData projectile, Func<string, EntityBase?>? findAttacker)
+    {
+        var attacker = string.IsNullOrEmpty(projectile.AttackerId) ? null : findAttacker?.Invoke(projectile.AttackerId);
+
+        if (attacker is null)
+            return 1f;
+
+        //a skill can stamp extra pierce onto its projectile - piercingshot's 500 - which the server adds to the
+        //creation-time copy on top of the doubled stat (node/server.js:3049, :3179)
+        var skill = string.IsNullOrEmpty(projectile.Source) ? null : GameData.Skills[projectile.Source];
+
+        return ResolveDamageType(attacker, projectile.Source) switch
+        {
+            DamageType.Physical => Utilities.CalculateDamageMultiplier(target.Armor - (attacker.APiercing * 2) - (skill?.APiercing ?? 0f)),
+            DamageType.Magical  => Utilities.CalculateDamageMultiplier(target.Resistance - (attacker.RPiercing * 2) - (skill?.RPiercing ?? 0f)),
+
+            //pure ignores defenses entirely, and heals never carry damage
+            _ => 1f
+        };
+    }
+
+    //restates the server's damage-type selection: monster data or class, then mainhand weapon override, then
+    //skill override for anything but a basic attack (node/server.js:2966-2978). unset falls back to physical
+    private static DamageType ResolveDamageType(EntityBase attacker, string? source)
+    {
+        var damageType = attacker switch
+        {
+            Monster monster => monster.GetData()
+                                      .DamageType,
+            Player player => ResolvePlayerDamageType(player),
+            _             => DamageType.Physical
+        };
+
+        if (!string.IsNullOrEmpty(source) && !source.EqualsI("attack"))
+        {
+            var skillDamageType = GameData.Skills[source]?.DamageType ?? DamageType.None;
+
+            if (skillDamageType != DamageType.None)
+                damageType = skillDamageType;
+        }
+
+        return damageType == DamageType.None ? DamageType.Physical : damageType;
+    }
+
+    private static DamageType ResolvePlayerDamageType(Player player)
+    {
+        var damageType = player.GetData()
+                               ?.DamageType
+                         ?? DamageType.Physical;
+
+        if (player.Slots.TryGetValue(Slot.MainHand, out var mainHand) && (mainHand is not null))
+        {
+            var weaponDamageType = GameData.Items[mainHand.Name]?.DamageType ?? DamageType.None;
+
+            if (weaponDamageType != DamageType.None)
+                damageType = weaponDamageType;
+        }
+
+        return damageType;
     }
 }
