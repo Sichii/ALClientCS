@@ -324,7 +324,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <inheritdoc />
     public void Update(TimeSpan delta)
     {
-        //in-place: ToList on these maps throws when a socket write grows them mid-copy
+        //in-place: ToList on Cooldowns throws when a socket write grows it mid-copy. The projectile sweep went through
+        //Values, which copies under lock and was never at risk - it is here for the saved allocation only
         Cooldowns.TickAndTryRemoveWhere(delta, cooldown => cooldown.CanUse());
         Projectiles.TryRemoveWhere(projectile => projectile.Created.AddMilliseconds(projectile.ETA) < DateTime.UtcNow);
 
@@ -2279,13 +2280,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     If specified, will try to find a slot in this bankPack to deposit the item.
     /// </param>
     /// <param name="bankSlot">
-    ///     If specified with bankPack, will deposit the item in this bankPack, in this bankSlot if it is empty.
+    ///     If specified with bankPack, will deposit the item into that exact slot, swapping with whatever is already
+    ///     there. Pass <c>-1</c> to let the server pick, which is also how an item folds into a stack the pack
+    ///     already holds.
     /// </param>
     /// <returns>
     ///     <see cref="BankIndexer" />
     ///     <br />
     ///     Information about the item and it's index in the bank.
     /// </returns>
+    /// <remarks>
+    ///     Naming an occupied slot is a swap, not an error: the server writes the displaced item straight back into
+    ///     <paramref name="inventorySlot" /> (node/server.js:8531). The returned indexer describes only the deposited
+    ///     half, so this call is not necessarily inventory-reducing and a loop that treats it as such - one walking
+    ///     occupied slots, say - will not terminate on its own.
+    /// </remarks>
     /// <exception cref="ArgumentException">
     ///     If specifying bankSlot), must also specify bankPack.
     /// </exception>
@@ -2310,6 +2319,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             Index = inventorySlot,
             Item = item
         };
+
+        //the caller's own intent, and deliberately not the sign of what FindOptimalBankIndex returned. An auto-picked
+        //slot is empty by construction, so keying off the result would put the auto path through the swap arm below,
+        //where the displaced-occupant half is dead code and a one-frame-stale cached Bank times a completed deposit out
+        var namedSlot = bankSlot is >= 0;
+
         var optimalIndexes = FindOptimalBankIndex(indexedItem, bankPack, bankSlot);
 
         if (optimalIndexes == null)
@@ -2319,7 +2334,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         Item? occupant = null;
 
-        if ((bankSlot.Value >= 0)
+        if (namedSlot
             && Bank!.TryGetValue(bankPack.Value, out var occupying)
             && (bankSlot.Value < occupying.Count))
             occupant = occupying[bankSlot.Value];
@@ -2330,8 +2345,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                if (data.ResponseType == GameResponseType.Invalid)
-                    source.TrySetResult($"Failed to deposit item {item.Name}. (invalid)");
+                //every refusal, not just "invalid": depositing onto an occupied slot is now the supported path, so
+                //item_placeholder and item_blocked are ordinary here, and storage_full and bank_unavailable have
+                //always been. fail_response sets failed on all of them and names the handler in place
+                if (data.Failed && "bank".EqualsI(data.Place!))
+                    source.TrySetResult($"Failed to deposit item {item.Name}. ({data.ResponseType})");
 
                 return TaskCache.FALSE;
             });
@@ -2346,7 +2364,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 {
                     //an explicit slot is a swap with whatever was there, so the inventory slot is empty only when
                     //the target was empty. Name/level/quantity, not Item == : prefixes compare by reference.
-                    if (bankSlot.Value >= 0)
+                    if (namedSlot)
                     {
                         var at = bankSlot.Value < bankedItems.Count ? bankedItems[bankSlot.Value] : null;
                         var invNow = inventorySlot < data.Inventory.Count ? data.Inventory[inventorySlot] : null;
@@ -2374,7 +2392,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                                 Index = bankSlot.Value,
                                 Item = at
                             });
-                    } else if (data.Inventory[inventorySlot] == null)
+                    } else if ((inventorySlot < data.Inventory.Count) && (data.Inventory[inventorySlot] == null))
                     {
                         var probableIndex = bankedItems.FindIndex(b
                             => (b != null) && b.Name.EqualsI(item.Name) && (b.Level == item.Level) && (b.Quantity >= item.Quantity));
@@ -4105,10 +4123,25 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if ((uint)bankSlot2 >= BANK_PACK_SIZE)
             throw new ArgumentOutOfRangeException(nameof(bankSlot2));
 
+        //the server refuses a == b outright (node/server.js:8463), and a sort loop emits exactly that whenever an
+        //item is already where it belongs. Nothing to move is this call succeeding, not failing
+        if (bankSlot1 == bankSlot2)
+            return;
+
         var item1 = At(bank, bankSlot1);
         var item2 = At(bank, bankSlot2);
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (data.Failed && "bank".EqualsI(data.Place!))
+                    source.TrySetResult($"Failed to swap bank slots {bankSlot1} and {bankSlot2}. ({data.ResponseType})");
+
+                return TaskCache.FALSE;
+            });
 
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
@@ -4120,7 +4153,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (!data.Bank.TryGetValue(bankPack, out var cBank))
                     return TaskCache.FALSE;
 
-                if (Swapped(At(cBank, bankSlot1), item2) && Swapped(At(cBank, bankSlot2), item1))
+                var at1 = At(cBank, bankSlot1);
+                var at2 = At(cBank, bankSlot2);
+
+                if (SameContents(at1, item2) && SameContents(at2, item1))
+                {
+                    source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                }
+
+                //the server merges rather than swaps when the two stack, and unlike the inventory's imove it merges
+                //into b and empties a (node/server.js:8472 against :8354). That is this call succeeding, not failing
+                if ((item1 != null)
+                    && (item2 != null)
+                    && (at1 == null)
+                    && (at2 != null)
+                    && at2.Name.EqualsI(item2.Name)
+                    && (at2.Quantity == (item1.Quantity + item2.Quantity)))
                     source.TrySetResult(Expectation.Success);
 
                 return TaskCache.FALSE;
@@ -4139,15 +4189,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
 
-        //Item is a record whose synthesized Equals folds in PossiblePrefixes by reference, so two frames of the
-        //same item never compare equal. Name, level and quantity are what the server actually swapped.
+        //a pack arrives trimmed to its highest occupied slot, so a valid slot past the array's end reads as empty
         static Item? At(IReadOnlyList<Item?> pack, int slot)
             => (uint)slot < (uint)pack.Count ? pack[slot] : null;
-
-        static bool Swapped(Item? slot, Item? expected)
-            => ((slot == null) == (expected == null))
-               && ((slot == null)
-                   || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
     }
 
     /// <summary>
@@ -4190,7 +4234,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var cItem1 = data.Inventory[inventorySlot1];
                 var cItem2 = data.Inventory[inventorySlot2];
 
-                if (Swapped(cItem1, item2) && Swapped(cItem2, item1))
+                if (SameContents(cItem1, item2) && SameContents(cItem2, item1))
                 {
                     source.TrySetResult(Expectation.Success);
 
@@ -4220,16 +4264,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
-
-        //what identifies a slot's contents, and deliberately not Item's own equality: Item is a record, so the
-        //synthesized Equals folds in PossiblePrefixes - an IReadOnlyList<string> that EqualityComparer.Default
-        //compares by reference. Two deserializations of the same item never share that list, so a whole-item
-        //comparison across two frames is false for everything except a pair of nulls, and this call could only ever
-        //time out and throw on a swap that had in fact already happened
-        static bool Swapped(Item? slot, Item? expected)
-            => ((slot == null) == (expected == null))
-               && ((slot == null)
-                   || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
     }
 
     /// <summary>
@@ -4884,7 +4918,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
             throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
 
-        var item = bankedItems[bankSlot];
+        //a pack arrives trimmed to its highest occupied slot, so a valid slot can sit past the array's end. Empty is
+        //the answer there, and the same InvalidOperationException an empty slot inside the array already gives
+        var item = (uint)bankSlot < (uint)bankedItems.Count ? bankedItems[bankSlot] : null;
 
         if (item == null)
             throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (no item)");
@@ -4969,7 +5005,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
             throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
 
-        var item = bankedItems[bankSlot];
+        //a pack arrives trimmed to its highest occupied slot, so a valid slot can sit past the array's end. Empty is
+        //the answer there, and the same InvalidOperationException an empty slot inside the array already gives
+        var item = (uint)bankSlot < (uint)bankedItems.Count ? bankedItems[bankSlot] : null;
 
         if (item == null)
             throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (no item)");
@@ -5598,6 +5636,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     protected EntityBase? GetEntity(string id) => Players.GetValueOrDefault(id) as EntityBase ?? Monsters.GetValueOrDefault(id);
 
     /// <summary>
+    ///     Whether two slots hold the same thing, across two frames.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately not <see cref="Item" />'s own equality. Item is a record, so the synthesized Equals folds in
+    ///     PossiblePrefixes - an <see cref="IReadOnlyList{T}" /> that <see cref="EqualityComparer{T}.Default" />
+    ///     compares by reference. Two deserializations of the same item never share that list, so a whole-item
+    ///     comparison across two frames is false for everything except a pair of nulls, and a slot-move confirmation
+    ///     built on it could only ever time out and throw on a move that had in fact already happened.
+    /// </remarks>
+    private static bool SameContents(Item? slot, Item? expected)
+        => ((slot == null) == (expected == null))
+           && ((slot == null)
+               || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
+
+    /// <summary>
     ///     Finds a bank slot for the given inventory item: validates an explicit pack/slot pair, otherwise prefers stacking
     ///     onto an existing partial stack, else the first empty slot in an accessible pack on the current bank map. Requires
     ///     being in the bank (
@@ -5609,11 +5662,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         BankPack? bankPack = null,
         int? bankSlot = null)
     {
-        //if both indexes are specified, the caller named a slot. Occupied is allowed: bank_store swaps with
-        //whatever is there. Past the pack or a pack this map does not serve is not.
+        //if both indexes are specified, the caller named a slot. Occupied is allowed: the emit's swap branch exchanges
+        //the two slots raw (node/server.js:8528). -1 is allowed too - it is this method's own stacking sentinel below,
+        //and the server's "let me pick" (node/server.js:8503). Past the pack, or a pack this map does not serve, is not
         if (bankPack.HasValue && bankSlot.HasValue)
         {
-            if (!Bank!.TryGetValue(bankPack.Value, out _) || ((uint)bankSlot.Value >= BANK_PACK_SIZE))
+            if (!Bank!.TryGetValue(bankPack.Value, out _) || (bankSlot.Value < -1) || (bankSlot.Value >= BANK_PACK_SIZE))
                 return null;
 
             return (bankPack.Value, bankSlot.Value);

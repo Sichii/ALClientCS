@@ -10,7 +10,8 @@ namespace AL.Tests.Core.Tests;
 /// <summary>
 ///     LINQ ToList on a ConcurrentDictionary reads Count then CopyTo as two operations. A writer between them
 ///     throws ArgumentException - the crash in ALClient.Update when a skill_timeout lands during the cooldown tick.
-///     These pin the in-place walk that replaced it.
+///     That is the ICollection&lt;KeyValuePair&gt; path only; the projectile sweep went through Values, which copies
+///     under lock and was never at risk. These pin the in-place walk that replaced both.
 /// </summary>
 public class ConcurrentDictionaryExtensionsTests
 {
@@ -57,56 +58,42 @@ public class ConcurrentDictionaryExtensionsTests
            .NotContainKey("drop");
     }
 
-    //two hot loops flat out for two seconds is the whole point of this one, and while it runs there is no core left
-    //for anything else. ClientTests.ShallowMergeIntoTest asserts a wall-clock budget and fails alongside it
+    /// <summary>
+    ///     The walk has to tolerate the map growing and shrinking under it, which is what a socket write landing
+    ///     mid-tick does. Driven from inside the predicate rather than from a second thread: a racing writer proves
+    ///     the same thing only some of the time, and the two-second version of this cost a core and broke
+    ///     <c>ClientTests.ShallowMergeIntoTest</c>'s wall-clock budget alongside it.
+    /// </summary>
     [Test]
-    [NotInParallel]
-    public async Task TickAndTryRemoveWhereDoesNotThrowWhenWritersAddDuringTheWalk()
+    public void TickAndTryRemoveWhereToleratesTheMapChangingDuringTheWalk()
     {
         var map = new ConcurrentDictionary<int, TickItem>();
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
-        var writer = Task.Run(() =>
-        {
-            var n = 0;
+        for (var i = 0; i < 64; i++)
+            map[i] = new TickItem(1000);
 
-            while (!cts.IsCancellationRequested)
+        var written = 0;
+
+        var walk = () => map.TickAndTryRemoveWhere(
+            TimeSpan.FromMilliseconds(1),
+            item =>
             {
-                map[n] = new TickItem(1000);
-                n++;
-
-                if (n > 10_000)
+                //bounded, or every entry the walk reaches adds another one and it never ends
+                if (written < 64)
                 {
-                    map.Clear();
-                    n = 0;
+                    map[10_000 + written] = new TickItem(1000);
+                    map.TryRemove(written, out _);
+                    written++;
                 }
-            }
-        });
 
-        Exception? thrown = null;
+                return item.Expired;
+            });
 
-        try
-        {
-            while (!cts.IsCancellationRequested)
-            {
-                try
-                {
-                    map.TickAndTryRemoveWhere(TimeSpan.FromMilliseconds(1), item => item.Expired);
-                } catch (Exception ex)
-                {
-                    thrown = ex;
+        walk.Should()
+            .NotThrow();
 
-                    break;
-                }
-            }
-        } finally
-        {
-            await cts.CancelAsync();
-            await writer;
-        }
-
-        thrown.Should()
-              .BeNull();
+        written.Should()
+               .Be(64);
     }
 
     /// <summary>

@@ -1,5 +1,7 @@
+#region
 using System.Collections.Concurrent;
 using Chaos.Time.Abstractions;
+#endregion
 
 namespace AL.Core.Extensions;
 
@@ -13,8 +15,15 @@ public static class ConcurrentDictionaryExtensions
     /// </summary>
     /// <remarks>
     ///     LINQ <c>ToList</c> on a <see cref="ConcurrentDictionary{TKey,TValue}" /> reads <c>Count</c> then
-    ///     <c>CopyTo</c> as two operations. A writer between them throws <see cref="ArgumentException" />. The
-    ///     enumerator's contract is concurrent-safe.
+    ///     <c>CopyTo</c> as two operations. A writer between them throws <see cref="ArgumentException" />. That is the
+    ///     hazard on the <c>ICollection&lt;KeyValuePair&gt;</c> path only - <c>Values</c> and the dictionary's own
+    ///     <c>ToArray</c> build their copy under every lock and were never at risk. The enumerator's contract is
+    ///     concurrent-safe.
+    ///     <br />
+    ///     The trade for dropping the snapshot: the enumerator is live, so an entry written after the walk started may
+    ///     be visited by it and charged a <paramref name="delta" /> it did not spend. A snapshot skipped such an entry
+    ///     entirely. The error is bounded by one frame per affected entry, and taking a fresh snapshot to avoid it
+    ///     costs every entity every update, which is the trade this makes deliberately.
     ///     <br />
     ///     <c>TryRemove(kvp)</c> compares the value with <see cref="EqualityComparer{T}.Default" />, so what it
     ///     protects depends on <typeparamref name="TValue" />. A class with reference equality - a
@@ -47,7 +56,8 @@ public static class ConcurrentDictionaryExtensions
     ///     Drops entries for which <paramref name="predicate" /> is true, without taking a snapshot.
     /// </summary>
     /// <remarks>
-    ///     Same Count-then-CopyTo hazard as <see cref="TickAndTryRemoveWhere{TKey,TValue}" />.
+    ///     Same Count-then-CopyTo hazard as <see cref="TickAndTryRemoveWhere{TKey,TValue}" />. This one ticks nothing,
+    ///     so an entry written mid-walk is only tested against <paramref name="predicate" /> and not mutated.
     /// </remarks>
     public static void TryRemoveWhere<TKey, TValue>(this ConcurrentDictionary<TKey, TValue> source, Func<TValue, bool> predicate)
         where TKey : notnull
