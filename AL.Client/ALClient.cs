@@ -5705,10 +5705,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected bool DestroyEntity(string id)
     {
-        var result = Monsters.Remove(id, out _) || Players.Remove(id, out _);
+        var result = Monsters.Remove(id, out var monster) || Players.Remove(id, out _);
 
-        var bossInfoDic = (Dictionary<string, BossInfo>)EventsAndBosses.BossInfo;
-        bossInfoDic.Remove(id);
+        //the boss table is keyed by monster type, not entity id, so a dead boss is purged under its type name
+        if (monster is not null)
+        {
+            var bossInfoDic = (Dictionary<string, BossInfo>)EventsAndBosses.BossInfo;
+            bossInfoDic.Remove(monster.Name);
+        }
 
         return result;
     }
