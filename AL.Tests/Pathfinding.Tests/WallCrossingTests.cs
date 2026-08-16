@@ -251,6 +251,29 @@ public class WallCrossingTests : PathfindingTestBed
         }
     }
 
+    [Test]
+    public void AGrazePastTheEndpointDoesNotBlockAClearLine()
+    {
+        //the mesh vertex at main:(-1367, 616) sits on a padded wall corner, and a leg into it from the open
+        //ground to its northeast ends exactly on the lattice corner the wall cell touches. the raster traversal
+        //used to tie-break one cell past the endpoint into that wall, reading a clear line of several hundred
+        //units as blocked - which hid the cut from the smoother and the tightener alike
+        var navMesh = Pathfinder.GetNavMesh("main")!;
+        var corner = new Point(-1367, 616);
+
+        Point[] sources =
+        [
+            new(-897, 61),
+            new(-913, 101),
+            new(-985, 317)
+        ];
+
+        foreach (var source in sources)
+            navMesh.CanMove(source, corner)
+                   .Should()
+                   .BeTrue($"the line from {source} only grazes a wall cell past its endpoint");
+    }
+
     private static async Task<List<string>> CrossingsAsync(string map, GGeometry geo, ILocation start, ILocation end)
     {
         var failures = new List<string>();

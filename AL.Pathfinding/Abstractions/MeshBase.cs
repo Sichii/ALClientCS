@@ -150,12 +150,25 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
         var width = PointMap.GetLength(0);
         var height = PointMap.GetLength(1);
 
+        //the traversal's tie-break at a lattice corner can step one cell past the endpoint's own column or row -
+        //mesh vertices sit exactly on those corners - and a wall there reads as a hit on a line that never
+        //reaches it. a cell beyond both endpoints' extents cannot be on the segment, so it gets no vote. cells
+        //within them keep the conservative corner behavior: a graze along a wall's cells still blocks, which is
+        //how the server sees a hitbox corner touching a wall
+        var minCellX = Math.Min((int)Math.Floor(startOffset.X), (int)Math.Floor(endOffset.X));
+        var maxCellX = Math.Max((int)Math.Floor(startOffset.X), (int)Math.Floor(endOffset.X));
+        var minCellY = Math.Min((int)Math.Floor(startOffset.Y), (int)Math.Floor(endOffset.Y));
+        var maxCellY = Math.Max((int)Math.Floor(startOffset.Y), (int)Math.Floor(endOffset.Y));
+
         //(int) rather than Convert.ToInt32, which rounds and range checks - RayTraceTo only ever
         //yields whole numbers, and this runs once per grid cell the line crosses
         foreach (var point in startOffset.RayTraceTo(endOffset))
         {
             var x = (int)point.X;
             var y = (int)point.Y;
+
+            if ((x < minCellX) || (x > maxCellX) || (y < minCellY) || (y > maxCellY))
+                continue;
 
             //same reckoning as IsWalkable - the point map is indexed directly, so a line leaving the map's extents
             //would throw rather than answer, and nothing out there was walkable anyway

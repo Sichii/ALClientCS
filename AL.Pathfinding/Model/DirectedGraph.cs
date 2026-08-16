@@ -13,6 +13,19 @@ namespace AL.Pathfinding.Model;
 /// </summary>
 public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
 {
+    //the scan's resolution along a leg when hunting a tighter bend, and with it the shortest piece a leg can be
+    //cut into - the first candidate sits one stride in, and a leg shorter than the stride yields no candidates at
+    //all, so the stride doubles as the minimum leg guard and resolution stays consistent across the whole path
+    private const float BEND_SCAN_STRIDE = 5f;
+
+    //what a moved bend must actually save. below this the move constructs a node for ground a character covers in
+    //a step, and accepting zero-saving moves would re-move the same bend every pass forever
+    private const float MIN_BEND_SAVING = 1f;
+
+    //moving one bend exposes slack at its neighbors, so the pass repeats - each accepted move shortens the path
+    //by at least MIN_BEND_SAVING, so the first pass takes nearly everything and the cap only bounds the tail
+    private const int MAX_TIGHTEN_PASSES = 3;
+
     public DirectedGraph(Dictionary<string, NavMesh> navMeshes)
         : base(navMeshes) { }
 
@@ -26,7 +39,7 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
             {
                 partitionedPath.Add(edge);
 
-                foreach (var partitionedEdge in SmoothPath(partitionedPath))
+                foreach (var partitionedEdge in TightenBends(SmoothPath(partitionedPath)))
                     yield return partitionedEdge;
 
                 partitionedPath.Clear();
@@ -34,9 +47,11 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
             {
                 partitionedPath.Add(edge);
 
-                var smoothPath = SmoothPath(partitionedPath);
+                //shortcuts before tightening, so the bends ahead of the cut tighten against the true final stop
+                //rather than a door centre the cut then moves
+                var smoothPath = FindDistanceShortcuts(SmoothPath(partitionedPath));
 
-                foreach (var partitionedEdge in FindDistanceShortcuts(smoothPath))
+                foreach (var partitionedEdge in TightenBends(smoothPath))
                     yield return partitionedEdge;
 
                 partitionedPath.Clear(); //discard everything up to this point
@@ -45,7 +60,7 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
 
         //yield anything left over (with smoothing)
         if (partitionedPath.Count > 0)
-            foreach (var partitionedEdge in SmoothPath(partitionedPath))
+            foreach (var partitionedEdge in TightenBends(SmoothPath(partitionedPath)))
                 yield return partitionedEdge;
     }
 
@@ -273,5 +288,123 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
                 yield return navMesh.ConstructEdge(current.Start, bestNext.End, bestNext.Type);
             }
         }
+    }
+
+    //SmoothPath only ever bends a path at graph vertices, and a mesh vertex rarely sits on the true corner - so a
+    //smoothed path still overshoots each turn: partway along a leg, a straight line to a later corner is already
+    //clear, but the walk goes the rest of the way to the bend first. the earliest point on the leg with such a
+    //line is the optimal departure - by the triangle inequality every later point saves less - and from that
+    //point the furthest visible corner is the optimal arrival, for the same reason SmoothPath takes the furthest
+    //node it can see. both are knowable here at plan time, which is what makes mid-walk re-aiming unnecessary
+    private List<GraphEdge> TightenBends(IEnumerable<GraphEdge> edges)
+    {
+        var path = edges.ToList();
+
+        for (var pass = 0; pass < MAX_TIGHTEN_PASSES; pass++)
+        {
+            var changed = false;
+
+            for (var i = 0; (i + 1) < path.Count; i++)
+            {
+                var incoming = path[i];
+
+                //only a walk's endpoints may move or be skipped. every other type's endpoints are fixed points
+                //in the world, and a door or transport carries its spawn index on Start.Vertex
+                if (incoming.Type != EdgeType.Walk)
+                    continue;
+
+                //the run of consecutive walks this leg belongs to; its ends are the corners a cut may target
+                var runEnd = i;
+
+                while (((runEnd + 1) < path.Count) && (path[runEnd + 1].Type == EdgeType.Walk))
+                    runEnd++;
+
+                if (runEnd == i)
+                    continue;
+
+                var legStart = incoming.Start.Vertex;
+                var bend = incoming.End.Vertex;
+                var navMesh = NavMeshes[legStart.Map];
+
+                //a previous move can open a straight line from this node across one or more corners; scan the
+                //furthest corner first, the same direction SmoothPath scans, and collapse everything it clears
+                var collapsed = false;
+
+                for (var j = runEnd; j > i; j--)
+                {
+                    if (!navMesh.CanMove(legStart, path[j].End.Vertex))
+                        continue;
+
+                    path[i] = navMesh.ConstructEdge(incoming.Start, path[j].End, EdgeType.Walk);
+                    path.RemoveRange(i + 1, j - i);
+                    changed = true;
+                    collapsed = true;
+
+                    break;
+                }
+
+                if (collapsed)
+                {
+                    i--;
+
+                    continue;
+                }
+
+                var legLength = legStart.Distance(bend);
+                var moved = false;
+
+                for (var offset = BEND_SCAN_STRIDE; !moved && (offset < legLength); offset += BEND_SCAN_STRIDE)
+                {
+                    var candidate = legStart.OffsetTowards(bend, offset);
+
+                    //the point becomes the end of two emits, so it has to be ground the server lets a move stop
+                    //on - water is not a wall - and both new legs have to rasterize clear, since a subsegment's
+                    //raytrace can clip a cell the full leg's line missed
+                    if (!navMesh.IsWalkable(candidate) || !navMesh.CanMove(legStart, candidate))
+                        continue;
+
+                    //furthest corner first again: from a fixed point the furthest visible corner saves the most,
+                    //because the polyline it skips can only be longer than the straight line replacing it
+                    for (var j = runEnd; j > i; j--)
+                    {
+                        var target = path[j].End.Vertex;
+
+                        if (!navMesh.CanMove(candidate, target))
+                            continue;
+
+                        //what the cut replaces: the rest of this leg plus every leg through the skipped corners
+                        var currentCost = legLength - offset;
+
+                        for (var k = i + 1; k <= j; k++)
+                            currentCost += path[k].Start.Vertex.Distance(path[k].End.Vertex);
+
+                        var saving = currentCost - candidate.Distance(target);
+
+                        if (saving > MIN_BEND_SAVING)
+                        {
+                            var bendNode = navMesh.ConstructNode(new Location(legStart.Map, candidate));
+
+                            path[i] = navMesh.ConstructEdge(incoming.Start, bendNode, EdgeType.Walk);
+                            path[j] = navMesh.ConstructEdge(bendNode, path[j].End, EdgeType.Walk);
+
+                            if (j > (i + 1))
+                                path.RemoveRange(i + 1, j - i - 1);
+
+                            changed = true;
+                            moved = true;
+                        }
+
+                        //deeper corners from this same point save less, but a later point may still see a corner
+                        //this one cannot - so an unprofitable sighting ends the corner scan, not the leg scan
+                        break;
+                    }
+                }
+            }
+
+            if (!changed)
+                break;
+        }
+
+        return path;
     }
 }

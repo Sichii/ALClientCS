@@ -226,6 +226,78 @@ public class DirectedGraphTests : PathfindingTestBed
     }
 
     [Test]
+    public async Task TightenedPathLeavesNoMidLegShortcutWorthTaking()
+    {
+        var start = new Location("main", -1582, 496);
+
+        //same three route shapes the smoothing test walks: same map, across a door, across a town teleport
+        Location[] ends =
+        [
+            new("main", 1891, -47),
+            new("spookytown", 0, 0),
+            new("winter_cave", -84, 0)
+        ];
+
+        foreach (var endLoc in ends)
+        {
+            var path = await Pathfinder.FindPathAsync(start, [new Destination(endLoc, 0)])
+                                       .ToArrayAsync();
+
+            for (var i = 0; (i + 1) < path.Length; i++)
+            {
+                if (path[i].Type != EdgeType.Walk)
+                    continue;
+
+                var runEnd = i;
+
+                while (((runEnd + 1) < path.Length) && (path[runEnd + 1].Type == EdgeType.Walk))
+                    runEnd++;
+
+                if (runEnd == i)
+                    continue;
+
+                var legStart = path[i].Start.Vertex;
+                var bend = path[i].End.Vertex;
+                var navMesh = Pathfinder.GetNavMesh(legStart.Map)!;
+                var legLength = legStart.Distance(bend);
+
+                //the rule restated independently of the tightener: stepping along the leg every 5 units, no
+                //standable point with a clear line to any later corner of this walk run should save more than
+                //a step over walking the corners
+                for (var offset = 5f; offset < legLength; offset += 5f)
+                {
+                    var candidate = legStart.OffsetTowards(bend, offset);
+
+                    if (!navMesh.IsWalkable(candidate) || !navMesh.CanMove(legStart, candidate))
+                        continue;
+
+                    for (var j = runEnd; j > i; j--)
+                    {
+                        var target = path[j].End.Vertex;
+
+                        if (!navMesh.CanMove(candidate, target))
+                            continue;
+
+                        var currentCost = legLength - offset;
+
+                        for (var k = i + 1; k <= j; k++)
+                            currentCost += path[k].Start.Vertex.Distance(path[k].End.Vertex);
+
+                        var saving = currentCost - candidate.Distance(target);
+
+                        saving.Should()
+                              .BeLessThanOrEqualTo(
+                                  1.1f,
+                                  $"edge {i} of the route to {endLoc} left a {saving:F1} unit cut to corner {j}, {offset} units in");
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    [Test]
     public async Task FindPathSingleMapTest()
     {
         var start = new Location("main", -1582, 496);
