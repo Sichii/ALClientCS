@@ -1020,6 +1020,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     protected async Task InternalConnectAsync()
     {
         LoggedIn = false;
+
+        //a disconnect always leaves the party server-side, and a party-less login gets no party_update,
+        //so the pre-disconnect roster must be cleared here or it stays stale across a reconnect
+        Party = new PartyUpdateData();
         AttachListeners();
 
         var source = new TaskCompletionSource<Expectation<StartData>>(TaskCreationOptions.RunContinuationsAsynchronously);
