@@ -700,6 +700,118 @@ public record GameData
         }
     }
 
+    //corridors that exist only in local data. the server never traces the segment between a move's endpoints -
+    //it checks the endpoints against its walkable lattice (jail) and prices the cells crossed (movement penalty) -
+    //so a carved channel lets the pathfinder route a crossing the game's own geometry forbids
+    private static void CarveCorridors()
+        //winterland ice golem island: the island itself is legal ground to the server (winterland spawns 6 and 7
+        //sit on it), and this column is the cheapest water on the lake - every crossed cell is on the server's
+        //lattice, the mouth cells are legal move endpoints, and the penalty stays under budget at 60+ move speed
+        //walked as one uninterrupted move. 22 wide leaves a 6px channel after the +-8 wall padding, which clears
+        //the mesh builder's near-wall weld pass
+        => CarveCorridor(
+            "winterland",
+            845,
+            867,
+            224,
+            352);
+
+    //removes wall geometry inside the rect and walls off its long sides, leaving a walkable vertical corridor
+    //connecting whatever the rect's two short ends overlap
+    private static void CarveCorridor(
+        string mapAccessor,
+        int left,
+        int right,
+        int top,
+        int bottom)
+    {
+        var geometry = Geometry[mapAccessor];
+
+        if (geometry == null)
+        {
+            Log.Warn($"No geometry for {mapAccessor}, corridor not carved");
+
+            return;
+        }
+
+        var verticalLines = ClipLines(
+                geometry.VerticalLines,
+                left,
+                right,
+                top,
+                bottom)
+            .ToList();
+
+        //seal the long sides so the carve connects only the two mouths, not the water beyond them
+        verticalLines.Add(
+            new StraightLine(
+                left,
+                top,
+                bottom,
+                true));
+
+        verticalLines.Add(
+            new StraightLine(
+                right,
+                top,
+                bottom,
+                true));
+
+        geometry.VerticalLines = verticalLines;
+
+        geometry.HorizontalLines = ClipLines(
+                geometry.HorizontalLines,
+                top,
+                bottom,
+                left,
+                right)
+            .ToList();
+    }
+
+    //drops the portion of each line inside the window: a line strictly between the on-axis bounds is clipped
+    //to the span bounds, splitting into up to two pieces. lines on the window edge merge with the seals instead
+    private static IEnumerable<StraightLine> ClipLines(
+        IEnumerable<StraightLine> lines,
+        int onMin,
+        int onMax,
+        int spanMin,
+        int spanMax)
+    {
+        foreach (var line in lines)
+        {
+            if ((line.On <= onMin) || (line.On >= onMax))
+            {
+                yield return line;
+
+                continue;
+            }
+
+            var start = Math.Min(line.Start, line.End);
+            var end = Math.Max(line.Start, line.End);
+
+            if ((end <= spanMin) || (start >= spanMax))
+            {
+                yield return line;
+
+                continue;
+            }
+
+            if (start < spanMin)
+                yield return new StraightLine(
+                    line.On,
+                    start,
+                    spanMin,
+                    line.IsVertical);
+
+            if (end > spanMax)
+                yield return new StraightLine(
+                    line.On,
+                    spanMax,
+                    end,
+                    line.IsVertical);
+        }
+    }
+
     public static void Populate(string json)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -728,6 +840,9 @@ public record GameData
         //fix line data (merge lines, set isX for x lines)
         AddBorderWalls();
         FixLines();
+
+        //local-only geometry edits: open walkable corridors through walls the server tolerates crossing
+        CarveCorridors();
 
         Log.Info("Enriching data");
 
