@@ -1,4 +1,5 @@
 #region
+using System.Net;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
@@ -236,6 +237,9 @@ public class Mage : ALClient
     /// <param name="apiClient">
     ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
+    /// <param name="proxy">
+    ///     The proxy to reach the game through, or null for the machine's own connection.
+    /// </param>
     /// <returns>
     ///     <see cref="Mage" />
     /// </returns>
@@ -249,11 +253,13 @@ public class Mage : ALClient
         string characterName,
         ServerRegion region,
         ServerId identifier,
-        IAlApiClient apiClient)
+        IAlApiClient apiClient,
+        IWebProxy? proxy = null)
         => StartClientAsync(
             characterName,
             region,
             identifier,
             apiClient,
-            static (name, api, socket) => new Mage(name, api, socket));
+            static (name, api, socket) => new Mage(name, api, socket),
+            proxy);
 }

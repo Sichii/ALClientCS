@@ -1,6 +1,7 @@
 #region
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -78,14 +79,31 @@ public sealed class ALSocketClient : IALSocketClient
     public static bool UseSecureTransport { get; set; } = true;
 
     /// <summary>
+    ///     The proxy this socket dials the game through, or null for the machine's own connection.
+    /// </summary>
+    /// <remarks>
+    ///     Per socket rather than static, unlike <see cref="UseSecureTransport" />: the point of it is that one
+    ///     character in a process reaches the game from a different address than the rest.
+    ///     <br />
+    ///     A dead proxy refuses the connection and the login fails. It does not fall back to the machine's own
+    ///     connection, and it must not be made to - a silent fallback is the character rejoining on an address it
+    ///     was configured to avoid, with nothing in the log saying it happened.
+    /// </remarks>
+    public IWebProxy? Proxy { get; }
+
+    /// <summary>
     ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
     /// </summary>
     /// <param name="logger">
     ///     The prefixed logged to log messages to.
     /// </param>
-    public ALSocketClient(IFormattedLogger logger)
+    /// <param name="proxy">
+    ///     The proxy to reach the game through, or null for the machine's own connection.
+    /// </param>
+    public ALSocketClient(IFormattedLogger logger, IWebProxy? proxy = null)
     {
         Logger = logger;
+        Proxy = proxy;
         Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
 
         //a client is single use - DisconnectAsync marks it disposed and ConnectAsync refuses a disposed one - so the
@@ -173,7 +191,10 @@ public sealed class ALSocketClient : IALSocketClient
 
             //ALClient.ReconnectAsync is the only thing allowed to reconnect; a second
             //authority races it and leaves an unauthenticated observer session behind
-            Reconnection = false
+            Reconnection = false,
+
+            //null is the machine's own connection, which is what all but a routed character uses
+            Proxy = Proxy
         };
 
         //the engine.io mount path is per-server config, not the socket.io default. the server
@@ -182,7 +203,7 @@ public sealed class ALSocketClient : IALSocketClient
         if (!string.IsNullOrEmpty(server.Path))
             options.Path = server.Path.TrimEnd('/');
 
-        Logger.Info($"Connecting to {host}{options.Path}");
+        Logger.Info($"Connecting to {host}{options.Path}{(Proxy is null ? string.Empty : " through a proxy")}");
         Socket = new SocketIOClient.SocketIO(host, options);
         Socket.Serializer = new SystemTextJsonSerializer(SocketJson.Options);
         Socket.OnDisconnected += DisconnectedEvent;

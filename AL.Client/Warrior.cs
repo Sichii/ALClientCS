@@ -1,4 +1,5 @@
 #region
+using System.Net;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
@@ -121,6 +122,9 @@ public sealed class Warrior : ALClient
     /// <param name="apiClient">
     ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
+    /// <param name="proxy">
+    ///     The proxy to reach the game through, or null for the machine's own connection.
+    /// </param>
     /// <returns>
     ///     <see cref="Warrior" />
     /// </returns>
@@ -134,13 +138,15 @@ public sealed class Warrior : ALClient
         string characterName,
         ServerRegion region,
         ServerId identifier,
-        IAlApiClient apiClient)
+        IAlApiClient apiClient,
+        IWebProxy? proxy = null)
         => StartClientAsync(
             characterName,
             region,
             identifier,
             apiClient,
-            static (name, api, socket) => new Warrior(name, api, socket));
+            static (name, api, socket) => new Warrior(name, api, socket),
+            proxy);
 
     /// <summary>
     ///     Asynchronously uses Stomp, stunning every monster around you.
