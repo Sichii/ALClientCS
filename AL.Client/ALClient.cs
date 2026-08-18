@@ -4615,6 +4615,69 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Sacrifices an offering on an upgradable item with no scroll, banking a flat +0.5 grace on it. The item's
+    ///     level does not change and the item is never at risk - the server rolls nothing, it only runs the usual
+    ///     1 second upgrade animation and answers <c>upgrade_offering_success</c> beside the generic success frame.
+    /// </summary>
+    /// <param name="inventorySlot">The slot of the item receiving the grace.</param>
+    /// <param name="offeringSlot">
+    ///     The slot of the offering to consume. Every offering banks the same +0.5, so the cheapest is the right one.
+    /// </param>
+    /// <returns><c>true</c> when the grace landed.</returns>
+    public async Task<bool> DepositGraceAsync(int inventorySlot, int offeringSlot)
+    {
+        var item = Character.Inventory[inventorySlot];
+        var source = new TaskCompletionSource<Expectation<bool?>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.UpgradeNoItem => source.TrySetResult("Failed to deposit grace. (no item)"),
+                    GameResponseType.UpgradeInProgress => source.TrySetResult("Failed to deposit grace. (already upgrading)"),
+                    GameResponseType.UpgradeNoScroll => source.TrySetResult("Failed to deposit grace. (no offering)"),
+                    GameResponseType.UpgradeMismatch => source.TrySetResult("Failed to deposit grace. (unknown, this seems to be a catch-all)"),
+                    GameResponseType.UpgradeCant => source.TrySetResult("Failed to deposit grace. (item not upgradable)"),
+                    GameResponseType.UpgradeInvalidOffering => source.TrySetResult("Failed to deposit grace. (offering is not an offering)"),
+                    GameResponseType.CantInBank => source.TrySetResult("Failed to deposit grace. (can't deposit from bank)"),
+                    GameResponseType.Distance when "upgrade".EqualsI(data.Place!) => source.TrySetResult("Failed to deposit grace. (get closer)"),
+
+                    //the offering-specific frame and the generic success ride the same completion; either resolves it
+                    GameResponseType.UpgradeOfferingSuccess when !data.Stale => source.TrySetResult(true),
+                    GameResponseType.UpgradeSuccess when !data.Stale => source.TrySetResult(true),
+                    GameResponseType.UpgradeFail when !data.Stale    => source.TrySetResult(false),
+                    _ when data.Failed && "upgrade".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to deposit grace. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Upgrade,
+            new
+            {
+                item_num = inventorySlot,
+
+                //the server reads player.items[scroll_num]; -1 lands on nothing, and an absent scroll with an
+                //offering present is what selects its scroll-less grace branch
+                scroll_num = -1,
+                offering_num = offeringSlot,
+                clevel = item?.Level ?? 0
+            });
+
+        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
+        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        var expectation = await source.Task.WithTimeout(60000);
+        expectation.ThrowIfUnsuccessful();
+
+        return expectation.Result ?? false;
+    }
+
+    /// <summary>
     ///     Attempts to have the server calculate the chance for an upgrade to succeed.
     /// </summary>
     /// <param name="inventorySlot">
