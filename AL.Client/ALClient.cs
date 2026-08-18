@@ -1,6 +1,7 @@
 #region
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using AL.APIClient;
@@ -164,6 +165,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The connection to the Adventure.Land socket server.
     /// </summary>
     public IALSocketClient Socket { get; private set; }
+
+    /// <summary>
+    ///     The proxy this character reaches the game through, or null for the machine's own connection.
+    /// </summary>
+    /// <remarks>
+    ///     Set once at login and read by every socket built afterwards. Held here rather than on
+    ///     <c>IALSocketClient</c> because the socket is single use and the client outlives it: a change of server
+    ///     and a reconnect both build a replacement, and the replacement has to be routed the same way the
+    ///     original was.
+    /// </remarks>
+    protected internal IWebProxy? SocketProxy { get; internal set; }
 
     /// <summary>
     ///     The character's progress towards ongoing achievements.
@@ -978,7 +990,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //a fresh one rather than the old one reconnected: ALSocketClient disposes its inner socket on disconnect and
         //refuses to open again, which is why the reconnect path builds one too
-        Socket = new ALSocketClient(new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>()));
+        Socket = NewSocket();
 
         await InternalConnectAsync();
 
@@ -1001,7 +1013,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         ServerRegion region,
         ServerId identifier,
         IAlApiClient apiClient,
-        Func<string, IAlApiClient, IALSocketClient, T> createClient) where T: ALClient
+        Func<string, IAlApiClient, IALSocketClient, T> createClient,
+        IWebProxy? proxy = null) where T: ALClient
     {
         if (string.IsNullOrEmpty(characterName))
             throw new ArgumentNullException(nameof(characterName));
@@ -1009,16 +1022,65 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         ArgumentNullException.ThrowIfNull(apiClient);
 
         var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
-        var socketClient = new ALSocketClient(logger);
+        var socketClient = new ALSocketClient(logger, proxy);
         var client = createClient(characterName, apiClient, socketClient);
+
+        //recorded before the first connect, so every socket built after this one is routed the same way
+        client.SocketProxy = proxy;
 
         await client.ConnectAsync(region, identifier);
 
         return client;
     }
 
+    /// <summary>
+    ///     The only place a replacement socket is built.
+    /// </summary>
+    /// <remarks>
+    ///     "Replacement" because the first socket is built by <see cref="StartClientAsync{T}" />, before an
+    ///     <see cref="ALClient" /> instance exists to read <see cref="SocketProxy" /> from - that call site is
+    ///     handed the proxy directly instead. Every socket built after that one comes from here: the reconnect
+    ///     loop and the change of server, the two moments a dropped <see cref="SocketProxy" /> would go unnoticed.
+    ///     The character would come back up, successfully, on the address it was configured to leave.
+    /// </remarks>
+    private ALSocketClient NewSocket()
+        => new(new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>()), SocketProxy);
+
+    /// <summary>
+    ///     Throws if the socket about to connect was not built with this character's <see cref="SocketProxy" />.
+    /// </summary>
+    /// <remarks>
+    ///     Cheap and runs once per connect, so it costs nothing to keep in place - it is the only thing that
+    ///     would catch a socket built somewhere other than <see cref="NewSocket" /> (or
+    ///     <see cref="StartClientAsync{T}" />'s initial build). This feature's whole point is that a misrouted
+    ///     character fails to connect rather than silently rejoining the game on the machine's own IP; this is
+    ///     where that gets enforced, at the one funnel every connection path - the initial login, a change of
+    ///     server, and the reconnect loop - runs through. Skips fakes of <see cref="IALSocketClient" />: the
+    ///     interface carries no <c>Proxy</c> member, so only a concrete <see cref="ALSocketClient" /> can be
+    ///     checked here.
+    ///     <br />
+    ///     The comparison is <see cref="object.ReferenceEquals(object, object)" /> rather than value equality because it relies on
+    ///     <see cref="SocketProxy" /> being assigned exactly once, in <see cref="StartClientAsync{T}" />, and
+    ///     <see cref="NewSocket" /> threading that same instance into every replacement socket; a future change
+    ///     that constructs a fresh <see cref="WebProxy" /> per reconnect instead of reusing it would trip this
+    ///     guard and block the login.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     The socket about to connect does not carry this character's proxy.
+    /// </exception>
+    internal void EnsureSocketCarriesProxy()
+    {
+        if ((Socket is ALSocketClient concrete) && !ReferenceEquals(concrete.Proxy, SocketProxy))
+            throw new InvalidOperationException(
+                $"'{Name}' is about to connect on a socket that does not carry this character's proxy. "
+                + "Something built an ALSocketClient outside of NewSocket() (or StartClientAsync's initial "
+                + "build), so the proxy this character was configured to use got dropped along the way.");
+    }
+
     protected async Task InternalConnectAsync()
     {
+        EnsureSocketCarriesProxy();
+
         LoggedIn = false;
 
         //a disconnect always leaves the party server-side, and a party-less login gets no party_update,
@@ -1206,8 +1268,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
         }
 
-        var logger = new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>());
-
         //"limitdc": a rate-limit kick. An immediate reconnect re-enters the kick condition at 4x sensitivity
         //while unauthenticated (node/server.js:4330) and dc_players is only cleared roughly every 24s
         //(:14883), so honor a cooldown before the first attempt - the browser waits ~20s (rc_delay 16 plus a
@@ -1224,7 +1284,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         while (reconnectCount < 10)
             try
             {
-                Socket = new ALSocketClient(logger);
+                Socket = NewSocket();
                 Logger.Info($"Attempting to reconnect. (Retry: {++reconnectCount})");
 
                 await InternalConnectAsync();
