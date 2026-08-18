@@ -28,6 +28,24 @@ public abstract partial class ALClient
             });
 
     /// <summary>
+    ///     Places a dice bet on <paramref name="number" />, with <paramref name="up" /> picking which side of it wins
+    ///     (node/server.js:11295). Only works on the tavern map. The server clamps the number to 0.01-99.99, raises
+    ///     the gold to at least 10,000, takes it at placement, and refuses a second bet while one is unresolved
+    ///     (<c>tavern_dice_exist</c>) or outside the betting window (<c>tavern_not_yet</c>/<c>tavern_too_late</c>).
+    ///     Leaving the tavern with a bet unresolved refunds it in full (node/server.js:4110).
+    /// </summary>
+    public Task BetDiceAsync(long gold, float number, bool up)
+        => Socket.EmitAsync(
+            ALSocketEmitType.Bet,
+            new
+            {
+                type = "dice",
+                gold,
+                num = number,
+                dir = up ? "up" : "down"
+            });
+
+    /// <summary>
     ///     Sets an upper cap on this character's movement speed (node/server.js:5122).
     /// </summary>
     /// <remarks>
