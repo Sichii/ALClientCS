@@ -198,15 +198,21 @@ public sealed class EnumToleranceMatrixCharacterization
     ///     population fail loudly.
     /// </summary>
     /// <remarks>
-    ///     368 of the 369 value-position cells across all 41 tolerant enums agree with the pin exactly — including the shapes
-    ///     the converter degrades rather than throws on, so no cell reaches an exception and exception-type names never even
-    ///     come into it. The measured divergence is the five unknown-key cells, one per dictionary-key enum, exactly what the
-    ///     plan predicted, plus the one boolean-token cell corrected after the migration.
+    ///     All but two of the value-position cells across every tolerant enum agree with the pin exactly — including the
+    ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and exception-type names
+    ///     never even come into it. The measured divergence is the five unknown-key cells, one per dictionary-key enum,
+    ///     exactly what the plan predicted, plus the one boolean-token cell corrected after the migration, plus the one
+    ///     numeric cell an enum grew a member for.
+    ///     <br />
+    ///     Class 4 counts one because <c>UIDataType</c> is the only tolerant enum whose members reach the number the
+    ///     numeric probe feeds it. A second one means another enum grew past that number, and the same reasoning applies
+    ///     — raise the count rather than reaching for the fixture, which is the pre-migration baseline and stays frozen.
     /// </remarks>
     private static readonly IReadOnlyDictionary<string, int> ExpectedDivergenceCounts = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["2_dictionaryKeyDegradesInsteadOfThrowing"] = 5,
-        ["3_boolTokenRoutedThroughAliases"] = 1
+        ["3_boolTokenRoutedThroughAliases"] = 1,
+        ["4_numericCellNamedByANewMember"] = 1
     };
 
     /// <summary>
@@ -243,12 +249,45 @@ public sealed class EnumToleranceMatrixCharacterization
                 //any other cell drifting into this shape, moves it off 1 and fails.
                 : location.EndsWith("9_boolTrue", StringComparison.Ordinal)
                     ? "3_boolTokenRoutedThroughAliases"
-                    : UNEXPECTED;
+
+                    //not a converter difference at all: the enum grew a member owning the number the probe
+                    //feeds it, so the cell that used to print the bare 17 now prints that member's name. Both
+                    //halves of the cell carry the decimal the parse produced, and it is the same decimal on
+                    //both sides - which is the strongest agreement a cell can state, since the converter
+                    //returned the identical value and only ToString moved. The fixture is frozen text and the
+                    //only oracle this arm has, so it is this classifier that absorbs an enum growing rather
+                    //than the pin being regenerated to match whatever the code now does.
+                    : SameUnderlyingValue(pinned, stj)
+                        ? "4_numericCellNamedByANewMember"
+                        : UNEXPECTED;
 
         if (!byClass.TryGetValue(key, out var list))
             byClass[key] = list = [];
 
         list.Add($"{location}: pinned={pinned} stj={stj}");
+    }
+
+    /// <summary>
+    ///     Whether two cells report the same parsed value under different names. A value cell is written
+    ///     <c>{value} = {decimal}</c>, so the half after the last <c>=</c> is what the converter actually produced and
+    ///     the half before it is only how that number spells itself today.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately refuses to fire on a cell that threw on either side: a throw carries no decimal, and reading
+    ///     one out of an exception's name is how a genuine regression would sneak into this class.
+    /// </remarks>
+    private static bool SameUnderlyingValue(string pinned, string stj)
+    {
+        if (pinned.StartsWith("THROW", StringComparison.Ordinal) || stj.StartsWith("THROW", StringComparison.Ordinal))
+            return false;
+
+        var left = pinned.LastIndexOf('=');
+        var right = stj.LastIndexOf('=');
+
+        if ((left < 0) || (right < 0))
+            return false;
+
+        return string.Equals(pinned[(left + 1)..].Trim(), stj[(right + 1)..].Trim(), StringComparison.Ordinal);
     }
     #endregion
 
