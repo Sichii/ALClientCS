@@ -97,6 +97,14 @@ public class Character : Player, IEquatable<Character>
     ///     <br />
     ///     This value is the number of monsters you are exceeding your courage by.
     /// </summary>
+/// <summary>
+    ///     The number of physically-attacking monsters this character can face before gaining fear. Sent on every
+    ///     character frame; the server counts physical attackers against this one, magical against
+    ///     <see cref="MCourage" /> and pure against <see cref="PCourage" />.
+    /// </summary>
+    [JsonPropertyName("courage")]
+    [JsonInclude]
+    public int Courage { get; protected set; }
     [JsonInclude]
     public float Fear { get; protected set; }
 
@@ -164,7 +172,8 @@ public class Character : Player, IEquatable<Character>
     public new int MPCost { get; protected set; }
 
     /// <summary>
-    ///     The number of pure/physical monsters this character can face before gaining fear.
+    ///     The number of pure-damage monsters this character can face before gaining fear. Pure only - a physical
+    ///     attacker counts against <see cref="Courage" /> instead.
     /// </summary>
     [JsonPropertyName("pcourage")]
     [JsonInclude]

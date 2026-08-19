@@ -144,9 +144,9 @@ public sealed class NonPublicMemberCharacterization
 
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
         // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
-        // ALClient.IsRecalling, now 156.
+        // ALClient.IsRecalling, 156 until Character.Courage, now 157.
         allInstanceNonPublicSetters.Should()
-                                   .Be(156);
+                                   .Be(157);
     }
 
     [Test]
@@ -207,14 +207,16 @@ public sealed class NonPublicMemberCharacterization
         // dropping frame-reachable 92 -> 89 and covered 59 -> 56; MaxMP/Focus merely relocated Player -> EntityBase.
         // Phase 11 added eight Character owner-stats (an entity frame type): frame-reachable 89 -> 97.
         // Binding EntityBase.In took it 97 -> 98.
+        // Binding Character.Courage, the physical half of the three courage counts, took it 98 -> 99.
         frameReachable.Should()
-                      .HaveCount(98);
+                      .HaveCount(99);
 
         // Phase 11: five of the eight new Character stats (max_xp/goldm/xpm/luckm/cash) are non-default in the
         // captured start frame; incdmgamp/mcourage/pcourage stay default. covered 56 -> 61.
         // EntityBase.In binds "main" off every one of them: covered 61 -> 62.
+        // Character.Courage binds 1 off the start and character frames: covered 62 -> 63.
         covered.Should()
-               .HaveCount(62, "the start/player/entities frames drive 62 setters away from their defaults");
+               .HaveCount(63, "the start/player/entities frames drive 63 setters away from their defaults");
 
         // The 36 setters no captured frame exercises to a non-default value. These are the members a
         // migration reviewer must eyeball by hand — no value assertion can guard them here. The 23
