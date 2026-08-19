@@ -83,6 +83,20 @@ public record SlotItem : ITradeItem, IInventoryItem
     [JsonPropertyName("ps")]
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
+    /// <summary>
+    ///     Carries the item's title (e.g. "shiny", "legacy") via <see cref="Model.Prediction.Title" />. Null when the item
+    ///     has no title.
+    /// </summary>
+    /// <remarks>
+    ///     The same key <see cref="Item.Prediction" /> reads, and it is on a slot for the same reason: equipping moves the
+    ///     item object itself rather than a copy of some of it (<c>player.slots[slot] = player.items[num]</c>,
+    ///     <c>node/server.js:6581</c>), so an equipped item keeps every field it carried in the bag. The upgrade-placeholder
+    ///     half of that overloaded key cannot reach a slot - nothing upgrades an equipped item - so in practice this is a
+    ///     title and nothing else.
+    /// </remarks>
+    [JsonPropertyName("p")]
+    public Prediction? Prediction { get; init; }
+
     public long Price { get; init; }
 
     [JsonPropertyName("q")]
