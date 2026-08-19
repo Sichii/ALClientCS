@@ -76,6 +76,46 @@ public class DirectedGraphTests : PathfindingTestBed
            .BeGreaterThan(1, "a walk past the town heuristic is one the search has to price against towning");
     }
 
+    /// <summary>
+    ///     Two ends landing on one mesh node is an ordinary set rather than a caller's mistake: any two destinations
+    ///     closer together than the triangulation is fine share a node, and a monster with overlapping spawn areas
+    ///     hands over exactly that - fireroamer's two on desertland are the pair that found this.
+    /// </summary>
+    /// <remarks>
+    ///     The lookup from node back to destination used to be built straight off a key selector, so the second end
+    ///     on a shared node threw a duplicate key. Callers cannot tell that throw from the one the search makes for
+    ///     a destination nothing walks to, so a monster standing on open ground reported as unreachable.
+    /// </remarks>
+    [Test]
+    public async Task SeveralEndsOnOneMeshNodeIsAPathRatherThanAThrow()
+    {
+        var start = new Location("main", 0, 0);
+        var endLoc = new Location("main", 0, 200);
+
+        //the premise, asserted rather than assumed: a mesh that told these two apart would leave the test passing
+        //for the wrong reason. A unit apart on open ground is far below what the triangulation resolves
+        var mesh = Pathfinder.GetNavMesh("main")!;
+        var neighbour = new Location("main", 1, 200);
+
+        mesh.FindBestNode(neighbour)
+            .Should()
+            .Be(mesh.FindBestNode(endLoc));
+
+        var path = await Pathfinder.FindPathAsync(start, [new Destination(endLoc, 0), new Destination(neighbour, 0)])
+                                   .ToArrayAsync();
+
+        path.Should()
+            .NotBeEmpty();
+
+        //and the walk ends on one of the two rather than on whatever the search happened to close on last
+        path.Last()
+            .End
+            .Vertex
+            .Distance(endLoc)
+            .Should()
+            .BeLessThan(2f);
+    }
+
     [Test]
     public async Task FindPathFromTownNodeTest()
     {
