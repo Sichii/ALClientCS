@@ -1166,7 +1166,10 @@ public enum UIDataType
     ItemSent,
 
     /// <summary>Rogue Swiftness cast line + consume animation on the receiver.</summary>
-    RSpeed
+    RSpeed,
+
+    /// <summary>Warrior Stomp. <c>Name</c> is the warrior, <c>Ids</c> everything it stunned.</summary>
+    Stomp
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
