@@ -269,13 +269,25 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
         var startEdge = startNavMesh.ConstructEdge(startNode, bestStartNode, EdgeType.Walk);
         bestStartNode.Parent = startEdge;
 
-        var endNodeLookup = endsArr.ToDictionary(end =>
+        //several ends routinely collapse onto one mesh node - two spawn areas that overlap are the ordinary case,
+        //and fireroamer's pair on desertland land on the same vertex - so this cannot be a key selector handed to
+        //ToDictionary: the second of them throws, and callers read that throw as "no path" rather than as the
+        //duplicate it is. A monster standing on a walkable field then reports as one nothing can walk to.
+        //On a tie the end nearest the shared node wins, which is the shortest closing leg of the ends that ranked
+        //equal - the node is what the search runs to, and the leg off it is walked unvalidated.
+        var endNodeLookup = new Dictionary<TNode, ILocation>();
+
+        foreach (var end in endsArr)
         {
             if (!NavMeshes.TryGetValue(end.Map, out var endNavMesh))
                 throw new InvalidOperationException($"No mesh found for map {end.Map}");
 
-            return endNavMesh.FindBestNode(end);
-        });
+            var endNode = endNavMesh.FindBestNode(end);
+
+            if (!endNodeLookup.TryGetValue(endNode, out var claimed)
+                || (end.Distance(endNode.Vertex) < claimed.Distance(endNode.Vertex)))
+                endNodeLookup[endNode] = end;
+        }
 
         var path = new Stack<TEdge>();
         var current = bestStartNode;
