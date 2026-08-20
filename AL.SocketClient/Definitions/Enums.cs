@@ -190,6 +190,12 @@ public enum GameResponseType
     [EnumMember(Value = "transport_cant_reach")]
     TransportCantReach,
 
+    [EnumMember(Value = "transport_cant_item")]
+    TransportCantItem,
+
+    [EnumMember(Value = "transport_cant_invalid")]
+    TransportCantInvalid,
+
     [EnumMember(Value = "transport_failed")]
     TransportFailed,
 

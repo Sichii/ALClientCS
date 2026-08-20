@@ -4443,6 +4443,75 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Asynchronously enters a key-locked dungeon, either opening a new one or joining an existing one by id.
+    /// </summary>
+    /// <param name="place">The dungeon's map name: crypt, winter_instance, spider_instance or tomb.</param>
+    /// <param name="instance">
+    ///     An existing instance's id to join, or null to open a new one. Joining consumes nothing; opening consumes
+    ///     that dungeon's key (node/server.js:5585).
+    /// </param>
+    /// <returns>The instance id we landed in, read off the new map frame.</returns>
+    /// <remarks>
+    ///     Separate from <see cref="TransportAsync" /> because the server has two transport shapes and they share
+    ///     only their name: that one emits a map and a spawn index, this one a place and an optional instance. Both
+    ///     forms here refuse from further than 120 units of the dungeon's fixed reference point.
+    /// </remarks>
+    public async Task<string> EnterDungeonAsync(string place, string? instance = null)
+    {
+        var source = new TaskCompletionSource<Expectation<NewMapData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.TransportCantItem    => source.TrySetResult("Can't enter the dungeon. (no key)"),
+                    GameResponseType.TransportCantInvalid => source.TrySetResult("Can't enter the dungeon. (that instance is gone)"),
+                    GameResponseType.TransportCantReach   => source.TrySetResult("Can't enter the dungeon. (can't reach)"),
+                    GameResponseType.TransportFailed      => source.TrySetResult("Can't enter the dungeon. (can't walk, or jailed)"),
+                    GameResponseType.CantEnter            => source.TrySetResult("Can't enter the dungeon. (can't enter)"),
+                    GameResponseType.CantEscape           => source.TrySetResult("Can't enter the dungeon. (can't escape)"),
+                    _ when data.Failed && "transport".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Can't enter the dungeon. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        using var newMapCallback = Socket.On<NewMapData>(
+            ALSocketMessageType.NewMap,
+            data =>
+            {
+                if (data.Map.EqualsI(place))
+                    source.TrySetResult(data);
+
+                return TaskCache.FALSE;
+            });
+
+        //the server reads the absence of `name` as "make me a new one", so an empty string would be a join against
+        //an instance called "" and is refused rather than opening anything
+        await Socket.EmitAsync(
+            ALSocketEmitType.Transport,
+            string.IsNullOrWhiteSpace(instance)
+                ? new { place }
+                // ReSharper disable once RedundantCast
+                : (object)new
+                {
+                    place,
+                    name = instance
+                });
+
+        NewMapData newMap = await source.Task.WithNetworkTimeout();
+
+        //`in` is what tells one copy of a dungeon from another. It is declared non-nullable on NewMapData but
+        //initialized `null!`, so it is optional in practice - hence the test rather than a `??`, which would read as
+        //a null check the compiler can see is redundant
+        return string.IsNullOrWhiteSpace(newMap.In) ? newMap.Map : newMap.In;
+    }
+
+    /// <summary>
     ///     Asynchronously unequips an item from a slot.
     /// </summary>
     /// <param name="slot">
