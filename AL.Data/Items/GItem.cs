@@ -236,6 +236,15 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     [JsonPropertyName("wtype")]
     public WeaponType WeaponType { get; init; }
 
+    /// <summary>The classes allowed to equip this item, or null where any class may.</summary>
+    /// <remarks>
+    ///     Null rather than an empty list for "anybody", which is what the def means by leaving the key out - 92
+    ///     stattable items do. Several classes is real and not always a formality: <c>fury</c> names four whose
+    ///     <c>MainStat</c> does not agree, so a caller deriving anything from this owes that case an answer.
+    /// </remarks>
+    [JsonPropertyName("class")]
+    public IReadOnlyList<ALClass>? Classes { get; init; }
+
     /// <summary>
     ///     Recovers the scroll's target stat when the server sends its name in the numeric
     ///     <c>
