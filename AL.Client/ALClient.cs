@@ -1816,9 +1816,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Attempts to buy an item from Ponty.
-    ///     <br />
-    ///     Ponty sells items other players have sold to NPCs, but at a 20% markup.
+    ///     Attempts to buy an item from Ponty, who sells what other players have vendored to NPCs.
     /// </summary>
     /// <param name="item">
     ///     The item to buy.
@@ -1828,15 +1826,61 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <br />
     ///     Information about the item that was bought.
     /// </returns>
+    /// <remarks>
+    ///     What this costs is not in the listing and is never sent: the server prices it at
+    ///     <c>calculate_item_value * secondhands_mult</c> the moment the emit lands (<c>node/server.js:7145</c>).
+    ///     That is twice the item's value, and <c>calculate_item_value</c> has already taken the 0.6 buy-to-sell
+    ///     discount off a non-cash item, so an unleveled one leaves the purse at <see cref="CONSTANTS.PONTY_MARKUP" />
+    ///     times its <c>g</c> - not the 20% an earlier version of this comment claimed. A cash item skips the
+    ///     discount and pays <see cref="CONSTANTS.PONTY_CASH_MARKUP" />.
+    /// </remarks>
     /// <exception cref="ArgumentNullException">
     ///     item
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to buy {item.Name}. ({reason})
     /// </exception>
-    public async Task<InventoryIndexer> BuyFromPontyAsync(TradeItem item)
+    public Task<InventoryIndexer> BuyFromPontyAsync(TradeItem item) => BuySecondHandAsync(item, false);
+
+    /// <summary>
+    ///     Attempts to buy an item out of the lost and found, the pool of chest loot that would not fit in the bag of
+    ///     whoever it dropped for.
+    /// </summary>
+    /// <param name="item">
+    ///     The item to buy.
+    /// </param>
+    /// <returns>
+    ///     <see cref="InventoryIndexer" />
+    ///     <br />
+    ///     Information about the item that was bought.
+    /// </returns>
+    /// <remarks>
+    ///     One handler serves both second-hand pools and <c>data.f</c> is the whole of what picks between them
+    ///     (<c>node/server.js:7112-7130</c>), so this is <see cref="BuyFromPontyAsync" /> with one extra field on the
+    ///     same emit. Three things differ on the far side of it. The price is
+    ///     <see cref="AL.Data.Multipliers.GMultipliers.LostAndFoundMult" /> rather than
+    ///     <see cref="AL.Data.Multipliers.GMultipliers.SecondHandsMult" />, and the cash-item branch at <c>:7143</c>
+    ///     tests <c>mult == 2</c>, so it never fires for this pool - a cash item here keeps the ordinary rate.
+    ///     Hopsickness refuses this buy outright (<c>:7134</c>) and leaves Ponty alone. And the distance test at
+    ///     <c>:7136</c> carries no <c>player.computer</c> branch, so unlike most NPC handlers this one has to be
+    ///     walked to.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to buy {item.Name}. ({reason})
+    /// </exception>
+    public Task<InventoryIndexer> BuyFromLostAndFoundAsync(TradeItem item) => BuySecondHandAsync(item, true);
+
+    /// <summary>The <c>sbuy</c> handler both second-hand pools share, with <paramref name="lostAndFound" /> its <c>data.f</c>.</summary>
+    private async Task<InventoryIndexer> BuySecondHandAsync(TradeItem item, bool lostAndFound)
     {
         ArgumentNullException.ThrowIfNull(item);
+
+        //named in every refusal below, because the two pools fail for different reasons and a line that does not say
+        //which one was asked cannot be read afterwards
+        var seller = lostAndFound ? "the lost and found" : "Ponty";
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -1847,10 +1891,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                var result = false;
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.BuyCost => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (not enough gold)"),
 
-                if (data.ResponseType == GameResponseType.BuyCost)
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. (not enough gold)");
+                    //both arms are lost-and-found only, and deliberately. Hopsickness is refused for that pool
+                    //alone, and the distance frame is a bare string carrying no place - so listening for it on a
+                    //Ponty buy would let an unrelated distance refusal elsewhere in the session fail this one, for
+                    //a caller that is standing at the stall in main and was never going to be out of range
+                    GameResponseType.CantWhenSick when lostAndFound => source.TrySetResult(
+                        $"Failed to buy {item.Name} from {seller}. (hopsickness; the lost and found will not sell while it is up)"),
+                    GameResponseType.Distance when lostAndFound => source.TrySetResult(
+                        $"Failed to buy {item.Name} from {seller}. (get closer)"),
+                    _ => false
+                };
 
                 return Task.FromResult(result);
             });
@@ -1863,7 +1917,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var message = data.Message;
 
                 if (message.EqualsI("item gone"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({message})");
+                    result = source.TrySetResult($"Failed to buy {item.Name} from {seller}. ({message})");
 
                 return Task.FromResult(result);
             });
@@ -1875,7 +1929,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = false;
 
                 if (data.Message.EqualsI("no space"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from Ponty. ({data.Message})");
+                    result = source.TrySetResult($"Failed to buy {item.Name} from {seller}. ({data.Message})");
 
                 return Task.FromResult(result);
             });
@@ -1896,12 +1950,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
+        //f is omitted rather than sent false for Ponty: the handler tests it for truthiness, and the browser client
+        //sends the field only for the lost and found
         await Socket.EmitAsync(
             ALSocketEmitType.SecondHandsBuy,
-            new
-            {
-                rid = item.Id
-            });
+            lostAndFound
+                ? new
+                {
+                    rid = item.Id,
+                    f = true
+                }
+                : (object)new
+                {
+                    rid = item.Id
+                });
 
         return await source.Task.WithNetworkTimeout();
     }
@@ -3326,18 +3388,34 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     Asynchronously fetches the lost-and-found stock, mirroring <see cref="RequestPontyItemsAsync" />
-    ///     (node/server.js:7334). Requires a prior 1,000,000+ gold donation server-side; without it the server replies with an
-    ///     unmodelled
-    ///     <c>
-    ///         lostandfound_donate
-    ///     </c>
-    ///     response and this call faults on timeout.
+    ///     (node/server.js:6882).
     /// </summary>
     /// <returns>
     ///     <see cref="IReadOnlyList{T}" /> of <see cref="TradeItem" />
     ///     <br />
     ///     The items currently in lost-and-found.
     /// </returns>
+    /// <remarks>
+    ///     Two gates ahead of the listing, and both throw here rather than time out. The first is a single donation
+    ///     of 1,000,000 gold or more, which sets <c>player.donation</c> (<c>node/server.js:7399-7402</c>); that flag
+    ///     lives on the live player and never on <c>player.p</c>, so <b>it is spent again on every reconnect</b> and
+    ///     an account that donated an hour ago is refused after a dropped socket. The second is distance, and it
+    ///     carries no <c>player.computer</c> branch (<c>:6893</c>), so this has to be asked from woffice.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to get lost-and-found items. ({reason})
+    /// </exception>
+    /// <summary>
+    ///     The phrase <see cref="RequestLostAndFoundItemsAsync" /> puts in the one refusal that a donation would fix.
+    /// </summary>
+    /// <remarks>
+    ///     A caller has to tell that refusal from the other ways the call can fail, because it is the only one worth
+    ///     spending a million gold on - and the refusal arrives as a response code with nothing else on the frame, so
+    ///     the sentence is all there is to match. Named here so the match is against a constant both sides compile
+    ///     against rather than against a string typed out twice.
+    /// </remarks>
+    public const string LOSTANDFOUND_DONATION_REQUIRED = "no donation on this connection";
+
     public async Task<IReadOnlyList<TradeItem>> RequestLostAndFoundItemsAsync()
     {
         var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -3349,7 +3427,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     GameResponseType.Distance => source.TrySetResult("Failed to get lost-and-found items. (get closer)"),
-                    _                         => false
+                    GameResponseType.LostAndFoundDonate => source.TrySetResult(
+                        $"Failed to get lost-and-found items. ({LOSTANDFOUND_DONATION_REQUIRED}; one of 1,000,000 gold or more unlocks it)"),
+                    _ => false
                 };
 
                 return Task.FromResult(result);

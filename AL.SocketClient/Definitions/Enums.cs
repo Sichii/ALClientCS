@@ -370,7 +370,17 @@ public enum GameResponseType
 
     //the lost-and-found gold reserve read (node/server.js:7334); needs no prior donation and no distance check
     [EnumMember(Value = "lostandfound_info")]
-    LostAndFoundInfo
+    LostAndFoundInfo,
+
+    //the lost-and-found listing's refusal for an account that has not donated on this connection
+    //(node/server.js:6891). Built by hand rather than by fail_response, so it carries neither place nor failed
+    [EnumMember(Value = "lostandfound_donate")]
+    LostAndFoundDonate,
+
+    //hopsickness refusing a lost-and-found buy (node/server.js:7134). Ponty is served the same handler and is
+    //deliberately not refused, so this arrives only from the lost-and-found branch
+    [EnumMember(Value = "cant_when_sick")]
+    CantWhenSick
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

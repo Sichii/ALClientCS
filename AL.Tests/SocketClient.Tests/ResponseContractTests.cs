@@ -98,6 +98,40 @@ public class ResponseContractTests
             .NotBe("buy");
     }
 
+    /// <summary>
+    ///     The two refusals the lost and found can produce, in the two different shapes the server builds them in.
+    ///     Both used to arrive as an unrecognised code, which is a caller waiting out the whole network timeout at
+    ///     the counter rather than being told no.
+    /// </summary>
+    [Test]
+    public void LostAndFoundRefusalsAreBothRecognised()
+    {
+        //the listing's refusal is emitted by hand (node/server.js:6891), so it is a bare string like distance's
+        var locked = TestJson.Socket<GameResponseData>(@"""lostandfound_donate""");
+
+        locked.Should()
+              .NotBeNull();
+
+        locked.ResponseType
+              .Should()
+              .Be(GameResponseType.LostAndFoundDonate);
+
+        //the buy's goes through fail_response with an object second argument (node/server.js:7134), so place falls
+        //back to the handler's own name and failed is set
+        var sick = TestJson.Socket<GameResponseData>(@"{ ""goblin"":true, ""response"":""cant_when_sick"", ""place"":""sbuy"", ""failed"":true }");
+
+        sick.Should()
+            .NotBeNull();
+
+        sick.ResponseType
+            .Should()
+            .Be(GameResponseType.CantWhenSick);
+
+        sick.Failed
+            .Should()
+            .BeTrue();
+    }
+
     [Test]
     public void FailedAndSuccessAreIndependentSoAnExplicitFalseSurvives()
     {
