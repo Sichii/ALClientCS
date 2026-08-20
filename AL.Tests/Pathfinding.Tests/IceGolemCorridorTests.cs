@@ -22,12 +22,12 @@ public class IceGolemCorridorTests : PathfindingTestBed
     //winterland's town spawn - guaranteed walkable
     private static readonly Location TOWN = new("winterland", 0f, 0f);
 
-    //lake cells the server rejects as move endpoints (lattice value >= 2) span y 250..330 on the corridor
+    //lake cells the server rejects as move endpoints (lattice value >= 2) span y 290..330 on the corridor
     //columns, and the server rounds an endpoint to its nearest lattice point - so anything within 5 units of
     //those cells jails. bounds are those cells plus that rounding reach
-    private const float JAIL_MIN_X = 838f;
-    private const float JAIL_MAX_X = 874f;
-    private const float JAIL_MIN_Y = 245f;
+    private const float JAIL_MIN_X = 735f;
+    private const float JAIL_MAX_X = 755f;
+    private const float JAIL_MIN_Y = 285f;
     private const float JAIL_MAX_Y = 335f;
 
     [Test]

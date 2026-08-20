@@ -705,15 +705,16 @@ public record GameData
     //so a carved channel lets the pathfinder route a crossing the game's own geometry forbids
     private static void CarveCorridors()
         //winterland ice golem island: the island itself is legal ground to the server (winterland spawns 6 and 7
-        //sit on it), and this column is the cheapest water on the lake - every crossed cell is on the server's
-        //lattice, the mouth cells are legal move endpoints, and the penalty stays under budget at 60+ move speed
-        //walked as one uninterrupted move. 22 wide leaves a 6px channel after the +-8 wall padding, which clears
-        //the mesh builder's near-wall weld pass
+        //sit on it), and this is the lake's narrowest water - the mainland's southern spur ends at y 280 facing
+        //the island's northern spur at y 344, 64 units where every other column is 80 or more. both mouths round
+        //onto lattice cells the server accepts as move endpoints, and the short span is what keeps the red-zone
+        //penalty down over the one uninterrupted move that crosses it. 22 wide leaves a 6px channel after the
+        //+-8 wall padding, which clears the mesh builder's near-wall weld pass
         => CarveCorridor(
             "winterland",
-            845,
-            867,
-            224,
+            733,
+            755,
+            272,
             352);
 
     //removes wall geometry inside the rect and walls off its long sides, leaving a walkable vertical corridor
