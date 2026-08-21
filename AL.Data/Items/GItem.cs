@@ -20,6 +20,20 @@ namespace AL.Data.Items;
 public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
 {
     /// <summary>
+    ///     If populated, the named effect this item grants while it is worn - <c>burn</c>, <c>freeze</c>,
+    ///     <c>secondchance</c>. Thirty items carry one.
+    /// </summary>
+    /// <remarks>
+    ///     Equipping files the item's own <c>attr0</c> and <c>attr1</c> under this name on the player
+    ///     (<c>node/server.js:1230</c>), summed across every worn piece naming it, and each ability is then read by
+    ///     name wherever combat implements it - burn rolls <c>attr0</c> as a percentage per hit, scaled by the map's
+    ///     burn multiplier (<c>node/server.js:3062</c>). So this names an effect rather than describing one: what
+    ///     the numbers mean is the ability's own rule, and the two attributes are the only figures the item
+    ///     contributes to it.
+    /// </remarks>
+    public string? Ability { get; init; }
+
+    /// <summary>
     ///     This item's key in the game's item table - <c>hpot0</c>, <c>firebow</c>. Filled in from that key by this
     ///     library rather than sent by the server.
     /// </summary>
@@ -85,6 +99,18 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     Enriched property
     /// </remarks>
     public IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewards { get; internal set; }
+
+    /// <summary>
+    ///     If populated, the line the game writes under this item's name in its own tooltip. Flavour and rules
+    ///     both - "Rains fire upon the enemy", "Thanks to its stealth capabilities, no one can track your
+    ///     endeavours any more" - and around half the items carry one.
+    /// </summary>
+    /// <remarks>
+    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it
+    ///     describes is implemented elsewhere or not at all. Read it as the game's own words about the item, not as
+    ///     a source of figures.
+    /// </remarks>
+    public string? Explanation { get; init; }
 
     /// <summary>
     ///     If populated, what consuming this item gives, as attribute and amount pairs. An amount can be negative,
