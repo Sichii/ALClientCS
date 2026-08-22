@@ -314,14 +314,30 @@ public sealed class ALSocketClient : IALSocketClient
     {
         Logger.Trace($"{emitType}, {data}");
 
-        if ((Socket == null) || !Connected)
+        //captured once. The field is replaced wholesale by a reconnect, so checking one instance and then calling
+        //through another is a race this used to lose outright
+        var socket = Socket;
+
+        if ((socket == null) || !Connected)
             throw new InvalidOperationException("Socket is null or closed.");
 
-        await Socket.EmitAsync(
-                        EnumHelper.ToString(emitType)
-                                  .ToLowerInvariant(),
-                        data)
-                    .ConfigureAwait(false);
+        try
+        {
+            await socket.EmitAsync(
+                            EnumHelper.ToString(emitType)
+                                      .ToLowerInvariant(),
+                            data)
+                        .ConfigureAwait(false);
+        } catch (Exception e) when (e is NullReferenceException or ObjectDisposedException)
+        {
+            //the guard above is a check-then-act and the window between the two is real: a reconnect tears the
+            //transport down under a call already past it, and SocketIO answers that by dereferencing its own
+            //disposed internals. It is the same fault as a closed socket, so it is reported as one - otherwise it
+            //surfaces as a bare NullReferenceException out of whichever component tick happened to be emitting,
+            //which is what "[movement] tick threw" was, and none of the callers that already handle a dead socket
+            //recognise it
+            throw new InvalidOperationException("Socket closed while emitting.", e);
+        }
 
         //after the await, so a throw on the way to the wire is not billed to anyone - the server never saw it
         OnEmit?.Invoke(this, emitType);
@@ -335,13 +351,22 @@ public sealed class ALSocketClient : IALSocketClient
     {
         Logger.Trace($"{emitType}");
 
-        if ((Socket == null) || !Connected)
+        //see the overload above - same check-then-act, same reconnect window
+        var socket = Socket;
+
+        if ((socket == null) || !Connected)
             throw new InvalidOperationException("Socket is null or closed.");
 
-        await Socket.EmitAsync(
-                        EnumHelper.ToString(emitType)
-                                  .ToLowerInvariant())
-                    .ConfigureAwait(false);
+        try
+        {
+            await socket.EmitAsync(
+                            EnumHelper.ToString(emitType)
+                                      .ToLowerInvariant())
+                        .ConfigureAwait(false);
+        } catch (Exception e) when (e is NullReferenceException or ObjectDisposedException)
+        {
+            throw new InvalidOperationException("Socket closed while emitting.", e);
+        }
 
         OnEmit?.Invoke(this, emitType);
     }

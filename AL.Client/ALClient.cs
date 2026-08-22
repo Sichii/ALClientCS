@@ -2891,6 +2891,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var currentMap = Character.Map;
         var startLoc = new Location(Character.Map, Character.ToPoint());
+
+        //the vertex this leg was planned to end on. Fixed for the whole call, so the guard before the emit and the
+        //jail diagnostic after it are reading the same one rather than each building their own
+        var goingLoc = new Location(currentMap, point);
         DateTime? setMovingAt = default;
         var correctionAttempted = false;
 
@@ -3076,8 +3080,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //survives - set before the jail branch, which returns a result rather than falling through
                 mapChanged = true;
 
-                var goingLoc = new Location(currentMap, point);
-
                 if (data.Map.EqualsI("jail"))
                 {
                     //this leg's own two endpoints, which are the pair the server hashed. Reading them back off
@@ -3097,6 +3099,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //stood on, and the server quantises both ends of a move onto a 10-unit lattice and jails you for landing
         //off its flood fill
         var from = Character.Movement;
+
+        //the pair the server is about to hash, and it validates the *line* between them rather than the endpoints.
+        //from is a live read and point is the vertex the path planned, so the two describe a planned edge only while
+        //the character is still standing on that edge's start - and often it is not. A leg whose timer ran out in
+        //simulation, a position the desync repair above rewrote, and every leg planned during a reconnect all hand
+        //this a start the path never chose, and the line drawn from it cuts whatever lies between. The server
+        //answers that with defeat_player and a transport to jail, from where the rest of the path carries the old
+        //map's coordinates into a room a few hundred units across and is jailed again for each one: 51 of the 64
+        //jailings in a day were that echo rather than a new fault. Checked here with the same call the diagnostic
+        //below the jail branch already makes, which had been reporting Valid: False on 59 of those 64 after the
+        //fact. Refusing costs the leg and nothing else - the callers re-path from where the character actually is,
+        //which is what the drift called for to begin with.
+        var fromLoc = new Location(currentMap, new Point(from.X, from.Y));
+
+        //a map with no mesh cannot answer, and refusing every walk on one would strand the character there
+        if ((Pathfinder.GetNavMesh(currentMap) is not null) && !Pathfinder.CanMove(fromLoc, goingLoc))
+            throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. (leg crosses a wall)");
 
         //diagnostics only. The move handler deletes every channel whose condition forbids moving through it, town
         //included, so a walk started during a recall is this side killing its own channel - and it is

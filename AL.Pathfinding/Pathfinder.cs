@@ -112,7 +112,19 @@ public static class Pathfinder
     ///     <br />
     ///     The navmesh for the given map.
     /// </returns>
-    public static NavMesh? GetNavMesh(string name) => DirectedGraph.NavMeshes.TryGetValue(name, out var mesh) ? mesh : null;
+    /// <remarks>
+    ///     Null-safe on the graph itself, not just on the name. Callers ask this to find out whether a mesh can
+    ///     answer at all before they trust what it says - the walk guard in MoveAsync and the jail diagnostic both
+    ///     do - and before Initialize runs the honest answer to that is "no mesh", the same answer an unknown map
+    ///     gets. Throwing instead turned the two guards written to fall back into the ones that broke first.
+    ///     <br />
+    ///     The name is nullable for the same reason. A character holds no map until its first new_map, and that
+    ///     frame is itself where the jail diagnostic reads one - so a character that was jailed when it logged out
+    ///     asks this about a null map on the way back in, and a raw TryGetValue answers that with an
+    ///     ArgumentNullException from inside the handler that was relocating it.
+    /// </remarks>
+    public static NavMesh? GetNavMesh(string? name)
+        => (name is not null) && (DirectedGraph?.NavMeshes.TryGetValue(name, out var mesh) == true) ? mesh : null;
 
     /// <summary>
     ///     Initializes pathfinding, building navmeshes for all maps and constructing a directed graph from them
