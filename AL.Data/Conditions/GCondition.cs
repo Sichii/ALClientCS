@@ -63,6 +63,16 @@ public sealed record GCondition : AttributedRecordBase
     public ALAttribute Defense { get; init; }
 
     /// <summary>
+    ///     If populated, the game's own line about this condition.
+    /// </summary>
+    /// <remarks>
+    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it
+    ///     describes is implemented elsewhere or not at all. Read it as the game's own words about the condition,
+    ///     not as a source of figures.
+    /// </remarks>
+    public string? Explanation { get; init; }
+
+    /// <summary>
     ///     If populated, the floor of a randomised duration in milliseconds, with <see cref="DurationMs" /> as the
     ///     ceiling. For fishing and mining the server reads the matching pair off the skill, not off the condition.
     /// </summary>
@@ -111,6 +121,13 @@ public sealed record GCondition : AttributedRecordBase
     /// </summary>
     [JsonPropertyName("set_speed")]
     public int SetSpeed { get; init; }
+
+    /// <summary>
+    ///     If populated, the name of this condition's icon art in <c>G.positions</c>. The browser client draws a
+    ///     condition's icon through the item pipeline by this name (js/html.js:439), preferring a skin carried on
+    ///     the live condition itself where the wire sends one.
+    /// </summary>
+    public string? Skin { get; init; }
 
     /// <summary>
     ///     Marks a bookkeeping condition such as an unverified account. The client lists these on their own,
