@@ -231,6 +231,27 @@ public abstract partial class ALClient
                 num = inventorySlot,
                 action = "activate"
             });
+
+    /// <summary>
+    ///     Throws one throwable item at a point on the ground (node/server.js:8039), consuming it.
+    /// </summary>
+    /// <remarks>
+    ///     Not <c>Merchant.ThrowAsync</c>, which sends the merchant's "Throw Stuff" skill at an entity. This is the
+    ///     handler behind the game's own THROW! button, and only items whose def carries <c>throw</c> reach it -
+    ///     firecrackers, whiteegg, confetti and smoke.
+    ///     <br />
+    ///     The reach is <c>str * 3</c> from the character. The too-far branch answers <c>too_far</c> and then falls
+    ///     through to throw anyway, and the item is consumed either way, so nothing here waits on an answer.
+    /// </remarks>
+    public Task ThrowToGroundAsync(int inventorySlot, float x, float y)
+        => Socket.EmitAsync(
+            ALSocketEmitType.Throw,
+            new
+            {
+                num = inventorySlot,
+                x,
+                y
+            });
     #endregion
 
     #region Merchant / trade

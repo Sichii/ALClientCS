@@ -241,6 +241,18 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public float Tier { get; init; }
 
     /// <summary>
+    ///     Whether this item can be thrown at a spot on the ground, consuming one (node/server.js:8039).
+    /// </summary>
+    /// <remarks>
+    ///     The def's own flag, and not something derived from <see cref="Type" />: <c>whiteegg</c> is a
+    ///     <see cref="ItemType.Material" /> that throws, and <c>snowball</c> is an <see cref="ItemType.Throw" /> that
+    ///     does not - it is spent by the <c>snowball</c> skill instead. Four items carry it: confetti, firecrackers,
+    ///     smoke and whiteegg.
+    /// </remarks>
+    [JsonPropertyName("throw")]
+    public bool Throw { get; init; }
+
+    /// <summary>
     ///     The item's category. For equipment this is the slot it goes in; otherwise a kind such as elixir or token.
     /// </summary>
     public ItemType Type { get; init; }

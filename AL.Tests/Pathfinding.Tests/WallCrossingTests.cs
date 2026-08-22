@@ -232,6 +232,44 @@ public class WallCrossingTests : PathfindingTestBed
     }
 
     /// <summary>
+    ///     Why the walk guard in <c>MoveAsync</c> asks about the start before it asks about the line. The raster
+    ///     refuses on the first cell it traces and that cell is the start's own, so a start it calls a wall is one no
+    ///     destination is reachable from - the step back out onto the fill included. A guard that refuses there
+    ///     refuses every leg the character will ever plan, and <c>SmartMoveAsync</c> answers a refusal by abandoning
+    ///     the trip rather than re-planning, so the next tick plans from the same position and is refused again. That
+    ///     reads as a character that stops moving for good rather than as one bad leg.
+    ///     <br />
+    ///     What puts a legal position there is the padding. <c>FillWalls</c> grows every wall rect by the collision
+    ///     base, which is the limit the server clamps a slide to rather than one it defeats a character for reaching,
+    ///     so an ordinary graze along a wall parks the character inside it.
+    /// </summary>
+    [Test]
+    public void NoDestinationIsReachableFromAStartTheRasterCallsAWall()
+    {
+        var rng = new Random(5150);
+        var sampled = 0;
+
+        foreach ((var map, var geo) in MeshedMaps())
+            for (var trial = 0; trial < TRIALS_PER_MAP; trial++)
+            {
+                var start = RandomInsideThePadding(rng, map, geo);
+                var end = RandomWalkable(rng, map, geo);
+
+                if ((start is null) || (end is null))
+                    break;
+
+                Pathfinder.CanMove(start, end)
+                          .Should()
+                          .BeFalse($"{map}: {start} is inside the padding, so the first cell traced is already a wall");
+
+                sampled++;
+            }
+
+        sampled.Should()
+               .BeGreaterThan(0, "no sampled point landed inside the padding, so nothing above was actually checked");
+    }
+
+    /// <summary>
     ///     A point off the map's own extents is answered rather than thrown over. The point map is sized to those
     ///     extents and indexed directly, and the throw took down whichever handler asked - on a jail frame that was
     ///     the handler which relocates the character, so the local position stayed on the map it had just left.
@@ -406,6 +444,32 @@ public class WallCrossingTests : PathfindingTestBed
             for (var step = 1; step <= 24; step++)
                 if (!Pathfinder.IsWalkable(new Location(map, seed.X + (dx * step), seed.Y + (dy * step))))
                     return new Location(map, seed.X + (dx * (step - 1)), seed.Y + (dy * (step - 1)));
+        }
+
+        return null;
+    }
+
+    //the first point along the ray that the raster calls a wall, which is where the padding starts. Distinct from
+    //RandomOffTheFill above: that one wants somewhere the flood never reached, this one wants somewhere the flood
+    //was stopped by the collision base grown onto a wall rect
+    private static ILocation? RandomInsideThePadding(Random rng, string map, GGeometry geo)
+    {
+        for (var attempt = 0; attempt < 200; attempt++)
+        {
+            if (RandomWalkable(rng, map, geo) is not { } seed)
+                return null;
+
+            var angle = (float)(rng.NextDouble() * Math.Tau);
+            var dx = MathF.Cos(angle);
+            var dy = MathF.Sin(angle);
+
+            for (var step = 1; step <= 24; step++)
+            {
+                var candidate = new Location(map, seed.X + (dx * step), seed.Y + (dy * step));
+
+                if (Pathfinder.IsWall(candidate))
+                    return candidate;
+            }
         }
 
         return null;

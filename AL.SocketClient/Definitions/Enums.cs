@@ -579,6 +579,7 @@ public enum ALSocketEmitType
     [EnumMember(Value = "set_home")]
     SetHome,
     Split,
+    Throw,
 
     [EnumMember(Value = "trade_history")]
     TradeHistory,

@@ -3114,8 +3114,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var fromLoc = new Location(currentMap, new Point(from.X, from.Y));
 
         //a map with no mesh cannot answer, and refusing every walk on one would strand the character there
-        if ((Pathfinder.GetNavMesh(currentMap) is not null) && !Pathfinder.CanMove(fromLoc, goingLoc))
-            throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. (leg crosses a wall)");
+        if (Pathfinder.GetNavMesh(currentMap) is not null)
+        {
+            //CanMove traces outward from the start's own cell and refuses on the first walled one, so a character
+            //the raster puts inside a wall is refused every destination there is - the ones leading back out
+            //included. SmartMoveAsync answers a refusal by abandoning the trip rather than re-planning, and the
+            //next tick plans from the same position and is refused again, so that reads as a character that stops
+            //moving for good rather than as one bad leg. The raster puts it there without the server agreeing:
+            //FillWalls pads every wall rect by the character's collision base, which is the limit the server clamps
+            //a slide to rather than one it defeats you for reaching, so an ordinary graze along a wall leaves a
+            //legal position inside the padding - and the two-cell gap fill widens the band again.
+            //Asked separately from the line, and answered by letting the leg through: the server is the authority
+            //on where a character may stand, the jailing this guard exists to stop is recovered from by the caller
+            //within a second, and a permanent stand is not recovered from at all.
+            if (Pathfinder.IsWall(fromLoc))
+                Logger.Warn($"Walking from {fromLoc} to {goingLoc} unguarded. (the raster has this standing inside a wall)");
+            else if (!Pathfinder.CanMove(fromLoc, goingLoc))
+                throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. (leg crosses a wall)");
+        }
 
         //diagnostics only. The move handler deletes every channel whose condition forbids moving through it, town
         //included, so a walk started during a recall is this side killing its own channel - and it is
