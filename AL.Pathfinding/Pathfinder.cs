@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Data;
 using AL.Data.Maps;
@@ -205,6 +206,26 @@ public static class Pathfinder
         return GetNavMesh(location.Map)
                    ?.IsWalkable(location)
                ?? false;
+    }
+
+    /// <inheritdoc cref="MeshBase{TNode,TEdge}.TryFindNearestWalkable" />
+    /// <param name="location">
+    ///     The location to search around.
+    /// </param>
+    /// <param name="walkable">
+    ///     The closest point on the same map the flood fill reached.
+    /// </param>
+    /// <remarks>
+    ///     Answers <c>false</c> for a map with no mesh rather than throwing, for the reason <see cref="IsWalkable" />
+    ///     does: a map the pathfinder never modelled has no point to step out onto.
+    /// </remarks>
+    public static bool TryFindNearestWalkable(ILocation location, out IPoint walkable)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        walkable = Point.None;
+
+        return GetNavMesh(location.Map) is { } mesh && mesh.TryFindNearestWalkable(location, out walkable);
     }
 
     private static NavMesh? TryBuildNavMesh(string name, GMap map)
