@@ -1,8 +1,10 @@
 #region
 using System.Text.Json;
 using AL.APIClient;
+using AL.Core.Abstractions;
 using AL.Core.Definitions;
 using AL.Data;
+using AL.Data.Sets;
 using FluentAssertions;
 #endregion
 
@@ -27,7 +29,7 @@ public sealed class GSetTests : GameDataTestBed
     [Test]
     public async Task TheShippedTableIsRawRatherThanRolledUp()
     {
-        var payload = JsonDocument.Parse(await AlApiClient.GetGameDataAsync());
+        using var payload = JsonDocument.Parse(await AlApiClient.GetGameDataAsync());
 
         var thirdTier = payload.RootElement.GetProperty("sets")
                                .GetProperty("rugged")
@@ -65,6 +67,41 @@ public sealed class GSetTests : GameDataTestBed
         tier.InEffect.Attributes.GetValueOrDefault(ALAttribute.For)
             .Should()
             .Be(inEffect, "the server applies every tier up to the worn count, summed");
+    }
+
+    /// <summary>
+    ///     <see cref="GSetTier.InEffect" /> is built by hand in <c>GameData.EnrichSets</c>, which fills only
+    ///     <see cref="AttributedRecordBase.Attributes" /> and leaves the ~45 declared stat properties at their
+    ///     default of nought - filling them by hand too would mean fighting the <c>init</c>/<c>protected set</c>
+    ///     accessors <see cref="AttributedRecordBase" /> declares them with, which was tried and rejected as worse
+    ///     than the asymmetry. <see cref="GSetTier.Adds" /> has no such gap: it comes off the wire, and the JSON
+    ///     converter fills both halves of every deserialized <see cref="GSetBonus" />. So the two properties on the
+    ///     same tier answer <c>.For</c> differently for no reason a caller can see by looking at the type. A future
+    ///     consumer reaching for <c>tier.InEffect.For</c> - the obviously named, most natural way to ask - gets a
+    ///     silent nought instead of a compile error or a thrown exception. Read a set bonus through
+    ///     <see cref="AttributedRecordBase.Attributes" />, always; this test exists to fail loudly the day someone
+    ///     forgets that and to explain why when it does.
+    /// </summary>
+    [Test]
+    public void InEffectLivesOnlyInAttributesWhileAddsAlsoFillsTheDeclaredProperties()
+    {
+        var tier = GameData.Sets["wt3"]!.Tiers[4];
+
+        tier.Pieces.Should().Be(5);
+
+        tier.InEffect.Attributes.GetValueOrDefault(ALAttribute.For)
+            .Should()
+            .Be(38f, "the dictionary is the only representation EnrichSets populates on InEffect");
+
+        tier.InEffect.For.Should()
+            .Be(0f, "the declared property is never filled by hand - reading it silently loses the bonus");
+
+        tier.Adds.Attributes.GetValueOrDefault(ALAttribute.For)
+            .Should()
+            .Be(16f, "deserialization fills the dictionary just like it does for InEffect's raw ingredients");
+
+        tier.Adds.For.Should()
+            .Be(16f, "deserialization also fills the declared property, unlike the hand-built InEffect");
     }
 
     /// <summary>
