@@ -138,15 +138,18 @@ public sealed class NonPublicMemberCharacterization
         // GDrops.Tables, GItem.ExchangeRewards and GMap.Drops took it 38 -> 41 — all three are enrichment, built by
         // GameData's own passes out of what the wire already carried rather than bound from it. ALClient.IsRecalling
         // took it 41 -> 42: UseTownAsync raises it around its own emit, so it is intent the client holds rather than
-        // anything the server ever sends.
+        // anything the server ever sends. GSet.Accessor and GSet.Tiers took it 42 -> 44: the same enrichment
+        // reason as the drop tables — Accessor is filled in SetsDatum.BuildLookupTable from the key the server used,
+        // and Tiers is built in GameData.EnrichSets from the folded ladder, so both are the data layer's own passes
+        // rather than anything bound off the wire.
         auditGap.Should()
-                .Be(42);
+                .Be(44);
 
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
         // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
-        // ALClient.IsRecalling, 156 until Character.Courage, now 157.
+        // ALClient.IsRecalling, 156 until Character.Courage, 157 until GSet.Accessor and GSet.Tiers, now 159.
         allInstanceNonPublicSetters.Should()
-                                   .Be(157);
+                                   .Be(159);
     }
 
     [Test]
