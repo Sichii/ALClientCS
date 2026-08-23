@@ -227,6 +227,16 @@ public sealed record GSkill : AttributedRecordBase
     ///     What this skill may be aimed at: a monster, a player, or either. Absent means the skill takes no target
     ///     at all, and aiming at the wrong kind is refused as "invalid_target" (node/server.js:8936).
     /// </summary>
+    /// <summary>
+    ///     If populated, the name of this skill's icon art in <c>G.positions</c>. Read the same way a condition's
+    ///     icon is, through the item pipeline rather than a sprite sheet.
+    /// </summary>
+    /// <remarks>
+    ///     Usually <c>skill_</c> and the skill's own key, but not reliably enough to build: a dozen skills borrow a
+    ///     condition's or an item's art instead, and the healing skills share one icon between them.
+    /// </remarks>
+    public string? Skin { get; init; }
+
     [JsonPropertyName("target")]
     public TargetType TargetType { get; init; }
 

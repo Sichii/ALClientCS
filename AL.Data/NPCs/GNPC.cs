@@ -100,6 +100,12 @@ public sealed record GNPC : AttributedRecordBase
     /// <summary>
     ///     If populated, the texture of the merchant stand drawn under this NPC. Presentation only.
     /// </summary>
+    /// <summary>
+    ///     If populated, which character sprite this NPC is drawn with, as a name in one of the sheets under
+    ///     <see cref="GameData.Sprites" />. Rarely the NPC's own key - Kane is drawn as "greencap".
+    /// </summary>
+    public string? Skin { get; init; }
+
     public string? Stand { get; init; }
 
     /// <summary>
