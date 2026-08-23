@@ -26,6 +26,7 @@ using AL.Data.Monsters;
 using AL.Data.Multipliers;
 using AL.Data.NPCs;
 using AL.Data.Projectiles;
+using AL.Data.Sets;
 using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.Data.Tokens;
@@ -127,6 +128,9 @@ public record GameData
 
     [JsonIgnore]
     public static IReadOnlyDictionary<Quest, GNPC> Quests { get; private set; }
+
+    [GameDataRoot]
+    public static SetsDatum Sets { get; private set; }
 
     [GameDataRoot]
     public static SkillsDatum Skills { get; private set; }
@@ -834,6 +838,7 @@ public record GameData
         Monsters.BuildLookupTable();
         NPCs.BuildLookupTable();
         Projectiles.BuildLookupTable();
+        Sets.BuildLookupTable();
         Skills.BuildLookupTable();
         Titles.BuildLookupTable();
         Tokens.BuildLookupTable();
