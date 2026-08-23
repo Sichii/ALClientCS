@@ -1,5 +1,6 @@
 #region
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -396,6 +397,59 @@ public record GameData
                 levelled[level] = table;
 
         return levelled.Count > 0 ? levelled : null;
+    }
+
+    /// <summary>
+    ///     Folds each set tier into the next, so a tier carries what the server applies at that count rather than
+    ///     only its own line.
+    /// </summary>
+    /// <remarks>
+    ///     The server does this to its own copy of G at boot - <c>sprocess_game_data</c>,
+    ///     <c>node/server_functions.js:248-260</c> - and then applies the single entry matching the worn count,
+    ///     <c>node/server.js:1255-1261</c>. That rollup never reaches the appengine copy this downloads, so what
+    ///     arrives here is per-tier deltas. Reading a delta as the count's value understates it badly: heavy armor
+    ///     at five pieces lists 16 fortitude and grants 38.
+    ///     <br />
+    ///     The server's loop stops at <c>items.length</c>, so a count past the top authored tier keeps the top
+    ///     total - twelve vampire pieces is what three is. Reproduced here by running the ladder to the member
+    ///     count rather than to the highest tier the wire authored.
+    /// </remarks>
+    private static void EnrichSets()
+    {
+        foreach (var set in Sets.Values)
+        {
+            //the wire tiers are cleared once folded, so a set reached twice - the lookup can file one object under
+            //more than one key - is skipped rather than having its ladder rebuilt from nothing
+            if (set.WireTiers is null)
+                continue;
+
+            var tiers = new List<GSetTier>(set.Items.Count);
+            var running = new Dictionary<ALAttribute, float>();
+
+            for (var pieces = 1; pieces <= set.Items.Count; pieces++)
+            {
+                var adds = set.WireTiers.TryGetValue(pieces.ToString(CultureInfo.InvariantCulture), out var element)
+                    ? element.Deserialize<GSetBonus>(ALJson.Options) ?? new GSetBonus()
+                    : new GSetBonus();
+
+                foreach ((var attribute, var amount) in adds.Attributes)
+                    running[attribute] = running.GetValueOrDefault(attribute) + amount;
+
+                tiers.Add(
+                    new GSetTier
+                    {
+                        Pieces = pieces,
+                        Adds = adds,
+
+                        //copied rather than shared: the running total keeps being added to, and every tier would
+                        //otherwise end up holding the last one
+                        InEffect = new GSetBonus { Attributes = new Dictionary<ALAttribute, float>(running) }
+                    });
+            }
+
+            set.Tiers = tiers;
+            set.WireTiers = null;
+        }
     }
 
     private static void EnrichMaps()
@@ -866,6 +920,7 @@ public record GameData
         EnrichMaps();
         EnrichNPCs();
         EnrichItems();
+        EnrichSets();
         EnrichMonsters();
         BuildBoundingBases();
 
