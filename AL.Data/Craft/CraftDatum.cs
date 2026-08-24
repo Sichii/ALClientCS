@@ -12,17 +12,32 @@ namespace AL.Data.Craft;
 /// <seealso cref="DatumBase{T}" />
 public class CraftDatum : DatumBase<Recipe>
 {
+    [JsonPropertyName("anchorbelt")]
+    public Recipe Anchorbelt { get; init; } = null!;
+
     [JsonPropertyName("armorring")]
     public Recipe Armorring { get; init; } = null!;
 
     [JsonPropertyName("basketofeggs")]
     public Recipe Basketofeggs { get; init; } = null!;
 
+    [JsonPropertyName("beastmantle")]
+    public Recipe Beastmantle { get; init; } = null!;
+
     [JsonPropertyName("bfangamulet")]
     public Recipe Bfangamulet { get; init; } = null!;
 
+    [JsonPropertyName("bogcrown")]
+    public Recipe Bogcrown { get; init; } = null!;
+
+    [JsonPropertyName("bogwalkers")]
+    public Recipe Bogwalkers { get; init; } = null!;
+
     [JsonPropertyName("bowofthedead")]
     public Recipe Bowofthedead { get; init; } = null!;
+
+    [JsonPropertyName("brinefang")]
+    public Recipe Brinefang { get; init; } = null!;
 
     [JsonPropertyName("bronzeingot")]
     public Recipe Bronzeingot { get; init; } = null!;
@@ -41,6 +56,15 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("charmer")]
     public Recipe Charmer { get; init; } = null!;
+
+    [JsonPropertyName("cinderboots")]
+    public Recipe Cinderboots { get; init; } = null!;
+
+    [JsonPropertyName("cinderwand")]
+    public Recipe Cinderwand { get; init; } = null!;
+
+    [JsonPropertyName("cloverstud")]
+    public Recipe Cloverstud { get; init; } = null!;
 
     [JsonPropertyName("cocoon")]
     public Recipe Cocoon { get; init; } = null!;
@@ -90,6 +114,12 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("elixirvit2")]
     public Recipe Elixirvit2 { get; init; } = null!;
 
+    [JsonPropertyName("emberhood")]
+    public Recipe Emberhood { get; init; } = null!;
+
+    [JsonPropertyName("emberseal")]
+    public Recipe Emberseal { get; init; } = null!;
+
     [JsonPropertyName("fclaw")]
     public Recipe Fclaw { get; init; } = null!;
 
@@ -117,6 +147,12 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("fsword")]
     public Recipe Fsword { get; init; } = null!;
 
+    [JsonPropertyName("glacierseal")]
+    public Recipe Glacierseal { get; init; } = null!;
+
+    [JsonPropertyName("gloampendant")]
+    public Recipe Gloampendant { get; init; } = null!;
+
     [JsonPropertyName("goldingot")]
     public Recipe Goldingot { get; init; } = null!;
 
@@ -132,6 +168,12 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("heartwood")]
     public Recipe Heartwood { get; init; } = null!;
 
+    [JsonPropertyName("knifebelt")]
+    public Recipe Knifebelt { get; init; } = null!;
+
+    [JsonPropertyName("lanternshield")]
+    public Recipe Lanternshield { get; init; } = null!;
+
     [JsonPropertyName("lbelt")]
     public Recipe Lbelt { get; init; } = null!;
 
@@ -140,6 +182,15 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("merry")]
     public Recipe Merry { get; init; } = null!;
+
+    [JsonPropertyName("molehook")]
+    public Recipe Molehook { get; init; } = null!;
+
+    [JsonPropertyName("moonshardearring")]
+    public Recipe Moonshardearring { get; init; } = null!;
+
+    [JsonPropertyName("mossheart")]
+    public Recipe Mossheart { get; init; } = null!;
 
     [JsonPropertyName("mushroomstaff")]
     public Recipe Mushroomstaff { get; init; } = null!;
@@ -165,17 +216,47 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("pmaceofthedead")]
     public Recipe Pmaceofthedead { get; init; } = null!;
 
+    [JsonPropertyName("pollenbow")]
+    public Recipe Pollenbow { get; init; } = null!;
+
     [JsonPropertyName("pouchbow")]
     public Recipe Pouchbow { get; init; } = null!;
 
     [JsonPropertyName("quiver")]
     public Recipe Quiver { get; init; } = null!;
 
+    [JsonPropertyName("ratkingbuckler")]
+    public Recipe Ratkingbuckler { get; init; } = null!;
+
+    [JsonPropertyName("ratworkcoat")]
+    public Recipe Ratworkcoat { get; init; } = null!;
+
+    [JsonPropertyName("reedpants")]
+    public Recipe Reedpants { get; init; } = null!;
+
+    [JsonPropertyName("reefvest")]
+    public Recipe Reefvest { get; init; } = null!;
+
     [JsonPropertyName("resistancering")]
     public Recipe Resistancering { get; init; } = null!;
 
+    [JsonPropertyName("rimeboots")]
+    public Recipe Rimeboots { get; init; } = null!;
+
+    [JsonPropertyName("rimeknuckles")]
+    public Recipe Rimeknuckles { get; init; } = null!;
+
     [JsonPropertyName("rod")]
     public Recipe Rod { get; init; } = null!;
+
+    [JsonPropertyName("saffronloop")]
+    public Recipe Saffronloop { get; init; } = null!;
+
+    [JsonPropertyName("scribeorb")]
+    public Recipe Scribeorb { get; init; } = null!;
+
+    [JsonPropertyName("silkgrips")]
+    public Recipe Silkgrips { get; init; } = null!;
 
     [JsonPropertyName("slimestaff")]
     public Recipe Slimestaff { get; init; } = null!;
@@ -192,17 +273,38 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("staffofthedead")]
     public Recipe Staffofthedead { get; init; } = null!;
 
+    [JsonPropertyName("starcloak")]
+    public Recipe Starcloak { get; init; } = null!;
+
     [JsonPropertyName("stealthcape")]
     public Recipe Stealthcape { get; init; } = null!;
 
     [JsonPropertyName("stinger")]
     public Recipe Stinger { get; init; } = null!;
 
+    [JsonPropertyName("stormquiver")]
+    public Recipe Stormquiver { get; init; } = null!;
+
     [JsonPropertyName("supercomputer")]
     public Recipe Supercomputer { get; init; } = null!;
 
     [JsonPropertyName("swordofthedead")]
     public Recipe Swordofthedead { get; init; } = null!;
+
+    [JsonPropertyName("thistlequiver")]
+    public Recipe Thistlequiver { get; init; } = null!;
+
+    [JsonPropertyName("threadneedle")]
+    public Recipe Threadneedle { get; init; } = null!;
+
+    [JsonPropertyName("thundergrips")]
+    public Recipe Thundergrips { get; init; } = null!;
+
+    [JsonPropertyName("turtleshard")]
+    public Recipe Turtleshard { get; init; } = null!;
+
+    [JsonPropertyName("venomband")]
+    public Recipe Venomband { get; init; } = null!;
 
     [JsonPropertyName("wattire")]
     public Recipe Wattire { get; init; } = null!;
@@ -222,8 +324,14 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("wgloves")]
     public Recipe Wgloves { get; init; } = null!;
 
+    [JsonPropertyName("windbelt")]
+    public Recipe Windbelt { get; init; } = null!;
+
     [JsonPropertyName("wingedboots")]
     public Recipe Wingedboots { get; init; } = null!;
+
+    [JsonPropertyName("worldrootcrook")]
+    public Recipe Worldrootcrook { get; init; } = null!;
 
     [JsonPropertyName("wshoes")]
     public Recipe Wshoes { get; init; } = null!;

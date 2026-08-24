@@ -172,6 +172,9 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("sanguine")]
     public GCondition Sanguine { get; init; } = null!;
 
+    [JsonPropertyName("sheltered")]
+    public GCondition Sheltered { get; init; } = null!;
+
     [JsonPropertyName("shocked")]
     public GCondition Shocked { get; init; } = null!;
 

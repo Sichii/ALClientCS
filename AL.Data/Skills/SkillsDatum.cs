@@ -82,6 +82,12 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("esc")]
     public GSkill Esc { get; init; } = null!;
 
+    [JsonPropertyName("fanofknives")]
+    public GSkill Fanofknives { get; init; } = null!;
+
+    [JsonPropertyName("fart")]
+    public GSkill Fart { get; init; } = null!;
+
     [JsonPropertyName("fireball")]
     public GSkill Fireball { get; init; } = null!;
 
@@ -97,6 +103,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("hardshell")]
     public GSkill Hardshell { get; init; } = null!;
 
+    [JsonPropertyName("headwiggle")]
+    public GSkill Headwiggle { get; init; } = null!;
+
     [JsonPropertyName("heal")]
     public GSkill Heal { get; init; } = null!;
 
@@ -111,6 +120,12 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("invis")]
     public GSkill Invis { get; init; } = null!;
+
+    [JsonPropertyName("joy")]
+    public GSkill Joy { get; init; } = null!;
+
+    [JsonPropertyName("jump")]
+    public GSkill Jump { get; init; } = null!;
 
     [JsonPropertyName("light")]
     public GSkill Light { get; init; } = null!;
@@ -238,6 +253,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("shadowstrike")]
     public GSkill Shadowstrike { get; init; } = null!;
 
+    [JsonPropertyName("shelter")]
+    public GSkill Shelter { get; init; } = null!;
+
     [JsonPropertyName("smash")]
     public GSkill Smash { get; init; } = null!;
 
@@ -258,6 +276,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("stop")]
     public GSkill Stop { get; init; } = null!;
+
+    [JsonPropertyName("superjump")]
+    public GSkill Superjump { get; init; } = null!;
 
     [JsonPropertyName("supershot")]
     public GSkill Supershot { get; init; } = null!;
@@ -315,6 +336,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("weakness_aura")]
     public GSkill WeaknessAura { get; init; } = null!;
+
+    [JsonPropertyName("wiggle")]
+    public GSkill Wiggle { get; init; } = null!;
 
     [JsonPropertyName("xpower")]
     public GSkill Xpower { get; init; } = null!;

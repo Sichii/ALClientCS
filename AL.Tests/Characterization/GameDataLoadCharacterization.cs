@@ -69,7 +69,7 @@ public class GameDataLoadCharacterization
                 .Keys
                 .Count()
                 .Should()
-                .Be(534);
+                .Be(581);
 
         // 67 rather than one key per served map: the datum declares the keys, so a map the snapshot carries but the
         // generated members do not know about binds to nothing, and a wire name differing from its CLR spelling by
@@ -90,7 +90,7 @@ public class GameDataLoadCharacterization
                 .Keys
                 .Count()
                 .Should()
-                .Be(130);
+                .Be(138);
 
         GameData.NPCs
                 .Keys
@@ -135,7 +135,7 @@ public class GameDataLoadCharacterization
 
         exchangeables.Count
                      .Should()
-                     .Be(39);
+                     .Be(40);
 
         exchangeables.Should()
                      .OnlyContain(item => item.ExchangeAtNPC != null);
@@ -148,7 +148,7 @@ public class GameDataLoadCharacterization
 
         exchangeables.Count(item => item.ExchangeAtNPC!.Id != "exchange")
                      .Should()
-                     .Be(7);
+                     .Be(8);
 
         GameData.Items["leather"]!
                 .ExchangeAtNPC!.Id
@@ -187,7 +187,7 @@ public class GameDataLoadCharacterization
 
         buyables.Count
                 .Should()
-                .Be(50);
+                .Be(52);
 
         buyables.Should()
                 .OnlyContain(item => item.ObtainableFromNPC!.Locations.Count > 0);
@@ -247,10 +247,10 @@ public class GameDataLoadCharacterization
     [Test]
     public void T1_StaticScalars_Bind()
     {
-        // Version is the strong static-binding canary: 2538 in the committed snapshot, 0 if static binding breaks.
+        // Version is the strong static-binding canary: 5058 in the committed snapshot, 0 if static binding breaks.
         GameData.Version
                 .Should()
-                .Be(2538);
+                .Be(5058);
 
         // Multipliers replaces the phantom top-level "inflation"/"shells_to_gold" keys; buy_to_sell is the
         // NPC buy-back ratio every sell price derives from, so a 0 here means the nested bind broke.
@@ -302,7 +302,7 @@ public class GameDataLoadCharacterization
         GameData.Drops
                 .Monsters
                 .Should()
-                .HaveCount(99);
+                .HaveCount(102);
 
         // [rate, item] - the plain form, 220 of the 323 entries
         var seashell = GameData.Drops.Monsters["crab"]
@@ -369,11 +369,12 @@ public class GameDataLoadCharacterization
                 .Should()
                 .Contain(drop => drop.Name == "goldenpowerglove");
 
-        //64 of the 65 leftover keys - skins is an object rather than a drop list, and the shape guard drops it
+        //65 of the 67 leftover keys - skins and monsters_home_server are objects rather than drop lists, and the
+        //shape guard drops both
         GameData.Drops
                 .Tables
                 .Should()
-                .HaveCount(64);
+                .HaveCount(65);
 
         //the typed keys are typed, so none of them reaches the leftovers
         GameData.Drops

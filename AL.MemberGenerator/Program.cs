@@ -12,6 +12,7 @@ using AL.Data.Maps;
 using AL.Data.Monsters;
 using AL.Data.NPCs;
 using AL.Data.Projectiles;
+using AL.Data.Sets;
 using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.MemberGenerator.Extensions;
@@ -105,7 +106,10 @@ public class Program
             "projectiles", nameof(GProjectile)
         },
 
-        //sets
+        {
+            "sets", nameof(GSet)
+        },
+
         //shells_to_gold
         {
             "skills", nameof(GSkill)

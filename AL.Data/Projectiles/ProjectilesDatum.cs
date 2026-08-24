@@ -34,6 +34,9 @@ public class ProjectilesDatum : DatumBase<GProjectile>
     [JsonPropertyName("dartgun")]
     public GProjectile Dartgun { get; init; } = null!;
 
+    [JsonPropertyName("fanofknives")]
+    public GProjectile Fanofknives { get; init; } = null!;
+
     [JsonPropertyName("firearrow")]
     public GProjectile Firearrow { get; init; } = null!;
 
@@ -120,4 +123,7 @@ public class ProjectilesDatum : DatumBase<GProjectile>
 
     [JsonPropertyName("wmomentum")]
     public GProjectile Wmomentum { get; init; } = null!;
+
+    [JsonPropertyName("worldroot")]
+    public GProjectile Worldroot { get; init; } = null!;
 }
