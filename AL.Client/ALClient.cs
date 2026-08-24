@@ -602,6 +602,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="checkWeapon">
     ///     Whether or not to check the equipped weapon against the required weapon type. (if there is one)
     /// </param>
+    /// <param name="checkSlotItems">
+    ///     Whether or not to check that one of the items the skill names is worn in its slot. (if it names any)
+    ///     False for a caller that is about to equip one for the cast, the same way <paramref name="checkWeapon" />
+    ///     is - otherwise the answer is no for exactly the character that is one swap away from yes.
+    /// </param>
     /// <returns>
     ///     <c>
     ///         true
@@ -615,7 +620,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     skillName
     /// </exception>
-    public bool CanUseSkill(string skillName, bool checkWeapon = true)
+    public bool CanUseSkill(string skillName, bool checkWeapon = true, bool checkSlotItems = true)
     {
         if (string.IsNullOrEmpty(skillName))
             throw new ArgumentNullException(nameof(skillName));
@@ -672,7 +677,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             && !data.RequiredInventoryItems.All(itemName => Character.Inventory.ContainsItem(itemName)))
             return false;
 
-        if (data.RequiredSlotItems != null)
+        if (checkSlotItems && (data.RequiredSlotItems != null))
         {
             var equipped = false;
 
@@ -2767,6 +2772,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task LeaveMapAsync()
     {
+        //ahead of the callbacks below, which would otherwise listen through whatever the hook emits
+        await RaiseBeforeEscapeAsync(CancellationToken.None);
+
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
@@ -3133,18 +3141,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. (leg crosses a wall)");
         }
 
-        //diagnostics only. The move handler deletes every channel whose condition forbids moving through it, town
-        //included, so a walk started during a recall is this side killing its own channel - and it is
-        //indistinguishable downstream from a monster's hit doing the same thing
-        //
-        //IsRecalling alone, and never the character's own channel dictionary: nothing clears that until the server's
-        //next frame, so it still reads "town" at the instant a recall lands or is stopped - and a walk emitted there
-        //deletes nothing, because the channel is already over. That half reported 110 walks in a day and not one of
-        //them was inside a live channel. IsRecalling is the wider question anyway, since it is up from the emit
-        //rather than from the server's answer to it
-        if (IsRecalling)
-            Logger.Warn($"Walk leg to {point.ToPoint()} emitted while a town recall was up. This deletes the channel.");
-
         await Socket.EmitAsync(
             ALSocketEmitType.Move,
             new
@@ -3182,11 +3178,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             var stoppingAt = Character.Movement;
             var finalDestination = new Point(stoppingAt.X, stoppingAt.Y);
             Logger.Debug($"Move to {point.ToPoint()} canceled. Stopping at {finalDestination}");
-
-            //same deletion as the leg's own emit above, and this is the one that fires while another claimant is
-            //taking the movement gate off this walk - which is exactly when a recall is about to be started
-            if (IsRecalling)
-                Logger.Warn($"Standstill move emitted while a town recall was up. This deletes the channel.");
 
             point = finalDestination;
 
@@ -4507,6 +4498,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task TransportAsync(string map, int spawnIndex)
     {
+        //ahead of the callbacks below, which would otherwise listen through whatever the hook emits
+        await RaiseBeforeEscapeAsync(CancellationToken.None);
+
         var source = new TaskCompletionSource<Expectation<NewMapData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
@@ -4573,6 +4567,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </remarks>
     public async Task<string> EnterDungeonAsync(string place, string? instance = null)
     {
+        //ahead of the callbacks below, which would otherwise listen through whatever the hook emits
+        await RaiseBeforeEscapeAsync(CancellationToken.None);
+
         var source = new TaskCompletionSource<Expectation<NewMapData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
@@ -4992,6 +4989,46 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             },
             "regen_mp");
 
+    /// <summary>How many monsters may be targeting the character and still let it off the map.</summary>
+    /// <remarks>
+    ///     The server's own bound, and it guards all four ways out - leaving a map, a door or transporter, a dungeon
+    ///     entry, and the town recall (node/server.js:5368, 5389, 5538, 5720). Over it, each is refused with
+    ///     <c>cant_escape</c>.
+    /// </remarks>
+    private const int MAX_ESCAPE_TARGETS = 5;
+
+    /// <summary>Whether the server would let this character off the map right now.</summary>
+    /// <remarks>
+    ///     Exact rather than a guess. <c>targets</c> is the server's own counter and it ships on every update of this
+    ///     character, so this is the number the refusal branches on rather than a recount of what is in sight - a
+    ///     monster that has lost interest comes off it a beat after the screen says so, and that lag is the server's
+    ///     as well.
+    /// </remarks>
+    public bool CanEscape => Character.AggroTargets <= MAX_ESCAPE_TARGETS;
+
+    /// <summary>
+    ///     Invoked immediately before an emit the server may refuse with <c>cant_escape</c>, and only when
+    ///     <see cref="CanEscape" /> is false. A consumer's chance to shed aggro so the emit goes through.
+    /// </summary>
+    /// <remarks>
+    ///     Raised on the refusal's own condition rather than on every escape, so a door that was never going to be
+    ///     refused costs one comparison and nothing else.
+    ///     <br />
+    ///     Awaited, so the emit waits on it and a hook that throws takes the emit down with it. Whatever it arranges
+    ///     has to reach the wire ahead of the emit: one socket carries them in the order they were written, and the
+    ///     server reads <c>targets</c> when it handles the escape rather than when it was sent.
+    /// </remarks>
+    public Func<CancellationToken, Task>? BeforeEscape { get; set; }
+
+    /// <summary>Gives <see cref="BeforeEscape" /> its chance, when there is anything for it to fix.</summary>
+    private Task RaiseBeforeEscapeAsync(CancellationToken token)
+    {
+        if (CanEscape || (BeforeEscape is not { } hook))
+            return Task.CompletedTask;
+
+        return hook(token);
+    }
+
     /// <summary>
     ///     Invoked once immediately before a recall is emitted, if set. A consumer's chance to arrange whatever has to
     ///     be true before the three second channel starts.
@@ -5002,6 +5039,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     arranged. This is the one seam every recall passes through, a pathfound one included.
     ///     <br />
     ///     Awaited, so the recall waits on it and a hook that throws takes the recall down with it.
+    ///     <br />
+    ///     Second of the two hooks the recall runs. <see cref="BeforeEscape" /> goes first and answers a different
+    ///     question - whether the server will permit the recall at all - where this one protects the channel it opens.
     /// </remarks>
     public Func<CancellationToken, Task>? BeforeTownRecall { get; set; }
 
@@ -5051,6 +5091,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task UseTownAsync(CancellationToken? token = null)
     {
+        //first of the two, because they answer different questions and only one of them decides whether the recall
+        //is allowed at all. This one sheds the aggro the server refuses on; the cover below keeps the channel it
+        //opens from being broken. Doing it this way round also usually saves the cover its work - a cover that
+        //measures whether anything is still hitting the character reads false once this has done its job
+        await RaiseBeforeEscapeAsync(token ?? CancellationToken.None);
+
         //before anything else this method sets up: the hook is allowed to spend time, and a callback registered
         //around it would be listening through frames belonging to whatever it does. Ahead of IsRecalling as well,
         //since the cover the hook arranges is itself a cast the flag would stand down
@@ -5062,12 +5108,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //read before the emit: the frame handler below has already merged the incoming counter onto Character by
         //the time our callback runs, so the comparison has to be against where we started
         var mapChangeCountAtStart = Character.MapChangeCount;
-
-        //diagnostics only. A recall that reports a cancellation says nothing about what cancelled it, and every way
-        //the channel dies - a hit, our own move emit, an equip - looks identical from here: a frame with the channel
-        //gone. What separates them is when it happened and what else moved on that frame
-        var channelStarted = System.Diagnostics.Stopwatch.GetTimestamp();
-        var hpAtStart = Character.HP;
 
         //how long after the channel is confirmed an absent channel is still read as the frame that predates the
         //confirmation rather than as a cancellation. Every frame is dispatched on its own task, so the frame carrying
@@ -5084,23 +5124,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //Stopwatch's own origin, and report a recall that went on to land perfectly as canceled
         var confirmedAt = 0L;
 
-        double Elapsed() => System.Diagnostics.Stopwatch.GetElapsedTime(channelStarted).TotalMilliseconds;
-
         //the channel is over the moment its outcome is known. Lowering IsRecalling in the finally instead leaves it
-        //up across the hop that reschedules the awaiter, and a mover walking in that gap warns that it deleted a
-        //channel which had already landed
+        //up across the hop that reschedules the awaiter, and everything that stands down for a recall - the gear
+        //swap, the skill cast, the mover's own town edge - stays stood down for a channel that is already over
         void Resolve(Expectation outcome)
         {
             IsRecalling = false;
             source.TrySetResult(outcome);
         }
-
-        static string ChannelNames(IReadOnlyDictionary<string, ChannelingInfo>? channeling)
-            => channeling is { Count: > 0 } ? string.Join(", ", channeling.Keys) : "none";
-
-        Logger.Debug(
-            $"Town recall starting on {Character.Map}. Aggro targets {Character.AggroTargets}, map change count {mapChangeCountAtStart}, "
-            + $"hp {Character.HP:F0}/{Character.MaxHP:F0}, channels [{ChannelNames(Character.Channeling)}]");
 
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
@@ -5108,10 +5139,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 // ReSharper disable once ConvertIfStatementToSwitchStatement
                 if (data.Channeling?.ContainsKey("town") == true)
-                {
-                    if (Interlocked.CompareExchange(ref confirmedAt, System.Diagnostics.Stopwatch.GetTimestamp(), 0) == 0)
-                        Logger.Debug($"Town channel confirmed {Elapsed():F0}ms in.");
-                }
+                    Interlocked.CompareExchange(ref confirmedAt, System.Diagnostics.Stopwatch.GetTimestamp(), 0);
 
                 //the channel ending is not the same thing as the channel being interrupted - the server deletes it
                 //and then transports, so a recall that lands also produces a frame with no channel on it. The map
@@ -5123,20 +5151,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     var sinceConfirmed = System.Diagnostics.Stopwatch.GetElapsedTime(confirmation)
                                                           .TotalMilliseconds;
 
-                    //the frame the confirmation raced. Logged rather than dropped silently, because the grace being
-                    //too short and the grace swallowing a real cancellation look the same from the outside
-                    if (sinceConfirmed < CONFIRMATION_RACE_GRACE_MS)
-                        Logger.Debug($"Town channel absent {Elapsed():F0}ms in, {sinceConfirmed:F0}ms after the confirmation - taken as the frame it raced.");
-                    else
-                    {
-                        //an hp drop across the channel is a hit, which is the server deleting the channel dictionary
-                        //in its damage path rather than anything on this side
-                        Logger.Debug(
-                            $"Town channel gone {Elapsed():F0}ms in. Frame channels [{ChannelNames(data.Channeling)}], map change count {data.MapChangeCount} "
-                            + $"against {mapChangeCountAtStart} at start, hp {data.HP:F0} against {hpAtStart:F0} at start, aggro targets {data.AggroTargets}");
-
+                    //inside the grace this is the frame the confirmation raced, and it says nothing about the channel
+                    if (sinceConfirmed >= CONFIRMATION_RACE_GRACE_MS)
                         Resolve("Failed to town. (canceled)");
-                    }
                 }
 
                 return TaskCache.FALSE;
@@ -5148,8 +5165,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 if ((Volatile.Read(ref confirmedAt) != 0) && (data.Effect == DisappearEffect.Town))
                 {
-                    Logger.Debug($"Town recall landed {Elapsed():F0}ms in on {data.Map}, map change count {data.MapChangeCount}.");
-
                     //one that lands says the channel is usable here after all, so an older failure stops speaking for
                     //the map. Keyed on where the recall was started rather than where it landed - they are the same
                     //map, since town is this map's own spawn, but the intent is the map that was left
@@ -5169,31 +5184,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //targeting you. Without an arm here it matched nothing, so a character holding aggro burned the whole
                 //timeout on every attempt and never fell back to walking
                 if (data.ResponseType is GameResponseType.TransportFailed)
-                {
-                    Logger.Debug($"Town recall refused {Elapsed():F0}ms in: transport_failed.");
                     Resolve("Failed to town. (failed)");
-                } else if (data.ResponseType is GameResponseType.CantEscape)
-                {
-                    //the server refuses this while more than five things are targeting the character, so what its own
-                    //count was is the whole of the diagnosis - and the client's read of it may be nothing at all
-                    Logger.Debug($"Town recall refused {Elapsed():F0}ms in: cant_escape. Aggro targets read as {Character.AggroTargets}.");
+                else if (data.ResponseType is GameResponseType.CantEscape)
                     Resolve("Failed to town. (can't escape)");
-                }
 
                 return TaskCache.FALSE;
             });
-
-        //diagnostics only. A frame that merely shows the channel gone names nothing that could have deleted it, and
-        //every candidate on this side is an emit: an attack, an equip, a walk, a stop. The hook fires after the wire,
-        //so it bills nothing, and it comes off in the finally below
-        var tracedSocket = Socket;
-
-        //the meter's resolver names the lane the emit is running inside, and this hook runs on the emitting flow, so
-        //the AsyncLocal it reads is still the caller's
-        void TraceEmit(object? _, ALSocketEmitType emitType)
-            => Logger.Debug($"Emitted {emitType} {Elapsed():F0}ms into the town channel, from {CallMeter.SourceResolver?.Invoke() ?? "nowhere named"}.");
-
-        tracedSocket.OnEmit += TraceEmit;
 
         //raised before the emit rather than off the server's answer, which is the whole reason it exists
         IsRecalling = true;
@@ -5203,8 +5199,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
 
             //disposed with the call: an undisposed registration outlives the recall it was for and fires on whatever
-            //cancels that token next, stopping a town nobody is channeling and logging the cancellation of a recall
-            //that landed minutes ago
+            //cancels that token next, stopping a town nobody is channeling
             using var cancelRegistration = token?.Register(
                 () =>
                 {
@@ -5214,9 +5209,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         {
                             action = "town"
                         });
-                    //how far in it got, because that is what separates a caller that changed its mind from one whose
-                    //own poll interval is shorter than the channel and so can never let one land
-                    Logger.Info($"Town recall canceled {System.Diagnostics.Stopwatch.GetElapsedTime(channelStarted).TotalMilliseconds:F0}ms into the channel");
+
                     Resolve(Expectation.Success);
                 })
                               ?? default;
@@ -5225,7 +5218,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             expectation.ThrowIfUnsuccessful();
         } finally
         {
-            tracedSocket.OnEmit -= TraceEmit;
             IsRecalling = false;
         }
     }
