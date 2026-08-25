@@ -107,6 +107,17 @@ public sealed record GSkill : AttributedRecordBase
     public float Duration { get; init; }
 
     /// <summary>
+    ///     If populated, the game's own line about this skill - "Hits 3 targets at once!". Nearly all of them
+    ///     carry one; the two that do not are client actions rather than skills.
+    /// </summary>
+    /// <remarks>
+    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it
+    ///     describes is implemented elsewhere or not at all. Read it as the game's own words about the skill, not
+    ///     as a source of figures.
+    /// </remarks>
+    public string? Explanation { get; init; }
+
+    /// <summary>
     ///     Marks the skill as an attack. It is refused on a <see cref="AL.Data.Maps.GMap.Safe" /> map and cannot be aimed at
     ///     yourself (node/server.js:8930, :8945).
     /// </summary>

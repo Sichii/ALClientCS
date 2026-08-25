@@ -54,6 +54,17 @@ public sealed record GClass
     public DamageType DamageType { get; init; }
 
     /// <summary>
+    ///     The game's own paragraph about this class - "Rangers are skilled archers." It is what the character
+    ///     creation screen shows, and every class carries one.
+    /// </summary>
+    /// <remarks>
+    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an ability it
+    ///     describes is implemented elsewhere or not at all. Read it as the game's own words about the class, not
+    ///     as a source of figures.
+    /// </remarks>
+    public string? Description { get; init; }
+
+    /// <summary>
     ///     The 2handed weapons this class can use, and the stat modifications that apply when wielding them.
     /// </summary>
     public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Doublehand { get; init; }
