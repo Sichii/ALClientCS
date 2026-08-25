@@ -1,5 +1,6 @@
 #region
 using System.Reflection;
+using System.Text.Json.Nodes;
 using AL.Core.Definitions;
 using AL.Data;
 using FluentAssertions;
@@ -69,7 +70,7 @@ public class GameDataLoadCharacterization
                 .Keys
                 .Count()
                 .Should()
-                .Be(581);
+                .Be(579);
 
         // 67 rather than one key per served map: the datum declares the keys, so a map the snapshot carries but the
         // generated members do not know about binds to nothing, and a wire name differing from its CLR spelling by
@@ -90,13 +91,36 @@ public class GameDataLoadCharacterization
                 .Keys
                 .Count()
                 .Should()
-                .Be(138);
+                .Be(143);
 
         GameData.NPCs
                 .Keys
                 .Count()
                 .Should()
                 .Be(129);
+    }
+
+    /// <summary>
+    ///     Pins the regeneration signal: the snapshot carries no members the generated datums miss, and an injected
+    ///     unknown member is counted. The zero baseline alone could also mean the scan matched no sections at all,
+    ///     which is why the injection half exists.
+    /// </summary>
+    [Test]
+    public void T1_UnknownMemberScan_CountsOnlyUndeclaredMembers()
+    {
+        //a private parse - Fixture.GameData is shared, and this test injects a key
+        var root = JsonNode.Parse(Fixture.GameDataJson)!.AsObject();
+
+        var baseline = GameData.CountUnknownMembers(root);
+
+        baseline.Should()
+                .Be(0);
+
+        ((JsonObject)root["items"]!)["an_item_no_datum_declares"] = new JsonObject();
+
+        GameData.CountUnknownMembers(root)
+                .Should()
+                .Be(baseline + 1);
     }
 
     [Test]
@@ -247,10 +271,10 @@ public class GameDataLoadCharacterization
     [Test]
     public void T1_StaticScalars_Bind()
     {
-        // Version is the strong static-binding canary: 5058 in the committed snapshot, 0 if static binding breaks.
+        // Version is the strong static-binding canary: 5200 in the committed snapshot, 0 if static binding breaks.
         GameData.Version
                 .Should()
-                .Be(5058);
+                .Be(5200);
 
         // Multipliers replaces the phantom top-level "inflation"/"shells_to_gold" keys; buy_to_sell is the
         // NPC buy-back ratio every sell price derives from, so a 0 here means the nested bind broke.

@@ -392,10 +392,10 @@ public class ItemsDatum : DatumBase<GItem>
     public GItem Elixirdex2 { get; init; } = null!;
 
     [JsonPropertyName("elixirfires")]
-    public GItem Elixirfireres { get; init; } = null!;
+    public GItem Elixirfires { get; init; } = null!;
 
     [JsonPropertyName("elixirfzres")]
-    public GItem Elixirfreezeres { get; init; } = null!;
+    public GItem Elixirfzres { get; init; } = null!;
 
     [JsonPropertyName("elixirint0")]
     public GItem Elixirint0 { get; init; } = null!;

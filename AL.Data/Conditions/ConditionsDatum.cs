@@ -95,7 +95,7 @@ public class ConditionsDatum : DatumBase<GCondition>
     public GCondition Invis { get; init; } = null!;
 
     [JsonPropertyName("licenced")]
-    public GCondition Licensed { get; init; } = null!;
+    public GCondition Licenced { get; init; } = null!;
 
     [JsonPropertyName("marked")]
     public GCondition Marked { get; init; } = null!;

@@ -112,11 +112,9 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way.
     ///     <br />
-    ///     Neither this nor <see cref="MassExchangePPAsync" /> is reachable from the suite, and it is not an oversight:
-    ///     the committed <c>data.json</c> predates the pair, carrying neither in <c>G.skills</c> nor in
-    ///     <c>G.conditions</c>, so <c>CanUseSkill</c> answers false for both against the snapshot. The live API supplies
-    ///     them (<c>design/skills.js:375-396</c>), so runtime is unaffected - but anything counted off that fixture is
-    ///     stale, and no test covers these two.
+    ///     No test covers this or <see cref="MassExchangePPAsync" />. The committed <c>data.json</c> once predated the
+    ///     pair and kept them unreachable from the suite; it now carries both in <c>G.skills</c> and
+    ///     <c>G.conditions</c> (<c>design/skills.js:375-396</c>), so <c>CanUseSkill</c> no longer blocks them.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massexchange'. ({reason})

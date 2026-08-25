@@ -20,10 +20,10 @@ public class GeometryDatum : DatumBase<GGeometry>
     public GGeometry Bank { get; init; } = null!;
 
     [JsonPropertyName("bank_b")]
-    public GGeometry BankBasement { get; init; } = null!;
+    public GGeometry BankB { get; init; } = null!;
 
     [JsonPropertyName("bank_u")]
-    public GGeometry BankUnderground { get; init; } = null!;
+    public GGeometry BankU { get; init; } = null!;
 
     [JsonPropertyName("cave")]
     public GGeometry Cave { get; init; } = null!;

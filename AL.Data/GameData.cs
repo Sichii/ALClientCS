@@ -146,6 +146,12 @@ public record GameData
     [GameDataRoot]
     public static TokensDatum Tokens { get; private set; }
 
+    /// <summary>
+    ///     The game-data version the data members were last generated against. AL.MemberGenerator emits the stamp as
+    ///     generated output (dataMembers/version.txt); paste it here when refreshing the datums.
+    /// </summary>
+    public const int KNOWN_VERSION = 5200;
+
     [GameDataRoot]
     public static int Version { get; private set; }
 
@@ -193,7 +199,7 @@ public record GameData
     //System.Text.Json cannot bind static members, so drive the G-data statics from the wire by reflection:
     //for each [JsonProperty] static, deserialize the matching (case-insensitively, as Newtonsoft matched) wire
     //key through the shared options. An absent key leaves the member's initializer (Levels/Multipliers) intact.
-    private static void Bind(string json)
+    private static JsonObject Bind(string json)
     {
         var root = JsonNode.Parse(json)
                            ?.AsObject()
@@ -219,6 +225,67 @@ public record GameData
 
             if (node is not null)
                 member.SetValue(null, node.Deserialize(member.PropertyType, ALJson.Options));
+        }
+
+        return root;
+    }
+
+    /// <summary>
+    ///     Counts wire members across the datum-backed roots that no generated property declares - the signal that
+    ///     AL.MemberGenerator actually needs a re-run, as opposed to a version bump that only changed values.
+    /// </summary>
+    internal static int CountUnknownMembers(JsonObject root)
+    {
+        var count = 0;
+
+        foreach (var member in typeof(GameData).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (member.GetCustomAttribute<GameDataRootAttribute>() is null)
+                continue;
+
+            if (!IsDatum(member.PropertyType))
+                continue;
+
+            var wireName = member.GetCustomAttribute<JsonPropertyNameAttribute>()
+                                 ?.Name
+                           ?? member.Name;
+
+            var node = root.FirstOrDefault(pair => string.Equals(pair.Key, wireName, StringComparison.OrdinalIgnoreCase))
+                           .Value;
+
+            if (node is not JsonObject section)
+                continue;
+
+            //the same property filter BuildLookupTable applies: readable, not an indexer, not enrichment-only
+            var declared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var property in member.PropertyType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!property.CanRead
+                    || (property.GetIndexParameters()
+                                .Length
+                        != 0)
+                    || (property.GetCustomAttribute<JsonIgnoreAttribute>() is not null))
+                    continue;
+
+                declared.Add(
+                    property.GetCustomAttribute<JsonPropertyNameAttribute>()
+                            ?.Name
+                    ?? property.Name);
+            }
+
+            count += section.Count(pair => !declared.Contains(pair.Key));
+        }
+
+        return count;
+
+        static bool IsDatum(Type type)
+        {
+            for (var current = type; current is not null; current = current.BaseType)
+                if (current.IsGenericType && (current.GetGenericTypeDefinition() == typeof(DatumBase<>)))
+                    return true;
+
+            return false;
         }
     }
 
@@ -876,7 +943,19 @@ public record GameData
         var stopwatch = Stopwatch.StartNew();
 
         Log.Info("Deserializing game data");
-        Bind(json);
+        var root = Bind(json);
+
+        //a version bump alone is not actionable - the data members only need regenerating when the live data
+        //carries members they do not declare
+        if (Version > KNOWN_VERSION)
+        {
+            var unknownMembers = CountUnknownMembers(root);
+
+            if (unknownMembers > 0)
+                Log.Warn(
+                    $"Server game data is version {Version}, newer than the version the data members were generated against ({KNOWN_VERSION}),"
+                    + $" and carries {unknownMembers} members they do not declare. Re-run AL.MemberGenerator.");
+        }
 
         Log.Info("Constructing data lookups");
         Achievements.BuildLookupTable();

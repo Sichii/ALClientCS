@@ -27,25 +27,6 @@ public class Program
     private const string GLOBAL_PREFIX = "public ";
     private const string GLOBAL_SUFFIX = " { get; init; } = null!;";
 
-    private static readonly Dictionary<string, string> Replacements = new(StringComparer.OrdinalIgnoreCase)
-    {
-        {
-            "licenced", "licensed"
-        },
-        {
-            "elixirfires", "elixirfireres"
-        },
-        {
-            "elixirfzres", "elixirfreezeres"
-        },
-        {
-            "bank_b", "BankBasement"
-        },
-        {
-            "bank_u", "BankUnderground"
-        }
-    };
-
     private static readonly Dictionary<string, string> TypeStrings = new(StringComparer.OrdinalIgnoreCase)
     {
         {
@@ -142,6 +123,15 @@ public class Program
                 var builder = new StringBuilder();
                 var fileName = $@"{FOLDER_NAME}\{gDataProperty.Key}.txt";
 
+                //"version" is a scalar, not a member table: emit it as the KNOWN_VERSION stamp. Paste it over
+                //GameData.KNOWN_VERSION when refreshing the datums so Populate can tell when live data outruns them
+                if (gDataProperty.Key is "version")
+                {
+                    await File.WriteAllTextAsync(fileName, $"public const int KNOWN_VERSION = {gDataProperty.Value!.GetValue<int>()};");
+
+                    return;
+                }
+
                 if (!TypeStrings.TryGetValue(gDataProperty.Key, out var typeString))
                     typeString = string.Empty;
 
@@ -150,10 +140,8 @@ public class Program
                 //empty file is still written, as it was before.
                 foreach (var child in gDataProperty.Value as JsonObject ?? [])
                 {
-                    var name = child.Key;
-                    var jsonPropertyValue = name;
-
-                    name = Replacements.TryGetValue(name, out var replacement) ? replacement.ToUpperFirstLetter() : name.ToCodeFormat();
+                    var jsonPropertyValue = child.Key;
+                    var name = jsonPropertyValue.ToCodeFormat();
 
                     if (!name.Equals(jsonPropertyValue))
                         builder.AppendLine($"[JsonPropertyName(\"{jsonPropertyValue}\")]");

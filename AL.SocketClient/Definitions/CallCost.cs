@@ -1,12 +1,12 @@
 namespace AL.SocketClient.Definitions;
 
 /// <summary>
-///     The server's rate limiter, as it actually meters. Every socket handler is wrapped (node/server.js:4308): it
+///     The server's rate limiter, as it actually meters. Every socket handler is wrapped (node/server.js:4337): it
 ///     charges <see cref="BASE" /> for the call itself and then a per-method surcharge from the server's own
 ///     <c>
 ///         CC
 ///     </c>
-///     table (node/server.js:144). The accrued cost of the last <see cref="WINDOW" /> is compared against
+///     table (node/server.js:159). The accrued cost of the last <see cref="WINDOW" /> is compared against
 ///     <see cref="LIMIT" />, and exceeding it is an immediate <c>limitdcreport</c> plus a disconnect.
 /// </summary>
 /// <remarks>
@@ -25,7 +25,7 @@ public static class CallCost
     public const double BASE = 1d;
 
     /// <summary>
-    ///     <c>limits.calls</c> (node/server.js:159). Quartered for a socket with no player behind it yet, so the
+    ///     <c>limits.calls</c> (node/server.js:174). Quartered for a socket with no player behind it yet, so the
     ///     pre-login handshake is metered four times as harshly as this reads.
     /// </summary>
     public const double LIMIT = 200d;
@@ -36,7 +36,7 @@ public static class CallCost
     /// </summary>
     public static readonly TimeSpan WINDOW = TimeSpan.FromSeconds(4);
 
-    //node/server.js:144. random_look and ccreport are in the server's table too and are not on this client's emit
+    //node/server.js:159. random_look and ccreport are in the server's table too and are not on this client's emit
     //surface. equip_batch is deliberately absent: its surcharge is CC.equip * (0.5 + count/2), so it cannot be
     //priced without the batch, and it bills as a bare BASE here
     private static readonly IReadOnlyDictionary<ALSocketEmitType, double> SURCHARGES

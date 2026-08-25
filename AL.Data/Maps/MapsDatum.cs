@@ -20,10 +20,10 @@ public class MapsDatum : DatumBase<GMap>
     public GMap Bank { get; init; } = null!;
 
     [JsonPropertyName("bank_b")]
-    public GMap BankBasement { get; init; } = null!;
+    public GMap BankB { get; init; } = null!;
 
     [JsonPropertyName("bank_u")]
-    public GMap BankUnderground { get; init; } = null!;
+    public GMap BankU { get; init; } = null!;
 
     [JsonPropertyName("batcave")]
     public GMap Batcave { get; init; } = null!;

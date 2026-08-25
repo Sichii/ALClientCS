@@ -88,10 +88,10 @@ public class CraftDatum : DatumBase<Recipe>
     public Recipe Elixirdex2 { get; init; } = null!;
 
     [JsonPropertyName("elixirfires")]
-    public Recipe Elixirfireres { get; init; } = null!;
+    public Recipe Elixirfires { get; init; } = null!;
 
     [JsonPropertyName("elixirfzres")]
-    public Recipe Elixirfreezeres { get; init; } = null!;
+    public Recipe Elixirfzres { get; init; } = null!;
 
     [JsonPropertyName("elixirint1")]
     public Recipe Elixirint1 { get; init; } = null!;

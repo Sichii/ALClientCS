@@ -600,9 +600,7 @@ public enum Condition
     HopSickness,
     Invincible,
     Invis,
-
-    [EnumMember(Value = "licenced")]
-    Licensed,
+    Licenced,
     Magiport,
     Marked,
     MassExchange,

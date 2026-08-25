@@ -37,6 +37,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("blink")]
     public GSkill Blink { get; init; } = null!;
 
+    [JsonPropertyName("boop")]
+    public GSkill Boop { get; init; } = null!;
+
     [JsonPropertyName("burst")]
     public GSkill Burst { get; init; } = null!;
 
@@ -112,6 +115,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("healing")]
     public GSkill Healing { get; init; } = null!;
 
+    [JsonPropertyName("highfive")]
+    public GSkill Highfive { get; init; } = null!;
+
     [JsonPropertyName("huntersmark")]
     public GSkill Huntersmark { get; init; } = null!;
 
@@ -156,6 +162,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("mining")]
     public GSkill Mining { get; init; } = null!;
+
+    [JsonPropertyName("mirrordance")]
+    public GSkill Mirrordance { get; init; } = null!;
 
     [JsonPropertyName("mlight")]
     public GSkill Mlight { get; init; } = null!;
@@ -204,6 +213,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("piercingshot")]
     public GSkill Piercingshot { get; init; } = null!;
+
+    [JsonPropertyName("pocketstorm")]
+    public GSkill Pocketstorm { get; init; } = null!;
 
     [JsonPropertyName("poisonarrow")]
     public GSkill Poisonarrow { get; init; } = null!;
@@ -264,6 +276,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("snowball")]
     public GSkill Snowball { get; init; } = null!;
+
+    [JsonPropertyName("spotlight")]
+    public GSkill Spotlight { get; init; } = null!;
 
     [JsonPropertyName("stack")]
     public GSkill Stack { get; init; } = null!;
