@@ -54,6 +54,54 @@ public class Rogue : ALClient
     public Task InvisAsync() => UseSkillCoreAsync("invis", completion: SkillCompletion.OnCondition(Condition.Invis));
 
     /// <summary>
+    ///     Asynchronously uses Fan of Knives, throwing up to five knives at the targets given.
+    /// </summary>
+    /// <param name="targetIds">
+    ///     The ids to aim at, at most five. The server takes the first <c>max_targets</c> of them and skips any it
+    ///     cannot hit, answering <c>no_target</c> only once every one of them failed.
+    /// </param>
+    /// <returns>
+    ///     <see cref="List{T}" /> of <see cref="ActionData" />
+    ///     <br />
+    ///     A projectile per knife that landed, which may be fewer than the ids handed in.
+    /// </returns>
+    /// <remarks>
+    ///     A list rather than five parameters, because the count is genuinely variable where the ranger's shots are
+    ///     fixed at three and five: the server caps this at <c>max_targets</c> and two is a legitimate cast.
+    ///     <br />
+    ///     No wrong-weapon failure to report, unlike the multishots. What this skill wants is a <c>knifebelt</c> worn
+    ///     on the belt, which <see cref="ALClient.CanUseSkill" /> already answers for through the skill's
+    ///     <c>slot</c> requirement.
+    /// </remarks>
+    /// <exception cref="ArgumentException">
+    ///     targetIds
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'fanofknives' on targets. ({reason})
+    /// </exception>
+    public Task<List<ActionData>> FanOfKnivesAsync(IReadOnlyList<string> targetIds)
+    {
+        ArgumentNullException.ThrowIfNull(targetIds);
+
+        if (targetIds.Count == 0)
+            throw new ArgumentException("Fan of Knives needs at least one target.", nameof(targetIds));
+
+        if (targetIds.Any(string.IsNullOrEmpty))
+            throw new ArgumentException("Fan of Knives was handed an empty target id.", nameof(targetIds));
+
+        return UseSkillCoreAsync(
+            "fanofknives",
+            completion: SkillCompletion.ResponseData,
+            collectActions: true,
+            payload: new
+            {
+                name = "fanofknives",
+                ids = targetIds
+            },
+            targetIds: targetIds);
+    }
+
+    /// <summary>
     ///     Asynchronously uses MentalBurst on a target.
     /// </summary>
     /// <param name="targetId">
