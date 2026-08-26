@@ -42,18 +42,6 @@ public class Rogue : ALClient
         : base(characterName, apiClient, socketClient) { }
 
     /// <summary>
-    ///     Asynchronously uses Invis, disappearing into the shadows.
-    /// </summary>
-    /// <remarks>
-    ///     The server takes this skill's cooldown when the invisibility ends rather than when it starts, so the call
-    ///     completes on going invisible instead. Casting it while already invisible does nothing and will time out.
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'invis'. ({reason})
-    /// </exception>
-    public Task InvisAsync() => UseSkillCoreAsync("invis", completion: SkillCompletion.OnCondition(Condition.Invis));
-
-    /// <summary>
     ///     Asynchronously uses Fan of Knives, throwing up to five knives at the targets given.
     /// </summary>
     /// <param name="targetIds">
@@ -100,6 +88,18 @@ public class Rogue : ALClient
             },
             targetIds: targetIds);
     }
+
+    /// <summary>
+    ///     Asynchronously uses Invis, disappearing into the shadows.
+    /// </summary>
+    /// <remarks>
+    ///     The server takes this skill's cooldown when the invisibility ends rather than when it starts, so the call
+    ///     completes on going invisible instead. Casting it while already invisible does nothing and will time out.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'invis'. ({reason})
+    /// </exception>
+    public Task InvisAsync() => UseSkillCoreAsync("invis", completion: SkillCompletion.OnCondition(Condition.Invis));
 
     /// <summary>
     ///     Asynchronously uses MentalBurst on a target.
@@ -278,4 +278,4 @@ public class Rogue : ALClient
             apiClient,
             static (name, api, socket) => new Rogue(name, api, socket),
             proxy);
-}
+}
