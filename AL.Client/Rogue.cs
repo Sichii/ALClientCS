@@ -278,4 +278,4 @@ public class Rogue : ALClient
             apiClient,
             static (name, api, socket) => new Rogue(name, api, socket),
             proxy);
-}
+}
