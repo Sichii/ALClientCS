@@ -362,14 +362,23 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
             //the closing leg is the start leg's mirror and unvalidated for the same reason, and a destination the
             //flood fill never reached is an ordinary input - a stopping point a caller derived, or an entity the
             //server has parked against a line. Walking to it costs a wall crossing on the way in and risks the jail
-            //on arrival, since the smap hash of a destination off the fill is what that handler actually punishes
-            if (endNav.CanMove(current.Vertex, endPoint))
+            //on arrival, since the smap hash of a destination off the fill is what that handler actually punishes.
+            //A radius is the other way such a destination is served, and it is why the first branch takes one it
+            //cannot walk to: the radius is only spent downstream, where DirectedGraph's shortcut pass reads it off
+            //this node and prunes the legs leading up to it. So the destination has to arrive there intact.
+            //Substituting a standable point instead, as the second branch does, hands that pass nothing to prune
+            //with, and the search has already run to the mesh node beside the destination - so the walk goes the
+            //whole way in. An NPC recorded off the fill is the ordinary way to meet that; main's basics, newupgrade
+            //and pvp are all off it, and the symptom is a character standing on top of the NPC rather than at its
+            //counter
+            if (endNav.CanMove(current.Vertex, endPoint) || HasReachableEdge(endNav, current.Vertex, endPoint))
                 path.Push(endNav.ConstructEdge(current, endNav.ConstructNode(endPoint), EdgeType.Walk));
             else if (endNav.TryFindNearestWalkable(endPoint, out var nearestStandable)
                      && endNav.CanMove(current.Vertex, nearestStandable))
             {
                 //the radius does not survive this, so the walk runs to the point rather than stopping at the near
-                //edge of the destination. Only reachable for a destination that could not be walked to as asked
+                //edge of the destination. What is left for it is a destination carrying no radius at all, and one
+                //whose near edge is walled off from the last mesh node as thoroughly as its centre is
                 var standableLoc = new Location(endPoint.Map, nearestStandable);
 
                 path.Push(endNav.ConstructEdge(current, endNav.ConstructNode(standableLoc), EdgeType.Walk));
@@ -401,6 +410,28 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
 
         while (path.Count > 0)
             yield return path.Pop();
+    }
+
+    /// <summary>
+    ///     Whether a walk may legitimately stop on the near edge of a destination's radius, coming from
+    ///     <paramref name="from" />. False for a destination carrying no radius.
+    /// </summary>
+    /// <remarks>
+    ///     What a caller means by a radius is "stop once you are this close", and that stays answerable when the
+    ///     centre itself is not: an NPC recorded off the flood fill still has ordinary ground all around it. So a
+    ///     centre nothing can walk to is not on its own a reason to discard the radius and aim at the placement.
+    ///     <br />
+    ///     True where <paramref name="from" /> is already inside, since the shortcut pass ends the path there rather
+    ///     than walking any closing leg at all.
+    /// </remarks>
+    private static bool HasReachableEdge(TMesh mesh, ILocation from, ILocation endPoint)
+    {
+        if (endPoint is not ICircle { Radius: > 0 } circle)
+            return false;
+
+        var nearEdge = new Location(endPoint.Map, circle.OffsetTowards(from, circle.Radius));
+
+        return mesh.IsWalkable(nearEdge) && mesh.CanMove(from, nearEdge);
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 #region
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Model;
@@ -370,5 +371,52 @@ public class DirectedGraphTests : PathfindingTestBed
             .Vertex
             .Should()
             .Be(end);
+    }
+
+    /// <summary>
+    ///     A destination the walk cannot end on still stops at the radius it was given. The search runs to the mesh
+    ///     node beside a destination, so the radius has to survive as far as the shortcut pass or the legs leading up
+    ///     to that node are never pruned and the walk arrives on the destination itself.
+    /// </summary>
+    /// <remarks>
+    ///     Held against an NPC rather than a made-up point because the placements are what produce it: an NPC stands
+    ///     where the flood fill never reached often enough to be ordinary, and the client asks to stop at counter
+    ///     range from every one of them. The substitution that used to run here dropped the radius, and the symptom
+    ///     was a character walking on top of the NPC and standing there for the whole errand.
+    /// </remarks>
+    [Test]
+    public async Task AWalkToAnUnwalkableNpcStillStopsAtItsRadius()
+    {
+        const float RADIUS = 350f;
+
+        //the two on main that the flood fill does not cover. Asserted rather than assumed - a mesh that came to
+        //cover them would leave this test passing without exercising anything
+        foreach (var npcKey in new[] { "basics", "newupgrade" })
+        {
+            var spot = GameData.NPCs[npcKey]!.Locations.First(location => location.Map == "main");
+
+            Pathfinder.IsWalkable(spot)
+                      .Should()
+                      .BeFalse($"{npcKey} is the premise of this test, and a walkable one tests nothing");
+
+            //far enough out that a walk is genuinely needed, and off the town spawn so no recall lands inside the
+            //radius on its own
+            var start = new Location("main", 1250, -100);
+
+            var path = await Pathfinder.FindPathAsync(start, [new Destination(spot, RADIUS)])
+                                       .ToArrayAsync();
+
+            path.Should()
+                .NotBeEmpty();
+
+            var walked = path.Where(edge => edge.Type == EdgeType.Walk).ToArray();
+
+            //no leg may end inside the radius, which is the statement that the pruning happened at all rather than
+            //that the last vertex happens to sit far out
+            walked.Should()
+                  .NotContain(
+                      edge => edge.End.Vertex.Distance(spot) < (RADIUS - 1f),
+                      $"a walk to {npcKey} that gets closer than {RADIUS} has spent legs nothing asked for");
+        }
     }
 }
