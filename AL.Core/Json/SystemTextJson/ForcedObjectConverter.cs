@@ -47,20 +47,17 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
 
     private static readonly (string WireName, Type MemberType, JsonConverter? Converter, Action<T, object?> Set)[] Members = BuildMembers();
 
-    // per (root options, member converter) cached options carrying that one converter, so a member's
-    // property-level converter (AfkConverter on RIP/AFK, the tolerant condition-dict converter) is applied to
-    // that member only - never leaked onto a same-typed sibling. Per-T costs nothing: BuildMembers instantiates a
-    // fresh converter per member, so the keys never collide across T anyway.
+    // per (root options, member converter) cached options carrying that one converter, so a member's property-level
+    // converter is applied to that member only - never leaked onto a same-typed sibling. Per-T costs nothing
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<JsonConverter, JsonSerializerOptions>>
         MemberOptionsCache = new();
 
     public override bool HandleNull => true;
 
-    //settable public properties and any [JsonInclude] fields — the members System.Text.Json's own resolver would
+    //settable public properties and any [JsonInclude] fields - the members System.Text.Json's own resolver would
     //surface for an object contract; [JsonIgnore] and computed get-only accessors are skipped. Each member's
-    //[JsonConverter] is applied here too, so RIP/AFK (AfkConverter) and Conditions (the tolerant condition-dict
-    //converter) bind identically even though the resolver never gets to apply it to these IEnumerable types.
+    //[JsonConverter] is applied here too, since the resolver never gets to apply it to these IEnumerable types
     private static (string, Type, JsonConverter?, Action<T, object?>)[] BuildMembers()
     {
         var members = new List<(string, Type, JsonConverter?, Action<T, object?>)>();
@@ -108,11 +105,9 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
         return members.ToArray();
     }
 
-    //the member's own [JsonConverter]. These types never reach the resolver, which would normally apply it, so the
-    //binder instantiates it directly. That requires a public parameterless constructor - the same constraint
-    //System.Text.Json's own attribute path imposes, so a converter that satisfies [JsonConverter] satisfies this.
-    //A converter type that does not (StringOrObjectConverter<T> takes the property name) throws
-    //MissingMethodException out of the static Members initializer, which the CLR then caches for the process.
+    //the member's own [JsonConverter]. These types never reach the resolver, so the binder instantiates it directly.
+    //That requires a public parameterless constructor - the same constraint the attribute path imposes. One that
+    //does not satisfy it throws MissingMethodException out of the static Members initializer
     private static JsonConverter? MemberConverter(MemberInfo member)
         => member.GetCustomAttribute<JsonConverterAttribute>() is { ConverterType: { } converterType }
             ? (JsonConverter)Activator.CreateInstance(converterType)!
@@ -129,13 +124,9 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
             if (TryGet(obj, wireName, out var node) && node is not null)
                 set(instance, node.Deserialize(memberType, converter is null ? options : WithConverter(options, converter)));
 
-        //System.Text.Json fires this callback from its own object converter, which these types never reach - a
-        //custom converter has to invoke it itself. Every entity binds here, and Player's missing-slot back-fill
-        //and Character's inventory sizing both hang off it, so skipping it leaves Slots missing every trade slot
-        //the wire omitted (an indexer read then throws) and the inventory unsized.
-        //It must run AFTER the member loop (it reads bound members) and it runs BEFORE the outer attributed
-        //converter's key-presence marking and attribute harvest, which is the reverse of Newtonsoft's order.
-        //Safe only because no OnDeserialized implementation reads Attributes or PresentFields - keep it that way.
+        //System.Text.Json fires this callback from its own object converter, which these types never reach - a custom
+        //converter has to invoke it itself. It must run AFTER the member loop and BEFORE the outer attributed
+        //converter's attribute harvest. Safe only because no OnDeserialized reads Attributes or PresentFields
         (instance as IJsonOnDeserialized)?.OnDeserialized();
 
         return instance;

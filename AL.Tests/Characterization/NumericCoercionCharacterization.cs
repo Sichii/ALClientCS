@@ -105,9 +105,8 @@ public class NumericCoercionCharacterization
     public void T4_AttributedInnerPath_FractionalIntoInt_RoundsHalfToEven()
     {
         // Same expectations as the pre-migration attributed-fill pin, reached differently: the lenient converter
-        // lives only in the attributed converter's inner options, so the table must be driven through a type that
-        // gets there. GItem.Grade is int?, which System.Text.Json's nullable wrapper routes into the same
-        // converter. A plain holder is not IAttributed and throws on every row - see the test below.
+        // lives only in the attributed converter's inner options, so the table has to be driven through a type that
+        // gets there. GItem.Grade is int?, and a plain holder is not IAttributed - see the test below
         foreach ((var input, var expected) in FractionalToInt)
             TestJson.Data<GItem>($$"""{"grade":{{Literal(input)}}}""")!.Grade
                     .Should()
@@ -238,11 +237,9 @@ public class NumericCoercionCharacterization
     [Test]
     public void T4_SharedOptionsPath_FractionalIntoInt_Throws()
     {
-        // Finding, not a target: outside an IAttributed type nothing supplies leniency, so a fractional number
-        // bound to an int throws - as the pre-migration text reader also did, only the exception type was
-        // re-baselined. This is the behaviour that keeps LenientInt32Converter scoped to the attributed inner
-        // options rather than registered globally: the socket path must keep rejecting a fractional int rather
-        // than silently rounding a live frame.
+        // Finding, not a target: outside an IAttributed type nothing supplies leniency, so a fractional number bound
+        // to an int throws - as the pre-migration text reader also did. This is what keeps LenientInt32Converter
+        // scoped to the attributed inner options: the socket path must keep rejecting a fractional int
         var act = () => TestJson.Data<NullableIntHolder>("""{"value":3.6}""");
 
         act.Should()
@@ -252,11 +249,9 @@ public class NumericCoercionCharacterization
     [Test]
     public void T4_TupleElementPath_FractionalIntoInt_Throws()
     {
-        // Inverted, consciously: this pinned rounding before the migration, when the tuple reader coerced each
-        // element through the DOM. TupleElement.Read now calls node.Deserialize<T>(options) with the CALLER's
-        // options, which carry no LenientInt32Converter, so the int slot throws. The snapshot is safe only by luck
-        // of the data: Level is the model's only int tuple slot, and of the 188 craft+dismantle item entries just
-        // 10 carry one, all integral. Quantity was widened to float in Phase 1 and still coerces.
+        // Inverted, consciously: this pinned rounding before the migration, when the tuple reader coerced through
+        // the DOM. TupleElement.Read now calls node.Deserialize<T>(options) with the CALLER's options, which carry
+        // no LenientInt32Converter. Safe by luck of the data: Level is the model's only int tuple slot
         var act = () => TestJson.Data<Recipe>("""{"cost":1,"items":[[1,"goldnugget",3.6]]}""");
 
         act.Should()

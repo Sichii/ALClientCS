@@ -209,11 +209,9 @@ public sealed class ALSocketClient : IALSocketClient
         Socket.OnDisconnected += DisconnectedEvent;
         Socket.OnAny(OnAny);
 
-        //the server emits disconnect_reason (and, on a rate-limit kick, limitdcreport) immediately before
-        //it drops the connection. capture them on the underlying socket's own dispatch, which runs inline on
-        //the receive loop - routing through OnAny's Task.Run would race the transport disconnect and let
-        //ReconnectAsync read a null reason. both bodies deserialize server input, so guard them: an unhandled
-        //throw on the receive thread must not take down the loop, and losing the value degrades gracefully.
+        //the server emits disconnect_reason (and, on a rate-limit kick, limitdcreport) immediately before it drops
+        //the connection. Capture them on the underlying socket's own dispatch, which runs inline on the receive loop
+        //- OnAny's Task.Run would race the disconnect. Both bodies deserialize server input, so guard them
         Socket.On(
             "disconnect_reason",
             response =>
@@ -266,9 +264,8 @@ public sealed class ALSocketClient : IALSocketClient
         try
         {
             //ahead of the connected check, so a client that never connected still ends its pump rather than leaving
-            //it parked on a queue nothing will ever write to. The pump drains what is already queued and then ends;
-            //frames that drain after the subscriptions below are disposed find an empty list and do nothing, which
-            //is the same outcome they had before the queue existed
+            //it parked on a queue nothing will write to. The pump drains what is queued and then ends; frames that
+            //drain after the subscriptions are disposed find an empty list and do nothing
             Frames.Writer.TryComplete();
 
             if (!Connected)
@@ -331,11 +328,8 @@ public sealed class ALSocketClient : IALSocketClient
         } catch (Exception e) when (e is NullReferenceException or ObjectDisposedException)
         {
             //the guard above is a check-then-act and the window between the two is real: a reconnect tears the
-            //transport down under a call already past it, and SocketIO answers that by dereferencing its own
-            //disposed internals. It is the same fault as a closed socket, so it is reported as one - otherwise it
-            //surfaces as a bare NullReferenceException out of whichever component tick happened to be emitting,
-            //which is what "[movement] tick threw" was, and none of the callers that already handle a dead socket
-            //recognise it
+            //transport down under a call already past it, and SocketIO answers by dereferencing its own disposed
+            //internals. Reported as a closed socket, or it surfaces as a bare NullReferenceException
             throw new InvalidOperationException("Socket closed while emitting.", e);
         }
 
@@ -520,14 +514,9 @@ RAW JSON:
             if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
                 return;
 
-            //bound against the transport's own parse and the shared options, rather than through
-            //response.GetValue<T>() or response.ToString(). GetValue routes through a JsonSerializerOptions the
-            //transport builds fresh per frame to carry that packet's binary attachments, and a new instance starts
-            //with an empty type cache, so every frame re-reflects every type it touches. ToString() is no cheaper:
-            //it serializes the array the transport already parsed back into a string, which then has to be parsed
-            //into a second dom before anything can bind. Reading the message directly measured as 0.21ms and 99KB
-            //per character frame against 0.49ms and 119KB. Binary attachments are the thing given up, and no frame
-            //this game sends carries one
+            //bound against the transport's own parse and the shared options, rather than through GetValue<T>() or
+            //ToString(). GetValue builds fresh options per frame, so every frame re-reflects every type it touches;
+            //ToString re-serializes. Measured at 0.21ms and 99KB per character frame against 0.49ms and 119KB
             if (MessageOf(response) is not JsonMessage { JsonArray: { Count: > 0 } payloads } message)
             {
                 Logger.Error($"Dropped \"{eventName}\" frame: the payload is not a populated array. {response}");

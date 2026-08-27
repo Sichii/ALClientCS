@@ -426,9 +426,8 @@ public abstract class EntityBase : AttributedObjectBase,
             }
 
             //steer by where going is from here, rather than by the heading the leg started with. Several paths write
-            //x/y between ticks without re-deriving Angle - the server's correction handler, MoveAsync's in-leg repair,
-            //the character branch of an entities frame - and a stale heading resumes from the new position along a line
-            //parallel to the one it should be on, until the overshoot clamp finally trips
+            //x/y between ticks without re-deriving Angle, and a stale heading resumes from the new position along a
+            //line parallel to the one it should be on, until the overshoot clamp finally trips
             (var newX, var newY) = this.AngularOffset(going.AngularRelationTo(this), distance);
 
             ApplyMovement(

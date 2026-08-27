@@ -211,11 +211,7 @@ public sealed record GMap
     /// </summary>
     public IReadOnlyList<GZone> Zones { get; init; } = new List<GZone>();
 
-    //quirks
-    //animatables obj
-    //machines obj[]
-    //ref obj
-    //old_monsters obj[]
+    //unmapped: quirks, animatables (obj), machines (obj[]), ref (obj), old_monsters (obj[])
 
     public bool Equals(GMap? other) => other is not null && Accessor.EqualsI(other.Accessor);
 

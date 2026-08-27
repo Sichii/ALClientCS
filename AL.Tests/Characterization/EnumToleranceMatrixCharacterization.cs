@@ -242,21 +242,14 @@ public sealed class EnumToleranceMatrixCharacterization
                 ? "2_dictionaryKeyDegradesInsteadOfThrowing"
 
                 //the second deliberate improvement, and a correction rather than a port artifact: the game data
-                //writes GSkill.target as a real boolean, which the pinned baseline degraded to the zero member -
-                //so "target":true read as "not single target", the opposite of what it means. Read now routes a
-                //boolean token through the enum's aliases, and TargetType is the only enum declaring one for
-                //"true". The count pin below is what keeps this arm tight: a second enum aliasing a boolean, or
-                //any other cell drifting into this shape, moves it off 1 and fails.
+                //writes GSkill.target as a real boolean, which the pinned baseline degraded to the zero member.
+                //Read now routes a boolean through the enum's aliases, and the count pin below keeps this arm tight
                 : location.EndsWith("9_boolTrue", StringComparison.Ordinal)
                     ? "3_boolTokenRoutedThroughAliases"
 
-                    //not a converter difference at all: the enum grew a member owning the number the probe
-                    //feeds it, so the cell that used to print the bare 17 now prints that member's name. Both
-                    //halves of the cell carry the decimal the parse produced, and it is the same decimal on
-                    //both sides - which is the strongest agreement a cell can state, since the converter
-                    //returned the identical value and only ToString moved. The fixture is frozen text and the
-                    //only oracle this arm has, so it is this classifier that absorbs an enum growing rather
-                    //than the pin being regenerated to match whatever the code now does.
+                    //not a converter difference at all: the enum grew a member owning the number the probe feeds
+                    //it, so the cell that used to print the bare 17 now prints that member's name. Both halves
+                    //carry the same decimal. The classifier absorbs an enum growing, rather than the pin
                     : SameUnderlyingValue(pinned, stj)
                         ? "4_numericCellNamedByANewMember"
                         : UNEXPECTED;
@@ -292,11 +285,9 @@ public sealed class EnumToleranceMatrixCharacterization
     #endregion
 
     #region Spot checks — the dictionary-key cells the matrix cannot state
-    // Dictionary-key position is the separate path, and the only accepted divergence in the entire matrix - the
-    // five 5_unknownString key cells counted by 2_dictionaryKeyDegradesInsteadOfThrowing. The pinned baseline
-    // throws for the whole payload there (the fixture's DictionaryKey 5_unknownString cells, still the oracle);
-    // TolerantEnumConverter.ReadAsPropertyName runs the key through the same tolerant parse as value position,
-    // so the frame survives carrying a phantom zero-member entry instead of dying.
+    // Dictionary-key position is the separate path, and the only accepted divergence in the entire matrix - the five
+    // 5_unknownString key cells counted by 2_dictionaryKeyDegradesInsteadOfThrowing. The pinned baseline throws for
+    // the whole payload; ReadAsPropertyName runs the key through the same tolerant parse, so the frame survives
     [Test]
     public void T8_TradeSlot_Unknown_DictionaryKey_StjDegradesToZeroMember()
     {
@@ -309,19 +300,9 @@ public sealed class EnumToleranceMatrixCharacterization
             .HaveCount(1);
     }
 
-    // What that degrade costs, which nothing else in the suite states: unknown keys do not merely survive,
-    // they COLLIDE. Every unrecognized key becomes the zero member, so N unknown keys collapse into one
-    // entry, last write wins, and the caller is told nothing (the converter logs once per distinct raw key,
-    // then returns default; STJ writes dictionary entries by indexer assignment, which never rejects a repeat).
-    //
-    // So the two dictionary-key paths now have opposite semantics and both are reachable from production:
-    //   TolerantEnumKeyDictionaryConverter, on ConcurrentDictionary members (Monster.Conditions) - SKIPS the
-    //     unknown key, so the count stays honest (ToleranceTests.UnknownConditionKeyIsSkippedAndKnownOnesSurvive
-    //     pins count 2, not 3).
-    //   a bare Dictionary<TEnum,TValue> member (Player.Slots, GClass.Mainhand/Offhand/Doublehand) - DEGRADES
-    //     the key and merges, so the count holds but a value is silently overwritten.
-    // ReadAsPropertyName therefore does NOT make the whole-dict converter redundant: deleting it turns skip
-    // into merge on every live entity.
+    // What that degrade costs: unknown keys do not merely survive, they COLLIDE - N unknown keys collapse into one
+    // entry, last write wins, and the caller is told nothing. The two dictionary-key paths now have opposite
+    // semantics: TolerantEnumKeyDictionaryConverter SKIPS the unknown key, a bare Dictionary DEGRADES and merges
     [Test]
     public void T8_Unknown_DictionaryKeys_StjDegradeAndMerge_LastWriteWins()
     {

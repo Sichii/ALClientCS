@@ -548,11 +548,9 @@ public enum ALSocketEmitType
     Use,
     Merchant,
 
-    //Phase 9 - emit surface coverage (tier 1). Members whose wire name is just the lowercased C# name
-    //carry no [EnumMember]; only underscore names do (EmitAsync lowercases via EnumHelper.ToString).
-    //New members go here and not in the alphabetical run above: no member carries an explicit value, so
-    //inserting up there renumbers every later ordinal, and enum-tolerance-matrix.json pins what raw
-    //ordinal 17 resolves to.
+    //Phase 9 - emit surface coverage (tier 1). Members whose wire name is just the lowercased C# name carry no
+    //[EnumMember]; only underscore names do. New members go here and not in the alphabetical run above: no member
+    //carries an explicit value, so inserting up there renumbers every later ordinal
     Bet,
     Cruise,
     Destroy,

@@ -142,10 +142,8 @@ public static class RectangleExtensions
         ArgumentNullException.ThrowIfNull(other);
 
         //the gap on each axis independently, each clamped at zero, then combined. An axis the two already overlap on
-        //contributes nothing, so two boxes side by side at the same height are exactly their horizontal gap apart -
-        //which is the measure the server resolves every attack, skill and aggro check with. The nearest-vertex reading
-        //this replaced answered too large whenever the boxes overlapped on one axis without their corners lining up,
-        //and every range check in the client was built on it
+        //contributes nothing, which is the measure the server resolves every attack, skill and aggro check with. The
+        //nearest-vertex reading this replaced answered too large whenever the boxes overlapped on one axis
         var dx = MathF.Max(MathF.Max(other.Left - rect.Right, rect.Left - other.Right), 0f);
         var dy = MathF.Max(MathF.Max(other.Top - rect.Bottom, rect.Top - other.Bottom), 0f);
 

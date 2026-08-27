@@ -33,9 +33,8 @@ public static class ShallowMerge<T> where T: class
     }
 
     //what keeps the movement block out today is the accessor, not the attribute: the only T ever instantiated is
-    //Character, a private setter declared on EntityBase is not inherited, and so CanWrite already reads false from
-    //Character. ShallowMergeIgnore is the guard for the case the accessor cannot cover - a block property declared
-    //on the merged type itself, or a setter someone widens back
+    //Character, a private setter declared on EntityBase is not inherited, so CanWrite already reads false.
+    //ShallowMergeIgnore guards what the accessor cannot cover - a block declared on the merged type itself
     private static bool IsMergeable(PropertyInfo property)
         => property.CanRead && property.CanWrite && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
 

@@ -246,9 +246,7 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
 
         //the first leg is stitched straight from wherever the character is to a mesh node, and nothing validates it.
         //From a point the flood fill never reached that node is chosen out of the whole mesh by raw distance, so it
-        //is routinely the one on the far side of the line - and the server performs the walk, because its move
-        //handler only hashes the two endpoints onto the smap lattice and never traces what is between them. Stepping
-        //back onto standable ground first is what keeps that leg short and honest
+        //is routinely on the far side of the line - and the server walks it, hashing only the two endpoints
         TEdge? unstickEdge = default;
 
         if (!startNavMesh.IsWalkable(start) && startNavMesh.TryFindNearestWalkable(start, out var steppedOut))
@@ -269,12 +267,9 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
         var startEdge = startNavMesh.ConstructEdge(startNode, bestStartNode, EdgeType.Walk);
         bestStartNode.Parent = startEdge;
 
-        //several ends routinely collapse onto one mesh node - two spawn areas that overlap are the ordinary case,
-        //and fireroamer's pair on desertland land on the same vertex - so this cannot be a key selector handed to
-        //ToDictionary: the second of them throws, and callers read that throw as "no path" rather than as the
-        //duplicate it is. A monster standing on a walkable field then reports as one nothing can walk to.
-        //On a tie the end nearest the shared node wins, which is the shortest closing leg of the ends that ranked
-        //equal - the node is what the search runs to, and the leg off it is walked unvalidated.
+        //several ends routinely collapse onto one mesh node, so this cannot be a key selector handed to ToDictionary:
+        //the second of them throws, and callers read that throw as "no path". On a tie the end nearest the shared
+        //node wins, which is the shortest closing leg of the ends that ranked equal
         var endNodeLookup = new Dictionary<TNode, ILocation>();
 
         foreach (var end in endsArr)
@@ -349,9 +344,7 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
 
             //the loop above only leaves early on an end node, so anything else means the queue ran dry: every node
             //reachable from the start was searched and none of the destinations was among them. An instance map is
-            //the ordinary way to get here - nothing connects one to the walkable graph - and InvalidOperationException
-            //is what callers already treat as a walk that cannot be made, where the lookup's own throw named a node
-            //from wherever the search happened to stop and read as a bug in the graph
+            //the ordinary way here, and InvalidOperationException is what callers read as a walk that cannot be made
             if ((current == null) || !endNodeLookup.TryGetValue(current, out var endPoint))
                 throw new InvalidOperationException(
                     $"No path from {start} to {string.Join(", ", endsArr.Select(end => end.ToString()))}");
@@ -359,18 +352,9 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
             //get the true end node from the lookup, create a node and edge from it and add it to the path
             var endNav = NavMeshes[current.Vertex.Map];
 
-            //the closing leg is the start leg's mirror and unvalidated for the same reason, and a destination the
-            //flood fill never reached is an ordinary input - a stopping point a caller derived, or an entity the
-            //server has parked against a line. Walking to it costs a wall crossing on the way in and risks the jail
-            //on arrival, since the smap hash of a destination off the fill is what that handler actually punishes.
-            //A radius is the other way such a destination is served, and it is why the first branch takes one it
-            //cannot walk to: the radius is only spent downstream, where DirectedGraph's shortcut pass reads it off
-            //this node and prunes the legs leading up to it. So the destination has to arrive there intact.
-            //Substituting a standable point instead, as the second branch does, hands that pass nothing to prune
-            //with, and the search has already run to the mesh node beside the destination - so the walk goes the
-            //whole way in. An NPC recorded off the fill is the ordinary way to meet that; main's basics, newupgrade
-            //and pvp are all off it, and the symptom is a character standing on top of the NPC rather than at its
-            //counter
+            //the closing leg is the start leg's mirror and unvalidated for the same reason. The first branch takes a
+            //destination it cannot walk to because the radius is only spent downstream, where DirectedGraph's
+            //shortcut pass reads it off this node - substituting a standable point hands that pass nothing to prune
             if (endNav.CanMove(current.Vertex, endPoint) || HasReachableEdge(endNav, current.Vertex, endPoint))
                 path.Push(endNav.ConstructEdge(current, endNav.ConstructNode(endPoint), EdgeType.Walk));
             else if (endNav.TryFindNearestWalkable(endPoint, out var nearestStandable)

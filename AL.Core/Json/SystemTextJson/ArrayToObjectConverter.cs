@@ -85,11 +85,9 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
         return instance;
     }
 
-    //A non-IEnumerable positional type is built through its constructor, as Newtonsoft's JToken.ToObject did.
-    //Each parameter is sourced from the [JsonArrayIndex] member of the same name, deserialized through the
-    //options so nested converters still apply; a parameter with no indexed member (StraightLine.isVertical,
-    //which enrichment sets later) gets its default. This sidesteps System.Text.Json's rule that every ctor
-    //parameter must bind to an included property - which a [JsonIgnore] member like StraightLine.IsVertical breaks.
+    //A non-IEnumerable positional type is built through its constructor, as Newtonsoft's JToken.ToObject did. Each
+    //parameter is sourced from the [JsonArrayIndex] member of the same name; one with no indexed member gets its
+    //default. This sidesteps the rule that every ctor parameter must bind to an included property
     private static T ConstructFromArray(JsonArray array, JsonSerializerOptions options)
     {
         var parameters = Constructor.GetParameters();
@@ -117,10 +115,8 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
     public static T FromArray(JsonArray array, JsonSerializerOptions options)
     {
         // System.Text.Json classifies an IEnumerable type as a collection, so binding it from a reconstructed
-        // JsonObject would route to the enumerable converter and fail. Newtonsoft forces these (IRectangle
-        // implementers, which are IEnumerable<IPoint>) to an object contract with [JsonObject], which
-        // System.Text.Json ignores; bind their indexed members directly. They expose a parameterless ctor and
-        // settable (init/private) members, so there is no re-deserialize of T — which also cannot recurse.
+        // JsonObject would route to the enumerable converter and fail. Bind their indexed members directly: they
+        // expose a parameterless ctor and settable members, so there is no re-deserialize of T
         if (typeof(IEnumerable).IsAssignableFrom(typeof(T)))
             return BindIndexedMembers(array, options);
 

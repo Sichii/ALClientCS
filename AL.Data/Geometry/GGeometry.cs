@@ -92,11 +92,7 @@ public record GGeometry : IRectangle
     [JsonIgnore]
     public float Width => MaxX - MinX;
 
-    //public object Points { get; set; }
-    //public object Rectangles { get; set; }
-    //public object Polygons { get; set; }
-    //public int[][] Placements { get; set; }
-    //public int Default { get; set; }
+    //unmapped: Points, Rectangles, Polygons, Placements, Default
 
     [JsonIgnore]
     public float X => (MaxX + Width) / 2;

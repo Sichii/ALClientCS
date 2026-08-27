@@ -335,10 +335,8 @@ public record GameData
             monster.BoundingBase = new BoundingBase(h, v, VN);
 
             //the hit box every range check is resolved against, which is the sprite rather than the foot-print above:
-            //centred horizontally and rising from the monster's feet, so the whole height sits on one side of it. A
-            //monster the table has no entry for is squared off at 24 rather than left without a box, and the handful
-            //carrying a size multiplier are scaled and rounded before anything measures them - a crab is half size,
-            //so getting this wrong is worth several units on the most common target there is
+            //centred horizontally and rising from the monster's feet. A monster with no entry is squared off at 24,
+            //and the handful carrying a size multiplier are scaled first - a crab is half size
             var hitWidth = dimensions.Count > 0 ? dimensions.ElementAtOrDefault(0) : UNSIZED_HIT_BOX;
             var hitHeight = dimensions.Count > 0 ? dimensions.ElementAtOrDefault(1) : UNSIZED_HIT_BOX;
 
@@ -408,14 +406,8 @@ public record GameData
                 }
 
             //exchange at, as the server's own rule: the item's quest npc when it carries a quest tag, and the one
-            //fixed exchange placement otherwise (node/server.js:6073). Stated once rather than filled in from an
-            //npc's token, which named the wrong npc for the four tokens and left the field null for every other
-            //exchangeable - of the 38 items carrying an exchange count in the committed game data, 31 resolve to the
-            //fixed placement and 7 to a
-            //quest npc. Gated on exchangeability because that is what this field means - "if
-            //populated, this item can be exchanged at this npc" - and 2 of the 9 items carrying a quest tag are not
-            //exchangeable at all. GetValueOrDefault rather than the indexer: this runs at data load, where a quest
-            //the npc table has no entry for would throw out of startup instead of leaving one item unresolved
+            //fixed exchange placement otherwise (node/server.js:6073). Gated on exchangeability, since that is what
+            //the field means. GetValueOrDefault rather than the indexer, or a missing quest throws out of startup
             if (item.ExchangeCount.HasValue)
             {
                 item.ExchangeAtNPC = item.Quest is { } quest ? Quests.GetValueOrDefault(quest) : NPCs[EXCHANGE_NPC];
@@ -659,13 +651,9 @@ public record GameData
     {
         var spawnId = (int)door.CurrentMapSpawnId;
 
-        //a door whose entry names no spawn on this map is one the server cannot resolve either. the old behaviour
-        //cannot stand in for it - that was a circle on the door, which is the model this replaced, and at this
-        //range it would stop the walk somewhere the door does not open
-        //
-        //an absent id reads as spawn 0 rather than as absent, so this does not catch every one. it does not need
-        //to: the server faults on the same missing spawn, so that door opens from nowhere and where we stand is
-        //moot, and an id that is absent while spawn 0 sits far away still lands on the radius check below
+        //a door whose entry names no spawn on this map is one the server cannot resolve either, and the old circle
+        //on the door would stop the walk somewhere the door does not open. An absent id reads as spawn 0 rather than
+        //as absent, which does not matter: the server faults on the same missing spawn
         if ((spawnId < 0) || (spawnId >= map.Spawns.Count))
             return (0f, null);
 
@@ -829,12 +817,9 @@ public record GameData
     //it checks the endpoints against its walkable lattice (jail) and prices the cells crossed (movement penalty) -
     //so a carved channel lets the pathfinder route a crossing the game's own geometry forbids
     private static void CarveCorridors()
-        //winterland ice golem island: the island itself is legal ground to the server (winterland spawns 6 and 7
-        //sit on it), and this is the lake's narrowest water - the mainland's southern spur ends at y 280 facing
-        //the island's northern spur at y 344, 64 units where every other column is 80 or more. both mouths round
-        //onto lattice cells the server accepts as move endpoints, and the short span is what keeps the red-zone
-        //penalty down over the one uninterrupted move that crosses it. 22 wide leaves a 6px channel after the
-        //+-8 wall padding, which clears the mesh builder's near-wall weld pass
+        //winterland ice golem island: the island is legal ground to the server (spawns 6 and 7 sit on it), and this
+        //is the lake's narrowest water - 64 units where every other column is 80 or more. Both mouths round onto
+        //lattice cells the server accepts, and 22 wide leaves a 6px channel after the wall padding
         => CarveCorridor(
             "winterland",
             733,

@@ -183,22 +183,9 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
         if (endsArr.Length == 0)
             yield break;
 
-        //a short hop with a clear line needs no search. The dijkstra below is serialized process-wide, so every
-        //character waits on every other one's path, and short hops are most of what gets asked for.
-        //
-        //Bounded by the town cost because towning is the only same-map alternative a clear straight line can lose to,
-        //and any path using it costs at least that. The bound is the same speed-derived figure the search itself
-        //prices the channel at, so the two cannot disagree - a faster character both reaches for the channel less
-        //readily and takes this shortcut over a longer walk, which is the same statement twice. Doors and transports
-        //are cheaper by heuristic - 50 against a few hundred - but a cross-map exit is filtered out by the same-map
-        //test below, and a same-map one lands back at its own door, so neither competes with a walk that is already
-        //the shortest one there is.
-        //
-        //One destination only, which is what keeps that argument sound. Against a set, the nearest same-map
-        //candidate is not the cheapest answer - a destination one door away costs the transport heuristic of 50 and
-        //beats a clear 350-unit walk - so a shortcut that committed to the near one would quietly return a worse
-        //path than the search. It would also widen a smaller hole: skipping the search skips the throw for a
-        //destination whose map has no mesh
+        //a short hop with a clear line needs no search: the dijkstra below is serialized process-wide, so every
+        //character waits on every other one's path. Bounded by the town cost, the only same-map alternative a clear
+        //straight line can lose to. One destination only, or the nearest same-map candidate need not be cheapest
         var townCost = walkSpeed is { } speed ? CONSTANTS.TownCost(speed) : CONSTANTS.NOMINAL_TOWN_COST;
 
         if ((endsArr.Length == 1) && NavMeshes.TryGetValue(start.Map, out var navMesh))
@@ -236,11 +223,9 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
 
         var last = connectors[^1];
 
-        //EnhancePathAsync flushes on the first non-walk edge, so only the last element can be one.
-        //a town edge there outranks every walk before it - you can town from anywhere - so the whole
-        //partition collapses into it without testing a single line of sight.
-        //The replacement carries the nominal cost rather than this character's, and nothing reads it: the search that
-        //chose this edge is over, and every consumer of a returned town edge reads its Type alone
+        //EnhancePathAsync flushes on the first non-walk edge, so only the last element can be one. A town edge there
+        //outranks every walk before it - you can town from anywhere - so the whole partition collapses into it. The
+        //replacement carries the nominal cost, and nothing reads it: consumers read a town edge's Type alone
         if (last.Type == EdgeType.Town)
         {
             var first = connectors[0];
@@ -290,12 +275,9 @@ public sealed class DirectedGraph : GraphBase<NavMesh, GraphNode, GraphEdge>
         }
     }
 
-    //SmoothPath only ever bends a path at graph vertices, and a mesh vertex rarely sits on the true corner - so a
-    //smoothed path still overshoots each turn: partway along a leg, a straight line to a later corner is already
-    //clear, but the walk goes the rest of the way to the bend first. the earliest point on the leg with such a
-    //line is the optimal departure - by the triangle inequality every later point saves less - and from that
-    //point the furthest visible corner is the optimal arrival, for the same reason SmoothPath takes the furthest
-    //node it can see. both are knowable here at plan time, which is what makes mid-walk re-aiming unnecessary
+    //SmoothPath only ever bends a path at graph vertices, and a mesh vertex rarely sits on the true corner, so a
+    //smoothed path still overshoots each turn. The earliest point on a leg with a clear line to a later corner is
+    //the optimal departure, and the furthest corner visible from it the optimal arrival - both known at plan time
     private List<GraphEdge> TightenBends(IEnumerable<GraphEdge> edges)
     {
         var path = edges.ToList();

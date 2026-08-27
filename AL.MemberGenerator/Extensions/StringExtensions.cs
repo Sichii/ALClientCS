@@ -1,4 +1,3 @@
-// nullable is not enabled in this project, so nullability can only be expressed via JetBrains attributes
 // ReSharper disable AnnotateNotNullTypeMember
 // ReSharper disable AnnotateNotNullParameter
 // ReSharper disable AnnotateCanBeNullParameter

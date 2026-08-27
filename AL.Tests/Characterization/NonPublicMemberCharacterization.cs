@@ -125,23 +125,9 @@ public sealed class NonPublicMemberCharacterization
         Console.WriteLine($"ALL instance non-public setters (any/no attr)  : {allInstanceNonPublicSetters}");
         Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {auditGap}");
 
-        // Finding, and the reason an attribute-gated audit is unsafe under STJ exactly as it was under the old
-        // serializer: 152 instance properties in the six assemblies have a non-public setter, and only 114 carry
-        // [JsonInclude]/[JsonPropertyName], so an audit keyed on the attribute is blind to 38 of them — e.g.
-        // EntityBase.PresentFields, the Emotion/Friends/OwnedCosmetics setters that moved onto ALClient, and
-        // ALSocketClient.LastDisconnectReason / ALClient.FatalError, all populated imperatively. Not missed
-        // bindings, but exactly what an attribute-keyed audit cannot see. Key on "non-public accessor", never on
-        // "has an attribute". ALClient.IsPvPServer took it 37 -> 38: OnWelcomeAsync assigns it off the welcome
-        // frame, so it is imperative like the rest. EntityBase.HitBox took it 38 -> 39 — the box range is measured
-        // against, built from game data at first sighting rather than sent. EntityBase.In brought it back to 38:
-        // it was the standing example of a blind-spot member, and turned out to be a real missed binding.
-        // GDrops.Tables, GItem.ExchangeRewards and GMap.Drops took it 38 -> 41 — all three are enrichment, built by
-        // GameData's own passes out of what the wire already carried rather than bound from it. ALClient.IsRecalling
-        // took it 41 -> 42: UseTownAsync raises it around its own emit, so it is intent the client holds rather than
-        // anything the server ever sends. GSet.Accessor and GSet.Tiers took it 42 -> 44: the same enrichment
-        // reason as the drop tables — Accessor is filled in SetsDatum.BuildLookupTable from the key the server used,
-        // and Tiers is built in GameData.EnrichSets from the folded ladder, so both are the data layer's own passes
-        // rather than anything bound off the wire.
+        // Finding, and the reason an attribute-gated audit is unsafe: 152 instance properties in the six assemblies
+        // have a non-public setter and only 114 carry [JsonInclude]/[JsonPropertyName], so an audit keyed on the
+        // attribute is blind to the rest. Key on "non-public accessor", never on "has an attribute"
         auditGap.Should()
                 .Be(44);
 
@@ -203,21 +189,15 @@ public sealed class NonPublicMemberCharacterization
         frameReachable.Should()
                       .OnlyContain(entry => entry.Category == NON_PUBLIC_SETTER);
 
-        // 89 of the 105 instance non-public setters live on EntityBase/Player/Character (including the attributed
-        // stat setters now decorated on AttributedObjectBase after the Phase 1 move); the other 16 are on
-        // GGeometry/GDoor/GSkill/BossInfo (static/boss data, not an entity frame).
-        // Phase 7 moved Emotion/Friends/OwnedCosmetics off Character onto ALClient (not an entity frame type),
-        // dropping frame-reachable 92 -> 89 and covered 59 -> 56; MaxMP/Focus merely relocated Player -> EntityBase.
-        // Phase 11 added eight Character owner-stats (an entity frame type): frame-reachable 89 -> 97.
-        // Binding EntityBase.In took it 97 -> 98.
-        // Binding Character.Courage, the physical half of the three courage counts, took it 98 -> 99.
+        // 89 of the 105 instance non-public setters live on EntityBase/Player/Character; the other 16 are on
+        // GGeometry/GDoor/GSkill/BossInfo, which are static or boss data rather than an entity frame. The count
+        // below moves whenever a frame-reachable setter is added or one moves off an entity type
         frameReachable.Should()
                       .HaveCount(99);
 
-        // Phase 11: five of the eight new Character stats (max_xp/goldm/xpm/luckm/cash) are non-default in the
-        // captured start frame; incdmgamp/mcourage/pcourage stay default. covered 56 -> 61.
-        // EntityBase.In binds "main" off every one of them: covered 61 -> 62.
-        // Character.Courage binds 1 off the start and character frames: covered 62 -> 63.
+        // the setters the start, player and entities frames drive away from their defaults. Five of Phase 11's eight
+        // Character stats are non-default in the captured start frame; incdmgamp, mcourage and pcourage stay
+        // default. EntityBase.In and Character.Courage each added one
         covered.Should()
                .HaveCount(63, "the start/player/entities frames drive 63 setters away from their defaults");
 
@@ -559,9 +539,8 @@ public sealed class NonPublicMemberCharacterization
              .Be(42, "the frame's items array carries 42 entries");
 
         // Count is the wire array length, never the sized capacity, so the old "capacity is set from InventorySize"
-        // reason on it was reading the wrong number. Capacity is the real one, and the downcast is load-bearing:
-        // SetCapacity casts the backing store to List<Item?>. This frame's array is already InventorySize long so
-        // SetCapacity is a no-op on it — PopulateConverterCharacterization pins the short-array case that moves it.
+        // reason was reading the wrong number. Capacity is the real one, and the downcast is load-bearing:
+        // SetCapacity casts the backing store to List<Item?>, and it is a no-op on this already-long frame
         start.Inventory
              .Items
              .Should()
@@ -664,9 +643,8 @@ public sealed class NonPublicMemberCharacterization
                         continue;
 
                     // The two STJ attributes that make a member census-relevant: [JsonInclude] opts a member the
-                    // serializer would otherwise skip back in, [JsonPropertyName] renames it. Either alone counts —
-                    // a renamed public-init member carries only the latter, an un-renamed protected setter only the
-                    // former, and most of the entity frame types carry both.
+                    // serializer would otherwise skip back in, and [JsonPropertyName] renames it. Either alone
+                    // counts - a renamed public-init member carries only the latter, a protected setter the former
                     var jsonInclude = member.GetCustomAttribute<JsonIncludeAttribute>(false);
                     var jsonPropertyName = member.GetCustomAttribute<JsonPropertyNameAttribute>(false);
 

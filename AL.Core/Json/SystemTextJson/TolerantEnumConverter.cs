@@ -94,10 +94,9 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
         }
     }
 
-    //enum-keyed dictionaries route the KEY through the key type's converter; without these a tolerant enum
-    //used as a dictionary key (WeaponType in GClass.mainhand, TradeSlot/Slot in Character.slots) throws
-    //NotSupportedException. Parse a key with the same tolerance as a value; unknown keys degrade (Newtonsoft
-    //threw here - a conscious Phase-5 re-baseline).
+    //enum-keyed dictionaries route the KEY through the key type's converter; without these a tolerant enum used as a
+    //dictionary key (WeaponType in GClass.mainhand, TradeSlot/Slot in Character.slots) throws NotSupportedException.
+    //Parse a key with the same tolerance as a value; unknown keys degrade, where Newtonsoft threw
     public override TEnum ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => ParseTolerant(reader.GetString());
 

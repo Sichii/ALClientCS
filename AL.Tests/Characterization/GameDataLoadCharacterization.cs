@@ -35,12 +35,9 @@ public class GameDataLoadCharacterization
     [Before(Class)]
     public static void PopulateFromSnapshot()
     {
-        // T1 must assert the SNAPSHOT deterministically, but GameData is a shared static another test may
-        // already have populated from the live API (a different Version, map count, etc.). Populate is not
-        // idempotent - FixLines rewrites the geometry line lists to arrays, so a second call throws in
-        // AddBorderWalls. Capture the current statics, reset them so the re-Populate binds fresh instances,
-        // then load the snapshot. ClassCleanup restores the captured state so the rest of the run is
-        // unaffected regardless of test execution order.
+        // T1 must assert the SNAPSHOT deterministically, but GameData is a shared static another test may already
+        // have populated from the live API. Populate is not idempotent - FixLines rewrites the geometry line lists,
+        // so a second call throws. Capture the statics, reset, load the snapshot; ClassCleanup restores them
         CapturedState = StaticBackingFields.ToDictionary(field => field, field => field.GetValue(null));
 
         SetStaticsToDefault();

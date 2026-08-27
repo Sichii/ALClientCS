@@ -1103,12 +1103,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameLog,
             data =>
             {
-                //the auth handler answers two rejection paths with game_log, not game_error (node/server.js:
-                //10307,10310,10313). Fail the handshake fast on exactly those so the reconnect loop reacts at
-                //once rather than waiting out the login timeout. game_log is also the channel for benign in-game
-                //notices (loot, kills, purchases), so match the specific messages - never abort login on any
-                //game_log. "Authorization in progress." is transient (dc_players clears within ~24s and a retry
-                //succeeds); "Wrong passphrase!" is terminal.
+                //the auth handler answers two rejection paths with game_log, not game_error (node/server.js:10307,
+                //10310, 10313), so fail the handshake fast on exactly those. game_log also carries benign notices, so
+                //never abort on any of them. "Authorization in progress." is transient; "Wrong passphrase!" is not
                 if (data.Message.EqualsI("Authorization in progress."))
                     source.TrySetResult(data.Message);
                 else if (data.Message.EqualsI("Wrong passphrase!"))
@@ -1273,10 +1270,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
         }
 
-        //"limitdc": a rate-limit kick. An immediate reconnect re-enters the kick condition at 4x sensitivity
-        //while unauthenticated (node/server.js:4330) and dc_players is only cleared roughly every 24s
-        //(:14883), so honor a cooldown before the first attempt - the browser waits ~20s (rc_delay 16 plus a
-        //3-4s base, js/game.js:2779 + :224-249).
+        //"limitdc": a rate-limit kick. An immediate reconnect re-enters the kick condition at 4x sensitivity while
+        //unauthenticated (node/server.js:4330) and dc_players is only cleared roughly every 24s (:14883), so honor a
+        //cooldown before the first attempt - the browser waits ~20s (js/game.js:2779 + :224-249)
         if ("limitdc".EqualsI(reason!))
         {
             Logger.Warn("Rate-limit disconnect (\"limitdc\"); waiting 20s before reconnecting.");
@@ -1348,9 +1344,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Logger.Warn("Disconnecting");
 
         //stopped here rather than left to OnDisconnected: an intentional disconnect clears Connected before the
-        //socket raises its event, so DisconnectedEvent suppresses OnDisconnected and these two would go on polling
-        //a closed socket, logging an EmitAsync throw every tick. Before the disconnect, so an in-flight request
-        //finishes rather than failing on its way out
+        //socket raises its event, so these two would go on polling a closed socket and logging a throw every tick.
+        //Before the disconnect, so an in-flight request finishes rather than failing on its way out
         await PingManager.StopAsync();
         await EntityManager.StopAsync();
 
@@ -1900,10 +1895,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 {
                     GameResponseType.BuyCost => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (not enough gold)"),
 
-                    //both arms are lost-and-found only, and deliberately. Hopsickness is refused for that pool
-                    //alone, and the distance frame is a bare string carrying no place - so listening for it on a
-                    //Ponty buy would let an unrelated distance refusal elsewhere in the session fail this one, for
-                    //a caller that is standing at the stall in main and was never going to be out of range
+                    //both arms are lost-and-found only, and deliberately. Hopsickness is refused for that pool alone,
+                    //and the distance frame is a bare string carrying no place - so listening for it on a Ponty buy
+                    //would let an unrelated distance refusal fail one for a caller standing at the stall
                     GameResponseType.CantWhenSick when lostAndFound => source.TrySetResult(
                         $"Failed to buy {item.Name} from {seller}. (hopsickness; the lost and found will not sell while it is up)"),
                     GameResponseType.Distance when lostAndFound => source.TrySetResult(
@@ -2238,8 +2232,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         {
             //exact stack preferred, over-sized one as fallback: the server only consults can_add_item when no
             //submitted slot is exact (node/server.js:6021-6031), so an exact match keeps space true and a full
-            //inventory craftable - falling back to quantityMin is what makes an over-sized stack legal at all,
-            //since the server's own rule is at-least rather than exact
+            //inventory craftable. The fallback is legal because the server's own rule is at-least rather than exact
             var result = Character.Inventory.FindItem(name, level, (int?)quantity)
                          ?? Character.Inventory.FindItem(name, level, quantityMin: (int)quantity);
 
@@ -2595,9 +2588,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             });
 
         //the refusal arm, and it has to be this event: every refusal in the equip handler is a fail_response
-        //(node/server.js:7054-7274), which lands as a game_response with failed:true and place:"equip" - the
-        //disappearing_text above is only the legacy toast. Without this arm an ordinary refusal matched nothing
-        //and spent the whole network timeout before throwing one that named the wrong problem. Place is the
+        //(node/server.js:7054-7274), landing as a game_response with failed:true and place:"equip". Place is the
         //filter because a gear swap keeps an unequip and an equip in flight on one socket at the same time
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
@@ -2692,10 +2683,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (itemData == null)
             throw new InvalidOperationException("Failed to exchange. (no data, contact me)");
 
-        //exchangeability is the count alone, and asking for ExchangeAtNPC beside it refused 31 of the committed game data's 38
-        //exchangeables outright: it was enriched only from an npc's token or the item's own quest, so gems,
-        //boxes and every envelope carry none. Where an item is exchanged is a distance question the server settles
-        //itself against the quest npc or the fixed exchange placement (node/server.js:6072-6077), not an existence one
+        //exchangeability is the count alone. Asking for ExchangeAtNPC beside it refused 31 of the committed game
+        //data's 38 exchangeables outright, since it is enriched only from an npc's token or the item's own quest.
+        //Where an item is exchanged is a distance question the server settles itself (node/server.js:6072-6077)
         if (!itemData.ExchangeCount.HasValue)
             throw new InvalidOperationException("Failed to exchange. (item not exchangeable)");
 
@@ -2911,11 +2901,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //which is what separates a frame that is merely late from one telling us something new
         ulong moveNumAtEmit = 0;
 
-        //whether the ground moved under this leg. transport_player_to relocates the character without setting abs,
-        //so a transport, door or magiport reaches the staleness test below looking exactly like a stale frame - and
-        //the repair would answer it by stamping an old map's coordinate over the new position. Read from new_map
-        //rather than from the frame's own m, which the frame does carry: a frame generated before the transport
-        //still holds the old m, and that is precisely the frame that has to be rejected
+        //whether the ground moved under this leg. transport_player_to relocates the character without setting abs, so
+        //a transport, door or magiport reaches the staleness test below looking exactly like a stale frame. Read from
+        //new_map rather than the frame's own m, which a frame generated before the transport still holds stale
         var mapChanged = false;
 
         var delay = new DynamicDelay();
@@ -2924,23 +2912,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //rather than against Character, and that is the whole point of it being here
         var legLength = 0f;
 
-        //how long is left of this leg - the whole of it, exactly. The next leg's emit then reaches the server right
-        //as it finishes this one: landing early is forgiven completely (the walk bends mid-flight), landing late
-        //stands the character there for the difference. Exactness only became achievable when the host raised the
-        //Windows timer interrupt to 1ms - on the default 15.625ms tick every one of these waits fired +5..+14ms
-        //late, which was a stand at every vertex. Shortening the wait to compensate was tried twice and both are
-        //gone: by the whole compensation lies to the desync detector, hands the next emit a position the server
-        //never agreed to, and settles Moving off mid-walk ("Correcting position" x11 per thousand, x40 without the
-        //settle); by the ping jitter gap measured ~0 on a stable connection, because the lateness was never network
-        //jitter to begin with.
-        //
-        //Read off the clock rather than off Character. Every frame re-anchors Character to where the server was one
-        //trip ago, advanced by the *minimum* ping seen in 200 seconds and so by less than the trip it is covering -
-        //and the callback below resets this deadline on each one. Measured against a leg it takes to be the
-        //position that has to arrive, so the leg stopped ending when we got there and started ending when the
-        //server was seen to get there, about a round trip late. In a trace of four characters, legs that happened
-        //to receive no frame landed within 10ms of their reckoning where legs that received one landed 127ms late,
-        //which is the same number as the round trip.
+        //how long is left of this leg, exactly: the next leg's emit then reaches the server as it finishes this one.
+        //Landing early is forgiven, landing late stands the character there for the difference. Read off the clock
+        //rather than off Character, which every frame re-anchors to where the server was one round trip ago
         TimeSpan RemainingDelay()
         {
             var speed = Character.Speed;
@@ -2955,8 +2929,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             //the current speed applied to the whole leg rather than integrated over it, so a change mid-leg is
             //answered approximately - the leg it lands in ends a little early or late and the next one is exact
-            //again. Which is the point of keeping the reset at all: a slowness or an expiring charge is a real
-            //answer to "how long is left", where a position read a trip late is not
+            //again. That is the point of keeping the reset: a slowness is a real answer to "how long is left"
             var covered = speed * (DateTime.UtcNow - startedAt).TotalSeconds;
 
             return TimeSpan.FromSeconds(Math.Max(0d, (legLength - covered) / speed));
@@ -2973,11 +2946,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 var elapsed = now.Subtract(setMovingAt.Value);
 
-                //already standing on it, so the leg is over whatever the rest of the frame says. Both ways of getting
-                //here are ordinary: the server ends a walk by clearing moving with going left at the destination, and
-                //it drops a move to where the character already is without answering at all - its own handler requires
-                //the destination to differ from the position it holds. Read off the frame rather than off Character,
-                //since our own position is compensated forward and would call the leg done before the server has
+                //already standing on it, so the leg is over whatever the rest of the frame says. Both ways here are
+                //ordinary: the server ends a walk by clearing moving at the destination, and it drops a move to
+                //where the character already is. Read off the frame, since our own position is compensated forward
                 if (data.X.IsNear(point.X, CORE_CONSTANTS.EPSILON) && data.Y.IsNear(point.Y, CORE_CONSTANTS.EPSILON))
                 {
                     source.TrySetResult(Expectation.Success);
@@ -3006,18 +2977,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         return false;
                     }
 
-                    //the merge above has already taken this frame's position, and a frame the server generated
-                    //before it accepted this leg carries the one it was standing on - a rewind of however long the
-                    //frame was in flight, read as truth by every range check until the leg ends. Put our own
-                    //reckoning back, but only where the frame proves it is the stale kind. move_num is what proves
-                    //it: bumped only where a movement starts, so a number we already held cannot describe this leg,
-                    //while a higher one means the server has our move and any disagreement is news - it stopped us,
-                    //and reckoning on through that would invent a walk that is not happening. abs rides along for
-                    //the cases it does cover, but it is an entity flag rather than a player one and the character's
-                    //own transports never set it, so mapChanged above is what actually guards a relocation.
-                    //Known gap: a speed change mid-walk also bumps move_num, so one stale-but-moving frame from the
-                    //previous leg can pass as fresh. It is ping compensated and lands near the corner, so the
-                    //rewind it carries is small
+                    //a frame the server generated before it accepted this leg carries the position it was standing
+                    //on, and the merge above has already taken it - a rewind read as truth until the leg ends.
+                    //move_num proves the frame is the stale kind: a number we already held cannot describe this leg
                     if (!mapChanged && !data.ABS && (data.MoveNum <= moveNumAtEmit))
                         Character.UpdateLocation(
                             startLoc.OffsetTowards(point, Character.Speed / 1000f * (float)elapsed.TotalMilliseconds));
@@ -3027,24 +2989,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //cover the typical one - the multiplier is what absorbs the jitter between them
                     if (elapsed > (PingManager.LowPercentileOffset * 4))
                     {
-                        //what the frame actually said, not just that it disagreed - three different faults reach here
-                        //and read identically without it: the server reporting the walk already over, a frame that is
-                        //merely late and still describes the leg before this one, and a destination neither side
-                        //asked for. Carries the grace it cleared, since whether that grace is wide enough is the
-                        //question a late frame raises
+                        //what the frame actually said, not just that it disagreed - three faults reach here and read
+                        //identically without it: the walk reported over, a frame describing the leg before this one,
+                        //and a destination neither side asked for. Carries the grace it cleared
                         Logger.Debug(
                             $"Correcting position: frame says moving={data.Moving} going=({data.GoingX:N0}, {data.GoingY:N0}), "
                             + $"leg wants {point.ToPoint()}, {elapsed.TotalMilliseconds:N0}ms in "
                             + $"(grace {(PingManager.LowPercentileOffset * 4).TotalMilliseconds:N0}ms). "
 
-                            //where our own simulation thinks it is when the server says the walk is over. Compensation
-                            //should leave this ahead of the server, so a remaining distance near zero means the timer
-                            //merely lost a race it was about to win, and a large one means the simulation is lagging
-                            //and the compensation is the thing to look at. fastPing is here because it is what the
-                            //compensation is scaled by, and a floor well under the real trip is how it under-shoots
-                            //two different readings on purpose, no longer two spellings of one: the distance is what
-                            //Character says and the ms is what the clock says, so the gap between them is the
-                            //position lag itself - the thing that used to be allowed to move the deadline
+                            //where our own simulation thinks it is when the server says the walk is over. A
+                            //remaining distance near zero means the timer lost a race it was about to win; a large
+                            //one means the simulation is lagging and the compensation is the thing to look at
                             + $"We think {Character.Distance(point):N1} left at speed {Character.Speed:N0}, "
                             + $"{RemainingDelay().TotalMilliseconds:N0}ms on the clock, fastPing {PingManager.LowPercentileOffset.TotalMilliseconds:N0}ms. "
 
@@ -3068,10 +3023,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         Character.SetMoving(point);
 
                     //a frame this branch has just decided not to believe must not move the deadline either. The reset
-                    //below restarts the leg from now, measured against the position the merge has already rewound to
-                    //- so a frame describing the walk before this one buys itself most of the distance a second time,
-                    //and the server stands on the vertex for the difference. Frames that agree still reset, which is
-                    //the case it is for: a speed change mid-leg is a real answer to "how long is left"
+                    //below restarts the leg from now, against a position the merge has already rewound - so a stale
+                    //frame buys most of the distance twice. Frames that agree still reset, which is what it is for
                     return false;
                 }
 
@@ -3108,33 +3061,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //off its flood fill
         var from = Character.Movement;
 
-        //the pair the server is about to hash, and it validates the *line* between them rather than the endpoints.
-        //from is a live read and point is the vertex the path planned, so the two describe a planned edge only while
-        //the character is still standing on that edge's start - and often it is not. A leg whose timer ran out in
-        //simulation, a position the desync repair above rewrote, and every leg planned during a reconnect all hand
-        //this a start the path never chose, and the line drawn from it cuts whatever lies between. The server
-        //answers that with defeat_player and a transport to jail, from where the rest of the path carries the old
-        //map's coordinates into a room a few hundred units across and is jailed again for each one: 51 of the 64
-        //jailings in a day were that echo rather than a new fault. Checked here with the same call the diagnostic
-        //below the jail branch already makes, which had been reporting Valid: False on 59 of those 64 after the
-        //fact. Refusing costs the leg and nothing else - the callers re-path from where the character actually is,
-        //which is what the drift called for to begin with.
+        //the pair the server is about to hash, and it validates the line between them rather than the endpoints.
+        //from is a live read, so a leg whose timer ran out, a repaired position or a reconnect all hand this a start
+        //the path never chose - and the server answers that with defeat_player and a transport to jail
         var fromLoc = new Location(currentMap, new Point(from.X, from.Y));
 
         //a map with no mesh cannot answer, and refusing every walk on one would strand the character there
         if (Pathfinder.GetNavMesh(currentMap) is not null)
         {
-            //CanMove traces outward from the start's own cell and refuses on the first walled one, so a character
-            //the raster puts inside a wall is refused every destination there is - the ones leading back out
-            //included. SmartMoveAsync answers a refusal by abandoning the trip rather than re-planning, and the
-            //next tick plans from the same position and is refused again, so that reads as a character that stops
-            //moving for good rather than as one bad leg. The raster puts it there without the server agreeing:
-            //FillWalls pads every wall rect by the character's collision base, which is the limit the server clamps
-            //a slide to rather than one it defeats you for reaching, so an ordinary graze along a wall leaves a
-            //legal position inside the padding - and the two-cell gap fill widens the band again.
-            //Asked separately from the line, and answered by letting the leg through: the server is the authority
-            //on where a character may stand, the jailing this guard exists to stop is recovered from by the caller
-            //within a second, and a permanent stand is not recovered from at all.
+            //CanMove traces outward from the start's own cell and refuses on the first walled one, so a character the
+            //raster puts inside a wall is refused every destination, the ones leading back out included. FillWalls
+            //pads by the collision base, so an ordinary graze leaves a legal position inside the padding
             if (Pathfinder.IsWall(fromLoc))
                 Logger.Warn($"Walking from {fromLoc} to {goingLoc} unguarded. (the raster has this standing inside a wall)");
             else if (!Pathfinder.CanMove(fromLoc, goingLoc))
@@ -3202,19 +3139,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //find out where we're going
         var going = new Point(arrival.GoingX, arrival.GoingY);
 
-        //a destination that is no longer ours means something took the character over - a transport, whose new_map
-        //handling stops the walk and repoints going at the arrival spot, or a second walk if one ever overlapped
-        //this one. Neither may have this leg's endpoint stamped over it.
-        //
-        //A leg that went past the grace is the exception, and the reason this is not just the equality test: the
-        //frame that triggered the correction was merged over going on its way in, and that path deliberately does
-        //not re-assert SetMoving. Reading its leftovers as supersession returns with Moving false and a stale
-        //destination, which freezes the local simulation - every distance the bot reads is then a stale one until
-        //the next tick emits again.
-        //
-        //Moving is what keeps that exception from swallowing a real supersession: a walk that has taken this
-        //character over is by definition still moving, so stopping it here would freeze the leg that replaced this
-        //one. The case being readmitted is the opposite - a stopped frame that left nothing running behind it
+        //a destination that is no longer ours means something took the character over - a transport, or a second walk
+        //if one ever overlapped this one - and neither may have this leg's endpoint stamped over it. A leg past the
+        //grace is the exception, and Moving is what keeps that exception from swallowing a real supersession
         var stillOurs = going.Equals(point) || (correctionAttempted && !mapChanged && !arrival.Moving);
 
         if (stillOurs)
@@ -3816,13 +3743,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)"),
 
-                    //this is ok because it happens after we receive new player data.
-                    //
-                    //the quantity is the server's, not ours: it clamps the order to the stack it actually holds
-                    //(min(item.q, requested)), so a stack that shrank between our read of it and its handler is
-                    //acknowledged for less than we asked - a send that happened, not one that failed. Demanding
-                    //equality left that acknowledgement unmatched and spent the full network timeout on a transfer
-                    //the server had already made, which throws out of whatever was mid-delivery
+                    //the quantity is the server's, not ours: it clamps the order to the stack it actually holds, so a
+                    //stack that shrank between our read and its handler is acknowledged for less than we asked - a
+                    //send that happened, not one that failed. Demanding equality spent the full network timeout
                     GameResponseType.ItemSent when toPlayerId.EqualsI(data.Name!)
                                                    && (data.Item?.Name.EqualsI(item.Name) == true)
                                                    && (data.Quantity <= quantity) => source.TrySetResult(Expectation.Success),
@@ -4082,9 +4005,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var start = Character.ToLocation();
 
         //a town connector is only ever added at the path's start node, so whether recall is on the table is decided
-        //once, here, and only against the map being left
-        //priced against this character's own speed: the channel is a fixed three seconds, so what it is worth is
-        //however far this character would have walked in them. A boosted character reaches for it less readily
+        //once, here, and only against the map being left. Priced against this character's own speed: the channel is a
+        //fixed three seconds, so what it is worth is however far this character would have walked in them
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
@@ -4106,17 +4028,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             try
             {
-                //a leg ends on a dead-reckoned timer rather than on the server confirming it, and a move that
-                //arrives mid-walk is re-aimed from wherever the server actually is - start_moving_element takes
-                //from_x off the player rather than off the emit, and the move handler hashes only the two endpoints
-                //without tracing between them. So an emit landing early bends the walk from part-way along the
-                //previous leg straight to this vertex, which is a line the search never validated: around a corner
-                //it is the corner the path was routed around, walked through. Standing still for a round trip is
-                //what makes the bend impossible, and it is only paid where the bend would cross something - open
-                //ground, which is most of every path, tests clear and waits for nothing.
-                //Two of them rather than one, because the trip has to be cleared by the emit and the jitter between
-                //a fast trip and a typical one is what the multiplier absorbs - the same shape as the correction
-                //grace above
+                //a leg ends on a dead-reckoned timer, and a move arriving mid-walk is re-aimed from wherever the
+                //server actually is - so an early emit bends the walk from part-way along the previous leg, a line
+                //the search never validated. Standing still for a round trip is what makes the bend impossible
                 if ((edge.Type == EdgeType.Walk) && (bendFrom is not null) && !Pathfinder.CanMove(bendFrom, edge.End.Vertex))
                     await Task.Delay(PingManager.LowPercentileOffset * 2, cancellationToken ?? CancellationToken.None);
 
@@ -4135,11 +4049,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //missing either way, and abandoning the trip over it leaves the character where it started
                 if ((edge.Type == EdgeType.Town) || e.Message.ContainsI("failed to town"))
                 {
-                    //remembered past this call as well as inside it. The suppression above lives for one call, and
-                    //every mover tick makes a fresh one - so whatever stopped the recall, a lane polling at 10Hz
-                    //re-planned straight onto the same town edge and emitted again. Measured at a recall every 400ms
-                    //for forty seconds against a monster that broke each one, which is the whole trip spent standing
-                    //in the pack it was leaving
+                    //remembered past this call as well as inside it. The suppression above lives for one call, so a
+                    //lane polling at 10Hz re-planned straight onto the same town edge and emitted again. Measured at
+                    //a recall every 400ms for forty seconds against a monster that broke each one
                     TownFailures[Character.Map] = System.Diagnostics.Stopwatch.GetTimestamp();
 
                     await SmartMoveAsync(ends, useTownIfOptimal, Character.Map, cancellationToken);
@@ -4658,9 +4570,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                                       .ToHashSet();
 
         //the refusal arm, and it has to be this event: every refusal in the unequip handler is a fail_response
-        //(node/server.js:7298-7314), which lands as a game_response with failed:true and place:"unequip", and the
-        //character frame below only ever answers for success. Place is the filter because a gear swap keeps an
-        //unequip and an equip in flight on one socket at the same time
+        //(node/server.js:7298-7314), landing as a game_response with failed:true and place:"unequip", and the
+        //character frame below only ever answers for success. Place is the filter, since a swap keeps two in flight
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -5091,10 +5002,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task UseTownAsync(CancellationToken? token = null)
     {
-        //first of the two, because they answer different questions and only one of them decides whether the recall
-        //is allowed at all. This one sheds the aggro the server refuses on; the cover below keeps the channel it
-        //opens from being broken. Doing it this way round also usually saves the cover its work - a cover that
-        //measures whether anything is still hitting the character reads false once this has done its job
+        //first of the two, because they answer different questions and only one decides whether the recall is allowed
+        //at all. This one sheds the aggro the server refuses on; the cover below keeps the channel it opens from
+        //being broken. This order usually saves the cover its work as well
         await RaiseBeforeEscapeAsync(token ?? CancellationToken.None);
 
         //before anything else this method sets up: the hook is allowed to spend time, and a callback registered
@@ -5109,19 +5019,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the time our callback runs, so the comparison has to be against where we started
         var mapChangeCountAtStart = Character.MapChangeCount;
 
-        //how long after the channel is confirmed an absent channel is still read as the frame that predates the
-        //confirmation rather than as a cancellation. Every frame is dispatched on its own task, so the frame carrying
-        //the channel and one written before the server set it are routinely handled in the same millisecond and in
-        //either order - and the second of those satisfies the cancellation test exactly. Measured at 0ms to 52ms
-        //across three characters, each with unchanged hp and an unchanged map change count, on recalls that then
-        //landed. The cost of the grace is that a channel a monster really does break inside it is answered this much
-        //later, against a 3 second channel and a 5 second timeout
+        //how long after the channel is confirmed an absent channel is still read as a frame predating the
+        //confirmation rather than as a cancellation. Frames are dispatched on their own tasks, so the two routinely
+        //arrive in either order. Measured at 0ms to 52ms across three characters, on recalls that then landed
         const double CONFIRMATION_RACE_GRACE_MS = 250d;
 
         //zero means unconfirmed, so this is both the confirmation flag and the instant it happened. One variable
         //rather than two because frames are dispatched concurrently: with a separate flag written first, a frame
-        //carrying no channel could see the flag up and the timestamp still zero, measure the grace against
-        //Stopwatch's own origin, and report a recall that went on to land perfectly as canceled
+        //could see the flag up and the timestamp still zero, and report a landed recall as canceled
         var confirmedAt = 0L;
 
         //the channel is over the moment its outcome is known. Lowering IsRecalling in the finally instead leaves it
@@ -5142,10 +5047,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     Interlocked.CompareExchange(ref confirmedAt, System.Diagnostics.Stopwatch.GetTimestamp(), 0);
 
                 //the channel ending is not the same thing as the channel being interrupted - the server deletes it
-                //and then transports, so a recall that lands also produces a frame with no channel on it. The map
-                //change is what tells the two apart, and it is stamped before either of the completion frames goes
-                //out. Without it this raced the new_map carrying the whole entity list, lost every time because a
-                //player frame is a fraction of the size, and reported a landed recall as canceled
+                //and then transports, so a recall that lands also produces a frame with no channel. The map change
+                //tells the two apart, and it is stamped before either completion frame goes out
                 else if (Volatile.Read(ref confirmedAt) is var confirmation and not 0 && (data.MapChangeCount == mapChangeCountAtStart))
                 {
                     var sinceConfirmed = System.Diagnostics.Stopwatch.GetElapsedTime(confirmation)
@@ -5398,9 +5301,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var source = new TaskCompletionSource<Expectation<int>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         //the game_response is the only frame that can settle this. The character frame the server sends first
-        //(node/server.js:8556) carries no slot number, and the destination is not known here to watch one - that is
-        //the whole point of the operation. Both outcomes land on this message: the landing slot in inv, or the
-        //refusal, and place names the socket method either was answered from (node/server_functions.js:2827, :2855)
+        //(node/server.js:8556) carries no slot number, and the destination is not known here to watch one. Both
+        //outcomes land on this message, and place names the socket method either was answered from
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -5617,11 +5519,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnEntitiesAsync(EntitiesData data)
     {
-        //a transport races new_map against in-flight entities for the previous instance (node/server.js:4177):
-        //a frame whose instance no longer matches ours is stale and would corrupt the current map's entity
-        //state, so drop it (mirrors js/game.js:2948). The instance is stamped only AFTER the staleness check
-        //passes: a stale frame must never be allowed to move the character's instance. The first frame after
-        //login (In still null) seeds it, though a player frame now carries the instance too.
+        //a transport races new_map against in-flight entities for the previous instance (node/server.js:4177), so a
+        //frame whose instance no longer matches ours is stale and would corrupt the current map's entity state.
+        //The instance is stamped only AFTER the check passes; the first frame after login seeds it
         if (!string.IsNullOrEmpty(Character.In) && !data.In.EqualsI(Character.In))
             return TaskCache.FALSE;
 
@@ -5799,9 +5699,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             Character.Update(data.QueuedActionInfo);
 
         //the other half of the frame, and the only place it is ever sent: the prediction under an in-progress upgrade
-        //or compound, carrying that operation's roll as its digits are revealed. Dropping it - which this used to do -
-        //leaves the placeholder in the inventory holding whatever it was deserialized with, so the roll reads as
-        //absent for the whole operation and there is no other frame that would correct it
+        //or compound, carrying that operation's roll as its digits are revealed. Dropping it leaves the placeholder
+        //holding whatever it was deserialized with, and no other frame would correct it
         if (data.Prediction is { } prediction)
             Character.Update(data.Slot, prediction);
 
@@ -5965,9 +5864,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //the refusal arm, and it has to be this event: the shared potion cooldown answers
         //`fail_response("not_ready", {ms})` (node/server.js:7202), which is a game_response and nothing else. This
-        //used to watch for a "not ready" disappearing text, a string the server does not contain - so the single
-        //most common outcome of all, using a potion a moment early, matched no expectation at all and spent the
-        //whole network timeout before throwing one that named the wrong problem
+        //used to watch for a "not ready" disappearing text, a string the server does not contain
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -6075,9 +5972,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 continue;
 
             //every slot of the pack, not every entry of the array the server sent. bank_add_item pushes
-            //(node/server.js:2018) and pads nothing, so a pack arrives trimmed to its highest occupied slot and a
-            //freshly bought one arrives as []. The server counts all 42 either way (js/old_common_functions.js:412),
-            //so anything past the array's end is a free slot rather than no slot
+            //(node/server.js:2018) and pads nothing, so a pack arrives trimmed to its highest occupied slot. The
+            //server counts all 42 either way, so anything past the array's end is a free slot rather than no slot
             for (var itemSlotIndex = 0; itemSlotIndex < BANK_PACK_SIZE; itemSlotIndex++)
             {
                 var bankedItem = itemSlotIndex < bankItems.Count ? bankItems[itemSlotIndex] : null;

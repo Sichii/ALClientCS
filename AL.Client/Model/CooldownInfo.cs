@@ -59,10 +59,8 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
         IsCompensated = true;
 
         //compensating the whole round trip aims the next use at the exact instant the server's timer expires, and the
-        //server keeps no grace - it refuses outright while mssince(last) is under the cooldown - so any leg quicker
-        //than the offset lands early and is rejected. The offset is a low percentile rather than the window's
-        //minimum, so that is roughly one leg in twenty, early by the few ms the percentile sits above that minimum.
-        //The guard covers it and is well inside the poll granularity of anything waiting on this
+        //server keeps no grace, so any leg quicker than the offset lands early and is rejected. The offset is a low
+        //percentile, so that is roughly one leg in twenty, and the guard covers it
         Elapsed += offset - TimeSpan.FromMilliseconds(JITTER_GUARD_MS);
     }
 

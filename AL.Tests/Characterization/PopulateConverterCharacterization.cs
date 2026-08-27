@@ -348,10 +348,9 @@ public class PopulateConverterCharacterization
     [Test]
     public void T14_BarePlayer_Slots_ArePrePopulated()
     {
-        // Conscious re-baseline, 0 -> every Slot. The pre-migration converter ran the pre-fill inside PlayerConverter, which
-        // only Character/CharacterData/StartData resolved, so a bare Player kept exactly the slots its payload
-        // named. The pre-fill now lives on Player.OnDeserialized and runs for every Player shape. This is a
-        // widening: the production sites that index Slots with [] no longer depend on which shape arrived.
+        // Conscious re-baseline, 0 -> every Slot. The pre-migration converter ran the pre-fill inside
+        // PlayerConverter, which only Character/CharacterData/StartData resolved. The pre-fill now lives on
+        // Player.OnDeserialized and runs for every Player shape, so indexing Slots no longer depends on the shape
         var player = TestJson.Socket<Player>(@"{ ""id"":""a"" }");
 
         player.Should()

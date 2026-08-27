@@ -108,11 +108,9 @@ public class CollectionIdentityCharacterization
                 .Should()
                 .HaveCount(1);
 
-        // FINDING vs the plan: it claims IReadOnlyList<T> materialises as ReadOnlyCollection<T>. It does NOT
-        // here — both properties are declared with a concrete `new List<T>()` initializer and STJ REPLACES that
-        // instance with a List<T> of its own, so the runtime type is List<T> either way. There is no
-        // ReadOnlyCollection->List flip for these members; the real behavioural difference is replace-vs-append
-        // against a pre-seeded initializer (S15, measured below).
+        // FINDING vs the plan: it claims IReadOnlyList<T> materialises as ReadOnlyCollection<T>. It does NOT here -
+        // both properties are declared with a concrete `new List<T>()` initializer and STJ REPLACES that instance
+        // with a List<T>. The real difference is replace-vs-append against a pre-seeded initializer (S15, below)
         entities.Monsters
                 .Should()
                 .BeOfType<List<Monster>>();

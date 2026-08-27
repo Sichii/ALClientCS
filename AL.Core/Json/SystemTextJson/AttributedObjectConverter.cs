@@ -87,10 +87,9 @@ public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: 
             if (inner.Converters[i] is AttributedObjectConverterFactory factory)
                 inner.Converters[i] = factory.Excluding(typeof(T));
 
-        //Newtonsoft's JToken->int populate path rounds a fractional number (Grade 3.6->4); the text-reader
-        //socket path throws instead, so this leniency belongs only here, never in the shared options.
-        //(number/bool->string leniency, by contrast, is universal in Newtonsoft, so LenientStringConverter is in
-        //the shared options and copied in here automatically.)
+        //Newtonsoft's JToken->int populate path rounds a fractional number (Grade 3.6->4); the text-reader socket
+        //path throws instead, so this leniency belongs only here, never in the shared options. The number/bool to
+        //string leniency is universal in Newtonsoft, so LenientStringConverter is shared and copied in automatically
         inner.Converters.Add(new LenientInt32Converter());
 
         return inner;

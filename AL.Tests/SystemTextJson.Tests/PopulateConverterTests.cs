@@ -80,10 +80,8 @@ public sealed class PopulateConverterTests
     }
 
     //EventAndBoss and Disappear are the only Populate-style converters the shared options register as concrete
-    //INSTANCES, so they are the only exercise of RecursionSafeOptions' remove-by-exact-type branch — the factory
-    //tests above cannot reach it. Drive them through the real SocketJson.Options rather than a hand-built set: if
-    //that branch stops dropping the instance, the declared-member fill re-enters Read and StackOverflows, killing
-    //the test host outright instead of failing an assertion, so no downstream test would report it either.
+    //INSTANCES, so they are the only exercise of RecursionSafeOptions' remove-by-exact-type branch. Driven through
+    //the real SocketJson.Options: if that branch stops dropping the instance, Read StackOverflows and kills the host
     [Test]
     public void EventAndBoss_ViaSharedOptions_FillsFlagsAndBosses_NoStackOverflow()
     {

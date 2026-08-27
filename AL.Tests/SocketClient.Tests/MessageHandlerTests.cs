@@ -14,10 +14,9 @@ namespace AL.Tests.SocketClient.Tests;
 [NotInParallel(ParallelKeys.SOCKET_MESSAGE_HANDLER)]
 public class MessageHandlerTests : SocketTestBed
 {
-    //the wire assumption SendPartyInviteAsync's game_response arm rests on: three of the four server party/invite
-    //paths answer with one of these and never emit the "Invited X to party" game_log the success arm waits for
-    //(node/server.js:10914-10929), so every invite to someone offline, already partied, or over the cap used to
-    //cost a full network timeout. If a code or the place ever drifts, that silent 1500ms stall comes back.
+    //the wire assumption SendPartyInviteAsync's game_response arm rests on: three of the four server party paths
+    //answer with one of these and never emit the "Invited X to party" game_log the success arm waits for
+    //(node/server.js:10914-10929), so an invite to someone offline used to cost a full network timeout
     [Test]
     public async Task PartyInviteRefusalsBindWithTheirPlace()
     {

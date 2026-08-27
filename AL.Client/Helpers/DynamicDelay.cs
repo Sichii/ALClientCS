@@ -71,10 +71,9 @@ public sealed class DynamicDelay
                 NewDelay = false;
             }
 
-            //being cancelled is this delay's ordinary outcome rather than a fault: SetDelayAsync cancels and
-            //replaces it on every position update, so awaiting it directly threw and caught about six times a
-            //second across a squad in motion. A cancelled task carries its cancellation as status and only
-            //materializes the exception when awaited, so reading that status through a continuation never throws
+            //being cancelled is this delay's ordinary outcome rather than a fault: SetDelayAsync cancels and replaces
+            //it on every position update, so awaiting it directly threw and caught about six times a second across a
+            //squad in motion. Reading the cancellation through a continuation never throws
             var elapsed = await Task.Delay(currentDelay, localCtx.Token)
                                     .ContinueWith(
                                         static delayed => delayed.IsCompletedSuccessfully,

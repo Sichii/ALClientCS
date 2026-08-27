@@ -170,12 +170,9 @@ public sealed class Phase3IntegrationTests
     [Test]
     public void GItem_StackSize_EveryWireSpellingIsNumeric()
     {
-        //the design tables spell most stackables "s":true, and the converter above would read a boolean as its
-        //falsy default of 1 - so every stackable would report a cap of one and read as not stackable at all. That
-        //never happens, because design/items.js:7441-7443 rewrites true to 9999 before the server serialises G, and
-        //the wire this snapshot captured is what the client actually fetches. Pinned because the boolean spelling in
-        //the design tables is convincing enough to have been mistaken for a live defect: if a host ever serves the
-        //raw spelling this fails here rather than silently disabling every stack in the client
+        //the design tables spell most stackables "s":true, and the converter above would read a boolean as its falsy
+        //default of 1 - so every stackable would report a cap of one. That never happens: design/items.js:7441-7443
+        //rewrites true to 9999 before G is serialised. Pinned, so a host serving the raw spelling fails here
         Fixture.Section("items")
                .AsObject()
                .Where(entry => entry.Value is JsonObject wire && wire.ContainsKey("s"))

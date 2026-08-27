@@ -150,11 +150,9 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
         var width = PointMap.GetLength(0);
         var height = PointMap.GetLength(1);
 
-        //the traversal's tie-break at a lattice corner can step one cell past the endpoint's own column or row -
-        //mesh vertices sit exactly on those corners - and a wall there reads as a hit on a line that never
-        //reaches it. a cell beyond both endpoints' extents cannot be on the segment, so it gets no vote. cells
-        //within them keep the conservative corner behavior: a graze along a wall's cells still blocks, which is
-        //how the server sees a hitbox corner touching a wall
+        //the traversal's tie-break at a lattice corner can step one cell past the endpoint's own column or row, and a
+        //wall there reads as a hit on a line that never reaches it. A cell beyond both endpoints' extents cannot be
+        //on the segment, so it gets no vote; cells within them keep the conservative corner behavior
         var minCellX = Math.Min((int)Math.Floor(startOffset.X), (int)Math.Floor(endOffset.X));
         var maxCellX = Math.Max((int)Math.Floor(startOffset.X), (int)Math.Floor(endOffset.X));
         var minCellY = Math.Min((int)Math.Floor(startOffset.Y), (int)Math.Floor(endOffset.Y));
@@ -256,10 +254,9 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
             return containing.Where(n => n.Edges.Count >= 2)
                              .MinBy(n => n.Vertex.FastDistance(vertex))!;
 
-        //no triangle holds it. Containment is a strict barycentric test, so this is not only a point off the mesh -
-        //a point sitting on a triangle's own edge fails it too, which is where a character parked against a wall
-        //stands. Nearest by raw distance is what this used to answer, and the leg to it is the one leg the search
-        //never validates, so across a line is exactly what it picked
+        //no triangle holds it. Containment is a strict barycentric test, so this is not only a point off the mesh - a
+        //point sitting on a triangle's own edge fails it too, which is where a character parked against a wall
+        //stands. Nearest by raw distance is what this used to answer, and that leg is the one never validated
         var nearest = this.Where(n => n.Edges.Count >= 2)
                           .OrderBy(n => n.Vertex.FastDistance(vertex))
                           .Take(Definitions.CONSTANTS.REACHABLE_NODE_CANDIDATES)
@@ -324,9 +321,8 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
         (var x, var y) = ToCell(point);
 
         //the point map is sized to the map's extents and indexed directly, so an out of bounds point threw rather
-        //than answering - which took down whichever handler asked. Answered as wall to match the two neighbours:
-        //CanMove refuses a line that leaves the extents and IsWalkable refuses a point past them, and every caller
-        //asks this as "may the character stand here", where off the map is no
+        //than answering. Answered as wall to match the two neighbours: CanMove refuses a line that leaves the extents
+        //and IsWalkable refuses a point past them, and every caller asks this as "may the character stand here"
         if ((x < 0) || (y < 0) || (x >= PointMap.GetLength(0)) || (y >= PointMap.GetLength(1)))
             return true;
 
