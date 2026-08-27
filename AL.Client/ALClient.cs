@@ -4004,9 +4004,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var start = Character.ToLocation();
 
-        //a town connector is only ever added at the path's start node, so whether recall is on the table is decided
-        //once, here, and only against the map being left. Priced against this character's own speed: the channel is a
-        //fixed three seconds, so what it is worth is however far this character would have walked in them
+        //the search also grafts a town connector onto the far side of every map change, so the suppression decided
+        //here only covers the map being left. Priced against this character's own speed: the channel is a fixed
+        //three seconds, so what it is worth is however far this character would have walked in them
         var path = Pathfinder.FindPathAsync(
             start,
             ends,

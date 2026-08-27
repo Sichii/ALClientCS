@@ -187,11 +187,15 @@ public abstract class MeshBase<TNode, TEdge> : IEnumerable<TNode> where TNode: F
 
         if (!start.OnSameMapAs(end))
         {
-            if (gMap1 is { Irregular: true })
-                return EdgeType.Leave;
-
+            //the door is the narrow case, recognised by the start point sitting on one, so it is asked first - an
+            //irregular map can have a door too, and reading that edge as a leave sends a command that lands
+            //somewhere else entirely, or is refused outright
             if (gMap1.Doors.Any(door => door.Equals(start)))
                 return EdgeType.Door;
+
+            //a leave has no start point to recognise it by, so the map is all there is to go on
+            if (Definitions.CONSTANTS.AcceptsLeave(start.Map))
+                return EdgeType.Leave;
         }
 
         //a map can reference an npc id that G.npcs has no entry for, which leaves Data null

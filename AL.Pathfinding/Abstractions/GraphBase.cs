@@ -63,77 +63,86 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
         {
             var gMap = GameData.Maps[map]!;
 
-            if (gMap.Irregular)
+            //anywhere the server refuses the command, a leave connector is an edge that can only ever fail
+            if (Definitions.CONSTANTS.AcceptsLeave(map))
             {
-                var leaveTo = gMap.Exits.FirstOrDefault(e => e.Type == ExitType.Door)
-                                  ?.ToLocation
-                              ?? new Location("main", GameData.Maps.Main.Spawns[0]);
+                //leave hands the character to the start map's first spawn wherever it is used from, whatever doors
+                //the map also has - a door leads somewhere else entirely and is reached by walking to it
+                var leaveTo = new Location("main", GameData.Maps.Main.Spawns[0]);
+                var leaveToNavMesh = NavMeshes[leaveTo.Map];
+                var leaveToVertex = leaveToNavMesh.ConstructVertex(leaveTo);
+                var arrivalNode = leaveToNavMesh.ConstructNode(leaveToVertex);
 
-                //construct a leave connector
-                var toNavMesh = NavMeshes[leaveTo.Map];
-                var leavetoVertex = toNavMesh.ConstructVertex(leaveTo);
-                var endNode = toNavMesh.ConstructNode(leavetoVertex);
+                //the arrival is a node of its own and starts with no edges, so without this the only way out of it
+                //is the town connector FindPathAsync grafts on after a map change - and every trip off the map
+                //opened with a recall that moved the character nowhere
+                var fromArrivalEdge = leaveToNavMesh.ConstructEdge(
+                    arrivalNode,
+                    leaveToNavMesh.FindBestNode(leaveToVertex),
+                    EdgeType.Walk);
 
-                //add the leave connector to every node on the map
+                arrivalNode.Edges.Add(fromArrivalEdge);
+
+                //leave costs the same wherever it is used, so every node on the map carries the connector
                 foreach (var node in navMesh)
+                    node.Edges.Add(navMesh.ConstructEdge(node, arrivalNode, EdgeType.Leave));
+            }
+
+            //a map's doors are its own whether it is irregular or not. Irregular describes the shape of the walkable
+            //area and says nothing about exits, and skipping them over it left duelland and resort with no way out
+            foreach (var exit in gMap.Exits)
+            {
+                if (exit.Type == ExitType.Door)
                 {
-                    var leaveEdge = navMesh.ConstructEdge(node, endNode, EdgeType.Leave);
-                    node.Edges.Add(leaveEdge);
-                }
-            } else
-                foreach (var exit in gMap.Exits)
-                {
-                    if (exit.Type == ExitType.Door)
-                    {
-                        var door = gMap.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, exit));
+                    var door = gMap.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, exit));
 
-                        //dont add locked doors
-                        //TODO: change in the future, when we add support for entering instances with keys
-                        if (door is { LockType: LockType.Locked })
-                            continue;
-                    }
-
-                    //the navmesh for the map the exit leads to
-                    var toNavMesh = navMesh;
-
-                    if (!exit.Map.EqualsI(exit.ToLocation.Map))
-                        if (!NavMeshes.TryGetValue(exit.ToLocation.Map, out toNavMesh))
-                            toNavMesh = null;
-
-                    if (toNavMesh == null)
+                    //dont add locked doors
+                    //TODO: change in the future, when we add support for entering instances with keys
+                    if (door is { LockType: LockType.Locked })
                         continue;
-
-                    //construct an edge from the exit to it's destination
-                    var exitVertex = navMesh.ConstructVertex(exit);
-                    var exitToVertex = toNavMesh.ConstructVertex(exit.ToLocation);
-                    var startNode = navMesh.ConstructNode(exitVertex);
-                    var endNode = toNavMesh.ConstructNode(exitToVertex);
-
-                    // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-                    var edge = navMesh.ConstructEdge(
-                        startNode,
-                        endNode,
-                        exit.Type switch
-                        {
-                            ExitType.Door        => EdgeType.Door,
-                            ExitType.Transporter => EdgeType.Transport,
-                            _                    => throw new ArgumentOutOfRangeException()
-                        });
-
-                    //add the edge to the start node
-                    startNode.Edges.Add(edge);
-
-                    //find the closest node to the start node in the current map
-                    var startNodeForStartNode = navMesh.FindBestNode(exitVertex);
-
-                    //find the closest node to the end node in the current map
-                    var endNodeForEndNode = toNavMesh.FindBestNode(exitToVertex);
-
-                    var toStartEdge = navMesh.ConstructEdge(startNodeForStartNode, startNode, EdgeType.Walk);
-                    startNodeForStartNode.Edges.Add(toStartEdge);
-                    var fromEndEdge = toNavMesh.ConstructEdge(endNode, endNodeForEndNode, EdgeType.Walk);
-                    endNode.Edges.Add(fromEndEdge);
                 }
+
+                //the navmesh for the map the exit leads to
+                var toNavMesh = navMesh;
+
+                if (!exit.Map.EqualsI(exit.ToLocation.Map))
+                    if (!NavMeshes.TryGetValue(exit.ToLocation.Map, out toNavMesh))
+                        toNavMesh = null;
+
+                if (toNavMesh == null)
+                    continue;
+
+                //construct an edge from the exit to it's destination
+                var exitVertex = navMesh.ConstructVertex(exit);
+                var exitToVertex = toNavMesh.ConstructVertex(exit.ToLocation);
+                var startNode = navMesh.ConstructNode(exitVertex);
+                var endNode = toNavMesh.ConstructNode(exitToVertex);
+
+                // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+                var edge = navMesh.ConstructEdge(
+                    startNode,
+                    endNode,
+                    exit.Type switch
+                    {
+                        ExitType.Door        => EdgeType.Door,
+                        ExitType.Transporter => EdgeType.Transport,
+                        _                    => throw new ArgumentOutOfRangeException()
+                    });
+
+                //add the edge to the start node
+                startNode.Edges.Add(edge);
+
+                //find the closest node to the start node in the current map
+                var startNodeForStartNode = navMesh.FindBestNode(exitVertex);
+
+                //find the closest node to the end node in the current map
+                var endNodeForEndNode = toNavMesh.FindBestNode(exitToVertex);
+
+                var toStartEdge = navMesh.ConstructEdge(startNodeForStartNode, startNode, EdgeType.Walk);
+                startNodeForStartNode.Edges.Add(toStartEdge);
+                var fromEndEdge = toNavMesh.ConstructEdge(endNode, endNodeForEndNode, EdgeType.Walk);
+                endNode.Edges.Add(fromEndEdge);
+            }
         }
     }
 

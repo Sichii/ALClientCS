@@ -1,5 +1,6 @@
 #region
 using AL.Core.Geometry;
+using Chaos.Extensions.Common;
 #endregion
 
 namespace AL.Pathfinding.Definitions;
@@ -52,6 +53,16 @@ public static class CONSTANTS
     ///     The heuristic value of a transport, door, or leave connection.
     /// </summary>
     public const float TRANSPORT_HEURISTIC = 50f;
+
+    /// <summary>
+    ///     Whether the server takes a leave command from a map.
+    /// </summary>
+    /// <remarks>
+    ///     Its own check is these two names plus solo instances, and a solo instance is only ever created by a gm - so
+    ///     on an ordinary account this is the whole list. Being irregular has nothing to do with it: duelland and
+    ///     resort are both irregular and the command is refused on both.
+    /// </remarks>
+    public static bool AcceptsLeave(string map) => map.EqualsI("jail") || map.EqualsI("cyberland");
 
     /// <summary>
     ///     How far a search will look for standable ground around a point the flood fill never reached, before giving
