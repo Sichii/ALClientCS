@@ -5726,11 +5726,33 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return TaskCache.FALSE;
     }
 
+    /// <remarks>
+    ///     <b>The cooldown <c>consume_skill</c> sends for an attack is the one that stood when the request began.</b>
+    ///     It reads <c>G.skills.attack.cooldown</c>, which the skill handler sets from <c>attack_ms</c> on its first
+    ///     line - so a buff this very swing procced is not in the number. Sugar rush is the one that shows it: the
+    ///     swing that procs it waits out a whole unbuffed cooldown, and only the swings after that run fast. The
+    ///     correction that would have said otherwise is computed inside <c>commence_attack</c>, before
+    ///     <c>consume_skill</c> moves <c>last.attack</c> forward, so it measures against the previous swing, comes
+    ///     out negative, clamps to zero here, and is then overwritten by <c>consume_skill</c>'s own timeout.
+    ///     <br />
+    ///     The frame carrying the new frequency is emitted earlier in the same request, so it has already been
+    ///     merged by the time that timeout arrives, and the server gates the next swing on frequency as it stands
+    ///     rather than as it stood. Recomputing from the frame is therefore the honest figure. Only the shorter of
+    ///     the two is taken: too long costs a swing outright, where too short costs a rejected attack that answers
+    ///     with the real remaining time.
+    /// </remarks>
     protected Task<bool> OnSkillTimeoutAsync(SkillTimeoutData data)
     {
+        var timeoutMs = data.TimeoutMs;
+
+        //rounded the way the server rounds attack_ms, so an unbuffed swing lands on exactly the number it sent
+        //rather than a fraction under it
+        if ((data.Reason is null) && data.SkillName.EqualsI("attack") && (Character.Frequency > 0))
+            timeoutMs = Math.Min(timeoutMs, data.Penalty + MathF.Round(1000f / Character.Frequency));
+
         //the name is already resolved to the shared skill and the ms already multiplied, so this must not
         //go through SetCooldown. the attack_ms correction can be negative, which the browser clamps to 0.
-        var cooldownInfo = new CooldownInfo(Math.Max(0f, data.TimeoutMs));
+        var cooldownInfo = new CooldownInfo(Math.Max(0f, timeoutMs));
         cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
 
         Cooldowns.AddOrUpdate(data.SkillName, cooldownInfo, (_, _) => cooldownInfo);
