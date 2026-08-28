@@ -17,6 +17,11 @@ public sealed class UIData
     public IReadOnlyList<string>? Ids { get; init; }
     public SimpleItem? Item { get; init; }
     public string? Name { get; init; }
+
+    /// <summary>Player-to-player transfers name their two ends here rather than in <c>From</c>/<c>To</c>.</summary>
+    public string? Receiver { get; init; }
+
+    public string? Sender { get; init; }
     public string? To { get; init; }
 
     [JsonPropertyName("type")]
