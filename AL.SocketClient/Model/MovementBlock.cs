@@ -35,4 +35,19 @@ public readonly record struct MovementBlock(
     ulong MoveNum,
     bool Moving,
     string? Map,
-    string? In);
+    string? In)
+{
+    /// <summary>
+    ///     Whether this is walking away from <paramref name="other" /> - the leg's direction has a positive component
+    ///     along the line pointing away from where <paramref name="other" /> is standing.
+    /// </summary>
+    /// <remarks>
+    ///     The leg's own direction rather than <see cref="Angle" />: several paths write a position between ticks
+    ///     without re-deriving the heading, so a stale angle would answer for a line the entity is no longer on.
+    ///     <br />
+    ///     Anything standing still is not walking away from anything, and neither is a leg whose destination is where
+    ///     it already stands - the delta loop leaves that state on the entity rather than clearing it.
+    /// </remarks>
+    public bool MovingAwayFrom(MovementBlock other)
+        => Moving && ((((GoingX - X) * (X - other.X)) + ((GoingY - Y) * (Y - other.Y))) > 0f);
+}

@@ -823,7 +823,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             range *= data.RangeMultiplier.Value;
 
         range += data.RangeBonus;
-        range *= 0.95f; //for safety
+
+        //sized to how far the two can drift while the cast is in flight rather than a flat shave: two standing still
+        //read where the server has them and spend nothing, two walking apart spend the whole 5%. RangeSafety holds
+        //the rule, and its tightest margin is what every stopping distance is sized with
+        range *= RangeSafety.MarginFor(Character.Movement, target.Movement);
 
         //hit boxes, the same pair WithinRange resolves against. Measured off the collision foot-print instead - which
         //is what this did - a warrior reads about half its real reach and never closes the difference, because every
