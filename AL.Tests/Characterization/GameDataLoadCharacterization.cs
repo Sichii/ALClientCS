@@ -63,11 +63,13 @@ public class GameDataLoadCharacterization
     [Test]
     public void T1_Datums_FullyPopulated()
     {
+        // one short of the snapshot's item count: emotionjar was dropped from the live data the members are
+        // generated against, so the snapshot's copy of it binds to nothing
         GameData.Items
                 .Keys
                 .Count()
                 .Should()
-                .Be(579);
+                .Be(578);
 
         // 67 rather than one key per served map: the datum declares the keys, so a map the snapshot carries but the
         // generated members do not know about binds to nothing, and a wire name differing from its CLR spelling by
@@ -98,9 +100,9 @@ public class GameDataLoadCharacterization
     }
 
     /// <summary>
-    ///     Pins the regeneration signal: the snapshot carries no members the generated datums miss, and an injected
-    ///     unknown member is counted. The zero baseline alone could also mean the scan matched no sections at all,
-    ///     which is why the injection half exists.
+    ///     Pins the regeneration signal: the snapshot carries one member the generated datums do not declare, and an
+    ///     injected unknown member is counted on top of it. The baseline alone could also mean the scan matched no
+    ///     sections at all, which is why the injection half exists.
     /// </summary>
     [Test]
     public void T1_UnknownMemberScan_CountsOnlyUndeclaredMembers()
@@ -110,8 +112,10 @@ public class GameDataLoadCharacterization
 
         var baseline = GameData.CountUnknownMembers(root);
 
+        //emotionjar, the one item the snapshot still carries that the live data no longer does. A count above that
+        //is the regeneration signal
         baseline.Should()
-                .Be(0);
+                .Be(1);
 
         ((JsonObject)root["items"]!)["an_item_no_datum_declares"] = new JsonObject();
 

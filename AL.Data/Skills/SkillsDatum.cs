@@ -73,6 +73,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("deepfreeze")]
     public GSkill Deepfreeze { get; init; } = null!;
 
+    [JsonPropertyName("drop_egg")]
+    public GSkill DropEgg { get; init; } = null!;
+
     [JsonPropertyName("emotion")]
     public GSkill Emotion { get; init; } = null!;
 
@@ -114,6 +117,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("healing")]
     public GSkill Healing { get; init; } = null!;
+
+    [JsonPropertyName("hearts_single")]
+    public GSkill HeartsSingle { get; init; } = null!;
 
     [JsonPropertyName("highfive")]
     public GSkill Highfive { get; init; } = null!;

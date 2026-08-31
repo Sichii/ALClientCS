@@ -150,7 +150,7 @@ public record GameData
     ///     The game-data version the data members were last generated against. AL.MemberGenerator emits the stamp as
     ///     generated output (dataMembers/version.txt); paste it here when refreshing the datums.
     /// </summary>
-    public const int KNOWN_VERSION = 5200;
+    public const int KNOWN_VERSION = 5203;
 
     [GameDataRoot]
     public static int Version { get; private set; }

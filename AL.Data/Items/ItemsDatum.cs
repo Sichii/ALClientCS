@@ -439,9 +439,6 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("emberseal")]
     public GItem Emberseal { get; init; } = null!;
 
-    [JsonPropertyName("emotionjar")]
-    public GItem Emotionjar { get; init; } = null!;
-
     [JsonPropertyName("emptyheart")]
     public GItem Emptyheart { get; init; } = null!;
 
