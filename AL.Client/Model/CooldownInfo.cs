@@ -16,12 +16,13 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     ///     server's expiry rather than exactly at it.
     /// </summary>
     /// <remarks>
-    ///     Load-bearing since the offset became a 5th percentile of the ping window rather than its minimum. The
-    ///     percentile sits a measured 2.5ms above that minimum on a typical window and under 7ms on 95% of them, and
-    ///     this guard is what absorbs that. Shrink it below the gap and roughly one emit in twenty reaches the server
-    ///     before its cooldown expires, which the server refuses outright.
+    ///     Needed because the offset is a 5th percentile of the ping window rather than its minimum, and the server
+    ///     keeps no grace: any leg quicker than the offset reaches the server before its cooldown expires and is
+    ///     refused outright. The percentile sits a measured 2.5ms above the minimum on a typical window, which this
+    ///     covers, and under 7ms on 95% of them, which it does not - so a bad window still loses the occasional emit,
+    ///     traded for aiming that much closer to the expiry on every other one.
     /// </remarks>
-    private const float JITTER_GUARD_MS = 15f;
+    private const float JITTER_GUARD_MS = 5f;
 
     /// <summary>
     ///     The cooldown of the skill.
@@ -58,9 +59,8 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 
         IsCompensated = true;
 
-        //compensating the whole round trip aims the next use at the exact instant the server's timer expires, and the
-        //server keeps no grace, so any leg quicker than the offset lands early and is rejected. The offset is a low
-        //percentile, so that is roughly one leg in twenty, and the guard covers it
+        //compensating the whole round trip would aim the next use at the exact instant the server's timer expires,
+        //which a leg quicker than the offset then beats and the server refuses. The guard holds back short of that
         Elapsed += offset - TimeSpan.FromMilliseconds(JITTER_GUARD_MS);
     }
 
