@@ -45,22 +45,11 @@ public class Ranger : ALClient
         : base(characterName, apiClient, socketClient) { }
 
     /// <summary>
-    ///     Asynchronously uses 5Shot on up to five targets.
+    ///     Asynchronously uses 5Shot on one to five targets.
     /// </summary>
-    /// <param name="targetId1">
-    ///     The id of a target.
-    /// </param>
-    /// <param name="targetId2">
-    ///     The id of a target.
-    /// </param>
-    /// <param name="targetId3">
-    ///     The id of a target.
-    /// </param>
-    /// <param name="targetId4">
-    ///     The id of a target.
-    /// </param>
-    /// <param name="targetId5">
-    ///     The id of a target.
+    /// <param name="targetIds">
+    ///     The ids of the targets. Five is a ceiling and not a requirement: the server takes however many it is
+    ///     given, so a shorter volley fires fewer arrows for the same mana.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" />
@@ -68,57 +57,45 @@ public class Ranger : ALClient
     ///     Information about the projectiles from this skill.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     targetId#
+    ///     targetIds
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///     targetIds is empty, longer than five, or holds a null or empty id.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use '5shot' on targets. ({reason})
     /// </exception>
-    public Task<List<ActionData>> FiveShotAsync(
-        string targetId1,
-        string targetId2,
-        string targetId3,
-        string targetId4,
-        string targetId5)
+    public Task<List<ActionData>> FiveShotAsync(params string[] targetIds) => MultiShotAsync("5shot", 5, targetIds);
+
+    /// <summary>
+    ///     The shared body of the two multishots, which differ only in name and ceiling.
+    /// </summary>
+    /// <remarks>
+    ///     The ceiling is checked here rather than left to the server, which silently truncates a longer list
+    ///     (node/server.js:9575) and would leave the caller believing arrows it paid for had landed.
+    /// </remarks>
+    private Task<List<ActionData>> MultiShotAsync(string skillName, int maxTargets, string[] targetIds)
     {
-        if (string.IsNullOrEmpty(targetId1))
-            throw new ArgumentNullException(nameof(targetId1));
+        ArgumentNullException.ThrowIfNull(targetIds);
 
-        if (string.IsNullOrEmpty(targetId2))
-            throw new ArgumentNullException(nameof(targetId2));
+        if ((targetIds.Length == 0) || (targetIds.Length > maxTargets))
+            throw new ArgumentException(
+                $"'{skillName}' takes 1 to {maxTargets} targets, but was given {targetIds.Length}.",
+                nameof(targetIds));
 
-        if (string.IsNullOrEmpty(targetId3))
-            throw new ArgumentNullException(nameof(targetId3));
-
-        if (string.IsNullOrEmpty(targetId4))
-            throw new ArgumentNullException(nameof(targetId4));
-
-        if (string.IsNullOrEmpty(targetId5))
-            throw new ArgumentNullException(nameof(targetId5));
+        if (targetIds.Any(string.IsNullOrEmpty))
+            throw new ArgumentException($"'{skillName}' was given a null or empty target id.", nameof(targetIds));
 
         return UseSkillCoreAsync(
-            "5shot",
-            targetIds:
-            [
-                targetId1,
-                targetId2,
-                targetId3,
-                targetId4,
-                targetId5
-            ],
+            skillName,
+            targetIds: targetIds,
             completion: SkillCompletion.ResponseData,
             extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null,
             collectActions: true,
             payload: new
             {
-                name = "5shot",
-                ids = new[]
-                {
-                    targetId1,
-                    targetId2,
-                    targetId3,
-                    targetId4,
-                    targetId5
-                }
+                name = skillName,
+                ids = targetIds
             });
     }
 
@@ -281,16 +258,11 @@ public class Ranger : ALClient
             extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null);
 
     /// <summary>
-    ///     Asynchronously uses 3Shot on up to three targets.
+    ///     Asynchronously uses 3Shot on one to three targets.
     /// </summary>
-    /// <param name="targetId1">
-    ///     The id of a target.
-    /// </param>
-    /// <param name="targetId2">
-    ///     The id of a target.
-    /// </param>
-    /// <param name="targetId3">
-    ///     The id of a target.
+    /// <param name="targetIds">
+    ///     The ids of the targets. Three is a ceiling and not a requirement: the server takes however many it is
+    ///     given, so a shorter volley fires fewer arrows for the same mana.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" />
@@ -298,44 +270,15 @@ public class Ranger : ALClient
     ///     Information about the projectiles from this skill.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    ///     targetId#
+    ///     targetIds
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///     targetIds is empty, longer than three, or holds a null or empty id.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use '3shot' on targets. ({reason})
     /// </exception>
-    public Task<List<ActionData>> ThreeShotAsync(string targetId1, string targetId2, string targetId3)
-    {
-        if (string.IsNullOrEmpty(targetId1))
-            throw new ArgumentNullException(nameof(targetId1));
-
-        if (string.IsNullOrEmpty(targetId2))
-            throw new ArgumentNullException(nameof(targetId2));
-
-        if (string.IsNullOrEmpty(targetId3))
-            throw new ArgumentNullException(nameof(targetId3));
-
-        return UseSkillCoreAsync(
-            "3shot",
-            targetIds:
-            [
-                targetId1,
-                targetId2,
-                targetId3
-            ],
-            completion: SkillCompletion.ResponseData,
-            extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null,
-            collectActions: true,
-            payload: new
-            {
-                name = "3shot",
-                ids = new[]
-                {
-                    targetId1,
-                    targetId2,
-                    targetId3
-                }
-            });
-    }
+    public Task<List<ActionData>> ThreeShotAsync(params string[] targetIds) => MultiShotAsync("3shot", 3, targetIds);
 
     /// <summary>
     ///     Uses the 'track' skill and returns the players it locates within range, nearest first (node/server.js:9499).
