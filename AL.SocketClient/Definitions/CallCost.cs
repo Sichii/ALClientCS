@@ -37,8 +37,8 @@ public static class CallCost
     public static readonly TimeSpan WINDOW = TimeSpan.FromSeconds(4);
 
     //node/server.js:159. random_look and ccreport are in the server's table too and are not on this client's emit
-    //surface. equip_batch is deliberately absent: its surcharge is CC.equip * (0.5 + count/2), so it cannot be
-    //priced without the batch, and it bills as a bare BASE here
+    //surface. equip_batch is deliberately absent: its surcharge is a function of the batch rather than a constant,
+    //so Of cannot price it from the type alone and bills it as a bare BASE - see OfEquipBatch
     private static readonly IReadOnlyDictionary<ALSocketEmitType, double> SURCHARGES
         = new Dictionary<ALSocketEmitType, double>
         {
@@ -57,6 +57,26 @@ public static class CallCost
     /// <summary>
     ///     What one emit of this type costs against <see cref="LIMIT" />, at minimum.
     /// </summary>
+    /// <remarks>
+    ///     <see cref="ALSocketEmitType.EquipBatch" /> is the one type this cannot answer for - it bills the batch's
+    ///     items rather than the call, so ask <see cref="OfEquipBatch" /> instead. What this hands back for it is the
+    ///     bare <see cref="BASE" />, which keeps a meter summing over emit types a floor rather than a fiction.
+    /// </remarks>
     public static double Of(ALSocketEmitType emitType)
         => BASE + (SURCHARGES.TryGetValue(emitType, out var surcharge) ? surcharge : 0d);
+
+    /// <summary>
+    ///     What one <c>equip_batch</c> carrying <paramref name="count" /> items costs against <see cref="LIMIT" />.
+    /// </summary>
+    /// <remarks>
+    ///     The server charges <c>CC.equip * (0.5 + count/2)</c> on top of the call itself (node/server.js:4357), so
+    ///     the surcharge is derived from the single-equip one rather than restated. From two items up this beats
+    ///     sending the same equips one at a time and the gap widens with each item: two cost 5.5 against 8, five cost
+    ///     10 against 20. It buys nothing on the penalty cooldown, which the handler charges per item either way.
+    ///     <br />
+    ///     The server clamps a batch to 15 items and drops the rest silently, so a caller splitting a longer run has
+    ///     to split it itself.
+    /// </remarks>
+    public static double OfEquipBatch(int count)
+        => BASE + ((Of(ALSocketEmitType.Equip) - BASE) * (0.5d + (Math.Max(0, count) / 2d)));
 }

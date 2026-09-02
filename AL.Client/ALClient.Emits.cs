@@ -1,6 +1,11 @@
 #region
+using AL.Client.Extensions;
+using AL.Client.Helpers;
 using AL.Core.Definitions;
+using AL.Core.Helpers;
 using AL.SocketClient.Definitions;
+using AL.SocketClient.SocketModel;
+using Chaos.Extensions.Common;
 #endregion
 
 namespace AL.Client;
@@ -172,15 +177,79 @@ public abstract partial class ALClient
     ///     Equips up to 15 items in a single call (node/server.js:6989). A null slot lets the server pick the item's default
     ///     slot. Directly supports the weapon-swap pattern.
     /// </summary>
-    public Task EquipBatchAsync(IEnumerable<(int InventorySlot, Slot? Slot)> equips)
-        => Socket.EmitAsync(
-            ALSocketEmitType.EquipBatch,
-            equips.Select(equip => new
-                  {
-                      num = equip.InventorySlot,
-                      slot = equip.Slot
-                  })
-                  .ToArray());
+    /// <summary>
+    ///     Equips up to 15 items in a single call (node/server.js:7057). A null slot lets the server pick the item's
+    ///     default slot. Directly supports the weapon-swap pattern.
+    /// </summary>
+    /// <remarks>
+    ///     The server applies the entries in order and stops at the first one it refuses, keeping everything it
+    ///     applied before that - so the batch is not atomic, and the last entry landing is what proves the whole of
+    ///     it did. That is the confirmation awaited here.
+    ///     <br />
+    ///     The failure arm is not a <c>fail_response</c>, which is the trap: a refused entry is answered with a
+    ///     <c>success_response</c> carrying the reason as a string inside its <c>slots</c> array, so the universal
+    ///     <c>failed</c> discriminator is never set for it. What separates the two is ordering. The handler resends
+    ///     the character frame before it answers (node/server.js:7115), so reaching that answer without the frame
+    ///     having satisfied the slot check means the server stopped partway.
+    ///     <br />
+    ///     A batch whose last entry names no slot cannot be confirmed, since the server picks that slot from the
+    ///     item's own type; it is emitted and not awaited.
+    /// </remarks>
+    public async Task EquipBatchAsync(IEnumerable<(int InventorySlot, Slot? Slot)> equips)
+    {
+        var batch = equips.ToArray();
+
+        if (batch.Length == 0)
+            return;
+
+        var payload = batch.Select(equip => new
+                           {
+                               num = equip.InventorySlot,
+                               slot = equip.Slot
+                           })
+                           .ToArray();
+
+        var last = batch[^1];
+        var item = last.InventorySlot >= 0 ? Character.Inventory[last.InventorySlot] : null;
+
+        if ((item is null) || (last.Slot is not { } slot))
+        {
+            await Socket.EmitAsync(ALSocketEmitType.EquipBatch, payload);
+
+            return;
+        }
+
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var characterCallback = Socket.On<CharacterData>(
+            ALSocketMessageType.Character,
+            data =>
+            {
+                var slotItem = data.Slots[slot];
+
+                if ((slotItem != null) && slotItem.Name.EqualsI(item.Name) && (slotItem.Level == item.Level))
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
+                //tolerating a null argument
+                if ("equip_batch".EqualsI(data.Place!))
+                    source.TrySetResult($"Failed to equip {batch.Length} items. (the server refused one of them)");
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(ALSocketEmitType.EquipBatch, payload);
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+    }
 
     /// <summary>
     ///     Splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot (node/server.js:7350).
