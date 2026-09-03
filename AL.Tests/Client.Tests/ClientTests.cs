@@ -4,6 +4,7 @@ using System.Reflection;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Core.Attributes;
+using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.SocketClient.Definitions;
@@ -355,5 +356,81 @@ public class ClientTests
                .And.HaveFlag(EntityUpdateField.Moving)
                .And.HaveFlag(EntityUpdateField.MoveNum)
                .And.HaveFlag(EntityUpdateField.Map);
+    }
+
+    [Test]
+    public void LocksmithOperation_SerializesToItsWireName()
+    {
+        TestJson.Emit(LocksmithOperation.Lock).Should().Be("\"lock\"");
+        TestJson.Emit(LocksmithOperation.Seal).Should().Be("\"seal\"");
+        TestJson.Emit(LocksmithOperation.Unlock).Should().Be("\"unlock\"");
+    }
+
+    /// <summary>
+    ///     All three cosmetic responses carry <c>player.p.acx</c> whole - <c>cx_new</c> at node/server.js:7243,
+    ///     <c>cx_received</c> at :7984 and <c>cx_sent</c> at :7991 - never a delta, which is why the handler assigns
+    ///     rather than merges. The wire names are the risk here: nothing but the enum's own wire-name mapping turns
+    ///     <c>cx_sent</c> into <see cref="GameResponseType.CosmeticSent" />, so a broken mapping would leave the
+    ///     handler silently never firing.
+    /// </summary>
+    [Test]
+    public void EveryCosmeticResponseCarriesTheWholeInventory()
+    {
+        var sent = TestJson.Socket<GameResponseData>(@"{""response"":""cx_sent"",""name"":""Sichi"",""cx"":""hat100"",""acx"":{""hat101"":1}}");
+
+        sent.Should()
+            .NotBeNull();
+
+        sent.ResponseType
+            .Should()
+            .Be(GameResponseType.CosmeticSent);
+
+        sent.Acx
+            .Should()
+            .ContainKey("hat101")
+            .And.HaveCount(1, "the fixture is the sender's whole post-trade inventory, in which the traded hat no longer appears");
+
+        var received = TestJson.Socket<GameResponseData>(@"{""response"":""cx_received"",""name"":""Sichi"",""cx"":""hat100"",""acx"":{""hat100"":1,""hat101"":2}}");
+
+        received.Should()
+                .NotBeNull();
+
+        received.ResponseType
+                .Should()
+                .Be(GameResponseType.CosmeticReceived);
+
+        received.Acx
+                .Should()
+                .HaveCount(2);
+
+        var opened = TestJson.Socket<GameResponseData>(@"{""response"":""cx_new"",""from"":""cxjar"",""name"":""hat100"",""acx"":{""hat100"":1}}");
+
+        opened.Should()
+              .NotBeNull();
+
+        opened.ResponseType
+              .Should()
+              .Be(GameResponseType.CosmeticNew);
+
+        opened.Acx
+              .Should()
+              .ContainKey("hat100");
+    }
+
+    /// <summary>
+    ///     A cosmetic response with no <c>acx</c> is a shape the server does not send. The handler leaves the last
+    ///     known inventory alone rather than emptying it, so the null has to survive deserialization as a null.
+    /// </summary>
+    [Test]
+    public void ACosmeticResponseWithoutAcxDeserializesToNull()
+    {
+        var obj = TestJson.Socket<GameResponseData>(@"{""response"":""cx_sent"",""name"":""Sichi""}");
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Acx
+           .Should()
+           .BeNull();
     }
 }

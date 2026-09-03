@@ -71,6 +71,20 @@ public sealed record GClass
         = new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
 
     /// <summary>
+    ///     Every cosmetic anyone of this class may wear without owning a copy of it.
+    /// </summary>
+    /// <remarks>
+    ///     Bound and then enriched. The wire form carries only what the class was granted outright, and most classes
+    ///     send nothing at all for it; the server finishes the list off while it processes game data
+    ///     (js/old_common_functions.js:171-182) by pushing in the free makeups every account may wear and every piece
+    ///     of this class's own <see cref="Looks" />. <see cref="GameData" /> restates that push after load, so this is
+    ///     never just what the payload said.
+    /// </remarks>
+    [JsonPropertyName("xcx")]
+    [JsonInclude]
+    public IReadOnlyList<string> ExclusiveCosmetics { get; internal set; } = new List<string>();
+
+    /// <summary>
     ///     Percent chance to shrug off being frozen or deep-frozen outright.
     /// </summary>
     [JsonPropertyName("fzresistance")]
@@ -81,6 +95,12 @@ public sealed record GClass
     ///     percentage and contributes a hundredth of it.
     /// </summary>
     public float Frequency { get; init; }
+
+    /// <summary>
+    ///     The ready-made looks the character creation screen offers for this class. Everyone of the class may wear
+    ///     them, which is why <see cref="ExclusiveCosmetics" /> ends up carrying every piece of every one.
+    /// </summary>
+    public IReadOnlyList<GClassLook> Looks { get; init; } = new List<GClassLook>();
 
     /// <summary>
     ///     How many <see cref="AL.Core.Definitions.DamageType.Magical" /> attackers this class tolerates before fear

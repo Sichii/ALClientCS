@@ -3,6 +3,8 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using AL.Core.Definitions;
 using AL.Data;
+using AL.Data.Classes;
+using AL.Data.Images;
 using FluentAssertions;
 #endregion
 
@@ -31,6 +33,38 @@ public class GameDataLoadCharacterization
                                                                               .ToArray();
 
     private static Dictionary<FieldInfo, object?> CapturedState = new();
+
+    /// <summary>
+    ///     The server's own <c>free_cx</c> (js/old_common_functions.js:153), restated here rather than read back off
+    ///     the production copy - a test that asked the push what the push should do would pass on any answer.
+    /// </summary>
+    private static readonly string[] FreeCosmetics =
+    [
+        "makeup105",
+        "makeup117",
+        "mmakeup00",
+        "fmakeup01",
+        "fmakeup02",
+        "fmakeup03"
+    ];
+
+    /// <summary>
+    ///     How many cosmetic names the class push owes each class in the snapshot, and how long its finished list is.
+    ///     Only mage and priest are granted anything on the wire - three names each, none of which the push would have
+    ///     added - so only their two numbers differ. Warrior carries an empty list; the other four carry no
+    ///     <c>xcx</c> member at all, and none of the seven carries a null one.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, (int Pushed, int Total)> ExclusiveCosmeticCounts
+        = new Dictionary<string, (int, int)>
+        {
+            ["warrior"] = (10, 10),
+            ["paladin"] = (9, 9),
+            ["rogue"] = (11, 11),
+            ["ranger"] = (11, 11),
+            ["mage"] = (8, 11),
+            ["priest"] = (8, 11),
+            ["merchant"] = (11, 11)
+        };
 
     [Before(Class)]
     public static void PopulateFromSnapshot()
@@ -139,6 +173,108 @@ public class GameDataLoadCharacterization
                 .Should()
                 .Be(1);
     }
+
+    /// <summary>
+    ///     Every name the push owes a class, worked out from the class's own looks rather than from the push: the free
+    ///     makeups, then each look's name and each of its per-slot pieces, and never a name twice.
+    /// </summary>
+    private static IReadOnlyList<string> OwedCosmetics(string className)
+    {
+        var owed = new List<string>();
+
+        foreach (var cosmetic in FreeCosmetics)
+            if (!owed.Contains(cosmetic))
+                owed.Add(cosmetic);
+
+        foreach (var look in GameData.Classes[className]!.Looks)
+        {
+            if (!owed.Contains(look.Name))
+                owed.Add(look.Name);
+
+            foreach (var piece in look.Pieces.Values)
+                if (!owed.Contains(piece))
+                    owed.Add(piece);
+        }
+
+        return owed;
+    }
+
+    /// <summary>
+    ///     The class half of the enrichment pass. The wire form carries the raw grant and nothing else, so a class is
+    ///     only right once the load has restated the push the server does while it processes game data
+    ///     (js/old_common_functions.js:171-182).
+    /// </summary>
+    [Test]
+    public void T1_ClassCosmetics_CoverTheFreeMakeupsAndEveryPieceOfEveryLook()
+    {
+        foreach ((var className, (var pushed, var total)) in ExclusiveCosmeticCounts)
+        {
+            var owed = OwedCosmetics(className);
+
+            owed.Should()
+                .HaveCount(pushed, $"the snapshot owes {className} that many names");
+
+            var exclusives = GameData.Classes[className]!.ExclusiveCosmetics;
+
+            exclusives.Should()
+                      .NotBeNull()
+                      .And
+                      .Contain(owed, $"{className} may wear every one of them without owning it")
+                      .And
+                      .OnlyHaveUniqueItems($"each push is guarded, so {className} cannot list a name twice")
+                      .And
+                      .HaveCount(total, $"{className} is owed {pushed} and granted the rest on the wire");
+        }
+    }
+
+    /// <summary>
+    ///     The hazard the push covers, stated from the raw entry as well as from the loaded one: four of the seven
+    ///     classes carry no exclusive list at all, so binding alone would leave them nothing to wear.
+    /// </summary>
+    [Test]
+    public void T1_ClassCosmetics_AClassTheSnapshotCarriesNoListForStillEndsUpWithOne()
+    {
+        var raw = Fixture.Entry("classes", "paladin")
+                         .AsObject();
+
+        raw.Should()
+           .NotContainKey("xcx", "the snapshot carries no exclusive list for this class");
+
+        TestJson.Data<GClass>(raw.ToJsonString())!
+                .ExclusiveCosmetics
+                .Should()
+                .NotBeNull()
+                .And
+                .BeEmpty();
+
+        GameData.Classes["paladin"]!
+                .ExclusiveCosmetics
+                .Should()
+                .NotBeNull()
+                .And
+                .NotBeEmpty();
+    }
+    /// <summary>
+    ///     A look the wire sends short, or with nothing in its second slot, binds with a null piece map.
+    /// </summary>
+    /// <remarks>
+    ///     This is the premise the null guards in <c>EnrichClasses</c> rest on, and it is surprising enough to
+    ///     pin on its own: the positional converter leaves a reference-typed argument null rather than defaulting
+    ///     it, so the map is null rather than empty, and walking it throws inside <c>Populate</c> - a client that
+    ///     will not start, not a look that will not draw. The server's own loop over that slot tolerates the
+    ///     same shape and keeps going.
+    ///     <br />
+    ///     Every look in the snapshot is well formed, so nothing else here would notice if this changed. If the
+    ///     converter ever starts defaulting the map, this test says so and those guards can go.
+    /// </remarks>
+    [Test]
+    [Arguments("[\"marmor4b\"]", "the array stops before the piece map")]
+    [Arguments("[\"marmor4b\", null]", "the piece map is sent as null")]
+    public void ALookMissingItsPieceMapBindsNull(string wire, string because)
+        => TestJson.Data<GClassLook>(wire)!
+                   .Pieces
+                   .Should()
+                   .BeNull(because);
 
     /// <summary>
     ///     ExchangeAtNPC is enriched for every item carrying an exchange count, which is what makes the exchange
@@ -474,5 +610,123 @@ public class GameDataLoadCharacterization
                 .Drops
                 .Should()
                 .BeEmpty();
+    }
+
+    /// <summary>
+    ///     The wardrobe tables, which are the two ways an owned name is not the name that gets worn.
+    /// </summary>
+    [Test]
+    public void T1_Cosmetics_Bind()
+    {
+        //one name standing for two sprites, and neither of the two is the name the account owns
+        GameData.Cosmetics
+                .Bundle["rogueb"]
+                .Should()
+                .BeEquivalentTo(["sbody1c", "sarmor1h"]);
+
+        GameData.Cosmetics
+                .Map["old"]
+                .Should()
+                .Be("new");
+
+        //ordinal, matching the server's own object lookup. A case-insensitive table here would answer that a
+        //differently-cased name is wearable, and the emit built on that answer comes back cx_not_found
+        GameData.Cosmetics
+                .Bundle
+                .ContainsKey("ROGUEB")
+                .Should()
+                .BeFalse();
+
+        GameData.Cosmetics
+                .Prop["marmor12c"]
+                .Should()
+                .BeEquivalentTo(["covers", "no_hair"]);
+
+        //empty rather than null, so a caller never has to ask which kind of nothing it got
+        GameData.Cosmetics
+                .NoUpper
+                .Should()
+                .BeEmpty();
+    }
+
+    /// <summary>
+    ///     The name-to-type table the server builds by walking every typed sheet's matrix
+    ///     (js/old_common_functions.js:183-193), restated here rather than read back out of production code: a probe
+    ///     sharing the rule under test agrees with itself whatever the rule does.
+    /// </summary>
+    /// <remarks>
+    ///     This is what turns a cosmetic name into a slot, so a <see cref="GSprite.Type" /> that bound null for every
+    ///     sheet would compile, pass a null check, and still leave nothing placeable. The counts are what catches
+    ///     that: the rebuilt table is empty without it, and with it resolves every name the four catalogues carry bar
+    ///     one. Untyped sheets are left out rather than defaulted to the server's <c>full</c> placeholder, which
+    ///     reaches no slot.
+    /// </remarks>
+    [Test]
+    public void T1_SpriteTypes_ResolveTheCosmeticCatalogues()
+    {
+        GameData.Sprites
+                .Values
+                .Count(sprite => sprite.Type is not null)
+                .Should()
+                .Be(77);
+
+        //the absence is null, never an empty string - the two would otherwise both read as "no type" while only
+        //one of them can be told apart from a sheet the data has yet to classify
+        GameData.Sprites
+                .Values
+                .Should()
+                .NotContain(sprite => sprite.Type == string.Empty);
+
+        var typeOfName = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var sprite in GameData.Sprites.Values)
+        {
+            if (sprite.Type is null)
+                continue;
+
+            foreach (var name in sprite.Matrix.SelectMany(row => row))
+                if (name is not null)
+                    typeOfName[name] = sprite.Type;
+        }
+
+        typeOfName.Should()
+                  .HaveCount(712);
+
+        //the type every catalogued name carries is the catalogue's own name, so counting the names that agree is a
+        //cross-check between two tables rather than two readings of one
+        (string Slot, IEnumerable<string> Names)[] catalogues =
+        [
+            ("head", GameData.Cosmetics.Head.Keys),
+            ("hair", GameData.Cosmetics.Hair.Keys),
+            ("hat", GameData.Cosmetics.Hat.Keys),
+            ("gravestone", GameData.Cosmetics.Gravestone.Keys)
+        ];
+
+        var agreeing = catalogues.ToDictionary(
+            catalogue => catalogue.Slot,
+            catalogue => catalogue.Names.Count(name => typeOfName.GetValueOrDefault(name) == catalogue.Slot));
+
+        agreeing["head"]
+            .Should()
+            .Be(66);
+
+        agreeing["hair"]
+            .Should()
+            .Be(124);
+
+        agreeing["hat"]
+            .Should()
+            .Be(1);
+
+        agreeing["gravestone"]
+            .Should()
+            .Be(7);
+
+        //the 199th name, catalogued but on no sheet. That is the data rather than a binding fault, and pinning it by
+        //name is what keeps a second unresolvable name from hiding inside a count
+        catalogues.SelectMany(catalogue => catalogue.Names)
+                  .Where(name => !typeOfName.ContainsKey(name))
+                  .Should()
+                  .BeEquivalentTo(["hairdo523"]);
     }
 }

@@ -125,17 +125,18 @@ public sealed class NonPublicMemberCharacterization
         Console.WriteLine($"ALL instance non-public setters (any/no attr)  : {allInstanceNonPublicSetters}");
         Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {auditGap}");
 
-        // Finding, and the reason an attribute-gated audit is unsafe: 152 instance properties in the six assemblies
-        // have a non-public setter and only 114 carry [JsonInclude]/[JsonPropertyName], so an audit keyed on the
+        // Finding, and the reason an attribute-gated audit is unsafe: 161 instance properties in the six assemblies
+        // have a non-public setter and only 116 carry [JsonInclude]/[JsonPropertyName], so an audit keyed on the
         // attribute is blind to the rest. Key on "non-public accessor", never on "has an attribute"
         auditGap.Should()
-                .Be(44);
+                .Be(45);
 
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
         // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
-        // ALClient.IsRecalling, 156 until Character.Courage, 157 until GSet.Accessor and GSet.Tiers, now 159.
+        // ALClient.IsRecalling, 156 until Character.Courage, 157 until GSet.Accessor and GSet.Tiers, 159 until
+        // ALClient.ExclusiveCosmetics and GClass.ExclusiveCosmetics, now 161.
         allInstanceNonPublicSetters.Should()
-                                   .Be(159);
+                                   .Be(161);
     }
 
     [Test]

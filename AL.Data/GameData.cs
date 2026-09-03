@@ -57,6 +57,21 @@ public record GameData
     /// <summary>The highest level an exchange prize table is looked for at. The game's grade tables stop at 12.</summary>
     private const int MAX_EXCHANGE_LEVEL = 12;
 
+    /// <summary>
+    ///     The cosmetics every account may wear whether it owns them or not - the server's own <c>free_cx</c>
+    ///     (js/old_common_functions.js:153). They reach a character through its class rather than on their own, so
+    ///     <see cref="EnrichClasses" /> is the only thing that reads them.
+    /// </summary>
+    private static readonly string[] FREE_COSMETICS =
+    [
+        "makeup105",
+        "makeup117",
+        "mmakeup00",
+        "fmakeup01",
+        "fmakeup02",
+        "fmakeup03"
+    ];
+
     private static readonly ILog Log = LogManager.GetLogger(typeof(GameData));
 
     [GameDataRoot]
@@ -67,6 +82,11 @@ public record GameData
 
     [GameDataRoot]
     public static ConditionsDatum Conditions { get; private set; }
+
+    //defaulted for the reason Multipliers is: a payload missing "cosmetics" degrades to empty tables rather than
+    //throwing, and a character nothing can be dressed in is a better failure than a load that never finishes
+    [GameDataRoot]
+    public static GCosmetics Cosmetics { get; private set; } = new();
 
     [GameDataRoot]
     public static CraftDatum Craft { get; private set; }
@@ -719,6 +739,50 @@ public record GameData
         }
     }
 
+    /// <summary>
+    ///     Finishes every class's exclusive-cosmetic list the way the server's own game-data pass does
+    ///     (js/old_common_functions.js:171-182): the free makeups, then the name and every per-slot piece of each of
+    ///     the class's <see cref="GClassLook" />s.
+    /// </summary>
+    /// <remarks>
+    ///     The payload is the raw list, not the finished one - most classes send nothing for it at all, and none of
+    ///     them names its own looks. A character is entitled to those, so without this pass anything asking what a
+    ///     class may wear is missing its default looks and answers <c>cx_not_found</c> on a name the server would
+    ///     have taken. Each push is guarded the way the server guards it, so a name already granted outright is not
+    ///     repeated.
+    /// </remarks>
+    private static void EnrichClasses()
+    {
+        Log.Debug("Enriching class cosmetics");
+
+        foreach (var gClass in Classes.Values)
+        {
+            var exclusives = new List<string>(gClass.ExclusiveCosmetics ?? []);
+
+            foreach (var cosmetic in FREE_COSMETICS)
+                if (!exclusives.Contains(cosmetic))
+                    exclusives.Add(cosmetic);
+
+            //a look short of its name or its slot map is skipped rather than thrown on. The server's own loop
+            //shrugs the same gap off, and this runs inside Populate - throwing here would stop every character
+            //logging in over one malformed entry
+            foreach (var look in gClass.Looks ?? [])
+            {
+                if (look is null)
+                    continue;
+
+                if ((look.Name is not null) && !exclusives.Contains(look.Name))
+                    exclusives.Add(look.Name);
+
+                foreach (var piece in look.Pieces?.Values ?? [])
+                    if (!exclusives.Contains(piece))
+                        exclusives.Add(piece);
+            }
+
+            gClass.ExclusiveCosmetics = exclusives;
+        }
+    }
+
     private static void EnrichNPCs()
     {
         Log.Debug("Enriching npc metadata");
@@ -986,6 +1050,7 @@ public record GameData
         EnrichItems();
         EnrichSets();
         EnrichMonsters();
+        EnrichClasses();
         BuildBoundingBases();
 
         stopwatch.Stop();

@@ -41,7 +41,7 @@ public interface IInventoryItem : ICommonItem
     /// <summary>
     ///     The type of lock on the item.
     /// </summary>
-    LockType LockType { get; init; }
+    ItemLockType LockType { get; init; }
 
     /// <summary>
     ///     A list of possible prefixes for this item.

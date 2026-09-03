@@ -29,11 +29,12 @@ public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 ///     <c>
 ///         player
 ///     </c>
-///     frame. Authoritative. <paramref name="Cost" /> is only ever a floor, because a handler bills further work
-///     this side cannot see.
+///     frame. Authoritative. <paramref name="Cost" /> tracks it closely and always a little under: a handler that
+///     resends bills a further unit or so on top, a transport bills eight, a bank mount thirty-two, and a throw
+///     inside a handler bills sixteen. None of those are functions of the emit, so this side cannot price them.
 /// </param>
 /// <param name="Cost">
-///     What the emits in the window cost at minimum, by <see cref="CallCost.Of" />.
+///     What the emits in the window cost, by <see cref="CallCost.Of" />.
 /// </param>
 /// <param name="Emits">
 ///     How many emits the window covers.
@@ -56,9 +57,8 @@ public sealed record CallBudgetSnapshot(
 
 /// <summary>
 ///     Keeps the same sliding window the server meters over, so what a character has spent can be read back
-///     broken down rather than as the one number the server sends. Every emit that reaches the wire is recorded;
-///     the total here and the server's own are the same measurement taken two ways, and the gap between them is
-///     the server-side work an emit provokes.
+///     broken down rather than as the one number the server sends. Every emit that reaches the wire is recorded,
+///     priced or free, so the emit counts stay honest even where the cost is zero.
 /// </summary>
 /// <remarks>
 ///     Attribution is the consumer's business - this layer has no idea what a caller is. Set

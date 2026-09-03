@@ -380,7 +380,113 @@ public enum GameResponseType
     //hopsickness refusing a lost-and-found buy (node/server.js:7134). Ponty is served the same handler and is
     //deliberately not refused, so this arrives only from the lost-and-found branch
     [EnumMember(Value = "cant_when_sick")]
-    CantWhenSick
+    CantWhenSick,
+
+    //Endpoint coverage. Five of the locksmith's nine arrive as a BARE STRING rather than an object
+    //(node/server.js:6309, :6314, :6325, :6337, :6344), the shape Distance above already warns about, so nothing
+    //here may require Place or Failed to be present
+    [EnumMember(Value = "locksmith_cant")]
+    LocksmithCant,
+
+    [EnumMember(Value = "locksmith_locked")]
+    LocksmithLocked,
+
+    [EnumMember(Value = "locksmith_sealed")]
+    LocksmithSealed,
+
+    [EnumMember(Value = "locksmith_unlocked")]
+    LocksmithUnlocked,
+
+    [EnumMember(Value = "locksmith_unsealed")]
+    LocksmithUnsealed,
+
+    [EnumMember(Value = "locksmith_unseal_complete")]
+    LocksmithUnsealComplete,
+
+    //sent through success_response with Success FALSE and InProgress true (node/server.js:6317), so it is a
+    //"nothing happened yet" rather than a completion - Hours is how long is left
+    [EnumMember(Value = "locksmith_unsealing")]
+    LocksmithUnsealing,
+
+    //fail_response with reason "already_unlocked" (node/server.js:6300)
+    [EnumMember(Value = "locksmith_aunlocked")]
+    LocksmithAlreadyUnlocked,
+
+    //fail_response with reason "already_locked" (node/server.js:6330)
+    [EnumMember(Value = "locksmith_alocked")]
+    LocksmithAlreadyLocked,
+
+    [EnumMember(Value = "scrollsmith_cant")]
+    ScrollsmithCant,
+
+    //carries Gold: the amount actually spent, and the only place the destat cost is reported (node/server.js:6274)
+    [EnumMember(Value = "scrollsmith_success")]
+    ScrollsmithSuccess,
+
+    [EnumMember(Value = "cx_not_found")]
+    CosmeticNotFound,
+
+    //each of these three carries a whole replacement acx dictionary rather than a delta
+    //(node/server.js:7243, :7981, :7988)
+    [EnumMember(Value = "cx_new")]
+    CosmeticNew,
+
+    [EnumMember(Value = "cx_sent")]
+    CosmeticSent,
+
+    [EnumMember(Value = "cx_received")]
+    CosmeticReceived,
+
+    [EnumMember(Value = "send_no_cx")]
+    SendNoCosmetic,
+
+    [EnumMember(Value = "tavern_not_yet")]
+    TavernNotYet,
+
+    [EnumMember(Value = "tavern_too_late")]
+    TavernTooLate,
+
+    [EnumMember(Value = "tavern_dice_exist")]
+    TavernDiceExist,
+
+    [EnumMember(Value = "tavern_gold_not_enough")]
+    TavernGoldNotEnough,
+
+    [EnumMember(Value = "bet_xshot")]
+    BetXShot,
+
+    [EnumMember(Value = "gold_use")]
+    GoldUse,
+
+    [EnumMember(Value = "slots_success")]
+    SlotsSuccess,
+
+    [EnumMember(Value = "slots_fail")]
+    SlotsFail,
+
+    [EnumMember(Value = "door_unlocked")]
+    DoorUnlocked,
+
+    [EnumMember(Value = "bank_pack_unlocked")]
+    BankPackUnlocked,
+
+    [EnumMember(Value = "only_in_bank")]
+    OnlyInBank,
+
+    //activate's own already-unlocked refusal, distinct from locksmith_aunlocked's reason string of the same
+    //text (node/server.js:8871, :8884)
+    [EnumMember(Value = "already_unlocked")]
+    AlreadyUnlocked,
+
+    //activate's refusal when the class or level requirement for a cosmetic toggle is not met
+    //(node/server.js:8820)
+    [EnumMember(Value = "nothing")]
+    Nothing,
+
+    //the only answer the signup emit gets (node/server.js:11335). No method consumes it; the member exists so the
+    //frame resolves to something other than Unknown
+    [EnumMember(Value = "signed_up")]
+    SignedUp
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -474,7 +580,14 @@ public enum ALSocketMessageType
     //private chat. Appended rather than filed beside ChatLog because this enum has its own row in
     //enum-tolerance-matrix.json pinning what raw ordinal 17 resolves to, and no member here carries an explicit
     //value - so inserting above renumbers every later ordinal and fails that snapshot
-    Pm
+    Pm,
+
+    //the tavern's info reply and its bet/won/lost broadcasts all share this one event name, so the frame's own
+    //"event" field is what tells them apart. Appended for the same ordinal reason as Pm
+    Tavern,
+
+    //one transition of the tavern's dice round. Appended for the same ordinal reason as Pm
+    Dice
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -584,5 +697,18 @@ public enum ALSocketEmitType
 
     [EnumMember(Value = "trade_sell")]
     TradeSell,
-    Whistle
+    Whistle,
+
+    //Endpoint coverage - the locksmith, scrollsmith, activate, cosmetics and tavern surfaces. Appended for the
+    //reason the block above is: no member here carries an explicit value, so inserting into the alphabetical run
+    //renumbers every later ordinal and rebinds enum-tolerance-matrix.json's pinned rows. Each of these eight wire
+    //names is already the lowercased C# name, so none needs an [EnumMember]
+    Activate,
+    Blend,
+    Cx,
+    Destat,
+    Harakiri,
+    Locksmith,
+    Signup,
+    Tavern
 }

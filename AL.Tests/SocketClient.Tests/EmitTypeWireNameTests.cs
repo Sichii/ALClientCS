@@ -15,8 +15,8 @@ namespace AL.Tests.SocketClient.Tests;
 ///     <c>
 ///         socket.on
 ///     </c>
-///     name. This pins every tier-1 member (and the previously-unreachable members that gained a method this phase) to its
-///     handler in node/server.js.
+///     name. This pins every member added by the emit-surface and endpoint-coverage passes, along with the older
+///     members that gained a method alongside them, to its handler in node/server.js.
 /// </summary>
 public class EmitTypeWireNameTests
 {
@@ -51,6 +51,16 @@ public class EmitTypeWireNameTests
     [Arguments(ALSocketEmitType.Tracker, "tracker")]
     [Arguments(ALSocketEmitType.TakeMailItem, "mail_take_item")]
     [Arguments(ALSocketEmitType.Booster, "booster")]
+
+    // endpoint coverage - the locksmith, scrollsmith, activate, cosmetics and tavern surfaces
+    [Arguments(ALSocketEmitType.Activate, "activate")]
+    [Arguments(ALSocketEmitType.Blend, "blend")]
+    [Arguments(ALSocketEmitType.Cx, "cx")]
+    [Arguments(ALSocketEmitType.Destat, "destat")]
+    [Arguments(ALSocketEmitType.Harakiri, "harakiri")]
+    [Arguments(ALSocketEmitType.Locksmith, "locksmith")]
+    [Arguments(ALSocketEmitType.Signup, "signup")]
+    [Arguments(ALSocketEmitType.Tavern, "tavern")]
     public void EmitTypeSerializesToServerHandlerName(ALSocketEmitType emitType, string wireName)
         => EnumHelper.ToString(emitType)
                      .ToLowerInvariant()

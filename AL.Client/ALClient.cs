@@ -98,6 +98,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public EventAndBossInfo EventsAndBosses { get; private set; }
 
     /// <summary>
+    ///     The cosmetics this account may wear without owning a copy of any of them. Populated from
+    ///     <c>
+    ///         start
+    ///     </c>
+    ///     .
+    /// </summary>
+    /// <remarks>
+    ///     Start-only data (node/server.js:10757); the server never re-sends it on a
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame. A flat list of names, unlike the counted <see cref="OwnedCosmetics" /> dictionary, and only half of
+    ///     what a character may wear for free - the rest reaches it through
+    ///     <see cref="AL.Data.Classes.GClass.ExclusiveCosmetics" />.
+    /// </remarks>
+    public IReadOnlyList<string> ExclusiveCosmetics { get; private set; }
+
+    /// <summary>
     ///     The names of the characters on this account's friends list. Populated from
     ///     <c>
     ///         start
@@ -311,6 +329,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Emotion = new Dictionary<Emotion, float>();
         EventsAndBosses = new EventAndBossInfo();
         Friends = new List<string>();
+        ExclusiveCosmetics = new List<string>();
         OwnedCosmetics = new Dictionary<string, int>();
         Chests = new ConcurrentDictionary<string, DropData>();
         Socket = socketClient ?? throw new ArgumentNullException(nameof(socketClient));
@@ -351,6 +370,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public event EventHandler<CmData>? OnCodeMessage;
 
     /// <summary>
+    ///     An event fired for each transition of the tavern's dice round.
+    /// </summary>
+    public event EventHandler<DiceData>? OnDice;
+
+    /// <summary>
     ///     An event fired when a boss/holiday event spawns on the server.
     /// </summary>
     public event EventHandler<GameEventData>? OnGameEvent;
@@ -378,6 +402,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     ).
     /// </summary>
     public event EventHandler<RequestData>? OnPartyRequest;
+
+    /// <summary>
+    ///     An event fired for every tavern frame: the reply to an info request, and the round's bet, win and loss
+    ///     broadcasts, which reach every character in the tavern rather than only the one that bet.
+    ///     <see cref="TavernData.Event" /> says which.
+    /// </summary>
+    public event EventHandler<TavernData>? OnTavern;
 
     #region Checks
     /// <summary>
@@ -5390,6 +5421,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Socket.On<MagiportData>(ALSocketMessageType.Magiport, OnMagiportOffered);
         Socket.On<GameEventData>(ALSocketMessageType.GameEvent, OnGameEventReceived);
         Socket.On<KillCreditData>(ALSocketMessageType.KillCredit, OnKillCredited);
+        Socket.On<DiceData>(ALSocketMessageType.Dice, OnDiceReceived);
+        Socket.On<TavernData>(ALSocketMessageType.Tavern, OnTavernReceived);
 
         EntityManager.AttachListener();
     }
@@ -5443,6 +5476,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     protected Task<bool> OnKillCredited(KillCreditData data)
     {
         OnKillCredit?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    protected Task<bool> OnDiceReceived(DiceData data)
+    {
+        OnDice?.Invoke(this, data);
+
+        return TaskCache.FALSE;
+    }
+
+    //false like every other permanent handler: true would consume the frame, and RequestTavernInfoAsync's own scoped
+    //handler is waiting on this same message type
+    protected Task<bool> OnTavernReceived(TavernData data)
+    {
+        OnTavern?.Invoke(this, data);
 
         return TaskCache.FALSE;
     }
@@ -5619,6 +5668,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 break;
             }
+
+            //all three carry the account's whole dictionary, so this replaces rather than merges - a merge would
+            //resurrect a cosmetic that was just traded away. A frame without acx leaves the last known set alone.
+            case GameResponseType.CosmeticNew or GameResponseType.CosmeticSent or GameResponseType.CosmeticReceived
+                when data.Acx is { } cosmetics:
+            {
+                OwnedCosmetics = cosmetics;
+
+                break;
+            }
         }
 
         return TaskCache.FALSE;
@@ -5770,6 +5829,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         EventsAndBosses = data.EventAndBossInfo;
         Emotion = data.Emotion;
         Friends = data.Friends;
+        ExclusiveCosmetics = data.ExclusiveCosmetics;
         OwnedCosmetics = data.OwnedCosmetics;
 
         await OnCharacterAsync(data);

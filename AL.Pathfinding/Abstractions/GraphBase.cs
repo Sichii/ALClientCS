@@ -98,7 +98,7 @@ public abstract class GraphBase<TMesh, TNode, TEdge> where TMesh: MeshBase<TNode
 
                     //dont add locked doors
                     //TODO: change in the future, when we add support for entering instances with keys
-                    if (door is { LockType: LockType.Locked })
+                    if (door is { LockType: DoorLockType.AccountLocked })
                         continue;
                 }
 

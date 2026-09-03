@@ -14,12 +14,13 @@ namespace AL.Tests.Client.Tests;
 public class CallMeterTests
 {
     [Test]
-    public void AnEmitCostsTheBaseChargePlusItsSurcharge()
+    public void AnEmitCostsItsRowInTheServersTable()
     {
-        //every handler is charged 1 for the call itself before its method is looked up at all
+        //the wrapper bills every call one before it looks the method up, so a method the table has no row for still
+        //costs that one - which for a farming character is nearly every emit it makes
         CallCost.Of(ALSocketEmitType.Attack)
                 .Should()
-                .Be(CallCost.BASE);
+                .Be(1d);
 
         //cruise is the expensive one a movement lane can emit on a loop, so it is the one worth pinning by name
         CallCost.Of(ALSocketEmitType.Cruise)
@@ -59,7 +60,7 @@ public class CallMeterTests
                 .Should()
                 .Be(3);
 
-        //11 + 2.5 + 1
+        //11 + 2.5 + 1, each one of them a base the server charges whatever the method
         snapshot.Cost
                 .Should()
                 .Be(14.5d);

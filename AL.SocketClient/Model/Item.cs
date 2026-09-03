@@ -50,7 +50,7 @@ public sealed record Item : IInventoryItem
     public int Level { get; init; }
 
     [JsonPropertyName("l")]
-    public LockType LockType { get; init; }
+    public ItemLockType LockType { get; init; }
 
     /// <summary>
     ///     If populated, the name of the merchant whose mluck produced this drop.

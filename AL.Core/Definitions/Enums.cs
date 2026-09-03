@@ -363,8 +363,13 @@ public enum ALAttribute
     PureCourage
 }
 
+/// <summary>
+///     What stops an item being disposed of, read from the socket item field <c>l</c>. The server deletes the field
+///     rather than clearing it, so an item whose unlock has run to completion arrives carrying no <c>l</c> at all and
+///     reads back as <see cref="None" /> (node/server.js:6313, :6324).
+/// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
-public enum LockType
+public enum ItemLockType
 {
     None,
 
@@ -374,8 +379,36 @@ public enum LockType
     [EnumMember(Value = "s")]
     Sealed,
 
+    /// <summary>
+    ///     A seal 48 hours into being lifted - not a lock that has been lifted. The countdown starts when the unseal
+    ///     is paid for, and the item stays fully protected for every hour of it: the branches that refuse a locked
+    ///     item test <c>item.l</c> for truthiness rather than for one particular letter, so a sale and a fresh lock
+    ///     are refused here exactly as they are on <see cref="Locked" /> (node/server.js:6307-6318, :6328).
+    /// </summary>
+    /// <remarks>
+    ///     The deadline itself is <c>item.ld</c>, which this library does not model. How long is left has to come
+    ///     from the server's <c>locksmith_unsealing</c> response.
+    /// </remarks>
     [EnumMember(Value = "u")]
-    Unlocked,
+    Unsealing
+}
+
+/// <summary>
+///     What stops you walking through a door, read from index 7 of a map's door array. Shares no wire value with
+///     <see cref="ItemLockType" />, which is why the two are separate enums.
+/// </summary>
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
+public enum DoorLockType
+{
+    None,
+
+    /// <summary>
+    ///     A bank level the account has not unlocked. The server refuses the transport when the door reads
+    ///     <c>"ulocked"</c> and <c>player.user.unlocked</c> holds no entry for the destination
+    ///     (node/server.js:5510-5518), so the pathfinder leaves these doors out of the navmesh entirely.
+    /// </summary>
+    [EnumMember(Value = "ulocked")]
+    AccountLocked,
 
     [EnumMember(Value = "protected")]
     Protected,
@@ -383,8 +416,8 @@ public enum LockType
     [EnumMember(Value = "key")]
     Key,
 
-    [EnumMember(Value = "ulocked")]
-    AlsoLocked = Locked
+    /// <summary>Local marker, never on the wire - <c>GDoor.Unlock()</c> is the only thing that sets it.</summary>
+    Unlocked
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -406,6 +439,29 @@ public enum KeyType
 
     [EnumMember(Value = "complicated")]
     Complicated
+}
+
+/// <summary>The three things the locksmith can do to an item (node/server.js:6279).</summary>
+[StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
+public enum LocksmithOperation
+{
+    /// <summary>Set <c>item.l</c> to <c>"l"</c>. Comes off again instantly for the same price.</summary>
+    [EnumMember(Value = "lock")]
+    Lock,
+
+    /// <summary>
+    ///     Set <c>item.l</c> to <c>"s"</c>. Protects exactly as a lock does; the difference is entirely in the
+    ///     removal, which costs another 250,000 gold and then two real days.
+    /// </summary>
+    [EnumMember(Value = "seal")]
+    Seal,
+
+    /// <summary>
+    ///     Advance one step toward unlocked, whatever the current state is: a lock clears outright, a seal starts a
+    ///     48-hour timer, and a running timer either reports its remaining hours or clears once it has passed.
+    /// </summary>
+    [EnumMember(Value = "unlock")]
+    Unlock
 }
 
 public enum ALClass

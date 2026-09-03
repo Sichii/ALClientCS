@@ -17,6 +17,20 @@ namespace AL.SocketClient.SocketModel;
 public sealed record GameResponseData : IOptionalObject
 {
     /// <summary>
+    ///     The account's full cosmetics unlock dictionary, sent as a wholesale replacement rather than a delta by
+    ///     <c>cx_new</c>, <c>cx_sent</c> and <c>cx_received</c> (node/server.js:7243, :7984, :7991).
+    ///     <br />
+    ///     Wholesale is load-bearing: a send decrements the sender's count and deletes the key at zero
+    ///     (node/server.js:7966-7969) before shipping the whole object, so merging would put the traded-away
+    ///     cosmetic straight back.
+    ///     <br />
+    ///     Named for its wire key rather than matching <see cref="StartData.OwnedCosmetics" />, which is the same
+    ///     <c>acx</c> field under a spelled-out name.
+    /// </summary>
+    [JsonPropertyName("acx")]
+    public Dictionary<string, int>? Acx { get; init; }
+
+    /// <summary>
     ///     The bank slot a bank item operation moved an item out of or into, echoed back from the emit. Null on the
     ///     gold operations, which name no slot, so it is what correlates one item swap's answer to its own emit.
     /// </summary>
@@ -90,6 +104,15 @@ public sealed record GameResponseData : IOptionalObject
     ///     The grace of the item to be upgrade/compounded successfully.
     /// </summary>
     public float Grace { get; init; }
+
+    /// <summary>
+    ///     How many hours a pending operation still has to run. Two frames set it: the locksmith's
+    ///     <c>locksmith_unsealing</c> (node/server.js:6317), and the set-home cooldown's <c>sh_time</c>
+    ///     (node/server.js:5101). No <see cref="GameResponseType" /> member names <c>sh_time</c>, so nothing
+    ///     observes that one today. It reads zero on every other frame.
+    /// </summary>
+    [JsonPropertyName("hours")]
+    public float Hours { get; init; }
 
     /// <summary>
     ///     The ids of the entities affected by an area skill.

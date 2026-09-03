@@ -54,12 +54,12 @@ public record GDoor : IRectangle
     public KeyType KeyType { get; init; }
 
     /// <summary>
-    ///     What stops you walking through: a key, a gatekeeper monster, or a bank level you have not unlocked
-    ///     (node/server.js:5429, :5442).
+    ///     What stops you walking through: a key, a gatekeeper monster, or a bank level you have not unlocked.
+    ///     <see cref="DoorLockType" /> carries the server citations.
     /// </summary>
     [JsonArrayIndex(7)]
     [JsonInclude]
-    public LockType LockType { get; private set; }
+    public DoorLockType LockType { get; private set; }
 
     /// <summary>
     ///     The width of this door.
@@ -122,5 +122,5 @@ public record GDoor : IRectangle
     /// <summary>
     ///     Records locally that this door has been opened. It sends nothing; the server decides for itself.
     /// </summary>
-    public void Unlock() => LockType = LockType.Unlocked;
+    public void Unlock() => LockType = DoorLockType.Unlocked;
 }

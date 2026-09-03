@@ -339,7 +339,7 @@ public class InterfaceAttributeCharacterization
 
         slotItem.LockType
                 .Should()
-                .Be(LockType.Locked); // l
+                .Be(ItemLockType.Locked); // l
 
         slotItem.PossiblePrefixes
                 .ToArray()

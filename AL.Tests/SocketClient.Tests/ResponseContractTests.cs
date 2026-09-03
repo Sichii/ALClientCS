@@ -358,4 +358,85 @@ public class ResponseContractTests
             .Should()
             .Be(ALAttribute.Int);
     }
+
+    /// <summary>
+    ///     The wire name every endpoint-coverage code binds by. A typo'd [EnumMember] resolves the frame to
+    ///     <see cref="GameResponseType.Unknown" />, which is an awaiting call running out its network timeout and
+    ///     throwing rather than a test going red - so the strings are pinned here against the server's own spelling.
+    /// </summary>
+    [Test]
+    [Arguments("locksmith_cant", GameResponseType.LocksmithCant)]
+    [Arguments("locksmith_locked", GameResponseType.LocksmithLocked)]
+    [Arguments("locksmith_sealed", GameResponseType.LocksmithSealed)]
+    [Arguments("locksmith_unlocked", GameResponseType.LocksmithUnlocked)]
+    [Arguments("locksmith_unsealed", GameResponseType.LocksmithUnsealed)]
+    [Arguments("locksmith_unseal_complete", GameResponseType.LocksmithUnsealComplete)]
+    [Arguments("locksmith_unsealing", GameResponseType.LocksmithUnsealing)]
+    [Arguments("locksmith_aunlocked", GameResponseType.LocksmithAlreadyUnlocked)]
+    [Arguments("locksmith_alocked", GameResponseType.LocksmithAlreadyLocked)]
+    [Arguments("scrollsmith_cant", GameResponseType.ScrollsmithCant)]
+    [Arguments("scrollsmith_success", GameResponseType.ScrollsmithSuccess)]
+    [Arguments("cx_not_found", GameResponseType.CosmeticNotFound)]
+    [Arguments("cx_new", GameResponseType.CosmeticNew)]
+    [Arguments("cx_sent", GameResponseType.CosmeticSent)]
+    [Arguments("cx_received", GameResponseType.CosmeticReceived)]
+    [Arguments("send_no_cx", GameResponseType.SendNoCosmetic)]
+    [Arguments("tavern_not_yet", GameResponseType.TavernNotYet)]
+    [Arguments("tavern_too_late", GameResponseType.TavernTooLate)]
+    [Arguments("tavern_dice_exist", GameResponseType.TavernDiceExist)]
+    [Arguments("tavern_gold_not_enough", GameResponseType.TavernGoldNotEnough)]
+    [Arguments("bet_xshot", GameResponseType.BetXShot)]
+    [Arguments("gold_use", GameResponseType.GoldUse)]
+    [Arguments("slots_success", GameResponseType.SlotsSuccess)]
+    [Arguments("slots_fail", GameResponseType.SlotsFail)]
+    [Arguments("door_unlocked", GameResponseType.DoorUnlocked)]
+    [Arguments("bank_pack_unlocked", GameResponseType.BankPackUnlocked)]
+    [Arguments("only_in_bank", GameResponseType.OnlyInBank)]
+    [Arguments("already_unlocked", GameResponseType.AlreadyUnlocked)]
+    [Arguments("nothing", GameResponseType.Nothing)]
+    [Arguments("signed_up", GameResponseType.SignedUp)]
+    public void EndpointCoverageCodeParsesToItsResponseType(string wireName, GameResponseType expected)
+    {
+        //the bare-string shape, which is what several of these actually arrive as and carries nothing but the code
+        var data = TestJson.Socket<GameResponseData>($@"""{wireName}""");
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(expected, $"'{wireName}' must not resolve to Unknown");
+    }
+
+    /// <summary>
+    ///     The locksmith's in-progress reply goes through success_response with success explicitly false, so nothing
+    ///     on it reads as a completion and Hours is the only thing saying how long the unseal still has to run
+    ///     (node/server.js:6317).
+    /// </summary>
+    [Test]
+    public void LocksmithUnsealingCarriesTheHoursRemaining()
+    {
+        const string UNSEALING = @"{ ""response"":""locksmith_unsealing"", ""hours"":41.75, ""success"":false, ""in_progress"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(UNSEALING);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.LocksmithUnsealing);
+
+        data.Hours
+            .Should()
+            .BeApproximately(41.75f, 0.001f);
+
+        data.Success
+            .Should()
+            .BeFalse();
+
+        data.InProgress
+            .Should()
+            .BeTrue();
+    }
 }
