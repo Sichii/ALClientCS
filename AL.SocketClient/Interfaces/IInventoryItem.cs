@@ -22,7 +22,7 @@ public interface IInventoryItem : ICommonItem
     DateTime? Expires { get; init; }
 
     /// <summary>
-    ///     TODO: Something to do with boosters
+    ///     On a booster, how many bonus levels an offering procced when it was compounded (node/server.js:6582-6590).
     /// </summary>
     float Extra { get; init; }
 

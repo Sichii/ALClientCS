@@ -1,4 +1,5 @@
 #region
+using System.Runtime.CompilerServices;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Core.Definitions;
@@ -343,16 +344,63 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Activates a booster item, starting its expiry timer (node/server.js:8788).
+    ///     Activates a booster item, starting its expiry timer (node/server.js:8917-8944).
     /// </summary>
-    public Task ActivateBoosterAsync(int inventorySlot)
-        => Socket.EmitAsync(
-            ALSocketEmitType.Booster,
+    /// <remarks>
+    ///     The timer runs 30 days plus two per level. Answers <c>{response: "data", place: "booster", success: true,
+    ///     name}</c>, or <c>invalid</c> for an empty slot or anything that is not one of the three boosters. Activating
+    ///     a booster that is already running is a silent success: the expiry branch is skipped and the success frame
+    ///     still fires.
+    /// </remarks>
+    public Task<GameResponseData> ActivateBoosterAsync(int inventorySlot)
+        => BoosterAsync(
             new
             {
                 num = inventorySlot,
                 action = "activate"
             });
+
+    /// <summary>
+    ///     Turns a booster into one of the other two kinds in place (node/server.js:8930-8936). <paramref name="to" />
+    ///     is <c>xpbooster</c>, <c>luckbooster</c> or <c>goldbooster</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Level and expiry carry over. The swap resets <c>xpm</c>, <c>goldm</c> and <c>luckm</c> to 1 and adds 240ms
+    ///     to <c>penalty_cd</c>, capped at 120s. Answers as <see cref="ActivateBoosterAsync" /> does, with
+    ///     <c>invalid</c> also covering a <paramref name="to" /> that is not a booster name.
+    /// </remarks>
+    public Task<GameResponseData> ShiftBoosterAsync(int inventorySlot, string to)
+        => BoosterAsync(
+            new
+            {
+                num = inventorySlot,
+                action = "shift",
+                to
+            });
+
+    private async Task<GameResponseData> BoosterAsync(object payload, [CallerMemberName] string? caller = null)
+    {
+        var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        //success_response and fail_response both stamp place with the emit's own name, so that is the whole filter
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data => Task.FromResult("booster".EqualsI(data.Place!) && source.TrySetResult(data)));
+
+        await Socket.EmitAsync(ALSocketEmitType.Booster, payload);
+
+        return (await source.Task.WithNetworkTimeout(caller)).Result;
+    }
+
+    /// <summary>
+    ///     Converts a discontinued <c>stoneofxp</c>, <c>stoneofgold</c> or <c>stoneofluck</c> into shells
+    ///     (node/server.js:8945-8963): 3600 if never activated, otherwise prorated down from 600 by the hours since.
+    /// </summary>
+    /// <remarks>
+    ///     Nothing waits on an answer. The server sends no <c>game_response</c>, only the inventory resend, and any
+    ///     other item name is ignored outright.
+    /// </remarks>
+    public Task ConvertStoneAsync(int inventorySlot) => Socket.EmitAsync(ALSocketEmitType.Convert, new { num = inventorySlot });
 
     /// <summary>
     ///     Throws one throwable item at a point on the ground (node/server.js:8039), consuming it.

@@ -603,6 +603,7 @@ public enum ALSocketEmitType
     [EnumMember(Value = "cm")]
     Command,
     Compound,
+    Convert,
     Craft,
     Dismantle,
     Emotion,

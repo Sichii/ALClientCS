@@ -71,6 +71,12 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public float? DurationHrs { get; init; }
 
     /// <summary>
+    ///     If this item is a booster, the duration an inactive copy contributes when compounded, in days
+    ///     (node/server.js:6595). Activation itself uses a flat 30 days plus two per level instead.
+    /// </summary>
+    public int? Days { get; init; }
+
+    /// <summary>
     ///     If populated, this item can be exchanged at this NPC.
     /// </summary>
     /// <remarks>

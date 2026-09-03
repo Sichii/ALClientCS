@@ -55,6 +55,7 @@ public class EmitTypeWireNameTests
     // endpoint coverage - the locksmith, scrollsmith, activate, cosmetics and tavern surfaces
     [Arguments(ALSocketEmitType.Activate, "activate")]
     [Arguments(ALSocketEmitType.Blend, "blend")]
+    [Arguments(ALSocketEmitType.Convert, "convert")]
     [Arguments(ALSocketEmitType.Cx, "cx")]
     [Arguments(ALSocketEmitType.Destat, "destat")]
     [Arguments(ALSocketEmitType.Harakiri, "harakiri")]
