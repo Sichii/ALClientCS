@@ -1,5 +1,5 @@
 {
-  "EnumCount": 41,
+  "EnumCount": 43,
   "Value": {
     "AL.APIClient.Definitions.APIMethod": {
       "ZeroMember": "PullMail",
@@ -205,6 +205,23 @@
         "9_boolTrue": "None = 0"
       }
     },
+    "AL.Core.Definitions.DoorLockType": {
+      "ZeroMember": "None",
+      "SampleMember": "AccountLocked",
+      "AliasMember": "AccountLocked",
+      "AliasValue": "ulocked",
+      "Cells": {
+        "1_exactName": "AccountLocked = 1",
+        "2_lowercase": "AccountLocked = 1",
+        "3_UPPERCASE": "AccountLocked = 1",
+        "4_enumMemberAlias": "AccountLocked = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
     "AL.Core.Definitions.DropType": {
       "ZeroMember": "None",
       "SampleMember": "Mining1",
@@ -307,6 +324,23 @@
         "9_boolTrue": "Unknown = 0"
       }
     },
+    "AL.Core.Definitions.ItemLockType": {
+      "ZeroMember": "None",
+      "SampleMember": "Locked",
+      "AliasMember": "Locked",
+      "AliasValue": "l",
+      "Cells": {
+        "1_exactName": "Locked = 1",
+        "2_lowercase": "Locked = 1",
+        "3_UPPERCASE": "Locked = 1",
+        "4_enumMemberAlias": "Locked = 1",
+        "5_unknownString": "None = 0",
+        "6_numericString17": "17 = 17",
+        "7_jsonNull": "None = 0",
+        "8_fractional_1_5": "None = 0",
+        "9_boolTrue": "None = 0"
+      }
+    },
     "AL.Core.Definitions.ItemType": {
       "ZeroMember": "Activator",
       "SampleMember": "Amulet",
@@ -341,21 +375,21 @@
         "9_boolTrue": "None = 0"
       }
     },
-    "AL.Core.Definitions.LockType": {
-      "ZeroMember": "None",
-      "SampleMember": "Locked",
-      "AliasMember": "Locked",
-      "AliasValue": "l",
+    "AL.Core.Definitions.LocksmithOperation": {
+      "ZeroMember": "Lock",
+      "SampleMember": "Seal",
+      "AliasMember": "Lock",
+      "AliasValue": "lock",
       "Cells": {
-        "1_exactName": "Locked = 1",
-        "2_lowercase": "Locked = 1",
-        "3_UPPERCASE": "Locked = 1",
-        "4_enumMemberAlias": "Locked = 1",
-        "5_unknownString": "None = 0",
+        "1_exactName": "Seal = 1",
+        "2_lowercase": "Seal = 1",
+        "3_UPPERCASE": "Seal = 1",
+        "4_enumMemberAlias": "Lock = 0",
+        "5_unknownString": "Lock = 0",
         "6_numericString17": "17 = 17",
-        "7_jsonNull": "None = 0",
-        "8_fractional_1_5": "None = 0",
-        "9_boolTrue": "None = 0"
+        "7_jsonNull": "Lock = 0",
+        "8_fractional_1_5": "Lock = 0",
+        "9_boolTrue": "Lock = 0"
       }
     },
     "AL.Core.Definitions.NPCRole": {

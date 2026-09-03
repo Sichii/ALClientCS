@@ -53,7 +53,7 @@
   "IInventoryItem.Extra : Single => (clr:Extra)",
   "IInventoryItem.Gift : Single => (clr:Gift)",
   "IInventoryItem.GiveawayFrom : String => (clr:GiveawayFrom)",
-  "IInventoryItem.LockType : LockType => (clr:LockType)",
+  "IInventoryItem.LockType : ItemLockType => (clr:LockType)",
   "IInventoryItem.PossiblePrefixes : IReadOnlyList<String> => (clr:PossiblePrefixes)",
   "IInventoryItem.Volatile : String => (clr:Volatile)",
   "ISimpleItem.Name : String => (clr:Name)",

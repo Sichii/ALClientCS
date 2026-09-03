@@ -64,6 +64,7 @@ non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Ran
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Resistance	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Speed	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	XP	
+non-public-setter	instance	AL.Data	AL.Data.Classes.GClass	ExclusiveCosmetics	xcx
 non-public-setter	instance	AL.Data	AL.Data.Geometry.GGeometry	HorizontalLines	y_lines
 non-public-setter	instance	AL.Data	AL.Data.Geometry.GGeometry	VerticalLines	x_lines
 non-public-setter	instance	AL.Data	AL.Data.Maps.GDoor	LockType	
