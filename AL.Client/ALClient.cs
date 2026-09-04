@@ -391,6 +391,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public event EventHandler<MagiportData>? OnMagiport;
 
     /// <summary>
+    ///     An event fired when a monster in view dies, before the entity is dropped. Once per death, unlike
+    ///     <see cref="OnKillCredit" />, which the server sends to every party member.
+    /// </summary>
+    public event EventHandler<MonsterDeathData>? OnMonsterDeath;
+
+    /// <summary>
     ///     An event fired when a party invite is received.
     /// </summary>
 
@@ -4550,14 +4556,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.TransportCantItem    => source.TrySetResult("Can't enter the dungeon. (no key)"),
-                    GameResponseType.TransportCantInvalid => source.TrySetResult("Can't enter the dungeon. (that instance is gone)"),
-                    GameResponseType.TransportCantReach   => source.TrySetResult("Can't enter the dungeon. (can't reach)"),
-                    GameResponseType.TransportFailed      => source.TrySetResult("Can't enter the dungeon. (can't walk, or jailed)"),
-                    GameResponseType.CantEnter            => source.TrySetResult("Can't enter the dungeon. (can't enter)"),
-                    GameResponseType.CantEscape           => source.TrySetResult("Can't enter the dungeon. (can't escape)"),
+                    GameResponseType.TransportCantItem => source.TrySetResult(
+                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (no key)")),
+                    GameResponseType.TransportCantInvalid => source.TrySetResult(
+                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (that instance is gone)")),
+                    GameResponseType.TransportCantReach => source.TrySetResult(
+                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (can't reach)")),
+                    GameResponseType.TransportFailed => source.TrySetResult(
+                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (can't walk, or jailed)")),
+                    GameResponseType.CantEnter => source.TrySetResult(
+                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (can't enter)")),
+                    GameResponseType.CantEscape => source.TrySetResult(
+                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (can't escape)")),
                     _ when data.Failed && "transport".EqualsI(data.Place!) => source.TrySetResult(
-                        $"Can't enter the dungeon. ({data.Reason ?? data.ResponseType.ToString()})"),
+                        new DungeonEntryException(
+                            data.ResponseType,
+                            $"Can't enter the dungeon. ({data.Reason ?? data.ResponseType.ToString()})")),
                     _ => false
                 };
 
@@ -5579,6 +5593,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnDeathAsync(DeathData data)
     {
+        //raised before the drop, since the id is all the frame carries and the type is on the entity
+        if (Monsters.TryGetValue(data.Id, out var monster))
+            OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name));
+
         DestroyEntity(data.Id);
 
         return TaskCache.FALSE;
