@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -17,6 +16,7 @@ using AL.SocketClient.Json.SystemTextJson;
 using AL.SocketClient.SocketModel;
 using Chaos.Extensions.Common;
 using SocketIO.Core;
+using SocketIO.Serializer.Core;
 using SocketIO.Serializer.SystemTextJson;
 using SocketIOClient;
 using SocketIOClient.Transport;
@@ -54,7 +54,7 @@ public sealed class ALSocketClient : IALSocketClient
 
     /// <summary>One frame, decoded and waiting its turn.</summary>
     /// <remarks>
-    ///     Decoding happens on the transport's own callback, before the frame is queued, so the queue holds work that
+    ///     Decoding happens on the transport's receive loop, before the frame is queued, so the queue holds work that
     ///     is already done rather than json waiting to be parsed. What waits here is only the handler call.
     /// </remarks>
     private readonly record struct QueuedFrame(
@@ -205,13 +205,12 @@ public sealed class ALSocketClient : IALSocketClient
 
         Logger.Info($"Connecting to {host}{options.Path}{(Proxy is null ? string.Empty : " through a proxy")}");
         Socket = new SocketIOClient.SocketIO(host, options);
-        Socket.Serializer = new SystemTextJsonSerializer(SocketJson.Options);
+        Socket.Serializer = new SynchronousSerializer(this, SocketJson.Options);
         Socket.OnDisconnected += DisconnectedEvent;
-        Socket.OnAny(OnAny);
 
         //the server emits disconnect_reason (and, on a rate-limit kick, limitdcreport) immediately before it drops
-        //the connection. Capture them on the underlying socket's own dispatch, which runs inline on the receive loop
-        //- OnAny's Task.Run would race the disconnect. Both bodies deserialize server input, so guard them
+        //the connection. Capture them on the library's own dispatch rather than through the frame queue, which the
+        //disconnect would otherwise race. Both bodies deserialize server input, so guard them
         Socket.On(
             "disconnect_reason",
             response =>
@@ -504,10 +503,12 @@ RAW JSON:
         }
     }
 
-    private void OnAny(string eventName, SocketIOResponse response)
+    private void OnMessage(JsonMessage message)
     {
         try
         {
+            var eventName = message.Event;
+
             if (!EnumHelper.TryParse(eventName, out ALSocketMessageType messageType))
                 return;
 
@@ -517,9 +518,9 @@ RAW JSON:
             //bound against the transport's own parse and the shared options, rather than through GetValue<T>() or
             //ToString(). GetValue builds fresh options per frame, so every frame re-reflects every type it touches;
             //ToString re-serializes. Measured at 0.21ms and 99KB per character frame against 0.49ms and 119KB
-            if (MessageOf(response) is not JsonMessage { JsonArray: { Count: > 0 } payloads } message)
+            if (message.JsonArray is not { Count: > 0 } payloads)
             {
-                Logger.Error($"Dropped \"{eventName}\" frame: the payload is not a populated array. {response}");
+                Logger.Error($"Dropped \"{eventName}\" frame: the payload is not a populated array. {message.ReceivedText}");
 
                 return;
             }
@@ -541,19 +542,10 @@ RAW JSON:
         } catch (Exception e)
         {
             //a frame dropped here is otherwise indistinguishable from a frame never sent, so
-            //carry the event name and the raw payload - this is how the next drift gets found
-            Logger.Error($"Dropped \"{eventName}\" frame: {response}. {e}");
+            //carry the raw payload - this is how the next drift gets found
+            Logger.Error($"Dropped frame: {message.ReceivedText}. {e}");
         }
     }
-
-    /// <summary>Reads the parsed message a <see cref="SocketIOResponse" /> was built around.</summary>
-    /// <remarks>
-    ///     The response exposes no public route to it that does not re-serialize. This pins a private field name,
-    ///     so <c>ResponseCarriesAReadableMessage</c> asserts the accessor still resolves - a library bump that
-    ///     renames the field fails that test rather than every frame at runtime.
-    /// </remarks>
-    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_message")]
-    internal static extern ref IMessage MessageOf(SocketIOResponse response);
 
     /// <summary>
     ///     Queues a decoded frame for the pump to hand to its subscribers.
@@ -584,5 +576,34 @@ RAW JSON:
                 data,
                 eventName,
                 Stopwatch.GetTimestamp()));
+    }
+
+    /// <summary>
+    ///     The transport's serializer, with every event frame queued from inside its parse.
+    /// </summary>
+    /// <remarks>
+    ///     The library hands each received frame to its handlers on a thread-pool task of its own, so two frames
+    ///     from one server burst reach a handler in whichever order the pool schedules them, and a small frame
+    ///     overtakes a large one more often than not. That is how a buy receipt ran ahead of the inventory frame
+    ///     the server sent before it: the receipt resolved the buy, the bench read an inventory that did not hold
+    ///     the scroll yet, and the swap it built on that view waited out its timeout on slots that were never going
+    ///     to match.
+    ///     <br />
+    ///     The parse is the one call the library still makes inline on its receive loop, in arrival order, so the
+    ///     queue is fed from there. Re-implementing the interface on a derived class is what lets that one method
+    ///     be intercepted without restating the other nine. Binary frames are not hooked; the server sends none.
+    /// </remarks>
+    internal sealed class SynchronousSerializer(ALSocketClient owner, JsonSerializerOptions options)
+        : SystemTextJsonSerializer(options), ISerializer
+    {
+        IMessage ISerializer.Deserialize(EngineIO eio, string text)
+        {
+            var message = base.Deserialize(eio, text);
+
+            if (message is JsonMessage { Type: MessageType.Event } frame)
+                owner.OnMessage(frame);
+
+            return message;
+        }
     }
 }

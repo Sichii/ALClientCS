@@ -5,8 +5,7 @@ using AL.SocketClient.Json.SystemTextJson;
 using AL.SocketClient.SocketModel;
 using FluentAssertions;
 using SocketIO.Core;
-using SocketIO.Serializer.SystemTextJson;
-using SocketIOClient;
+using SocketIO.Serializer.Core;
 #endregion
 
 namespace AL.Tests.SocketClient.Tests;
@@ -83,30 +82,44 @@ public class MessageHandlerTests : SocketTestBed
     private const string ANCHORLESS_DISAPPEARING_TEXT_FRAME =
         @"[""disappearing_text"",{""message"":""+1234"",""x"":595.7,""y"":1091.1,""args"":{""color"":""+gold"",""size"":""large""}}]";
 
-    //OnAny binds against the message the transport already parsed, reached through a private field, because every
-    //public route back to it re-serializes the frame first. A library bump that renames that field, or stops
-    //carrying the parsed array, would otherwise drop every frame at runtime with nothing to read but the drop line
+    //the library dispatches every received frame on a thread-pool task of its own, so a burst reaches a handler in
+    //whichever order the pool schedules it - a buy receipt used to overtake the inventory frame sent before it. The
+    //parse is the one call still made inline in arrival order, and the queue is fed from there: two frames parsed
+    //in sequence must reach their subscribers in that sequence
     [Test]
-    public void ResponseCarriesAReadableMessage()
+    public async Task FramesParsedInSequenceAreHandledInSequence()
     {
-        var serializer = new SystemTextJsonSerializer(SocketJson.Options);
-        var message = serializer.Deserialize(EngineIO.V4, $"42{ACTION_FRAME}");
+        var seen = new List<ALSocketMessageType>();
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        message.Should()
-               .NotBeNull();
+        using var action = Socket.On<ActionData>(
+            ALSocketMessageType.Action,
+            _ =>
+            {
+                seen.Add(ALSocketMessageType.Action);
 
-        var response = new SocketIOResponse(message!, null!);
+                return Task.FromResult(false);
+            });
 
-        ALSocketClient.MessageOf(response)
-                      .Should()
-                      .BeSameAs(message);
+        using var response = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            _ =>
+            {
+                seen.Add(ALSocketMessageType.GameResponse);
+                done.TrySetResult();
 
-        message.Should()
-               .BeOfType<JsonMessage>()
-               .Which
-               .JsonArray
-               .Should()
-               .NotBeNullOrEmpty();
+                return Task.FromResult(false);
+            });
+
+        ISerializer serializer = new ALSocketClient.SynchronousSerializer(Socket, SocketJson.Options);
+
+        serializer.Deserialize(EngineIO.V4, $"42{ACTION_FRAME}");
+        serializer.Deserialize(EngineIO.V4, $"42{PARTY_REFUSAL_FRAMES[0]}");
+
+        await done.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        seen.Should()
+            .Equal(ALSocketMessageType.Action, ALSocketMessageType.GameResponse);
     }
 
     [Test]
