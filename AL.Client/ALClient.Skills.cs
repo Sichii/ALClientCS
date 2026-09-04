@@ -314,6 +314,11 @@ public abstract partial class ALClient
         var expectation = await source.Task.WithNetworkTimeout(skillName);
         expectation.ThrowIfUnsuccessful();
 
+        //a landed blink is a transport_player_to when its condition runs out, and that bills what every transport
+        //pays on top of the cast (node/server.js:13386)
+        if (skillName.EqualsI("blink"))
+            CallMeter.Charge(ALSocketEmitType.Skill, CallCost.TRANSPORT);
+
         return actions;
     }
 

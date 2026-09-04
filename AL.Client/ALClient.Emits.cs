@@ -269,6 +269,7 @@ public abstract partial class ALClient
         if ((item is null) || (last.Slot is not { } slot))
         {
             await Socket.EmitAsync(ALSocketEmitType.EquipBatch, payload);
+            ChargeBatch(batch.Length);
 
             return;
         }
@@ -300,10 +301,16 @@ public abstract partial class ALClient
             });
 
         await Socket.EmitAsync(ALSocketEmitType.EquipBatch, payload);
+        ChargeBatch(batch.Length);
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
     }
+
+    //the wrapper prices the batch by its length before the handler runs, so a refused batch is billed the same. The
+    //emit hook saw only the type and charged a batch of one
+    private void ChargeBatch(int count)
+        => CallMeter.Charge(ALSocketEmitType.EquipBatch, CallCost.OfEquipBatch(count) - CallCost.Of(ALSocketEmitType.EquipBatch));
 
     /// <summary>
     ///     Splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot (node/server.js:7350).

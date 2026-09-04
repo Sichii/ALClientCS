@@ -1,4 +1,5 @@
 #region
+using System.Diagnostics;
 using AL.Client.Managers;
 using AL.SocketClient.Definitions;
 using FluentAssertions;
@@ -14,26 +15,37 @@ namespace AL.Tests.Client.Tests;
 public class CallMeterTests
 {
     [Test]
-    public void AnEmitCostsItsRowInTheServersTable()
+    public void AnEmitCostsItsRowInTheServersTablePlusWhatItsHandlerResends()
     {
-        //the wrapper bills every call one before it looks the method up, so a method the table has no row for still
-        //costs that one - which for a farming character is nearly every emit it makes
+        //no CC row, but commence_attack resends u+cid at modifier 1: a unit for u, a unit for the stats pass
         CallCost.Of(ALSocketEmitType.Attack)
                 .Should()
-                .Be(1d);
+                .Be(2d);
 
-        //cruise is the expensive one a movement lane can emit on a loop, so it is the one worth pinning by name
-        CallCost.Of(ALSocketEmitType.Cruise)
+        //the same resend at the skill modifier of 0.05 - which is why a base of one per call reads a ranger at double
+        CallCost.Of(ALSocketEmitType.Skill)
                 .Should()
-                .Be(11d);
+                .Be(0.1d);
 
+        //the wrapper's add_call_cost(-1) lands on the module's false_socket, never on the player, so a method with
+        //neither a CC row nor a resend costs nothing at all
+        CallCost.Of(ALSocketEmitType.Use)
+                .Should()
+                .Be(0d);
+
+        //a CC row and no resend
         CallCost.Of(ALSocketEmitType.Move)
                 .Should()
-                .Be(2.5d);
+                .Be(1.5d);
+
+        //cruise is the expensive one a movement lane can emit on a loop: its row of 10 and a u+cid on top
+        CallCost.Of(ALSocketEmitType.Cruise)
+                .Should()
+                .Be(12d);
 
         CallCost.Of(ALSocketEmitType.Tracker)
                 .Should()
-                .Be(51d);
+                .Be(50d);
     }
 
     [Test]
@@ -60,10 +72,10 @@ public class CallMeterTests
                 .Should()
                 .Be(3);
 
-        //11 + 2.5 + 1, each one of them a base the server charges whatever the method
+        //12 + 1.5 + 2
         snapshot.Cost
                 .Should()
-                .Be(14.5d);
+                .Be(15.5d);
 
         //both groupings partition the same window, so either one sums back to the total
         snapshot.BySource
@@ -105,4 +117,131 @@ public class CallMeterTests
                 .Should()
                 .Be(1);
     }
+
+    /// <summary>
+    ///     The server's add_call_cost folds a charge into its last entry when the method matches and keeps that
+    ///     entry's date, so a run of one method expires as a block dated from its first call. Restated here rather
+    ///     than read off the meter, so a meter that slid every entry on its own would go red.
+    /// </summary>
+    [Test]
+    public void ARunOfOneMethodExpiresAsABlockDatedFromItsFirstCall()
+    {
+        var now = 0L;
+
+        var meter = new CallMeter
+        {
+            Timestamp = () => now
+        };
+
+        meter.Record(ALSocketEmitType.Move);
+
+        //free, so it pushes nothing on the server and the run carries on through it
+        now = Ticks(1);
+        meter.Record(ALSocketEmitType.Use);
+
+        now = Ticks(3);
+        meter.Record(ALSocketEmitType.Move);
+
+        //the second move is a second and a half old, and dated with the first it is gone all the same
+        now = Ticks(4.5);
+
+        meter.Snapshot(0d)
+             .Cost
+             .Should()
+             .Be(0d);
+
+        //a different charged method in between is a fresh entry with its own date - the sliding window proper
+        meter.Record(ALSocketEmitType.Move);
+        now = Ticks(7.5);
+        meter.Record(ALSocketEmitType.Attack);
+        now = Ticks(9);
+
+        meter.Snapshot(0d)
+             .Cost
+             .Should()
+             .Be(CallCost.Of(ALSocketEmitType.Attack));
+    }
+
+    /// <summary>
+    ///     The transport handler bills the bank mount as 32 and the unmount as 16 under their own name, beside the
+    ///     8 every transport pays (node/server.js:5569, :5580). Between two bank floors it is a door like any other.
+    /// </summary>
+    [Test]
+    public void ABankCrossingIsBilledBesideTheDoor()
+    {
+        CallCost.OfBankCrossing(fromBank: false, toBank: true)
+                .Should()
+                .Be(32d);
+
+        CallCost.OfBankCrossing(fromBank: true, toBank: false)
+                .Should()
+                .Be(16d);
+
+        CallCost.OfBankCrossing(fromBank: true, toBank: true)
+                .Should()
+                .Be(0d);
+
+        CallCost.OfBankCrossing(fromBank: false, toBank: false)
+                .Should()
+                .Be(0d);
+    }
+
+    [Test]
+    public void AChargeFoldsIntoTheEmitItBelongsToRatherThanCountingAsOne()
+    {
+        var meter = new CallMeter();
+
+        meter.Record(ALSocketEmitType.Transport);
+        meter.Charge(ALSocketEmitType.Transport, 32d);
+
+        var snapshot = meter.Snapshot(0d);
+
+        snapshot.Emits
+                .Should()
+                .Be(1);
+
+        snapshot.Cost
+                .Should()
+                .Be(CallCost.Of(ALSocketEmitType.Transport) + 32d);
+
+        //a refund comes off the same entry and stops at nothing
+        meter.Charge(ALSocketEmitType.Transport, -100d);
+
+        meter.Snapshot(0d)
+             .Cost
+             .Should()
+             .Be(0d);
+    }
+
+    /// <summary>
+    ///     A chest opened in a party resends every member at the open_chest modifier and bills the opener for all
+    ///     of it: a tenth for a member who got nothing, four tenths for one who got an item, nothing for the opener's
+    ///     own item (node/server.js:10460).
+    /// </summary>
+    [Test]
+    public void AChestOpenedInAPartyBillsTheOpenerForEveryMember()
+    {
+        CallCost.OfChestOpen(partySize: 1, othersWithItems: 0, openerGotItem: false)
+                .Should()
+                .Be(CallCost.Of(ALSocketEmitType.OpenChest));
+
+        CallCost.OfChestOpen(partySize: 1, othersWithItems: 0, openerGotItem: true)
+                .Should()
+                .Be(0d);
+
+        CallCost.OfChestOpen(partySize: 4, othersWithItems: 0, openerGotItem: false)
+                .Should()
+                .BeApproximately(0.4d, 1e-9);
+
+        CallCost.OfChestOpen(partySize: 4, othersWithItems: 3, openerGotItem: true)
+                .Should()
+                .BeApproximately(1.2d, 1e-9);
+
+        //three empty resends, the opener's among them, and one reopen of somebody else
+        CallCost.OfChestOpen(partySize: 4, othersWithItems: 1, openerGotItem: false)
+                .Should()
+                .BeApproximately(0.7d, 1e-9);
+    }
+
+    private static long Ticks(double seconds) => (long)(seconds * Stopwatch.Frequency);
 }

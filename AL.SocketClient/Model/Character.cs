@@ -58,9 +58,10 @@ public class Character : Player, IEquatable<Character>
     ///     What the network calls this character has made are costing it. Not all calls are equal, and this is not a
     ///     count - see <see cref="Definitions.CallCost" /> for the table the server prices them from.
     ///     <br />
-    ///     It is a <b>sliding</b> window rather than a resetting counter: the server drops entries older than
-    ///     <see cref="Definitions.CallCost.WINDOW" /> off the front before every read, so a burst decays over that
-    ///     long instead of clearing on a tick boundary.
+    ///     Nearly a sliding window: the server drops entries older than <see cref="Definitions.CallCost.WINDOW" />
+    ///     off the front before every read. But a charge whose method matches the last entry's is folded into that
+    ///     entry and keeps its date, so a run of one method clears as a block four seconds after the run began. A
+    ///     character doing one thing over and over reads as a sawtooth here, not a plateau.
     ///     <br />
     ///     <b>
     ///         Above <see cref="Definitions.CallCost.LIMIT" /> the server sends a limitdcreport and disconnects.

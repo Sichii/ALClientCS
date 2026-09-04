@@ -3266,8 +3266,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //a gone frame prunes itself through OnChestOpened, but any other failure would leave the chest behind
         if (!expectation.IsSuccessful)
             Chests.Remove(chestId, out _);
+        else
+            ChargeChestOpen(expectation.Result);
 
         return expectation;
+    }
+
+    //the emit hook priced a solo open of an empty chest; in a party the server resends every member and bills the
+    //opener for all of it, and the response says who received what
+    private void ChargeChestOpen(ChestOpenedData opened)
+    {
+        var looters = opened.Items
+                            .Select(item => item.LooterName)
+                            .Where(name => !string.IsNullOrEmpty(name))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+
+        var openerGotItem = looters.Any(name => name!.EqualsI(Character.Name));
+        var partySize = opened.Party ? Math.Max(1, Party.MemberNames.Count) : 1;
+        var cost = CallCost.OfChestOpen(partySize, looters.Count - (openerGotItem ? 1 : 0), openerGotItem);
+
+        CallMeter.Charge(ALSocketEmitType.OpenChest, cost - CallCost.Of(ALSocketEmitType.OpenChest));
     }
 
     /// <summary>
@@ -4478,6 +4497,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
+        //read before the emit: past it the character is on the other side
+        var fromBank = GameData.Maps[Character.Map]?.Mount ?? false;
+
         await Socket.EmitAsync(
             ALSocketEmitType.Transport,
             new
@@ -4493,6 +4515,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         if (newData == null)
             return;
+
+        //the emit hook priced the door; the mount or unmount the server bills beside it depends on both ends
+        CallMeter.Charge(ALSocketEmitType.Transport, CallCost.OfBankCrossing(fromBank, newData.Mount));
 
         if (newMap.Map.ContainsI("bank") && newData.Mount)
             await WaitForBankAsync();
@@ -4903,6 +4928,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 num = inventorySlot
             },
             $"pot {item.Name}");
+
+        //a potion resends with nc where an equip does not (node/server.js:7306), one unit under the equip row
+        CallMeter.Charge(ALSocketEmitType.Equip, -1d);
     }
 
     /// <summary>

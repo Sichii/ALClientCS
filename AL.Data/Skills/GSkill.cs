@@ -178,6 +178,19 @@ public sealed record GSkill : AttributedRecordBase
     public bool Persistent { get; init; }
 
     /// <summary>
+    ///     If true, this skill lands on an immune target instead of reporting "IMMUNE!" (node/server.js:3151).
+    /// </summary>
+    [JsonPropertyName("pierces_immunity")]
+    public bool PiercesImmunity { get; init; }
+
+    /// <summary>
+    ///     If true, a player casting this skill rolls the mainhand's burn, poison, freeze and stun procs as a plain
+    ///     attack would (node/server.js:2993). Absent means false: quickstab procs, quickpunch does not. Monsters
+    ///     proc regardless.
+    /// </summary>
+    public bool Procs { get; init; }
+
+    /// <summary>
     ///     A bonus to range(character range) applied for this skill. (applied after <see cref="RangeMultiplier" /> if present)
     /// </summary>
     [JsonPropertyName("range_bonus")]
