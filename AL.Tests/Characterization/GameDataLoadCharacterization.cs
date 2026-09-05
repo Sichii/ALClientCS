@@ -530,8 +530,13 @@ public class GameDataLoadCharacterization
                 .Should()
                 .Contain(drop => drop.Name == "goldenpowerglove");
 
-        //65 of the 67 leftover keys - skins and monsters_home_server are objects rather than drop lists, and the
-        //shape guard drops both
+        GameData.Drops
+                .MonstersHomeServer["mrgreen"]
+                .Should()
+                .Contain(drop => drop.Name == "fallen");
+
+        //65 of the 66 leftover keys - skins is an object rather than a drop list, and the shape guard
+        //drops it
         GameData.Drops
                 .Tables
                 .Should()
@@ -542,7 +547,7 @@ public class GameDataLoadCharacterization
                 .Tables
                 .Keys
                 .Should()
-                .NotContain(["gold", "monsters", "maps", "konami"]);
+                .NotContain(["gold", "monsters", "maps", "monsters_home_server", "konami"]);
 
         //a drop id that is not an item at all, which is why the raw table has to stay reachable
         GameData.Drops

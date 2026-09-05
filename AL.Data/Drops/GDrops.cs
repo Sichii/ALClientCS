@@ -10,7 +10,7 @@ namespace AL.Data.Drops;
 /// </summary>
 /// <remarks>
 ///     Every key of the wire object is reachable: <see cref="Gold" />, <see cref="Monsters" />, <see cref="Maps" />
-///     and <see cref="Konami" /> by name, and every remaining table - one per drop id an exchange or a chest rolls
+///     <see cref="Konami" /> and <see cref="MonstersHomeServer" /> by name, and every remaining table - one per drop id an exchange or a chest rolls
 ///     - through <see cref="Tables" />.
 /// </remarks>
 public sealed record GDrops
@@ -44,6 +44,15 @@ public sealed record GDrops
     /// </summary>
     [JsonPropertyName("konami")]
     public IReadOnlyList<GDrop> Konami { get; init; } = [];
+
+    /// <summary>
+    ///     A second table a few monsters carry, rolled beside their own only when the killer is on the server
+    ///     they call home (node/server.js:2230). Keyed by monster accessor; entries roll and scale exactly as
+    ///     <see cref="Monsters" /> do.
+    /// </summary>
+    [JsonPropertyName("monsters_home_server")]
+    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> MonstersHomeServer { get; init; }
+        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Every other table, keyed by the drop id the server rolls it under: what an exchange or an opened chest
