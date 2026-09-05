@@ -50,6 +50,12 @@ public sealed record GCondition : AttributedRecordBase
     public bool Channel { get; init; }
 
     /// <summary>
+    ///     Whether the paladin's Cleansing Light lifts this condition. The harmful combat conditions carry it; the
+    ///     account-level penalties among the debuffs do not.
+    /// </summary>
+    public bool Cleansable { get; init; }
+
+    /// <summary>
     ///     Whether or not this condition is a debuff (detrimental).
     /// </summary>
     [JsonPropertyName("debuff")]

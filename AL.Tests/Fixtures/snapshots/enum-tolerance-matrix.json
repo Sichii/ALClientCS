@@ -139,16 +139,16 @@
     },
     "AL.Core.Definitions.Condition": {
       "ZeroMember": "None",
-      "SampleMember": "Anger",
-      "AliasMember": "CurseAura",
-      "AliasValue": "curse_aura",
+      "SampleMember": "AetherShield",
+      "AliasMember": "AetherShield",
+      "AliasValue": "aether_shield",
       "Cells": {
-        "1_exactName": "Anger = 1",
-        "2_lowercase": "Anger = 1",
-        "3_UPPERCASE": "Anger = 1",
-        "4_enumMemberAlias": "CurseAura = 11",
+        "1_exactName": "AetherShield = 1",
+        "2_lowercase": "AetherShield = 1",
+        "3_UPPERCASE": "AetherShield = 1",
+        "4_enumMemberAlias": "AetherShield = 1",
         "5_unknownString": "None = 0",
-        "6_numericString17": "Dash = 17",
+        "6_numericString17": "DampeningAura = 17",
         "7_jsonNull": "None = 0",
         "8_fractional_1_5": "None = 0",
         "9_boolTrue": "None = 0"
@@ -746,14 +746,14 @@
       }
     },
     "AL.Core.Definitions.Condition": {
-      "AliasMember": "CurseAura",
+      "AliasMember": "AetherShield",
       "Cells": {
-        "1_exactName": "count=1 [Anger = 1]",
-        "2_lowercase": "count=1 [Anger = 1]",
-        "3_UPPERCASE": "count=1 [Anger = 1]",
-        "4_enumMemberAlias": "count=1 [CurseAura = 11]",
+        "1_exactName": "count=1 [AetherShield = 1]",
+        "2_lowercase": "count=1 [AetherShield = 1]",
+        "3_UPPERCASE": "count=1 [AetherShield = 1]",
+        "4_enumMemberAlias": "count=1 [AetherShield = 1]",
         "5_unknownString": "THROW JsonSerializationException",
-        "6_numericString17": "count=1 [Dash = 17]"
+        "6_numericString17": "count=1 [DampeningAura = 17]"
       }
     },
     "AL.Core.Definitions.Slot": {

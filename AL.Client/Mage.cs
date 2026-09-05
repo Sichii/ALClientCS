@@ -3,6 +3,7 @@ using System.Net;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
 using AL.Client.Helpers;
+using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.SocketModel;
 #endregion
@@ -52,6 +53,33 @@ public class Mage : ALClient
     ///     Failed to use 'alchemy'. ({reason})
     /// </exception>
     public Task AlchemyAsync() => UseSkillCoreAsync("alchemy");
+
+    /// <summary>
+    ///     Asynchronously uses Arcane Needle on a target: a wand shot at 75% damage that pierces 500 resistance and
+    ///     cannot be reflected. It shares the attack cooldown, so it is the plain attack spent differently.
+    /// </summary>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <returns>
+    ///     <see cref="ActionData" />
+    ///     <br />
+    ///     Information about the projectile from this skill.
+    /// </returns>
+    /// <remarks>
+    ///     160 mana, needs level 90 and a wand in the mainhand.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'arcane_needle' on {targetId}. ({reason})
+    /// </exception>
+    public Task<ActionData> ArcaneNeedleAsync(string targetId)
+        => UseProjectileSkillAsync(
+            "arcane_needle",
+            targetId,
+            extraFailure: static data => data.ResponseType == GameResponseType.SkillCantWType ? "wrong weapon type" : null);
 
     /// <summary>
     ///     Asynchronously uses Blink, teleporting anywhere on the current map.

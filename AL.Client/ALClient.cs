@@ -746,6 +746,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return false;
         }
 
+        //shield slam is the one skill that asks about the offhand rather than the mainhand
+        if (checkWeapon && (data.OffhandType is { } offhandType))
+        {
+            var offhand = Character.Slots.GetValueOrDefault(Slot.OffHand);
+
+            if ((offhand == null)
+                || (offhand.GetData()
+                           ?.Type
+                    != offhandType))
+                return false;
+        }
+
         return true;
     }
 

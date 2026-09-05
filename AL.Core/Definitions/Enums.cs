@@ -608,8 +608,14 @@ public enum WorldType
 public enum Condition
 {
     None,
+
+    [EnumMember(Value = "aether_shield")]
+    AetherShield,
     Anger,
     Authfail,
+
+    [EnumMember(Value = "beacon_of_resolve")]
+    BeaconOfResolve,
     Blink,
     Block,
     Burned,
@@ -645,6 +651,9 @@ public enum Condition
     Frozen,
     FullGuard,
     FullguardX,
+
+    [EnumMember(Value = "guardians_oath")]
+    GuardiansOath,
     Halloween0,
     Halloween1,
     Halloween2,
@@ -681,6 +690,18 @@ public enum Condition
     Mute,
     NewcomersBlessing,
     NotVerified,
+
+    [EnumMember(Value = "paladin_aura_bulwark")]
+    PaladinAuraBulwark,
+
+    [EnumMember(Value = "paladin_aura_sanctuary")]
+    PaladinAuraSanctuary,
+
+    [EnumMember(Value = "paladin_aura_warding")]
+    PaladinAuraWarding,
+
+    [EnumMember(Value = "paladin_aura_zeal")]
+    PaladinAuraZeal,
     PatronsGrace,
 
     [EnumMember(Value = "penalty_cd")]
@@ -691,6 +712,7 @@ public enum Condition
     Poisonous,
     Power,
     Purifier,
+    RealmFatigue,
     Reflection,
     RSpeed,
     Sanguine,
@@ -723,6 +745,22 @@ public enum Condition
     XShotted,
     Young,
     Zap
+}
+
+/// <summary>
+///     The form a paladin's aura takes. One is carried at a time, and the skill is cast with the wanted form to
+///     change it; each maps to the condition of the same name.
+/// </summary>
+/// <remarks>
+///     No tolerant converter, unlike its neighbours: this never arrives on the wire. The client spells it out
+///     itself when casting, and a consumer's configuration is the only JSON it ever sits in.
+/// </remarks>
+public enum PaladinAuraForm
+{
+    Bulwark,
+    Sanctuary,
+    Zeal,
+    Warding
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

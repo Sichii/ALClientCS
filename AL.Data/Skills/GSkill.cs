@@ -167,6 +167,13 @@ public sealed record GSkill : AttributedRecordBase
     public string Name { get; init; } = null!;
 
     /// <summary>
+    ///     The item type the offhand must hold for this skill to be usable, or null when the offhand is not checked.
+    ///     Shield Slam is the one skill carrying it, and it names <see cref="ItemType.Shield" />.
+    /// </summary>
+    [JsonPropertyName("offhand_type")]
+    public ItemType? OffhandType { get; init; }
+
+    /// <summary>
     ///     If true, this skill is never cast; it is always on. A monster keeps running its passive skills even
     ///     while stunned or frozen (node/server.js:12565).
     /// </summary>
