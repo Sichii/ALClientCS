@@ -22,6 +22,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("absorb")]
     public GSkill Absorb { get; init; } = null!;
 
+    [JsonPropertyName("aether_shield")]
+    public GSkill AetherShield { get; init; } = null!;
+
     [JsonPropertyName("agitate")]
     public GSkill Agitate { get; init; } = null!;
 
@@ -31,8 +34,14 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("anger")]
     public GSkill Anger { get; init; } = null!;
 
+    [JsonPropertyName("arcane_needle")]
+    public GSkill ArcaneNeedle { get; init; } = null!;
+
     [JsonPropertyName("attack")]
     public GSkill Attack { get; init; } = null!;
+
+    [JsonPropertyName("beacon_of_resolve")]
+    public GSkill BeaconOfResolve { get; init; } = null!;
 
     [JsonPropertyName("blink")]
     public GSkill Blink { get; init; } = null!;
@@ -51,6 +60,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("charm")]
     public GSkill Charm { get; init; } = null!;
+
+    [JsonPropertyName("cleansing_light")]
+    public GSkill CleansingLight { get; init; } = null!;
 
     [JsonPropertyName("cleave")]
     public GSkill Cleave { get; init; } = null!;
@@ -105,6 +117,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("gm")]
     public GSkill Gm { get; init; } = null!;
+
+    [JsonPropertyName("guardians_oath")]
+    public GSkill GuardiansOath { get; init; } = null!;
 
     [JsonPropertyName("hardshell")]
     public GSkill Hardshell { get; init; } = null!;
@@ -205,6 +220,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("open_snippet")]
     public GSkill OpenSnippet { get; init; } = null!;
 
+    [JsonPropertyName("paladin_aura")]
+    public GSkill PaladinAura { get; init; } = null!;
+
     [JsonPropertyName("partyheal")]
     public GSkill Partyheal { get; init; } = null!;
 
@@ -273,6 +291,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("shelter")]
     public GSkill Shelter { get; init; } = null!;
+
+    [JsonPropertyName("shield_slam")]
+    public GSkill ShieldSlam { get; init; } = null!;
 
     [JsonPropertyName("smash")]
     public GSkill Smash { get; init; } = null!;

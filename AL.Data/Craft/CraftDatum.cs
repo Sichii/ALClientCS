@@ -195,6 +195,9 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("mushroomstaff")]
     public Recipe Mushroomstaff { get; init; } = null!;
 
+    [JsonPropertyName("oathplate")]
+    public Recipe Oathplate { get; init; } = null!;
+
     [JsonPropertyName("offeringx")]
     public Recipe Offeringx { get; init; } = null!;
 
@@ -239,6 +242,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("resistancering")]
     public Recipe Resistancering { get; init; } = null!;
+
+    [JsonPropertyName("resolutesallet")]
+    public Recipe Resolutesallet { get; init; } = null!;
 
     [JsonPropertyName("rimeboots")]
     public Recipe Rimeboots { get; init; } = null!;
@@ -305,6 +311,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("venomband")]
     public Recipe Venomband { get; init; } = null!;
+
+    [JsonPropertyName("vowkeepergloves")]
+    public Recipe Vowkeepergloves { get; init; } = null!;
 
     [JsonPropertyName("wattire")]
     public Recipe Wattire { get; init; } = null!;

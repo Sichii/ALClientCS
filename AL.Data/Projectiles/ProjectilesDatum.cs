@@ -13,6 +13,9 @@ public class ProjectilesDatum : DatumBase<GProjectile>
     [JsonPropertyName("acid")]
     public GProjectile Acid { get; init; } = null!;
 
+    [JsonPropertyName("arcane_needle")]
+    public GProjectile ArcaneNeedle { get; init; } = null!;
+
     [JsonPropertyName("arrow")]
     public GProjectile Arrow { get; init; } = null!;
 
@@ -102,6 +105,9 @@ public class ProjectilesDatum : DatumBase<GProjectile>
 
     [JsonPropertyName("sburst")]
     public GProjectile Sburst { get; init; } = null!;
+
+    [JsonPropertyName("shield_slam")]
+    public GProjectile ShieldSlam { get; init; } = null!;
 
     [JsonPropertyName("smash")]
     public GProjectile Smash { get; init; } = null!;

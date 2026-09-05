@@ -55,8 +55,23 @@ public class NPCsDatum : DatumBase<GNPC>
     [JsonPropertyName("citizen16")]
     public GNPC Citizen16 { get; init; } = null!;
 
+    [JsonPropertyName("citizen17")]
+    public GNPC Citizen17 { get; init; } = null!;
+
+    [JsonPropertyName("citizen18")]
+    public GNPC Citizen18 { get; init; } = null!;
+
+    [JsonPropertyName("citizen19")]
+    public GNPC Citizen19 { get; init; } = null!;
+
     [JsonPropertyName("citizen2")]
     public GNPC Citizen2 { get; init; } = null!;
+
+    [JsonPropertyName("citizen20")]
+    public GNPC Citizen20 { get; init; } = null!;
+
+    [JsonPropertyName("citizen21")]
+    public GNPC Citizen21 { get; init; } = null!;
 
     [JsonPropertyName("citizen3")]
     public GNPC Citizen3 { get; init; } = null!;

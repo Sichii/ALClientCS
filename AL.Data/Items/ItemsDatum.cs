@@ -229,6 +229,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("computer")]
     public GItem Computer { get; init; } = null!;
 
+    [JsonPropertyName("concordmace")]
+    public GItem Concordmace { get; init; } = null!;
+
     [JsonPropertyName("confetti")]
     public GItem Confetti { get; init; } = null!;
 
@@ -306,6 +309,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("dartgun")]
     public GItem Dartgun { get; init; } = null!;
+
+    [JsonPropertyName("dawnwardaegis")]
+    public GItem Dawnwardaegis { get; init; } = null!;
 
     [JsonPropertyName("dexamulet")]
     public GItem Dexamulet { get; init; } = null!;
@@ -976,6 +982,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("northstar")]
     public GItem Northstar { get; init; } = null!;
 
+    [JsonPropertyName("oathplate")]
+    public GItem Oathplate { get; init; } = null!;
+
     [JsonPropertyName("offering")]
     public GItem Offering { get; init; } = null!;
 
@@ -1170,6 +1179,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("resistancescroll")]
     public GItem Resistancescroll { get; init; } = null!;
+
+    [JsonPropertyName("resolutesallet")]
+    public GItem Resolutesallet { get; init; } = null!;
 
     [JsonPropertyName("rfangs")]
     public GItem Rfangs { get; init; } = null!;
@@ -1575,6 +1587,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("vorb")]
     public GItem Vorb { get; init; } = null!;
+
+    [JsonPropertyName("vowkeepergloves")]
+    public GItem Vowkeepergloves { get; init; } = null!;
 
     [JsonPropertyName("vring")]
     public GItem Vring { get; init; } = null!;

@@ -10,8 +10,14 @@ namespace AL.Data.Conditions;
 /// <seealso cref="DatumBase{T}" />
 public class ConditionsDatum : DatumBase<GCondition>
 {
+    [JsonPropertyName("aether_shield")]
+    public GCondition AetherShield { get; init; } = null!;
+
     [JsonPropertyName("authfail")]
     public GCondition Authfail { get; init; } = null!;
+
+    [JsonPropertyName("beacon_of_resolve")]
+    public GCondition BeaconOfResolve { get; init; } = null!;
 
     [JsonPropertyName("blink")]
     public GCondition Blink { get; init; } = null!;
@@ -69,6 +75,9 @@ public class ConditionsDatum : DatumBase<GCondition>
 
     [JsonPropertyName("fullguardx")]
     public GCondition Fullguardx { get; init; } = null!;
+
+    [JsonPropertyName("guardians_oath")]
+    public GCondition GuardiansOath { get; init; } = null!;
 
     [JsonPropertyName("halloween0")]
     public GCondition Halloween0 { get; init; } = null!;
@@ -139,6 +148,18 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("notverified")]
     public GCondition Notverified { get; init; } = null!;
 
+    [JsonPropertyName("paladin_aura_bulwark")]
+    public GCondition PaladinAuraBulwark { get; init; } = null!;
+
+    [JsonPropertyName("paladin_aura_sanctuary")]
+    public GCondition PaladinAuraSanctuary { get; init; } = null!;
+
+    [JsonPropertyName("paladin_aura_warding")]
+    public GCondition PaladinAuraWarding { get; init; } = null!;
+
+    [JsonPropertyName("paladin_aura_zeal")]
+    public GCondition PaladinAuraZeal { get; init; } = null!;
+
     [JsonPropertyName("patronsgrace")]
     public GCondition Patronsgrace { get; init; } = null!;
 
@@ -162,6 +183,9 @@ public class ConditionsDatum : DatumBase<GCondition>
 
     [JsonPropertyName("purifier")]
     public GCondition Purifier { get; init; } = null!;
+
+    [JsonPropertyName("realmfatigue")]
+    public GCondition Realmfatigue { get; init; } = null!;
 
     [JsonPropertyName("reflection")]
     public GCondition Reflection { get; init; } = null!;

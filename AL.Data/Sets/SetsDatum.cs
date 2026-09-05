@@ -43,6 +43,9 @@ public class SetsDatum : DatumBase<GSet>
     [JsonPropertyName("mwarrior")]
     public GSet MWarrior { get; init; } = null!;
 
+    [JsonPropertyName("oathkeeper")]
+    public GSet Oathkeeper { get; init; } = null!;
+
     [JsonPropertyName("rugged")]
     public GSet Rugged { get; init; } = null!;
 
