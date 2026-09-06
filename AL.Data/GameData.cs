@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AL.Core.Definitions;
+using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
@@ -285,7 +286,7 @@ public record GameData
                     || (property.GetIndexParameters()
                                 .Length
                         != 0)
-                    || (property.GetCustomAttribute<JsonIgnoreAttribute>() is not null))
+                    || property.GetCustomAttribute<JsonIgnoreAttribute>() is not null)
                     continue;
 
                 declared.Add(
@@ -593,6 +594,7 @@ public record GameData
                                     new Location(mapAccessor, spawn),
                                     spawnId,
                                     ExitType.Transporter,
+                                    new Rectangle(location.X, location.Y, 0f, 0f),
                                     CONSTANTS.TRANSPORTER_RANGE));
                         }
             }
@@ -638,7 +640,7 @@ public record GameData
                     continue;
 
                 var spawn = toMapData.Spawns[door.DestinationSpawnId];
-                (var radius, var reachableFrom) = DoorReachableRegion(map, door);
+                (var band, var range) = DoorReachBand(map, door);
 
                 exits.Add(
                     new Exit(
@@ -647,70 +649,47 @@ public record GameData
                         new Location(door.DestinationMap, spawn),
                         door.DestinationSpawnId,
                         ExitType.Door,
-                        radius,
-                        reachableFrom));
+                        band,
+                        range));
             }
         }
     }
 
     /// <summary>
-    ///     Builds the region a door lets you through from, plus a single conservative circle about the door itself.
+    ///     Where the server lets a door open from, as a band plus a range. The server measures a door-sized box
+    ///     standing on the door's own spawn against the character's 26 by 36 box, per axis, clamped at zero, and
+    ///     opens the door under 112. The character positions whose box touches the door's box form a rectangle
+    ///     (the door box grown by the character box), and the region is that rectangle inflated by the range.
     /// </summary>
-    /// <remarks>
-    ///     The server does not measure a door from the door. It measures a box the size of the door, placed on the
-    ///     spawn <see cref="GDoor.CurrentMapSpawnId" /> names, against the character's own box, taking the separation
-    ///     on each axis and clamping it at zero. Both boxes hang upward from their positions, so the band is not
-    ///     symmetric about the spawn. That makes the region a rectangle inflated by <c>DOOR_RANGE</c>. Circles on
-    ///     the rectangle's four corners plus one on the door itself cover about 95% of it, never below 91% on the
-    ///     current door table - each one wholly inside, so no circle here can claim reach the server would refuse.
-    ///     <br />
-    ///     A nought radius means the region could not be derived. It is not "no reach" so much as "walk all the way
-    ///     to the door", which is what a nought turns off the shortcut into.
-    /// </remarks>
-    private static (float Radius, IReadOnlyList<ICircle>? ReachableFrom) DoorReachableRegion(GMap map, GDoor door)
+    /// <returns>
+    ///     The band and range, or a zero-size band on the door with no range for a door whose spawn cannot be
+    ///     resolved - the server faults on the same missing spawn, and a range there would stop the walk somewhere the
+    ///     door does not open.
+    /// </returns>
+    private static (Rectangle Band, float Range) DoorReachBand(GMap map, GDoor door)
     {
         var spawnId = (int)door.CurrentMapSpawnId;
 
-        //a door whose entry names no spawn on this map is one the server cannot resolve either, and the old circle
-        //on the door would stop the walk somewhere the door does not open. An absent id reads as spawn 0 rather than
-        //as absent, which does not matter: the server faults on the same missing spawn
         if ((spawnId < 0) || (spawnId >= map.Spawns.Count))
-            return (0f, null);
+            return (new Rectangle(door.X, door.Y, 0f, 0f), 0f);
 
         var spawn = map.Spawns[spawnId];
         var halfWidth = door.Width / 2 + CONSTANTS.CHARACTER_BOX_WIDTH / 2;
         var top = spawn.Y - door.Height;
         var bottom = spawn.Y + CONSTANTS.CHARACTER_BOX_HEIGHT;
 
-        //the separation is a true distance to the rectangle, so shrinking the range by it leaves a circle about
-        //the door that is still wholly inside the region
-        var offsetX = MathF.Max(MathF.Abs(door.X - spawn.X) - halfWidth, 0f);
-        var offsetY = MathF.Max(MathF.Max(door.Y - bottom, top - door.Y), 0f);
-        var radius = CONSTANTS.DOOR_RANGE - MathF.Sqrt(offsetX * offsetX + offsetY * offsetY);
+        var band = new Rectangle(new Point(spawn.X - halfWidth, top), new Point(spawn.X + halfWidth, bottom));
 
         //a door sitting outside its own region means the spawn is not the one the server pairs with it, so the
-        //corners are not to be trusted either - walk to the door itself rather than to a region we just disproved
-        if (radius <= 0)
+        //band is not to be trusted either - walk to the door itself rather than to a region we just disproved
+        if (band.EdgeToCenterDistance(door) >= CONSTANTS.DOOR_RANGE)
         {
             Log.Warn($"Door {map.Accessor} => {door.DestinationMap} lies outside the range of spawn {spawnId}.");
 
-            return (0f, null);
+            return (new Rectangle(door.X, door.Y, 0f, 0f), 0f);
         }
 
-        ICircle[] reachableFrom =
-        [
-            new Circle(spawn.X - halfWidth, top, CONSTANTS.DOOR_RANGE),
-            new Circle(spawn.X + halfWidth, top, CONSTANTS.DOOR_RANGE),
-            new Circle(spawn.X - halfWidth, bottom, CONSTANTS.DOOR_RANGE),
-            new Circle(spawn.X + halfWidth, bottom, CONSTANTS.DOOR_RANGE),
-
-            //corners alone leave the middle of a wide door uncovered - a 200 unit one puts its own position out of
-            //reach of all four - so the door's circle rides along. it also keeps one candidate that always lies
-            //between the character and the door, where a corner can sit off to the side
-            new Circle(door, radius)
-        ];
-
-        return (radius, reachableFrom);
+        return (band, CONSTANTS.DOOR_RANGE);
     }
 
     private static void EnrichMonsters()
@@ -771,7 +750,7 @@ public record GameData
                 if (look is null)
                     continue;
 
-                if ((look.Name is not null) && !exclusives.Contains(look.Name))
+                if (look.Name is not null && !exclusives.Contains(look.Name))
                     exclusives.Add(look.Name);
 
                 foreach (var piece in look.Pieces?.Values ?? [])

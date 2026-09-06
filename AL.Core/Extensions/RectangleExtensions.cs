@@ -11,6 +11,54 @@ namespace AL.Core.Extensions;
 /// </summary>
 public static class RectangleExtensions
 {
+    extension<T>(T rect) where T: IRectangle, allows ref struct
+    {
+        /// <summary>
+        ///     The separation between this rectangle and a point, taken per axis and clamped at zero. An axis the
+        ///     point already lies within contributes nothing, which is what makes this agree with the server.
+        /// </summary>
+        public float EdgeToCenterDistance<T2>(T2 other) where T2: IPoint, allows ref struct
+        {
+            var dx = MathF.Max(MathF.Max(other.X - rect.Right, rect.Left - other.X), 0f);
+            var dy = MathF.Max(MathF.Max(other.Y - rect.Bottom, rect.Top - other.Y), 0f);
+
+            return MathEx.Hypot(dx, dy);
+        }
+
+        /// <summary>
+        ///     The gap between two rectangles, taken per axis and clamped at zero, which is the measure the server
+        ///     resolves every attack, skill and aggro check with.
+        /// </summary>
+        public float EdgeToEdgeDistance<T2>(T2 other) where T2: IRectangle, allows ref struct
+        {
+            var dx = MathF.Max(MathF.Max(other.Left - rect.Right, rect.Left - other.Right), 0f);
+            var dy = MathF.Max(MathF.Max(other.Top - rect.Bottom, rect.Top - other.Bottom), 0f);
+
+            return MathEx.Hypot(dx, dy);
+        }
+
+        //top is the smaller y and bottom the larger, y growing downward, so the vertical terms pair top against bottom
+        /// <summary>
+        ///     Whether two rectangles touch or overlap.
+        /// </summary>
+        public bool Intersects<T2>(T2 other) where T2: IRectangle, allows ref struct
+            => (rect.Left <= other.Right) && (rect.Right >= other.Left) && (rect.Top <= other.Bottom) && (rect.Bottom >= other.Top);
+
+        /// <summary>
+        ///     Lazily generates the points inside the rectangle, one per unit by default.
+        /// </summary>
+        public IEnumerable<Point> Points(float widthStepNum = -1f, float heightStepNum = -1f)
+            => InnerPoints(
+                rect.Left,
+                rect.Top,
+                rect.Right,
+                rect.Bottom,
+                widthStepNum.IsNear(-1f, CONSTANTS.EPSILON) ? 1 : rect.Width / widthStepNum,
+                heightStepNum.IsNear(-1f, CONSTANTS.EPSILON) ? 1 : rect.Height / heightStepNum);
+    }
+
+    //kept on the interface: Contains has the same shape on circles, polygons and triangles
+
     /// <summary>
     ///     Determines whether a rectangle fully encompasses another rectangle.
     /// </summary>
@@ -83,150 +131,17 @@ public static class RectangleExtensions
         return (rect.Left <= point.X) && (rect.Right > point.X) && (rect.Top <= point.Y) && (rect.Bottom > point.Y);
     }
 
-    /// <summary>
-    ///     Calculated the edge-to-center euclidean distance between this rectange, and some center-point.
-    /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="other">
-    ///     A center-point.
-    /// </param>
-    /// <returns>
-    ///     <see cref="float" />
-    ///     <br />
-    ///     The lowest euclidean distance among the distances between this rectangle's vertices, and the other center-point.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// </exception>
-    public static float EdgeToCenterDistance(this IRectangle rect, IPoint other)
+    //an extension member with a ref struct receiver cannot be an iterator, so the lazy one hands its numbers to this
+    private static IEnumerable<Point> InnerPoints(
+        float left,
+        float top,
+        float right,
+        float bottom,
+        float horizontalStep,
+        float verticalStep)
     {
-        ArgumentNullException.ThrowIfNull(rect);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        //per-axis separation, not the nearest vertex: an axis the point already lies within contributes nothing, which
-        //is what makes this agree with the server. Taking the closest corner instead measures around the rectangle and
-        //answers too large for anything alongside it
-        var dx = MathF.Max(MathF.Max(other.X - rect.Right, rect.Left - other.X), 0f);
-        var dy = MathF.Max(MathF.Max(other.Y - rect.Bottom, rect.Top - other.Y), 0f);
-
-        return MathEx.Hypot(dx, dy);
-    }
-
-    /// <summary>
-    ///     Calculates the edge-to-edge euclidean distance between two rectangles.
-    /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="other">
-    ///     Another rectangle.
-    /// </param>
-    /// <returns>
-    ///     <see cref="float" />
-    ///     <br />
-    ///     The euclidean distance between the two closest points of <paramref name="rect" /> and the <paramref name="other" />
-    ///     .
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     rect
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static float EdgeToEdgeDistance(this IRectangle rect, IRectangle other)
-    {
-        ArgumentNullException.ThrowIfNull(rect);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        //the gap on each axis independently, each clamped at zero, then combined. An axis the two already overlap on
-        //contributes nothing, which is the measure the server resolves every attack, skill and aggro check with. The
-        //nearest-vertex reading this replaced answered too large whenever the boxes overlapped on one axis
-        var dx = MathF.Max(MathF.Max(other.Left - rect.Right, rect.Left - other.Right), 0f);
-        var dy = MathF.Max(MathF.Max(other.Top - rect.Bottom, rect.Top - other.Bottom), 0f);
-
-        return MathEx.Hypot(dx, dy);
-    }
-
-    /// <summary>
-    ///     Determines whether two rectangles overlap eachother.
-    /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="other">
-    ///     Another rectangle.
-    /// </param>
-    /// <returns>
-    ///     <see cref="bool" />
-    ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the rectangles touch or overlap,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     otherwise.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     rect
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static bool Intersects(this IRectangle rect, IRectangle other)
-    {
-        ArgumentNullException.ThrowIfNull(rect);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        return !((rect.Bottom > other.Top) || (rect.Left > other.Right) || (rect.Right < other.Left) || (rect.Top < other.Bottom));
-    }
-
-    /// <summary>
-    ///     Lazily generates all points within a rectangle.
-    /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="widthStepNum">
-    ///     The number of points to generate horizontally.
-    ///     <br />
-    ///     -1 is equivalent to specifying the width.
-    ///     <br />
-    ///     <b>
-    ///         Even numbers work best.
-    ///     </b>
-    /// </param>
-    /// <param name="heightStepNum">
-    ///     The number of points to generate vertically.
-    ///     <br />
-    ///     -1 is equivalent to the height.
-    ///     <br />
-    ///     <b>
-    ///         Even numbers work best.
-    ///     </b>
-    /// </param>
-    /// <returns>
-    ///     <see cref="IEnumerable{T}" /> of <see cref="Point" />
-    ///     <br />
-    ///     An enumeration of points generates from top left to bottom right.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     rect
-    /// </exception>
-    public static IEnumerable<Point> Points(this IRectangle rect, float widthStepNum = -1f, float heightStepNum = -1f)
-    {
-        ArgumentNullException.ThrowIfNull(rect);
-
-        var horizontalStep = widthStepNum.IsNear(-1f, CONSTANTS.EPSILON) ? 1 : rect.Width / widthStepNum;
-        var verticalStep = heightStepNum.IsNear(-1f, CONSTANTS.EPSILON) ? 1 : rect.Height / heightStepNum;
-
-        for (var x = rect.Left; x <= rect.Right; x += horizontalStep)
-            for (var y = rect.Top; y <= rect.Bottom; y += verticalStep)
+        for (var x = left; x <= right; x += horizontalStep)
+            for (var y = top; y <= bottom; y += verticalStep)
                 yield return new Point(x, y);
     }
 }

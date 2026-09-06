@@ -418,9 +418,10 @@ public class CoreTests
     }
 
     /// <summary>
-    ///     MeshBase.CanMove truncates each traced point to index the point map, which is only the same answer as
+    ///     A wall test that indexes a point map by each traced point truncates it, which is only the same answer as
     ///     rounding while every point lands on a whole number. Nothing about the signature says so, and a fractional
-    ///     point would move a wall by one cell rather than fail, so it is pinned here.
+    ///     point would move a wall by one cell rather than fail, so it is pinned here. <c>WallLines</c> and
+    ///     <c>Pathfinder.CanMove</c> no longer trace at all; the contract stays for the callers that still do.
     /// </summary>
     [Test]
     public void RayTraceYieldsWholeNumbersFromFractionalEnds()

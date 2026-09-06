@@ -8,40 +8,87 @@ using AL.Core.Interfaces;
 namespace AL.Core.Extensions;
 
 /// <summary>
-///     Provides a set of extensions for <see cref="IPoint" />s.
+///     Provides a set of extensions for <see cref="IPoint" />s. Generic over the receiver so a struct point is never
+///     boxed to call them, and open to ref structs so <see cref="ValuePoint" /> can call them too.
 /// </summary>
 public static class PointExtensions
 {
-    /// <summary>
-    ///     Calculates a new point, offsetting a given point by a given distance at a given angle.
-    /// </summary>
-    /// <param name="point">
-    ///     The point to offset.
-    /// </param>
-    /// <param name="angle">
-    ///     The angle to offset at in degrees.
-    /// </param>
-    /// <param name="distance">
-    ///     The distance to offset by.
-    /// </param>
-    /// <returns>
-    ///     <see cref="AL.Core.Geometry.Point" />
-    ///     <br />
-    ///     A new, offset point.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    public static Point AngularOffset(this IPoint point, float angle, float distance = 1f)
+    extension<T>(T point) where T: IPoint, allows ref struct
     {
-        ArgumentNullException.ThrowIfNull(point);
+        /// <summary>
+        ///     Calculates a new point, offsetting this point by a given distance at a given angle in degrees.
+        /// </summary>
+        public Point AngularOffset(float angle, float distance = 1f)
+        {
+            var theta = angle * Math.PI / 180;
+            var x = (float)Math.Cos(theta) * distance;
+            var y = (float)Math.Sin(theta) * distance;
 
-        var theta = angle * Math.PI / 180;
-        var x = (float)Math.Cos(theta) * distance;
-        var y = (float)Math.Sin(theta) * distance;
+            return new Point(point.X + x, point.Y + y);
+        }
 
-        return new Point(point.X + x, point.Y + y);
+        /// <summary>
+        ///     Calculates a new point, offsetting this point by a given distance in a given direction.
+        /// </summary>
+        public Point DirectionalOffset(Direction direction, float distance = 1f)
+        {
+            if (direction == Direction.Invalid)
+                throw new ArgumentOutOfRangeException(nameof(direction));
+
+            // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
+            return direction switch
+            {
+                Direction.Up    => new Point(point.X, point.Y - distance),
+                Direction.Right => new Point(point.X + distance, point.Y),
+                Direction.Down  => new Point(point.X, point.Y + distance),
+                Direction.Left  => new Point(point.X - distance, point.Y),
+                _               => throw new Exception($"Can not offset by {direction} direction.")
+            };
+        }
+
+        /// <summary>
+        ///     Calculates the euclidean distance between two points.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Distance<T2>(T2 other) where T2: IPoint, allows ref struct
+        {
+            var dx = other.X - point.X;
+            var dy = other.Y - point.Y;
+
+            return MathF.Sqrt(dx * dx + dy * dy);
+        }
+
+        /// <summary>
+        ///     Calculates the squared euclidean distance between two points, for comparisons that do not need the root.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float FastDistance<T2>(T2 other) where T2: IPoint, allows ref struct
+        {
+            var dx = other.X - point.X;
+            var dy = other.Y - point.Y;
+
+            return dx * dx + dy * dy;
+        }
+
+        /// <summary>
+        ///     Calculates the midpoint between two points.
+        /// </summary>
+        public Point MidPoint<T2>(T2 other) where T2: IPoint, allows ref struct => new((point.X + other.X) / 2, (point.Y + other.Y) / 2);
+
+        /// <summary>
+        ///     Lazily generates the grid cells a line drawn from this point to <paramref name="other" /> crosses.
+        /// </summary>
+        public RayTrace RayTraceTo<T2>(T2 other) where T2: IPoint, allows ref struct => new(point.X, point.Y, other.X, other.Y);
+
+        /// <summary>
+        ///     Creates a new <see cref="Point" /> from this point.
+        /// </summary>
+        public Point ToPoint() => new(point.X, point.Y);
     }
+
+    //the three below keep their interface signatures. LocationExtensions and InstancedLocationExtensions carry
+    //same-named overloads that add a map or instance check, and a generic receiver here would outrank those for
+    //every class-typed caller and silently drop the check
 
     /// <summary>
     ///     Calculates this point's relation to another point in degrees.
@@ -73,44 +120,6 @@ public static class PointExtensions
         var deltaY = point.Y - other.Y;
 
         return (float)(Math.Atan2(deltaY, deltaX) * (180 / Math.PI));
-    }
-
-    /// <summary>
-    ///     Calculates a new point, offsetting this point by a given distance, in a given direction.
-    /// </summary>
-    /// <param name="point">
-    ///     The point to offset from.
-    /// </param>
-    /// <param name="direction">
-    ///     The direction to offset in.
-    /// </param>
-    /// <param name="distance">
-    ///     The distance to offset by.
-    /// </param>
-    /// <returns>
-    ///     <see cref="Geometry.Point" />
-    ///     <br />
-    ///     A new, offset point.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    public static Point DirectionalOffset(this IPoint point, Direction direction, float distance = 1f)
-    {
-        ArgumentNullException.ThrowIfNull(point);
-
-        if (direction == Direction.Invalid)
-            throw new ArgumentOutOfRangeException(nameof(direction));
-
-        // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-        return direction switch
-        {
-            Direction.Up    => new Point(point.X, point.Y - distance),
-            Direction.Right => new Point(point.X + distance, point.Y),
-            Direction.Down  => new Point(point.X, point.Y + distance),
-            Direction.Left  => new Point(point.X - distance, point.Y),
-            _               => throw new Exception($"Can not offset by {direction} direction.")
-        };
     }
 
     /// <summary>
@@ -164,97 +173,6 @@ public static class PointExtensions
     }
 
     /// <summary>
-    ///     Calculates the euclidean distance between two points.
-    /// </summary>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
-    /// <param name="other">
-    ///     Another point.
-    /// </param>
-    /// <returns>
-    ///     <see cref="float" />
-    ///     <br />
-    ///     The euclidean distance between <paramref name="point" /> and the <paramref name="other" />.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static float Distance(this IPoint point, IPoint other)
-    {
-        ArgumentNullException.ThrowIfNull(point);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        var result = MathEx.Hypot(other.X - point.X, other.Y - point.Y);
-
-        return result.IsNear(0, CONSTANTS.EPSILON) ? 0 : result;
-    }
-
-    /// <summary>
-    ///     Calculates the euclidean distance between two points, skipping the sqrt op.
-    ///     <br />
-    ///     This is useful when doing operations based on distance while not needing the actual value.
-    /// </summary>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
-    /// <param name="other">
-    ///     Another point.
-    /// </param>
-    /// <returns>
-    ///     <see cref="float" />
-    ///     <br />
-    ///     The euclidean distance between <paramref name="point" /> and the <paramref name="other" />.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static float FastDistance(this IPoint point, IPoint other)
-    {
-        ArgumentNullException.ThrowIfNull(point);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        return (float)(Math.Pow(other.X - point.X, 2) + Math.Pow(other.Y - point.Y, 2));
-    }
-
-    /// <summary>
-    ///     Calculates the midpoint between two points.
-    /// </summary>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
-    /// <param name="other">
-    ///     Another point.
-    /// </param>
-    /// <returns>
-    ///     <see cref="Geometry.Point" />
-    ///     <br />
-    ///     The midpoint between <paramref name="point" /> and <paramref name="other" />.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static Point MidPoint(this IPoint point, IPoint other)
-    {
-        ArgumentNullException.ThrowIfNull(point);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        return new Point((point.X + other.X) / 2, (point.Y + other.Y) / 2);
-    }
-
-    /// <summary>
     ///     Moves an point towards another at a given speed.
     /// </summary>
     /// <param name="p1">
@@ -294,117 +212,4 @@ public static class PointExtensions
 
         return p1.AngularOffset(angle, distance);
     }
-
-    /// <summary>
-    ///     Lazily generates points between two points.
-    ///     <br />
-    ///     https://playtechs.blogspot.com/2007/03/raytracing-on-grid.html
-    /// </summary>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
-    /// <param name="other">
-    ///     Another point.
-    /// </param>
-    /// <returns>
-    ///     <see cref="IEnumerable{T}" /> of <see cref="Point" />
-    ///     <br />
-    ///     An enumeration of points that a line drawn from <paramref name="point" /> to the <paramref name="other" /> would
-    ///     cross over.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     other
-    /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static IEnumerable<Point> RayTraceTo(this IPoint point, IPoint other)
-    {
-        ArgumentNullException.ThrowIfNull(point);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        var x0 = point.X;
-        var y0 = point.Y;
-        var x1 = other.X;
-        var y1 = other.Y;
-        var dx = Math.Abs(x1 - x0);
-        var dy = Math.Abs(y1 - y0);
-        var x = (int)Math.Floor(x0);
-        var y = (int)Math.Floor(y0);
-        var n = 1;
-        int xOffset;
-        int yOffset;
-        float error;
-
-        if (dx == 0)
-        {
-            xOffset = 0;
-            error = float.PositiveInfinity;
-        } else if (x1 > x0)
-        {
-            xOffset = 1;
-            n += (int)Math.Floor(x1) - x;
-            error = (float)(Math.Floor(x0) + 1 - x0) * dy;
-        } else
-        {
-            xOffset = -1;
-            n += x - (int)Math.Floor(x1);
-            error = (float)(x0 - Math.Floor(x0)) * dy;
-        }
-
-        if (dy == 0)
-        {
-            yOffset = 0;
-            error -= float.PositiveInfinity;
-        } else if (y1 > y0)
-        {
-            yOffset = 1;
-            n += (int)Math.Floor(y1) - y;
-            error -= (float)(Math.Floor(y0) + 1 - y0) * dx;
-        } else
-        {
-            yOffset = -1;
-            n += y - (int)Math.Floor(y1);
-            error -= (float)(y0 - Math.Floor(y0)) * dx;
-        }
-
-        for (; n > 0; --n)
-        {
-            yield return new Point(x, y);
-
-            if (error > 0)
-            {
-                y += yOffset;
-                error -= dx;
-            } else
-            {
-                x += xOffset;
-                error += dy;
-            }
-        }
-    }
-
-    /// <summary>
-    ///     Creates a new <see cref="Geometry.Point" /> from a <see cref="IPoint" />.
-    /// </summary>
-    /// <param name="point">
-    ///     An implementation of <see cref="IPoint" />.
-    /// </param>
-    /// <returns>
-    ///     <see cref="Geometry.Point" />
-    ///     <br />
-    ///     A new point.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     point
-    /// </exception>
-    public static Point ToPoint(this IPoint point)
-        => point switch
-        {
-            null     => throw new ArgumentNullException(nameof(point)),
-            Point pt => pt,
-            _        => new Point(point.X, point.Y)
-        };
 }

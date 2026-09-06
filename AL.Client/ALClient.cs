@@ -747,7 +747,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         }
 
         //shield slam is the one skill that asks about the offhand rather than the mainhand
-        if (checkWeapon && (data.OffhandType is { } offhandType))
+        if (checkWeapon && data.OffhandType is { } offhandType)
         {
             var offhand = Character.Slots.GetValueOrDefault(Slot.OffHand);
 
@@ -1128,7 +1128,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </exception>
     internal void EnsureSocketCarriesProxy()
     {
-        if ((Socket is ALSocketClient concrete) && !ReferenceEquals(concrete.Proxy, SocketProxy))
+        if (Socket is ALSocketClient concrete && !ReferenceEquals(concrete.Proxy, SocketProxy))
             throw new InvalidOperationException(
                 $"'{Name}' is about to connect on a socket that does not carry this character's proxy. "
                 + "Something built an ALSocketClient outside of NewSocket() (or StartClientAsync's initial "
@@ -2546,7 +2546,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         var at = bankSlot.Value < bankedItems.Count ? bankedItems[bankSlot.Value] : null;
                         var invNow = inventorySlot < data.Inventory.Count ? data.Inventory[inventorySlot] : null;
 
-                        if ((at is null)
+                        if (at is null
                             || !at.Name.EqualsI(item.Name)
                             || (at.Level != item.Level)
                             || (at.Quantity < item.Quantity))
@@ -2556,7 +2556,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         {
                             if (invNow is not null)
                                 return TaskCache.FALSE;
-                        } else if ((invNow is null)
+                        } else if (invNow is null
                                    || !invNow.Name.EqualsI(occupant.Name)
                                    || (invNow.Level != occupant.Level)
                                    || (invNow.Quantity != occupant.Quantity))
@@ -4058,14 +4058,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new ArgumentNullException(nameof(endDestinations));
 
         // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
-        Task HandlePathConnectorAsync(GraphEdge pathConnector, CancellationToken? innerToken = null)
+        Task HandlePathConnectorAsync(PathEdge pathConnector, CancellationToken? innerToken = null)
             => pathConnector.Type switch
             {
-                EdgeType.Walk      => MoveAsync(pathConnector.End.Vertex, innerToken),
+                EdgeType.Walk      => MoveAsync(pathConnector.End, innerToken),
                 EdgeType.Town      => UseTownAsync(innerToken),
                 EdgeType.Leave     => LeaveMapAsync(),
-                EdgeType.Door      => TransportAsync(pathConnector.End.Vertex.Map, ((Exit)pathConnector.Start.Vertex).ToSpawnIndex),
-                EdgeType.Transport => TransportAsync(pathConnector.End.Vertex.Map, ((Exit)pathConnector.Start.Vertex).ToSpawnIndex),
+                EdgeType.Door      => TransportAsync(pathConnector.End.Map, ((Exit)pathConnector.Start).ToSpawnIndex),
+                EdgeType.Transport => TransportAsync(pathConnector.End.Map, ((Exit)pathConnector.Start).ToSpawnIndex),
                 _                  => throw new ArgumentOutOfRangeException($"Unexpected path connectorType: {pathConnector.Type}")
             };
 
@@ -4076,9 +4076,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var start = Character.ToLocation();
 
-        //the search also grafts a town connector onto the far side of every map change, so the suppression decided
-        //here only covers the map being left. Priced against this character's own speed: the channel is a fixed
-        //three seconds, so what it is worth is however far this character would have walked in them
+        //the suppression decided here covers the whole route rather than the map being left: recall off leaves no
+        //recall leg anywhere on it. Priced against this character's own speed: the channel is a fixed three seconds,
+        //so what it is worth is however far this character would have walked in them
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
@@ -4098,23 +4098,28 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (cancellationToken is { IsCancellationRequested: true })
                 break;
 
+            //MoveAsync has no already-there guard, so the zero-length walk a start already inside its end is answered
+            //with would emit a move to the position the character is already on
+            if ((edge.Type == EdgeType.Walk) && (edge.Cost == 0f) && (edge.Start.DistanceWithMapCheck(edge.End) == 0f))
+                continue;
+
             try
             {
                 //a leg ends on a dead-reckoned timer, and a move arriving mid-walk is re-aimed from wherever the
                 //server actually is - so an early emit bends the walk from part-way along the previous leg, a line
                 //the search never validated. Standing still for a round trip is what makes the bend impossible
-                if ((edge.Type == EdgeType.Walk) && (bendFrom is not null) && !Pathfinder.CanMove(bendFrom, edge.End.Vertex))
+                if ((edge.Type == EdgeType.Walk) && bendFrom is not null && !Pathfinder.CanMove(bendFrom, edge.End))
                     await Task.Delay(PingManager.LowPercentileOffset * 2, cancellationToken ?? CancellationToken.None);
 
                 await HandlePathConnectorAsync(edge, cancellationToken);
                 edgesWalked++;
-                bendFrom = edge.Type == EdgeType.Walk ? edge.Start.Vertex : null;
+                bendFrom = edge.Type == EdgeType.Walk ? edge.Start : null;
             } catch (OperationCanceledException)
             {
                 break;
             } catch (Exception e) when (e is InvalidOperationException or TimeoutException)
             {
-                Logger.Debug($"Path leg {edge.Type} to {edge.End.Vertex} failed after {edgesWalked} leg(s). {e.Message}");
+                Logger.Debug($"Path leg {edge.Type} to {edge.End} failed after {edgesWalked} leg(s). {e.Message}");
 
                 //the rest of the trip is walked, but the refusal is only carried as far as this map. A recall that
                 //timed out is carried the same way as one that was refused: the confirmation is the only thing
@@ -5023,7 +5028,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>Gives <see cref="BeforeEscape" /> its chance, when there is anything for it to fix.</summary>
     private Task RaiseBeforeEscapeAsync(CancellationToken token)
     {
-        if (CanEscape || (BeforeEscape is not { } hook))
+        if (CanEscape || BeforeEscape is not { } hook)
             return Task.CompletedTask;
 
         return hook(token);
@@ -5402,7 +5407,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //the server echoes str on every item branch of this handler and on none of the gold ones, so a
                 //frame naming a different bank slot is another operation's answer. A refusal names no slot at all
                 //and so settles on place alone, which is right: two bank refusals are the same outcome either way
-                if ((data.BankSlot is { } answered) && (answered != bankSlot))
+                if (data.BankSlot is { } answered && (answered != bankSlot))
                     return TaskCache.FALSE;
 
                 if (data.Failed)
@@ -5794,7 +5799,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //after the relocation, and never before it: the mesh lookups below can throw, and a diagnostic that throws
         //used to take the relocation down with it - which left the character holding the old map's coordinates
         //while the server had it somewhere else, and those coordinates are what the next move emit claims
-        if (data.Map.EqualsI("jail") && (Pathfinder.GetNavMesh(wasAt.Map) is not null))
+        if (data.Map.EqualsI("jail") && Pathfinder.GetNavMesh(wasAt.Map) is not null)
         {
             var standingOnWall = Pathfinder.IsWall(wasAt);
             var validPath = Pathfinder.CanMove(wasAt, wasGoing);
@@ -5868,7 +5873,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //rounded the way the server rounds attack_ms, so an unbuffed swing lands on exactly the number it sent
         //rather than a fraction under it
-        if ((data.Reason is null) && data.SkillName.EqualsI("attack") && (Character.Frequency > 0))
+        if (data.Reason is null && data.SkillName.EqualsI("attack") && (Character.Frequency > 0))
             timeoutMs = Math.Min(timeoutMs, data.Penalty + MathF.Round(1000f / Character.Frequency));
 
         //the name is already resolved to the shared skill and the ms already multiplied, so this must not
@@ -6074,7 +6079,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     built on it could only ever time out and throw on a move that had in fact already happened.
     /// </remarks>
     private static bool SameContents(Item? slot, Item? expected)
-        => ((slot == null) == (expected == null))
+        => (slot == null == (expected == null))
            && ((slot == null)
                || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
 

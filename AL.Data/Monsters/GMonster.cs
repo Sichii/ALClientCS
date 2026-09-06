@@ -104,7 +104,7 @@ public sealed record GMonster : AttributedRecordBase
             };
 
             //the game's round(), which is half away from zero rather than the half-to-even MathF.Round does
-            return MathF.Floor((Speed * multiplier) + 0.5f);
+            return MathF.Floor(Speed * multiplier + 0.5f);
         }
     }
 

@@ -57,7 +57,7 @@ public sealed class Inventory : IReadOnlyList<Item?>
 
         //a slot index the server named and this client has not grown into yet, or an empty one - both are ordinary
         //against a frame that raced the inventory, and neither is worth throwing over
-        if ((index < 0) || (index >= items.Count) || (items[index] is not { } item))
+        if ((index < 0) || (index >= items.Count) || items[index] is not { } item)
             return;
 
         items[index] = item with { Prediction = prediction };

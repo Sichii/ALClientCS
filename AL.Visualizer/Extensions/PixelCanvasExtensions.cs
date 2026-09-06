@@ -2,10 +2,9 @@
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
-using AL.Pathfinding.Abstractions;
-using AL.Pathfinding.Interfaces;
+using AL.Data;
+using AL.Pathfinding.Model;
 using AL.Visualizer.Model;
-using Priority_Queue;
 using SkiaSharp;
 #endregion
 
@@ -17,47 +16,40 @@ namespace AL.Visualizer.Extensions;
 public static class PixelCanvasExtensions
 {
     /// <summary>
-    ///     Draws all connections between all navMesh and their neighbors on a canvas.
+    ///     The point in canvas pixels for a map point.
     /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="navMesh">
-    ///     The navMesh to draw connections for.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the connections as.
-    /// </param>
-    /// <returns>
-    ///     <see cref="PixelCanvas" />
-    ///     <br />
-    ///     The canvas with the connections drawn on it.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     navMesh
-    /// </exception>
-    public static PixelCanvas DrawEdges<TNode, TEdge>(this PixelCanvas canvas, MeshBase<TNode, TEdge> navMesh, SKColor color = default)
-        where TEdge: IGraphEdge<TNode>, new()
-        where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
+    public static IPoint ToCanvas(this NavMesh navMesh, IPoint point)
+    {
+        var geometry = GameData.Geometry[navMesh.Map]!;
 
+        return new Point(point.X - geometry.MinX, point.Y - geometry.MinY);
+    }
+
+    /// <summary>
+    ///     Draws every triangle edge of the mesh.
+    /// </summary>
+    public static PixelCanvas DrawEdges(this PixelCanvas canvas, NavMesh navMesh, SKColor color = default)
     {
         ArgumentNullException.ThrowIfNull(canvas);
-
         ArgumentNullException.ThrowIfNull(navMesh);
 
         if (color == default)
             color = SKColors.Red;
 
-        foreach (var edge in navMesh.TraverseEdges())
-        {
-            var start = navMesh.ApplyOffset(edge.Start.Vertex);
-            var midEnd = navMesh.ApplyOffset(edge.End.Vertex.MidPoint(edge.Start.Vertex));
+        var mesh = navMesh.Mesh;
 
-            canvas.DrawLine(start, midEnd, color);
-        }
+        for (var triangle = 0; triangle < mesh.TriangleCount; triangle++)
+            for (var slot = 0; slot < 3; slot++)
+            {
+                var a = mesh.Vertices[mesh.Corners[triangle * 3 + slot]];
+                var b = mesh.Vertices[mesh.Corners[triangle * 3 + (slot + 1) % 3]];
+
+                canvas.DrawLine(
+                    navMesh.ToCanvas(a),
+                    navMesh.ToCanvas(b),
+                    color,
+                    color);
+            }
 
         return canvas;
     }
@@ -168,54 +160,27 @@ public static class PixelCanvasExtensions
     }
 
     /// <summary>
-    ///     Draws a path along a number of path connectors on a canvas.
+    ///     Draws the legs of a path that lie on the mesh's map.
     /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="navMesh">
-    ///     The navmesh this path is for.
-    /// </param>
-    /// <param name="pathConnectors">
-    ///     The connectors to draw.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the path.
-    /// </param>
-    /// <returns>
-    ///     <see cref="PixelCanvas" />
-    ///     <br />
-    ///     The canvas with the path drawn on it.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     pathConnectors
-    /// </exception>
-    public static PixelCanvas DrawPath<TNode, TEdge>(
+    public static PixelCanvas DrawPath(
         this PixelCanvas canvas,
-        MeshBase<TNode, TEdge> navMesh,
-        IEnumerable<TEdge?> pathConnectors,
-        SKColor color = default) where TEdge: IGraphEdge<TNode>, new()
-                                 where TNode: FastPriorityQueueNode, IGraphNode<TEdge>
-
+        NavMesh navMesh,
+        IEnumerable<PathEdge> path,
+        SKColor color = default)
     {
         ArgumentNullException.ThrowIfNull(canvas);
+        ArgumentNullException.ThrowIfNull(path);
 
-        ArgumentNullException.ThrowIfNull(pathConnectors);
-
-        IEnumerable<IPoint> SelectPoints(IEnumerable<TEdge?> connectors)
+        IEnumerable<IPoint> SelectPoints()
         {
-            foreach (var edge in connectors)
-                if (edge is not null)
-                {
-                    yield return navMesh.ApplyOffset(edge.Start.Vertex);
-                    yield return navMesh.ApplyOffset(edge.End.Vertex);
-                }
+            foreach (var edge in path)
+            {
+                yield return navMesh.ToCanvas(edge.Start);
+                yield return navMesh.ToCanvas(edge.End);
+            }
         }
 
-        return canvas.DrawPath(SelectPoints(pathConnectors), color);
+        return canvas.DrawPath(SelectPoints(), color);
     }
 
     /// <summary>

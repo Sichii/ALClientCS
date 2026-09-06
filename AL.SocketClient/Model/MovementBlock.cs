@@ -49,5 +49,5 @@ public readonly record struct MovementBlock(
     ///     it already stands - the delta loop leaves that state on the entity rather than clearing it.
     /// </remarks>
     public bool MovingAwayFrom(MovementBlock other)
-        => Moving && ((((GoingX - X) * (X - other.X)) + ((GoingY - Y) * (Y - other.Y))) > 0f);
+        => Moving && (((GoingX - X) * (X - other.X) + (GoingY - Y) * (Y - other.Y)) > 0f);
 }

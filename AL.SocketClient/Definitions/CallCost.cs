@@ -83,8 +83,8 @@ public static class CallCost
             [ALSocketEmitType.Enter] = RESEND + TRANSPORT,
             [ALSocketEmitType.Respawn] = RESEND + TRANSPORT,
             [ALSocketEmitType.Magiport] = RESEND + TRANSPORT,
-            [ALSocketEmitType.ReturnToTown] = (RESEND / 2d) + TRANSPORT,
-            [ALSocketEmitType.Join] = (RESEND / 2d) + TRANSPORT,
+            [ALSocketEmitType.ReturnToTown] = RESEND / 2d + TRANSPORT,
+            [ALSocketEmitType.Join] = RESEND / 2d + TRANSPORT,
 
             //a one-item batch. The real bill is OfEquipBatch, but the emit hook does not see the count
             [ALSocketEmitType.EquipBatch] = OfEquipBatch(1),
@@ -117,8 +117,8 @@ public static class CallCost
             [ALSocketEmitType.TradeWishlist] = RESEND / 2d,
 
             //a bare reopen for the caller, then u+cid+reopen for the counterparty on their own socket
-            [ALSocketEmitType.TradeBuy] = (RESEND / 2d) + RESEND + REOPEN_OTHER,
-            [ALSocketEmitType.TradeSell] = (RESEND / 2d) + RESEND + REOPEN_OTHER,
+            [ALSocketEmitType.TradeBuy] = RESEND / 2d + RESEND + REOPEN_OTHER,
+            [ALSocketEmitType.TradeSell] = RESEND / 2d + RESEND + REOPEN_OTHER,
 
             //one short message to one recipient (node/server.js:4366); longer or wider costs more
             [ALSocketEmitType.Command] = 1d,
@@ -145,16 +145,8 @@ public static class CallCost
     ///     handler ends on. From two items up it beats sending the same equips one at a time and the gap widens with
     ///     each: two cost 6.5 against 10, five cost 11 against 25. It buys nothing on the penalty cooldown.
     /// </remarks>
-    public static double OfEquipBatch(int count) => (EQUIP_ROW * (0.5d + (Math.Max(0, count) / 2d))) + RESEND;
+    public static double OfEquipBatch(int count) => EQUIP_ROW * (0.5d + Math.Max(0, count) / 2d) + RESEND;
 
-    /// <summary>
-    ///     What a transport bills on top of <see cref="Of" /> for crossing the bank's threshold: 32 to mount the
-    ///     account's bank on the way in, 16 to unmount it on the way out (node/server.js:5569, :5580), under the
-    ///     name <c>bank</c> beside the door's own charge. A door between two bank floors, or two ordinary maps, adds
-    ///     nothing.
-    /// </summary>
-    /// <param name="fromBank">Whether the map being left has the bank mounted (<c>GMap.Mount</c>).</param>
-    /// <param name="toBank">Whether the destination does.</param>
     /// <summary>
     ///     What one <c>open_chest</c> costs in a party of <paramref name="partySize" />, one meaning alone. The
     ///     handler resends every member, the opener included, and the whole bill lands on the opener
@@ -168,9 +160,17 @@ public static class CallCost
     {
         var emptyResends = Math.Max(0, partySize - othersWithItems - (openerGotItem ? 1 : 0));
 
-        return OPEN_CHEST * (emptyResends + (REOPEN_OTHER * othersWithItems));
+        return OPEN_CHEST * (emptyResends + REOPEN_OTHER * othersWithItems);
     }
 
+    /// <summary>
+    ///     What a transport bills on top of <see cref="Of" /> for crossing the bank's threshold: 32 to mount the
+    ///     account's bank on the way in, 16 to unmount it on the way out (node/server.js:5569, :5580), under the
+    ///     name <c>bank</c> beside the door's own charge. A door between two bank floors, or two ordinary maps, adds
+    ///     nothing.
+    /// </summary>
+    /// <param name="fromBank">Whether the map being left has the bank mounted (<c>GMap.Mount</c>).</param>
+    /// <param name="toBank">Whether the destination does.</param>
     public static double OfBankCrossing(bool fromBank, bool toBank)
         => (fromBank, toBank) switch
         {

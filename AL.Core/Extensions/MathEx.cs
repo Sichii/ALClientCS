@@ -19,5 +19,5 @@ public static class MathEx
     ///     <br />
     ///     The length of the hyptenuse(c).
     /// </returns>
-    public static float Hypot(float a, float b) => (float)Math.Sqrt(Math.Pow(a, 2) + Math.Pow(b, 2));
+    public static float Hypot(float a, float b) => MathF.Sqrt(a * a + b * b);
 }

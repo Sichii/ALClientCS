@@ -45,7 +45,7 @@ public sealed class PixelCanvas
 
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(x, Width);
 
-            return Pixels[(y * Width) + x];
+            return Pixels[y * Width + x];
         }
 
         set
@@ -54,7 +54,7 @@ public sealed class PixelCanvas
 
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(x, Width);
 
-            Pixels[(y * Width) + x] = (uint)value;
+            Pixels[y * Width + x] = (uint)value;
         }
     }
 

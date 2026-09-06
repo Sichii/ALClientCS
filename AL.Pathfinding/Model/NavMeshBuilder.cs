@@ -47,15 +47,11 @@ public sealed class NavMeshBuilder
     }
 
     /// <summary>
-    ///     Builds a triangulated navmesh and pointmap from a map's data.
+    ///     Builds the flat triangle mesh for this map. The raster is only used during the build and is not kept. A
+    ///     builder instance builds once: the flood marks the raster as it goes, so a second call answers an empty mesh.
     /// </summary>
-    /// <returns>
-    ///     <see cref="NavMesh" />
-    ///     <br />
-    ///     A navmesh containing triangle data
-    /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public NavMesh Build()
+    public TriangleMesh BuildMesh()
     {
         FillWalls();
         var polyVertices = new HashSet<Point>();
@@ -66,16 +62,11 @@ public sealed class NavMeshBuilder
         var polySet = TracePolygons(polyVertices);
         P2T.Triangulate(polySet);
 
-        var polyTriangles = polySet.Polygons.SelectMany(polygon => polygon.Triangles);
+        var triangles = polySet.Polygons
+                               .SelectMany(polygon => polygon.Triangles)
+                               .ToList();
 
-        var meshTriangles = polyTriangles.Select(triangle => triangle.ToGenericTriangle(Map.Accessor));
-
-        return new NavMesh(
-            Map.Accessor,
-            meshTriangles,
-            PointMap,
-            XOffset,
-            YOffset);
+        return TriangleMesh.FromPoly2Tri(triangles, XOffset, YOffset);
     }
 
     #region Polygons
@@ -254,7 +245,7 @@ public sealed class NavMeshBuilder
         if (PointMap[x, y] != PointType.None)
             yield break;
 
-        var stack = new Stack<Point>(Width * Height / 5);
+        var stack = new Stack<Point>();
 
         PointMap[x, y] = PointType.Walkable;
         stack.Push(new Point(x, y));

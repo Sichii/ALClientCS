@@ -77,7 +77,7 @@ public abstract partial class ALClient
         //false on anything else: returning true consumes the frame, starving a subscriber waiting on bet/won/lost
         using var tavernCallback = Socket.On<TavernData>(
             ALSocketMessageType.Tavern,
-            data => Task.FromResult((data.Event is not null) && "info".EqualsI(data.Event) && source.TrySetResult(data)));
+            data => Task.FromResult(data.Event is not null && "info".EqualsI(data.Event) && source.TrySetResult(data)));
 
         await Socket.EmitAsync(ALSocketEmitType.Tavern, new { @event = "info" });
 
@@ -266,7 +266,7 @@ public abstract partial class ALClient
         var last = batch[^1];
         var item = last.InventorySlot >= 0 ? Character.Inventory[last.InventorySlot] : null;
 
-        if ((item is null) || (last.Slot is not { } slot))
+        if (item is null || last.Slot is not { } slot)
         {
             await Socket.EmitAsync(ALSocketEmitType.EquipBatch, payload);
             ChargeBatch(batch.Length);

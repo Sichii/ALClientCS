@@ -1,5 +1,6 @@
 #region
 using AL.Core.Definitions;
+using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 #endregion
@@ -25,21 +26,24 @@ public record Exit : ICircle, ILocation
     public string Map { get; init; } = null!;
 
     /// <summary>
-    ///     A single circle about this exit's own position that is wholly inside <see cref="ReachableFrom" />, for
-    ///     anything that treats an exit as a plain <see cref="ICircle" />. Conservative for a door, exact for a
-    ///     transporter.
+    ///     The rectangle the server measures the character against. For a door, the door's box on its own spawn
+    ///     grown by the character's box; for a transporter, a point. See <c>GameData.DoorReachBand</c>. A record
+    ///     holding a collection compares it by reference, so do not lean on an <see cref="Exit" />'s synthesized
+    ///     equality; the point, location and circle overloads below are the ones to use.
     /// </summary>
-    public float Radius { get; init; }
+    public Rectangle ReachBand { get; init; }
 
     /// <summary>
-    ///     Where you have to stand for the server to let you through, as the union of these circles. One for a
-    ///     transporter, which the server measures centre to centre; four for a door, which it does not. See
-    ///     <c>GameData.DoorReachableRegion</c> for how a door's are derived and what they cover.
-    ///     <br />
-    ///     Compared by reference, as any collection on a record is - do not lean on an <see cref="Exit" />'s
-    ///     synthesized equality. The hand-written overloads below compare position, which is what callers want.
+    ///     How far outside <see cref="ReachBand" /> the exit still works. The band inflated by this range is the
+    ///     exact region the server accepts, and it is what a walk to this exit stops inside.
     /// </summary>
-    public IReadOnlyList<ICircle> ReachableFrom { get; init; }
+    public float ReachRange { get; init; }
+
+    /// <summary>
+    ///     A single circle about this exit's own position that is wholly inside its reach, for anything that treats
+    ///     an exit as a plain <see cref="ICircle" />. Conservative for a door, exact for a transporter.
+    /// </summary>
+    public float Radius { get; init; }
 
     /// <summary>
     ///     The location this exit leads to.
@@ -77,8 +81,8 @@ public record Exit : ICircle, ILocation
         ILocation toLocation,
         int toSpawnIndex,
         ExitType type,
-        float radius,
-        IReadOnlyList<ICircle>? reachableFrom = null)
+        Rectangle reachBand,
+        float reachRange)
     {
         Map = map;
         X = point.X;
@@ -86,10 +90,12 @@ public record Exit : ICircle, ILocation
         ToLocation = toLocation;
         ToSpawnIndex = toSpawnIndex;
         Type = type;
-        Radius = radius;
+        ReachBand = reachBand;
+        ReachRange = reachRange;
 
-        //a transporter is measured centre to centre from where it stands, so its own circle is the whole region
-        ReachableFrom = reachableFrom ?? [new Circle(point, radius)];
+        //the range less the exit's own distance to the band is the largest circle about the exit still inside
+        //the region; zero where the exit is not inside it at all
+        Radius = MathF.Max(0f, reachRange - reachBand.EdgeToCenterDistance(point));
     }
 
     public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);

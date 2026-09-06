@@ -41,10 +41,10 @@ public class IceGolemCorridorTests : PathfindingTestBed
 
         //the corridor is straight, so smoothing should hand the whole water span to a single leg - one move
         //command, which is what keeps a mid-lake re-issue (and its jail) out of the design entirely
-        var lakeCrossings = path.Count(edge => (Math.Min(edge.Start.Vertex.Y, edge.End.Vertex.Y) < JAIL_MIN_Y)
-                                               && (Math.Max(edge.Start.Vertex.Y, edge.End.Vertex.Y) > JAIL_MAX_Y)
-                                               && (edge.Start.Vertex.X > JAIL_MIN_X)
-                                               && (edge.Start.Vertex.X < JAIL_MAX_X));
+        var lakeCrossings = path.Count(edge => (Math.Min(edge.Start.Y, edge.End.Y) < JAIL_MIN_Y)
+                                               && (Math.Max(edge.Start.Y, edge.End.Y) > JAIL_MAX_Y)
+                                               && (edge.Start.X > JAIL_MIN_X)
+                                               && (edge.Start.X < JAIL_MAX_X));
 
         lakeCrossings.Should()
                      .Be(1, "the water span should be walked as exactly one leg");
@@ -52,8 +52,8 @@ public class IceGolemCorridorTests : PathfindingTestBed
         foreach (var edge in path)
             foreach (var point in new[]
                      {
-                         edge.Start.Vertex,
-                         edge.End.Vertex
+                         edge.Start,
+                         edge.End
                      })
             {
                 var jailable = (point.X > JAIL_MIN_X)

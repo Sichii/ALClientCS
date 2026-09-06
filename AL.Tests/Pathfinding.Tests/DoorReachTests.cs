@@ -92,12 +92,12 @@ public class DoorReachTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     Every circle we would stop on has to be a place the server accepts, everywhere on it - not just at its
-    ///     centre. A circle that pokes outside the real region would let the pathfinder stand the character down
-    ///     somewhere the door refuses to open, which reads as a hung path rather than an error.
+    ///     Every point on the reach's boundary has to be a place the server accepts. The boundary is sampled by
+    ///     taking the near-edge point from 72 directions well outside the region, which walks the whole rounded
+    ///     rectangle; the middle of the region is inside by construction.
     /// </summary>
     [Test]
-    public async Task EveryReachCircleIsWhollyInsideTheServersDoorRange()
+    public async Task EveryPointOnTheReachBoundaryIsInsideTheServersDoorRange()
     {
         var checkedDoors = 0;
 
@@ -105,29 +105,31 @@ public class DoorReachTests : PathfindingTestBed
         {
             checkedDoors++;
 
-            //a door whose spawn cannot be resolved has no derived region, and must claim no reach at all - a
-            //radius here turns EnhancePathAsync's shortcut back on against a region we could not work out
+            //a door whose spawn cannot be resolved has no derived region, and must claim no reach at all
             if (!SpawnIsResolvable(map, door))
             {
-                exit.Radius
+                exit.ReachRange
                     .Should()
                     .Be(0f, $"the door {map.Accessor} => {door.DestinationMap} names a spawn that does not exist");
 
                 continue;
             }
 
-            foreach (var circle in exit.ReachableFrom.Append(new Circle(exit, exit.Radius)))
-                for (var step = 0; step < 72; step++)
-                {
-                    var angle = step * MathF.Tau / 72;
-                    var edgeOfCircle = new Point(circle.X + (circle.Radius * MathF.Cos(angle)), circle.Y + (circle.Radius * MathF.Sin(angle)));
+            var reach = new Reach(exit.ReachBand, exit.ReachRange);
+            var centreX = exit.ReachBand.X;
+            var centreY = exit.ReachBand.Y;
 
-                    ServerDoorDistance(map, door, edgeOfCircle)
-                        .Should()
-                        .BeLessThan(
-                            SERVER_DOOR_DIST - REQUIRED_MARGIN,
-                            $"the door {map.Accessor} => {door.DestinationMap} must open from every point of a circle we would stop on");
-                }
+            for (var step = 0; step < 72; step++)
+            {
+                var angle = step * MathF.Tau / 72;
+                (var x, var y) = reach.NearEdge(centreX + 2000f * MathF.Cos(angle), centreY + 2000f * MathF.Sin(angle));
+
+                ServerDoorDistance(map, door, new Point(x, y))
+                    .Should()
+                    .BeLessThan(
+                        SERVER_DOOR_DIST - REQUIRED_MARGIN,
+                        $"the door {map.Accessor} => {door.DestinationMap} must open from every point of the reach boundary");
+            }
         }
 
         checkedDoors.Should()
@@ -153,8 +155,8 @@ public class DoorReachTests : PathfindingTestBed
             if (path[i].Type != EdgeType.Door)
                 continue;
 
-            var exit = (Exit)path[i].Start.Vertex;
-            var standing = path[i - 1].End.Vertex;
+            var exit = (Exit)path[i].Start;
+            var standing = path[i - 1].End;
 
             (var map, var door, _) = EveryDoor()
                 .Single(d => SpawnIsResolvable(d.Map, d.Door)

@@ -45,11 +45,11 @@ public class LeaveMapTests : PathfindingTestBed
 
         var mainSpawn = GameData.Maps.Main.Spawns[0];
 
-        leaveEdge.End.Vertex.X
+        leaveEdge.End.X
                  .Should()
                  .Be(mainSpawn.X);
 
-        leaveEdge.End.Vertex.Y
+        leaveEdge.End.Y
                  .Should()
                  .Be(mainSpawn.Y);
     }
@@ -81,8 +81,11 @@ public class LeaveMapTests : PathfindingTestBed
         path.Should()
             .NotBeEmpty();
 
+        path.Should()
+            .NotContain(edge => edge.Type == EdgeType.Town, "recall off suppresses every recall on the route");
+
         path.Last()
-            .End.Vertex.Map
+            .End.Map
             .Should()
             .Be("main");
     }

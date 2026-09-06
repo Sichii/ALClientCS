@@ -13,8 +13,7 @@ public abstract class PathfindingTestBed : GameDataTestBed
 
         try
         {
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-            if (Pathfinder.DirectedGraph == null)
+            if (Pathfinder.GetNavMesh("main") is null)
                 Pathfinder.Initialize();
         } finally
         {

@@ -21,8 +21,6 @@ namespace AL.Tests.Pathfinding.Tests;
 /// </summary>
 public class WallCrossingTests : PathfindingTestBed
 {
-    private const float EPS = 0.00000001f;
-
     //the player collision base the server measures a move with, as four corner offsets
     private static readonly (float MX, float MY)[] CORNERS =
     [
@@ -66,7 +64,7 @@ public class WallCrossingTests : PathfindingTestBed
                 var start = RandomOffTheFill(rng, map, geo);
                 var end = RandomWalkable(rng, map, geo);
 
-                if ((start is null) || (end is null))
+                if (start is null || end is null)
                     break;
 
                 var path = await FindPathOrEmptyAsync(start, end);
@@ -77,12 +75,10 @@ public class WallCrossingTests : PathfindingTestBed
                         continue;
 
                     var from = path[index]
-                        .Start
-                        .Vertex;
+                        .Start;
 
                     var to = path[index]
-                        .End
-                        .Vertex;
+                        .End;
 
                     if (ServerCanMove(geo, from, to))
                         continue;
@@ -115,7 +111,7 @@ public class WallCrossingTests : PathfindingTestBed
                 var start = RandomWalkable(rng, map, geo);
                 var end = RandomOffTheFill(rng, map, geo);
 
-                if ((start is null) || (end is null))
+                if (start is null || end is null)
                     break;
 
                 failures.AddRange(await CrossingsAsync(map, geo, start, end));
@@ -143,7 +139,7 @@ public class WallCrossingTests : PathfindingTestBed
                 var start = RandomAgainstAWall(rng, map, geo);
                 var end = RandomWalkable(rng, map, geo);
 
-                if ((start is null) || (end is null))
+                if (start is null || end is null)
                     break;
 
                 failures.AddRange(await CrossingsAsync(map, geo, start, end));
@@ -169,7 +165,7 @@ public class WallCrossingTests : PathfindingTestBed
                 var start = RandomWalkable(rng, map, geo);
                 var end = RandomWalkable(rng, map, geo);
 
-                if ((start is null) || (end is null))
+                if (start is null || end is null)
                     break;
 
                 failures.AddRange(await CrossingsAsync(map, geo, start, end));
@@ -198,7 +194,7 @@ public class WallCrossingTests : PathfindingTestBed
                 var start = RandomWalkable(rng, map, geo);
                 var end = RandomWalkable(rng, map, geo);
 
-                if ((start is null) || (end is null))
+                if (start is null || end is null)
                     break;
 
                 var path = await FindPathOrEmptyAsync(start, end);
@@ -209,12 +205,10 @@ public class WallCrossingTests : PathfindingTestBed
                         continue;
 
                     var bendFrom = path[index - 1]
-                        .Start
-                        .Vertex;
+                        .Start;
 
                     var bendTo = path[index]
-                        .End
-                        .Vertex;
+                        .End;
 
                     //the guard's own question. Where it answers no the walk stands still and there is no bend to make
                     if (!Pathfinder.CanMove(bendFrom, bendTo))
@@ -232,41 +226,67 @@ public class WallCrossingTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     Why the walk guard in <c>MoveAsync</c> asks about the start before it asks about the line. The raster
-    ///     refuses on the first cell it traces and that cell is the start's own, so a start it calls a wall is one no
-    ///     destination is reachable from - the step back out onto the fill included. A guard that refuses there
-    ///     refuses every leg the character will ever plan, and <c>SmartMoveAsync</c> answers a refusal by abandoning
-    ///     the trip rather than re-planning, so the next tick plans from the same position and is refused again. That
-    ///     reads as a character that stops moving for good rather than as one bad leg.
-    ///     <br />
-    ///     What puts a legal position there is the padding. <c>FillWalls</c> grows every wall rect by the collision
-    ///     base, which is the limit the server clamps a slide to rather than one it defeats a character for reaching,
-    ///     so an ordinary graze along a wall parks the character inside it.
+    ///     IsWall restated: a point is a wall exactly when a line passes through the collision box hanging on it,
+    ///     eight wide each side, seven up and two down. The old raster answered this a unit at a time; the exact
+    ///     test has to agree with the geometry at every point, integer or not.
     /// </summary>
     [Test]
-    public void NoDestinationIsReachableFromAStartTheRasterCallsAWall()
+    public void IsWallAgreesWithTheBoxOracle()
     {
         var rng = new Random(5150);
-        var sampled = 0;
+        var disagreements = new List<string>();
 
         foreach ((var map, var geo) in MeshedMaps())
-            for (var trial = 0; trial < TRIALS_PER_MAP; trial++)
+            for (var trial = 0; trial < TRIALS_PER_MAP * 10; trial++)
             {
-                var start = RandomInsideThePadding(rng, map, geo);
-                var end = RandomWalkable(rng, map, geo);
+                var x = geo.MinX + (float)(rng.NextDouble() * (geo.MaxX - geo.MinX));
+                var y = geo.MinY + (float)(rng.NextDouble() * (geo.MaxY - geo.MinY));
+                var expected = BoxHitsALine(geo, x, y);
 
-                if ((start is null) || (end is null))
-                    break;
-
-                Pathfinder.CanMove(start, end)
-                          .Should()
-                          .BeFalse($"{map}: {start} is inside the padding, so the first cell traced is already a wall");
-
-                sampled++;
+                if (Pathfinder.IsWall(new Location(map, x, y)) != expected)
+                    disagreements.Add($"{map}: ({x:N1}, {y:N1}) oracle says wall={expected}");
             }
 
-        sampled.Should()
-               .BeGreaterThan(0, "no sampled point landed inside the padding, so nothing above was actually checked");
+        disagreements.Should()
+                     .BeEmpty();
+    }
+
+    /// <summary>
+    ///     CanMove restated against the server's own move test, transcribed below in double precision with a linear
+    ///     scan: four corner tracks, then the two fence tracks at the destination. The port has to agree on every
+    ///     sampled move in both directions; there is no tolerance.
+    /// </summary>
+    [Test]
+    public void CanMoveAgreesWithTheServerExactly()
+    {
+        var rng = new Random(2024);
+        var disagreements = new List<string>();
+        var checkedMoves = 0;
+
+        foreach ((var map, var geo) in MeshedMaps())
+            for (var trial = 0; trial < TRIALS_PER_MAP * 10; trial++)
+            {
+                var from = RandomWalkable(rng, map, geo);
+
+                if (from is null)
+                    break;
+
+                var angle = (float)(rng.NextDouble() * Math.Tau);
+                var length = (float)(rng.NextDouble() * 300);
+                var to = new Location(map, from.X + MathF.Cos(angle) * length, from.Y + MathF.Sin(angle) * length);
+                var expected = ServerCanMove(geo, from, to);
+                var actual = Pathfinder.CanMove(from, to);
+                checkedMoves++;
+
+                if (expected != actual)
+                    disagreements.Add($"{map}: {Describe(geo, map, from, to)} server={expected} port={actual}");
+            }
+
+        checkedMoves.Should()
+                    .BeGreaterThan(0);
+
+        disagreements.Should()
+                     .BeEmpty();
     }
 
     /// <summary>
@@ -321,8 +341,8 @@ public class WallCrossingTests : PathfindingTestBed
             if (!IsSameMapWalk(edge, map))
                 continue;
 
-            var from = edge.Start.Vertex;
-            var to = edge.End.Vertex;
+            var from = edge.Start;
+            var to = edge.End;
 
             if (!ServerCanMove(geo, from, to))
                 failures.Add($"{map}: {Describe(geo, map, from, to)}");
@@ -343,7 +363,7 @@ public class WallCrossingTests : PathfindingTestBed
             var x1 = to.X + mx;
             var y1 = to.Y + my;
 
-            if (SegmentClear(geo, x0, y0, x1, y1))
+            if (ServerTrack(geo, x0, y0, x1, y1))
                 continue;
 
             var dx = x1 - x0;
@@ -358,7 +378,7 @@ public class WallCrossingTests : PathfindingTestBed
 
                 var lyLow = MathF.Min(line.Point1.Y, line.Point2.Y);
                 var lyHigh = MathF.Max(line.Point1.Y, line.Point2.Y);
-                var next = y0 + (dy * (lx - x0) / dx);
+                var next = y0 + dy * (lx - x0) / dx;
 
                 if ((next < lyLow) || (next > lyHigh))
                     continue;
@@ -378,7 +398,7 @@ public class WallCrossingTests : PathfindingTestBed
 
                 var lxLow = MathF.Min(line.Point1.X, line.Point2.X);
                 var lxHigh = MathF.Max(line.Point1.X, line.Point2.X);
-                var next = x0 + (dx * (ly - y0) / dy);
+                var next = x0 + dx * (ly - y0) / dy;
 
                 if ((next < lxLow) || (next > lxHigh))
                     continue;
@@ -394,7 +414,7 @@ public class WallCrossingTests : PathfindingTestBed
     }
 
     //an unreachable destination is an ordinary answer here - instance maps are not connected to the walkable graph
-    private static async Task<GraphEdge[]> FindPathOrEmptyAsync(ILocation start, ILocation end)
+    private static async Task<PathEdge[]> FindPathOrEmptyAsync(ILocation start, ILocation end)
     {
         try
         {
@@ -406,11 +426,10 @@ public class WallCrossingTests : PathfindingTestBed
         }
     }
 
-    private static bool IsSameMapWalk(GraphEdge edge, string map)
+    private static bool IsSameMapWalk(PathEdge edge, string map)
         => (edge.Type == EdgeType.Walk)
-           && edge.Start.Vertex.OnSameMapAs(edge.End.Vertex)
+           && edge.Start.OnSameMapAs(edge.End)
            && edge.Start
-                  .Vertex
                   .Map
                   .Equals(map, StringComparison.OrdinalIgnoreCase);
 
@@ -441,34 +460,8 @@ public class WallCrossingTests : PathfindingTestBed
             var dy = MathF.Sin(angle);
 
             for (var step = 1; step <= 24; step++)
-                if (!Pathfinder.IsWalkable(new Location(map, seed.X + (dx * step), seed.Y + (dy * step))))
-                    return new Location(map, seed.X + (dx * (step - 1)), seed.Y + (dy * (step - 1)));
-        }
-
-        return null;
-    }
-
-    //the first point along the ray that the raster calls a wall, which is where the padding starts. Distinct from
-    //RandomOffTheFill above: that one wants somewhere the flood never reached, this one wants somewhere the flood
-    //was stopped by the collision base grown onto a wall rect
-    private static ILocation? RandomInsideThePadding(Random rng, string map, GGeometry geo)
-    {
-        for (var attempt = 0; attempt < 200; attempt++)
-        {
-            if (RandomWalkable(rng, map, geo) is not { } seed)
-                return null;
-
-            var angle = (float)(rng.NextDouble() * Math.Tau);
-            var dx = MathF.Cos(angle);
-            var dy = MathF.Sin(angle);
-
-            for (var step = 1; step <= 24; step++)
-            {
-                var candidate = new Location(map, seed.X + (dx * step), seed.Y + (dy * step));
-
-                if (Pathfinder.IsWall(candidate))
-                    return candidate;
-            }
+                if (!Pathfinder.IsWalkable(new Location(map, seed.X + dx * step, seed.Y + dy * step)))
+                    return new Location(map, seed.X + dx * (step - 1), seed.Y + dy * (step - 1));
         }
 
         return null;
@@ -488,12 +481,12 @@ public class WallCrossingTests : PathfindingTestBed
 
             for (var step = 1; step <= 24; step++)
             {
-                if (Pathfinder.IsWalkable(new Location(map, seed.X + (dx * step), seed.Y + (dy * step))))
+                if (Pathfinder.IsWalkable(new Location(map, seed.X + dx * step, seed.Y + dy * step)))
                     continue;
 
                 var depth = step + 1 + (float)(rng.NextDouble() * 2);
 
-                return new Location(map, seed.X + (dx * depth), seed.Y + (dy * depth));
+                return new Location(map, seed.X + dx * depth, seed.Y + dy * depth);
             }
         }
 
@@ -515,65 +508,111 @@ public class WallCrossingTests : PathfindingTestBed
         return null;
     }
 
-    //the server's can_move for a single corner track: does this segment cross any geometry line
-    private static bool SegmentClear(GGeometry geo, float x0, float y0, float x1, float y1)
+    //the server's constants, restated rather than read from CONSTANTS so the oracle cannot inherit a port mistake
+    private const double SERVER_EPS = 1e-8;
+    private const double SERVER_REPS = 2.220446049250313e-16;
+    private const double SERVER_H = 8;
+    private const double SERVER_V = 7;
+    private const double SERVER_VN = 2;
+
+    /// <summary>
+    ///     The server's character move test: the four corners of the collision box each track the move, then two
+    ///     fence tracks across the box at the destination catch an orphan line that slipped between the corners.
+    /// </summary>
+    private static bool ServerCanMove(GGeometry geo, IPoint from, IPoint to)
     {
-        var minX = MathF.Min(x0, x1);
-        var maxX = MathF.Max(x0, x1);
-        var minY = MathF.Min(y0, y1);
-        var maxY = MathF.Max(y0, y1);
-        var dx = x1 - x0;
-        var dy = y1 - y0;
+        double x0 = from.X;
+        double y0 = from.Y;
+        double x1 = to.X;
+        double y1 = to.Y;
 
-        foreach (var line in geo.VerticalLines)
+        foreach ((var mx, var my) in new[] { (-SERVER_H, SERVER_VN), (SERVER_H, SERVER_VN), (-SERVER_H, -SERVER_V), (SERVER_H, -SERVER_V) })
+            if (!ServerTrack(geo, x0 + mx, y0 + my, x1 + mx, y1 + my))
+                return false;
+
+        var px0 = SERVER_H;
+        var px1 = -SERVER_H;
+
+        if (x1 > x0)
         {
-            var lx = line.Point1.X;
+            px0 = -SERVER_H;
+            px1 = SERVER_H;
+        }
 
-            if ((minX > lx) || (maxX < lx))
+        var py0 = SERVER_VN;
+        var py1 = -SERVER_V;
+
+        if (y1 > y0)
+        {
+            py0 = -SERVER_V;
+            py1 = SERVER_VN;
+        }
+
+        if (!ServerTrack(geo, x1 + px1, y1 + py0, x1 + px1, y1 + py1))
+            return false;
+
+        return ServerTrack(geo, x1 + px0, y1 + py1, x1 + px1, y1 + py1);
+    }
+
+    /// <summary>
+    ///     One track of the server's move test over every line, in the server's own clause order. Lines are walked
+    ///     in ascending position so the early break means what it means on the server; the span ends are taken
+    ///     low-to-high because that is how the map data lists them.
+    /// </summary>
+    private static bool ServerTrack(
+        GGeometry geo,
+        double x0,
+        double y0,
+        double x1,
+        double y1)
+    {
+        var minx = Math.Min(x0, x1);
+        var maxx = Math.Max(x0, x1);
+        var miny = Math.Min(y0, y1);
+        var maxy = Math.Max(y0, y1);
+
+        foreach (var line in geo.VerticalLines.OrderBy(line => line.On))
+        {
+            double on = line.On;
+            double a = Math.Min(line.Start, line.End);
+            double b = Math.Max(line.Start, line.End);
+
+            //moving onto the line, or along it
+            if ((on == x1) && (((a <= y1) && (b >= y1)) || ((on == x0) && (y0 <= a) && (y1 > a))))
+                return false;
+
+            if (minx > on)
                 continue;
 
-            var lyLow = MathF.Min(line.Point1.Y, line.Point2.Y);
-            var lyHigh = MathF.Max(line.Point1.Y, line.Point2.Y);
+            if (maxx < on)
+                break;
 
-            //a segment with no horizontal extent only ever meets a vertical line it lies along, and the crossing
-            //below divides by that extent
-            if (MathF.Abs(dx) < 1e-6f)
-            {
-                if ((maxY >= (lyLow - EPS)) && (minY <= (lyHigh + EPS)))
-                    return false;
+            var next = y0 + (y1 - y0) * (on - x0) / (x1 - x0 + SERVER_REPS);
 
-                continue;
-            }
-
-            var next = y0 + (dy * (lx - x0) / dx);
-
-            if ((next < (lyLow - EPS)) || (next > (lyHigh + EPS)))
+            if (!((a - SERVER_EPS <= next) && (next <= b + SERVER_EPS)))
                 continue;
 
             return false;
         }
 
-        foreach (var line in geo.HorizontalLines)
+        foreach (var line in geo.HorizontalLines.OrderBy(line => line.On))
         {
-            var ly = line.Point1.Y;
+            double on = line.On;
+            double a = Math.Min(line.Start, line.End);
+            double b = Math.Max(line.Start, line.End);
 
-            if ((minY > ly) || (maxY < ly))
+            if ((on == y1) && (((a <= x1) && (b >= x1)) || ((on == y0) && (x0 <= a) && (x1 > a))))
+                return false;
+
+            if (miny > on)
                 continue;
 
-            var lxLow = MathF.Min(line.Point1.X, line.Point2.X);
-            var lxHigh = MathF.Max(line.Point1.X, line.Point2.X);
+            if (maxy < on)
+                break;
 
-            if (MathF.Abs(dy) < 1e-6f)
-            {
-                if ((maxX >= (lxLow - EPS)) && (minX <= (lxHigh + EPS)))
-                    return false;
+            var next = x0 + (x1 - x0) * (on - y0) / (y1 - y0 + SERVER_REPS);
 
-                continue;
-            }
-
-            var next = x0 + (dx * (ly - y0) / dy);
-
-            if ((next < (lxLow - EPS)) || (next > (lxHigh + EPS)))
+            if (!((a - SERVER_EPS <= next) && (next <= b + SERVER_EPS)))
                 continue;
 
             return false;
@@ -582,13 +621,21 @@ public class WallCrossingTests : PathfindingTestBed
         return true;
     }
 
-    //the server checks all four corners of the collision base, not the centre
-    private static bool ServerCanMove(GGeometry geo, IPoint from, IPoint to)
+    private static bool BoxHitsALine(GGeometry geo, float x, float y)
     {
-        foreach ((var mx, var my) in CORNERS)
-            if (!SegmentClear(geo, from.X + mx, from.Y + my, to.X + mx, to.Y + my))
-                return false;
+        var left = x - 8f;
+        var right = x + 8f;
+        var top = y - 7f;
+        var bottom = y + 2f;
 
-        return true;
+        foreach (var line in geo.VerticalLines)
+            if ((line.On >= left) && (line.On <= right) && (Math.Min(line.Start, line.End) <= bottom) && (Math.Max(line.Start, line.End) >= top))
+                return true;
+
+        foreach (var line in geo.HorizontalLines)
+            if ((line.On >= top) && (line.On <= bottom) && (Math.Min(line.Start, line.End) <= right) && (Math.Max(line.Start, line.End) >= left))
+                return true;
+
+        return false;
     }
 }

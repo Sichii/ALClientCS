@@ -42,7 +42,7 @@ public class ChaseSpeedTests : GameDataTestBed
 
             monster.ChaseSpeed
                    .Should()
-                   .BeApproximately(MathF.Floor((monster.Speed * multiplier) + 0.5f), 0.001f, $"{monster.Accessor} names no charge");
+                   .BeApproximately(MathF.Floor(monster.Speed * multiplier + 0.5f), 0.001f, $"{monster.Accessor} names no charge");
         }
     }
 

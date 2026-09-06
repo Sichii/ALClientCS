@@ -25,7 +25,7 @@ public static class CONSTANTS
 
     /// <summary>
     ///     How close a door lets you through. Not a centre-to-centre radius - the server measures boxes, and an
-    ///     exit's <c>ReachableFrom</c> is the region this builds.
+    ///     exit's <c>ReachBand</c> inflated by this is the region it accepts.
     /// </summary>
     public const float DOOR_RANGE = 112f * RANGE_SHAVE;
 

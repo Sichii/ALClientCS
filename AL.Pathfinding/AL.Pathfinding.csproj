@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <Title>AL.Pathfinding</Title>
-        <Description>Pathfinding library for the ALClientCS project. Contains a dijkstra implementation with one-way nodes, and node interconnect metadata.</Description>
+        <Description>Pathfinding library for the ALClientCS project. Exact server movement rules, a per-map triangle mesh with funnel string-pulling, and a portal graph between maps.</Description>
     </PropertyGroup>
 
     <ItemGroup>
@@ -10,7 +10,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OptimizedPriorityQueue" Version="5.1.0"/>
         <PackageReference Include="Poly2Tri.NetStandard2" Version="1.0.0"/>
     </ItemGroup>
 

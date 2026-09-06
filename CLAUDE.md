@@ -65,7 +65,7 @@ ALClientCS.slnx (net10.0)
 ├── AL.Data            — static 'G' game data (GameData), enriched with derived members
 ├── AL.APIClient       — REST layer: login, server list, character list (RestSharp)
 ├── AL.SocketClient    — socket.io transport and the raw socket event model (SocketIOClient)
-├── AL.Pathfinding     — nav mesh triangulation (Poly2Tri) + A* (OptimizedPriorityQueue)
+├── AL.Pathfinding     — exact server movement rules, triangle mesh + funnel (Poly2Tri at build), portal graph
 ├── AL.Client          — ALClient and per-class subclasses; the public entry point
 ├── AL.MemberGenerator — codegen console tool, emits a `dataMembers` folder (not shipped)
 ├── AL.Visualizer      — standalone CLI that renders navmeshes/paths to PNG via SkiaSharp (not shipped)
@@ -133,7 +133,14 @@ var bounds = gMonster.BoundingBase;
 
 ### Pathfinding (`AL.Pathfinding`)
 
-Two structures, both built at init: a **triangulated navigation mesh** for complex movement, and a **2D byte array** for simple movement. Poly2Tri does the triangulation, OptimizedPriorityQueue backs the search. `GraphBase.OpenNode` uses its `Contains` + `UpdatePriority` (decrease-key), which the BCL `PriorityQueue<T,TP>` has no equivalent for — swapping to the BCL type means restructuring the search around lazy deletion (enqueue duplicates, skip stale pops). That is a normal transformation, not a blocker; which is actually faster here has not been measured. `AL.Visualizer` renders the results to PNG; run it by hand to eyeball a mesh, since no test asserts visually.
+Built once by `Pathfinder.Initialize()`; every query after that is lock-free. The geometry queries (`CanMove`, `IsWall`, `IsWalkable`, `TryFindNearestWalkable`) are allocation-free once warm; a search allocates only its result legs.
+
+- **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall` are answered from it. The lines carry the local ice golem corridor carve.
+- **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at build. Flat arrays, neighbour ids, a uniform grid for `TriangleAt`. `IsWalkable` and `TryFindNearestWalkable` are containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled; where the two floods disagree, `GameData.CarveCorridors` closes the gap.
+- **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a rectangle band plus a range: a door is the real rounded rectangle the server opens from, a destination a circle).
+- **`PortalGraph`** joins maps: arrival nodes (spawns something lands on), departure nodes (exits), static walk costs funnelled at build, town and leave edges. A search adds a virtual start and its ends, runs Dijkstra over the nodes, and expands the winner into `PathEdge`s. Any of N ends: the first settled wins.
+
+`PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the `Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
 
 ## Entity Persistence Rules
 

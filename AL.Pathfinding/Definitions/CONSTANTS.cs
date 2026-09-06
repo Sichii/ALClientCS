@@ -73,13 +73,17 @@ public static class CONSTANTS
     public const int MAX_UNSTICK_DISTANCE = 24;
 
     /// <summary>
-    ///     How many of the nearest mesh nodes a point off the mesh will try to reach before settling for the nearest
-    ///     one whether it can be reached or not. Only the fallback path pays for this - a point inside a triangle is
-    ///     answered from the triangle's own three vertices - and a walkable point almost always reaches the first
-    ///     candidate, so the bound is there for the cases that do not. Sixteen left one map with a start whose whole
-    ///     near neighbourhood was across a line; this closed it, and cost nothing measurable to do so.
+    ///     How many of the nearest mesh vertices a point outside every triangle will try to reach before settling for
+    ///     the nearest one whether it can be reached or not. A walkable point almost always reaches the first
+    ///     candidate; the bound is there for the cases that do not.
     /// </summary>
-    public const int REACHABLE_NODE_CANDIDATES = 64;
+    public const int NEAREST_VERTEX_CANDIDATES = 64;
+
+    /// <summary>
+    ///     The side of a cell in the uniform grid that answers which triangle a point is in. Sized to the typical
+    ///     triangle: a cell holds a handful of candidates, and the grid over the largest map is a few thousand cells.
+    /// </summary>
+    public const int MESH_GRID_CELL = 64;
 
     /// <summary>
     ///     The default values of a player bounding base.

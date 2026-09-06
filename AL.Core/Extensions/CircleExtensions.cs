@@ -8,66 +8,43 @@ namespace AL.Core.Extensions;
 
 public static class CircleExtensions
 {
-    /// <summary>
-    ///     Determines where a line first intersects this circle.
-    /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="line">
-    ///     The line.
-    /// </param>
-    /// <returns>
-    ///     <see cref="Point" />
-    ///     <br />
-    ///     The point at which the <paramref name="line" /> intersects this circle.
-    ///     <br />
-    ///     <c>
-    ///         null
-    ///     </c>
-    ///     if they don't intersect.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     null
-    /// </exception>
-    public static Point? CalculateIntersectionEntryPoint(this ICircle circle, ILine line)
+    extension<T>(T circle) where T: ICircle, allows ref struct
     {
-        ArgumentNullException.ThrowIfNull(circle);
+        /// <summary>
+        ///     The distance from the edge of this circle to a point, zero when the point is inside.
+        /// </summary>
+        public float EdgeToCenterDistance<T2>(T2 other) where T2: IPoint, allows ref struct
+            => MathF.Max(0f, circle.Distance(other) - circle.Radius);
 
-        ArgumentNullException.ThrowIfNull(line);
+        /// <summary>
+        ///     The distance between the edges of two circles, zero when they overlap.
+        /// </summary>
+        public float EdgeToEdgeDistance<T2>(T2 other) where T2: ICircle, allows ref struct
+            => MathF.Max(0f, circle.Distance(other) - circle.Radius - other.Radius);
 
-        var start = line.Point1;
-        var end = line.Point2;
-        var dx = end.X - start.X;
-        var dy = end.Y - start.Y;
-        var sqr = dx * dx + dy * dy;
-        var lne = 2 * (dx * (start.X - circle.X) + dy * (start.Y - circle.Y));
+        /// <summary>
+        ///     Lazily generates points spaced evenly around the circumference.
+        /// </summary>
+        public IEnumerable<Point> GenerateCircumferencePoints(float numberOfPoints, float startingAngle = 0f)
+            => Circumference(
+                circle.X,
+                circle.Y,
+                circle.Radius,
+                numberOfPoints,
+                startingAngle);
 
-        var quad = (start.X - circle.X) * (start.X - circle.X)
-                   + (start.Y - circle.Y) * (start.Y - circle.Y)
-                   - circle.Radius * circle.Radius;
+        /// <summary>
+        ///     Whether two circles touch or overlap.
+        /// </summary>
+        public bool Intersects<T2>(T2 other) where T2: ICircle, allows ref struct => circle.Distance(other) <= (circle.Radius + other.Radius);
 
-        var descriminant = lne * lne - 4 * sqr * quad;
-
-        if ((sqr <= 0.0000001) || (descriminant < 0))
-            return default;
-
-        descriminant = (float)Math.Sqrt(descriminant);
-
-        if (descriminant >= 0)
-        {
-            var t = (-lne - descriminant) / (2 * sqr);
-
-            //if there's an intersection, we only care about the close one
-            if (t is >= 0 and <= 1)
-                return new Point(start.X + t * dx, start.Y + t * dy);
-        }
-
-        return default;
+        /// <summary>
+        ///     Lazily generates points inside the circle on a grid of <paramref name="numberOfSteps" /> per diameter.
+        /// </summary>
+        public IEnumerable<Point> Points(float numberOfSteps) => InnerPoints(circle.X, circle.Y, circle.Radius, numberOfSteps);
     }
+
+    //kept on the interface: Contains has the same shape on rectangles, polygons and triangles
 
     /// <summary>
     ///     Determines whether this circle fully encompasses another circle.
@@ -137,161 +114,40 @@ public static class CircleExtensions
         return point.Distance(circle) < circle.Radius;
     }
 
-    /// <summary>
-    ///     Calculates the edge-to-center euclidean distance to some center-point.
-    /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="other">
-    ///     A center-point of some entity.
-    /// </param>
-    /// <returns>
-    ///     <see cref="float" />
-    ///     <br />
-    ///     The euclidean distance between the center-point of this circle and the some other point, minus this circle's
-    ///     radius. <paramref name="other" />.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static float EdgeToCenterDistance(this ICircle circle, IPoint other)
+    //an extension member with a ref struct receiver cannot be an iterator, so the lazy ones hand their numbers to these
+    private static IEnumerable<Point> Circumference(
+        float x,
+        float y,
+        float radius,
+        float numberOfPoints,
+        float startingAngle)
     {
-        ArgumentNullException.ThrowIfNull(circle);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        return Math.Max(0, circle.Distance(other) - circle.Radius);
-    }
-
-    /// <summary>
-    ///     Calculates the edge-to-edge euclidean distance to another circle.
-    /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="other">
-    ///     Another circle.
-    /// </param>
-    /// <returns>
-    ///     <see cref="float" />
-    ///     <br />
-    ///     The euclidean distance between the centerpoints of two circles, minus the sum of their radi.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static float EdgeToEdgeDistance(this ICircle circle, ICircle other)
-    {
-        ArgumentNullException.ThrowIfNull(circle);
-
-        ArgumentNullException.ThrowIfNull(other);
-
-        return Math.Max(0, circle.Distance(other) - circle.Radius - other.Radius);
-    }
-
-    /// <summary>
-    ///     Lazily generates points along the circumference of this circle.
-    /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="numberOfPoints">
-    ///     The number of points to generate.
-    /// </param>
-    /// <param name="startingAngle">
-    ///     The starting angle.
-    /// </param>
-    /// <returns>
-    ///     <see cref="IEnumerable{T}" /> of <see cref="Point" />
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    public static IEnumerable<Point> GenerateCircumferencePoints(this ICircle circle, float numberOfPoints, float startingAngle = 0f)
-    {
-        ArgumentNullException.ThrowIfNull(circle);
-
+        var center = new Point(x, y);
         var anglePerPoint = 360 / numberOfPoints;
 
         for (var traversedAngle = 0f; traversedAngle.IsLess(360, CONSTANTS.EPSILON); traversedAngle += anglePerPoint)
-            yield return circle.AngularOffset(startingAngle + traversedAngle, circle.Radius);
+            yield return center.AngularOffset(startingAngle + traversedAngle, radius);
     }
 
-    /// <summary>
-    ///     Determines whether this circle intersects with another circle.
-    /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="other">
-    ///     Another circle.
-    /// </param>
-    /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this circle intersects the <paramref name="other" />,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     otherwise.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
-    public static bool Intersects(this ICircle circle, ICircle other)
+    private static IEnumerable<Point> InnerPoints(
+        float cx,
+        float cy,
+        float radius,
+        float numberOfSteps)
     {
-        ArgumentNullException.ThrowIfNull(circle);
+        var stepSize = radius / numberOfSteps * 2;
+        var radiusSquared = radius * radius;
 
-        ArgumentNullException.ThrowIfNull(other);
-
-        return circle.Distance(other) <= (circle.Radius + other.Radius);
-    }
-
-    /// <summary>
-    ///     Lazily generates all points within this circle.
-    /// </summary>
-    /// <param name="circle">
-    /// </param>
-    /// <param name="numberOfSteps">
-    ///     Determines step size (Diameter / numberOfSteps).
-    ///     <br />
-    ///     <b>
-    ///         Even numbers work best.
-    ///     </b>
-    /// </param>
-    /// <returns>
-    ///     <see cref="IEnumerable{T}" /> of <see cref="Point" />
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    public static IEnumerable<Point> Points(this ICircle circle, float numberOfSteps)
-    {
-        ArgumentNullException.ThrowIfNull(circle);
-
-        var stepSize = circle.Radius / numberOfSteps * 2;
-
-        for (var x = circle.X - circle.Radius; x <= circle.X; x += stepSize)
-            for (var y = circle.Y - circle.Radius; y <= circle.Y; y += stepSize)
+        for (var x = cx - radius; x <= cx; x += stepSize)
+            for (var y = cy - radius; y <= cy; y += stepSize)
             {
-                var xdc = x - circle.X;
-                var ydc = y - circle.Y;
+                var xdc = x - cx;
+                var ydc = y - cy;
 
-                if ((xdc * xdc + ydc * ydc) <= Math.Pow(circle.Radius, 2))
+                if ((xdc * xdc + ydc * ydc) <= radiusSquared)
                 {
-                    var xS = circle.X - xdc;
-                    var yS = circle.Y - ydc;
+                    var xS = cx - xdc;
+                    var yS = cy - ydc;
 
                     yield return new Point(x, y);
                     yield return new Point(x, yS);

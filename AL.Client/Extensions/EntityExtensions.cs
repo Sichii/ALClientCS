@@ -229,8 +229,8 @@ public static class EntityExtensions
 
         return ResolveDamageType(attacker, projectile.Source) switch
         {
-            DamageType.Physical => Utilities.CalculateDamageMultiplier(target.Armor - (attacker.APiercing * 2) - (skill?.APiercing ?? 0f)),
-            DamageType.Magical  => Utilities.CalculateDamageMultiplier(target.Resistance - (attacker.RPiercing * 2) - (skill?.RPiercing ?? 0f)),
+            DamageType.Physical => Utilities.CalculateDamageMultiplier(target.Armor - attacker.APiercing * 2 - (skill?.APiercing ?? 0f)),
+            DamageType.Magical  => Utilities.CalculateDamageMultiplier(target.Resistance - attacker.RPiercing * 2 - (skill?.RPiercing ?? 0f)),
 
             //pure ignores defenses entirely, and heals never carry damage
             _ => 1f
@@ -266,7 +266,7 @@ public static class EntityExtensions
                                ?.DamageType
                          ?? DamageType.Physical;
 
-        if (player.Slots.TryGetValue(Slot.MainHand, out var mainHand) && (mainHand is not null))
+        if (player.Slots.TryGetValue(Slot.MainHand, out var mainHand) && mainHand is not null)
         {
             var weaponDamageType = GameData.Items[mainHand.Name]?.DamageType ?? DamageType.None;
 
