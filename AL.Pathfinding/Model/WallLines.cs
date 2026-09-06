@@ -276,7 +276,8 @@ public sealed class WallLines
 
             //the server's first check, before the range test: a track may not end on a line, and may not slide up
             //a line's own column from below its start to past it. A track sliding down the column is allowed,
-            //which is the server's quirk and is kept
+            //which is the server's quirk and is kept. The server compares exactly here, so a tolerance would change the answer
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             if ((lineOn == a1) && (((lineStart <= b1) && (lineEnd >= b1)) || ((lineOn == a0) && (b0 <= lineStart) && (b1 > lineStart))))
                 return false;
 

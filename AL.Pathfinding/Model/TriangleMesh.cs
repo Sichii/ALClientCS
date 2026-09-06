@@ -1,5 +1,4 @@
 #region
-using System.Collections;
 using System.Runtime.CompilerServices;
 using AL.Core.Geometry;
 using AL.Pathfinding.Definitions;

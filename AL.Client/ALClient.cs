@@ -78,7 +78,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     { MonsterName : { MapAccessor: GoldValue } }
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
-        = new Dictionary<string, IReadOnlyDictionary<string, int>>();
 
     /// <summary>
     ///     The emotions this character has unlocked and their unlock timestamps. Populated from
@@ -4268,7 +4267,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             //MoveAsync has no already-there guard, so the zero-length walk a start already inside its end is answered
             //with would emit a move to the position the character is already on
-            if ((edge.Type == EdgeType.Walk) && (edge.Cost == 0f) && (edge.Start.DistanceWithMapCheck(edge.End) == 0f))
+            if (edge is { Type: EdgeType.Walk, Cost: 0f } && (edge.Start.DistanceWithMapCheck(edge.End) == 0f))
                 continue;
 
             try
@@ -4608,6 +4607,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 //bounds-checked: a frame carrying a shorter inventory than the one these slots were read from would
                 //otherwise throw inside the callback, and the emit is already with the server by then
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
                 if ((data.Inventory == null) || (inventorySlot1 >= data.Inventory.Count) || (inventorySlot2 >= data.Inventory.Count))
                     return TaskCache.FALSE;
 

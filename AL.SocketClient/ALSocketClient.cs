@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -14,7 +13,6 @@ using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using AL.SocketClient.Json.SystemTextJson;
 using AL.SocketClient.SocketModel;
-using Chaos.Extensions.Common;
 using SocketIO.Core;
 using SocketIO.Serializer.Core;
 using SocketIO.Serializer.SystemTextJson;
@@ -51,6 +49,8 @@ public sealed class ALSocketClient : IALSocketClient
     /// <summary>
     ///     The single consumer of <see cref="Frames" />. One per client, which is what makes the order one.
     /// </summary>
+    //held only to keep the consumer loop rooted for the client's lifetime; nothing awaits it
+    // ReSharper disable once NotAccessedField.Local
     private readonly Task Pump;
 
     private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;

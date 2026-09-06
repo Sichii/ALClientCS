@@ -81,10 +81,10 @@ public class BoundingBaseTests : GameDataTestBed
         mole.Should()
             .NotBeNull();
 
-        mole!.HitBox
-             .HalfWidth
-             .Should()
-             .BeApproximately(15f, 0.001f);
+        mole.HitBox
+            .HalfWidth
+            .Should()
+            .BeApproximately(15f, 0.001f);
 
         mole.HitBox
             .VerticalNorth

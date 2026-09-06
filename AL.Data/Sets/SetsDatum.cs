@@ -29,7 +29,7 @@ public class SetsDatum : DatumBase<GSet>
     public GSet MMerchant { get; init; } = null!;
 
     [JsonPropertyName("mpx")]
-    public GSet MPX { get; init; } = null!;
+    public GSet Mpx { get; init; } = null!;
 
     [JsonPropertyName("mpriest")]
     public GSet MPriest { get; init; } = null!;
@@ -59,10 +59,10 @@ public class SetsDatum : DatumBase<GSet>
     public GSet Vampires { get; init; } = null!;
 
     [JsonPropertyName("wt3")]
-    public GSet WT3 { get; init; } = null!;
+    public GSet Wt3 { get; init; } = null!;
 
     [JsonPropertyName("wt4")]
-    public GSet WT4 { get; init; } = null!;
+    public GSet Wt4 { get; init; } = null!;
 
     [JsonPropertyName("wanderers")]
     public GSet Wanderers { get; init; } = null!;

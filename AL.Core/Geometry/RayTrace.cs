@@ -123,7 +123,7 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
     /// </summary>
     public readonly RayTrace GetEnumerator() => this;
 
-    IEnumerator<Point> IEnumerable<Point>.GetEnumerator() => this;
+    readonly IEnumerator<Point> IEnumerable<Point>.GetEnumerator() => this;
 
-    IEnumerator IEnumerable.GetEnumerator() => this;
+    readonly IEnumerator IEnumerable.GetEnumerator() => this;
 }

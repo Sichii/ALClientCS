@@ -130,6 +130,9 @@ public class PathParityTests : PathfindingTestBed
         return (last.Map == recorded.End.Map) && (last.Distance(end) <= (recorded.Radius + 0.01f));
     }
 
+    //these mirror the recorded corpus file, so every member stays whether the assertions read it or not: dropping one
+    //would make the record stop describing what old-paths.json holds
+    // ReSharper disable NotAccessedPositionalProperty.Local
     private sealed record Case(
         int Id,
         Spot Start,

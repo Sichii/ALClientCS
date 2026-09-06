@@ -2,7 +2,6 @@
 using AL.Client.Extensions;
 using AL.Data;
 using AL.SocketClient.Model;
-using AL.Tests.Characterization;
 using FluentAssertions;
 #endregion
 

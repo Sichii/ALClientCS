@@ -29,7 +29,7 @@ namespace AL.Tests.Characterization;
 public class GameDataLoadCharacterization
 {
     private static readonly FieldInfo[] StaticBackingFields = typeof(GameData).GetFields(BindingFlags.Static | BindingFlags.NonPublic)
-                                                                              .Where(field => !field.IsLiteral && !field.IsInitOnly)
+                                                                              .Where(field => field is { IsLiteral: false, IsInitOnly: false })
                                                                               .ToArray();
 
     /// <summary>

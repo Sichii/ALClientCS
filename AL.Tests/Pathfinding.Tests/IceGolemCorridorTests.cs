@@ -42,8 +42,7 @@ public class IceGolemCorridorTests : PathfindingTestBed
         //command, which is what keeps a mid-lake re-issue (and its jail) out of the design entirely
         var lakeCrossings = path.Count(edge => (Math.Min(edge.Start.Y, edge.End.Y) < JAIL_MIN_Y)
                                                && (Math.Max(edge.Start.Y, edge.End.Y) > JAIL_MAX_Y)
-                                               && (edge.Start.X > JAIL_MIN_X)
-                                               && (edge.Start.X < JAIL_MAX_X));
+                                               && edge.Start.X is > JAIL_MIN_X and < JAIL_MAX_X);
 
         lakeCrossings.Should()
                      .Be(1, "the water span should be walked as exactly one leg");
@@ -55,7 +54,7 @@ public class IceGolemCorridorTests : PathfindingTestBed
                          edge.End
                      })
             {
-                var jailable = (point.X > JAIL_MIN_X) && (point.X < JAIL_MAX_X) && (point.Y > JAIL_MIN_Y) && (point.Y < JAIL_MAX_Y);
+                var jailable = point.X is > JAIL_MIN_X and < JAIL_MAX_X && point.Y is > JAIL_MIN_Y and < JAIL_MAX_Y;
 
                 jailable.Should()
                         .BeFalse($"no leg may start or end over the lake, but ({point.X}, {point.Y}) does");

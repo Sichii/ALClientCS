@@ -48,7 +48,7 @@ public static class ShallowMerge<T> where T: class
     //Character, a private setter declared on EntityBase is not inherited, so CanWrite already reads false.
     //ShallowMergeIgnore guards what the accessor cannot cover - a block declared on the merged type itself
     private static bool IsMergeable(PropertyInfo property)
-        => property.CanRead && property.CanWrite && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
+        => property is { CanRead: true, CanWrite: true } && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
 
     /// <summary>
     ///     Merges all (public/non-public) instanced properties from <paramref name="fromObj" /> into

@@ -397,8 +397,7 @@ public class ClientTests
         //ShallowMerge<T>.IsMergeable, restated
         var mergeable = typeof(Character).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                                          .Where(property
-                                             => property.CanRead
-                                                && property.CanWrite
+                                             => property is { CanRead: true, CanWrite: true }
                                                 && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true))
                                          .Select(property => property.Name)
                                          .ToArray();

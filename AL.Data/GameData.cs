@@ -773,7 +773,7 @@ public record GameData
                         locations.Add(new Location(map.Accessor, position));
 
                 //populate exits with transport npc data
-                if ((nData.Role == NPCRole.Transport) && (nData.Places != null))
+                if (nData is { Role: NPCRole.Transport, Places: not null })
                     foreach ((var mapAccessor, var spawnId) in nData.Places)
                         foreach (var location in locations)
                         {

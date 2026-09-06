@@ -5,6 +5,10 @@ using AL.Core.Interfaces;
 using Chaos.Extensions.Common;
 #endregion
 
+//a default-constructed ValueLocation carries a null map despite Map's annotation, and EqualsI throws on a null
+//receiver, so the map null checks below are load-bearing
+// ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+
 namespace AL.Core.Geometry;
 
 /// <summary>

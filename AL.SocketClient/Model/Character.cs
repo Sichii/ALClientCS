@@ -222,6 +222,8 @@ public class Character : Player, IEquatable<Character>
     public override void OnDeserialized()
     {
         base.OnDeserialized();
+
+        // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         Inventory?.SetCapacity(InventorySize);
     }
 
@@ -300,6 +302,7 @@ public class Character : Player, IEquatable<Character>
 
         //null before the first character frame lands, which a q_data cannot precede in practice but costs nothing
         //to allow for
+        // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         Inventory?.SetPrediction(inventorySlot, prediction);
     }
 

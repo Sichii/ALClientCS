@@ -772,7 +772,7 @@ public sealed class NonPublicMemberCharacterization
         {
             //Entities is `= null!` and only ever filled by deserialization, so a frame can genuinely arrive without it
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-            case StartData start when start.Entities is not null:
+            case StartData { Entities: not null } start:
                 foreach (var probe in CollectProbes(start.Entities))
                     yield return probe;
 

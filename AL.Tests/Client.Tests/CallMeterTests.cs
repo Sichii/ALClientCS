@@ -105,6 +105,8 @@ public class CallMeterTests
     {
         var now = 0L;
 
+        //the fake clock is the point: advancing `now` between records is how the test moves time
+        // ReSharper disable once AccessToModifiedClosure
         var meter = new CallMeter
         {
             Timestamp = () => now
@@ -199,6 +201,8 @@ public class CallMeterTests
         var meter = new CallMeter();
         var source = "movement";
 
+        //reassigning `source` mid-run is how the test switches which loop the meter bills
+        // ReSharper disable once AccessToModifiedClosure
         meter.SourceResolver = () => source;
 
         meter.Record(ALSocketEmitType.Cruise);

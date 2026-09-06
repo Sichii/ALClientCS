@@ -96,7 +96,7 @@ public static class Funnel
             var apex = start;
             var left = lefts[0];
             var right = rights[0];
-            var apexIndex = 0;
+            int apexIndex;
             var leftIndex = 0;
             var rightIndex = 0;
 

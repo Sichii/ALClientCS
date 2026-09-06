@@ -77,7 +77,7 @@ public class NavMeshBuilderTests : GameDataTestBed
     public void MainVerticesCarryEdgesExactlyWhenTheyAreNotAPinch()
     {
         var mesh = BuildMain();
-        var incident = new List<int>[mesh.Vertices.Length];
+        var incident = new List<int>?[mesh.Vertices.Length];
 
         for (var triangle = 0; triangle < mesh.TriangleCount; triangle++)
             for (var slot = 0; slot < 3; slot++)

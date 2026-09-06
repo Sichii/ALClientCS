@@ -28,6 +28,9 @@ public static class LocationExtensions
             if ((location.Map == string.Empty) || (other.Map == string.Empty))
                 return true;
 
+            //the annotation says non-null, but a default-constructed ValueLocation carries a null map and EqualsI
+            //throws on a null receiver
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             return location.Map is not null && other.Map is not null && location.Map.EqualsI(other.Map);
         }
 

@@ -106,7 +106,7 @@ public sealed class NavMesh
             triangle = following;
         }
 
-        bool Satisfies(int triangle) => next >= 0 ? Mesh.SlotOfVertex(triangle, next) >= 0 : triangle == endTriangle;
+        bool Satisfies(int candidate) => next >= 0 ? Mesh.SlotOfVertex(candidate, next) >= 0 : candidate == endTriangle;
 
         //the way round on which the funnel pulls straight past the pivot: the origin's corner that is neither the
         //pivot nor the previous vertex lies on the same side of the incoming leg as the point ahead, so rotating
@@ -140,30 +140,30 @@ public sealed class NavMesh
         static float Turn(Point from, Point at, Point to) => (at.X - from.X) * (to.Y - at.Y) - (at.Y - from.Y) * (to.X - at.X);
 
         //the pivot's other edge in the triangle, which is the one not entered by
-        int Following(int triangle, int from)
+        int Following(int current, int from)
         {
-            var pivotSlot = Mesh.SlotOfVertex(triangle, pivot);
-            var across = Mesh.Neighbour(triangle, (pivotSlot + 1) % 3);
+            var pivotSlot = Mesh.SlotOfVertex(current, pivot);
+            var across = Mesh.Neighbour(current, (pivotSlot + 1) % 3);
 
-            return across == from ? Mesh.Neighbour(triangle, (pivotSlot + 2) % 3) : across;
+            return across == from ? Mesh.Neighbour(current, (pivotSlot + 2) % 3) : across;
         }
 
         //how many triangles the rotation passes before one satisfies, or -1 off the boundary or full circle
-        int Steps(int triangle)
+        int Steps(int current)
         {
             var from = origin;
             var steps = 0;
 
-            while ((triangle >= 0) && (triangle != origin))
+            while ((current >= 0) && (current != origin))
             {
                 steps++;
 
-                if (Satisfies(triangle))
+                if (Satisfies(current))
                     return steps;
 
-                var following = Following(triangle, from);
-                from = triangle;
-                triangle = following;
+                var following = Following(current, from);
+                from = current;
+                current = following;
             }
 
             return -1;
@@ -501,6 +501,8 @@ public sealed class NavMesh
         {
             var corner = Mesh.Corners[endTriangle * 3 + slot];
 
+            //float.MaxValue is the unreached sentinel the search writes, so this is an identity test, not a measurement
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (scratch.VertexCost[corner] == float.MaxValue)
                 continue;
 

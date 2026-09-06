@@ -187,8 +187,7 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
     private static bool HasIndex(MemberInfo member) => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null;
 
     private static bool IsPositional(Type typeToConvert)
-        => !typeToConvert.IsAbstract
-           && !typeToConvert.IsPrimitive
+        => typeToConvert is { IsAbstract: false, IsPrimitive: false }
            && (typeToConvert.GetProperties(FLAGS)
                             .Any(HasIndex)
                || typeToConvert.GetFields(FLAGS)

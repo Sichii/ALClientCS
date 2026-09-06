@@ -168,6 +168,8 @@ internal sealed class PortalGraph
                     target.Reach,
                     scratch);
 
+                //float.MaxValue is WalkCost's unreachable sentinel, so this is an identity test, not a measurement
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
                 if (cost == float.MaxValue)
                     continue;
 
