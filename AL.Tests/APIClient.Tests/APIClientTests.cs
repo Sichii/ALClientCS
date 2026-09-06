@@ -9,9 +9,12 @@ namespace AL.Tests.APIClient.Tests;
 ///     The game-data cache, checked against a host nothing answers on so the suite pays no download.
 /// </summary>
 /// <remarks>
-///     Only the eviction half is worth a test - that two successful calls share one <c>Lazy</c> is what the type
-///     does. A cached failure would be the expensive kind of bug: one blocked fetch at boot and every later caller
-///     in the process gets the same exception back forever, with no request going out to say otherwise.
+///     Only the eviction half is worth a test - that two successful calls share one
+///     <c>
+///         Lazy
+///     </c>
+///     is what the type does. A cached failure would be the expensive kind of bug: one blocked fetch at boot and every
+///     later caller in the process gets the same exception back forever, with no request going out to say otherwise.
 /// </remarks>
 public class GameDataCacheTests
 {

@@ -47,4 +47,3 @@ public static class StringExtensions
                 .ToArray());
     }
 }
-

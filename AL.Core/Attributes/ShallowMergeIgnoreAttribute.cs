@@ -15,7 +15,11 @@ namespace AL.Core.Attributes;
 ///     <c>
 ///         typeof(T)
 ///     </c>
-///     , and a private setter declared on a <i>base</i> of T is not inherited, so from T's view
+///     , and a private setter declared on a
+///     <i>
+///         base
+///     </i>
+///     of T is not inherited, so from T's view
 ///     <c>
 ///         CanWrite
 ///     </c>
@@ -23,9 +27,9 @@ namespace AL.Core.Attributes;
 ///     <c>
 ///         ShallowMerge&lt;Character&gt;
 ///     </c>
-///     . This attribute covers the two cases the accessor cannot: a property declared on the merged type itself, and
-///     a setter someone later widens back to protected or public. Lives here rather than beside the merge helper
-///     because the properties carrying it are in AL.SocketClient, which cannot see AL.Client.
+///     . This attribute covers the two cases the accessor cannot: a property declared on the merged type itself, and a
+///     setter someone later widens back to protected or public. Lives here rather than beside the merge helper because the
+///     properties carrying it are in AL.SocketClient, which cannot see AL.Client.
 /// </remarks>
 /// <seealso cref="System.Attribute" />
 [AttributeUsage(AttributeTargets.Property)]

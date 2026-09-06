@@ -28,11 +28,11 @@ public class SetsDatum : DatumBase<GSet>
     [JsonPropertyName("mmerchant")]
     public GSet MMerchant { get; init; } = null!;
 
-    [JsonPropertyName("mpriest")]
-    public GSet MPriest { get; init; } = null!;
-
     [JsonPropertyName("mpx")]
     public GSet MPX { get; init; } = null!;
+
+    [JsonPropertyName("mpriest")]
+    public GSet MPriest { get; init; } = null!;
 
     [JsonPropertyName("mranger")]
     public GSet MRanger { get; init; } = null!;
@@ -58,14 +58,14 @@ public class SetsDatum : DatumBase<GSet>
     [JsonPropertyName("vampires")]
     public GSet Vampires { get; init; } = null!;
 
-    [JsonPropertyName("wanderers")]
-    public GSet Wanderers { get; init; } = null!;
-
     [JsonPropertyName("wt3")]
     public GSet WT3 { get; init; } = null!;
 
     [JsonPropertyName("wt4")]
     public GSet WT4 { get; init; } = null!;
+
+    [JsonPropertyName("wanderers")]
+    public GSet Wanderers { get; init; } = null!;
 
     internal override void BuildLookupTable()
     {

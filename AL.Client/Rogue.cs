@@ -45,8 +45,15 @@ public class Rogue : ALClient
     ///     Asynchronously uses Fan of Knives, throwing up to five knives at the targets given.
     /// </summary>
     /// <param name="targetIds">
-    ///     The ids to aim at, at most five. The server takes the first <c>max_targets</c> of them and skips any it
-    ///     cannot hit, answering <c>no_target</c> only once every one of them failed.
+    ///     The ids to aim at, at most five. The server takes the first
+    ///     <c>
+    ///         max_targets
+    ///     </c>
+    ///     of them and skips any it cannot hit, answering
+    ///     <c>
+    ///         no_target
+    ///     </c>
+    ///     only once every one of them failed.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" /> of <see cref="ActionData" />
@@ -54,12 +61,22 @@ public class Rogue : ALClient
     ///     A projectile per knife that landed, which may be fewer than the ids handed in.
     /// </returns>
     /// <remarks>
-    ///     A list rather than five parameters, because the count is genuinely variable where the ranger's shots are
-    ///     fixed at three and five: the server caps this at <c>max_targets</c> and two is a legitimate cast.
+    ///     A list rather than five parameters, because the count is genuinely variable where the ranger's shots are fixed at
+    ///     three and five: the server caps this at
+    ///     <c>
+    ///         max_targets
+    ///     </c>
+    ///     and two is a legitimate cast.
     ///     <br />
-    ///     No wrong-weapon failure to report, unlike the multishots. What this skill wants is a <c>knifebelt</c> worn
-    ///     on the belt, which <see cref="ALClient.CanUseSkill" /> already answers for through the skill's
-    ///     <c>slot</c> requirement.
+    ///     No wrong-weapon failure to report, unlike the multishots. What this skill wants is a
+    ///     <c>
+    ///         knifebelt
+    ///     </c>
+    ///     worn on the belt, which <see cref="ALClient.CanUseSkill" /> already answers for through the skill's
+    ///     <c>
+    ///         slot
+    ///     </c>
+    ///     requirement.
     /// </remarks>
     /// <exception cref="ArgumentException">
     ///     targetIds
@@ -93,8 +110,8 @@ public class Rogue : ALClient
     ///     Asynchronously uses Invis, disappearing into the shadows.
     /// </summary>
     /// <remarks>
-    ///     The server takes this skill's cooldown when the invisibility ends rather than when it starts, so the call
-    ///     completes on going invisible instead. Casting it while already invisible does nothing and will time out.
+    ///     The server takes this skill's cooldown when the invisibility ends rather than when it starts, so the call completes
+    ///     on going invisible instead. Casting it while already invisible does nothing and will time out.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'invis'. ({reason})
@@ -141,9 +158,13 @@ public class Rogue : ALClient
     ///     This returns once the server accepts the cast, which starts the attempt rather than finishing it. The steal
     ///     resolves later and mostly fails; the long cooldown is taken only when it succeeds.
     ///     <br />
-    ///     Pickpocket is <c>persistent</c>, and the server restores its cooldown on a frame that does not ride login — so
-    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it
-    ///     and it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
+    ///     Pickpocket is
+    ///     <c>
+    ///         persistent
+    ///     </c>
+    ///     , and the server restores its cooldown on a frame that does not ride login — so between connecting and your first
+    ///     state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready when it is not.
+    ///     Casting anyway costs one call and fails with "(on cooldown)".
     /// </remarks>
     /// <exception cref="ArgumentNullException">
     ///     targetId

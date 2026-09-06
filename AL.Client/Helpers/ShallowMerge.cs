@@ -10,8 +10,8 @@ namespace AL.Client.Helpers;
 ///     Generic static helper for doing a shallow copy from one object to another.
 /// </summary>
 /// <typeparam name="T">
-///     The type of the object. Must be a reference type;
-///     a struct target would be assigned by value and the merge discarded.
+///     The type of the object. Must be a reference type; a struct target would be assigned by value and the merge
+///     discarded.
 /// </typeparam>
 public static class ShallowMerge<T> where T: class
 {
@@ -32,12 +32,6 @@ public static class ShallowMerge<T> where T: class
                                        .Compile();
     }
 
-    //what keeps the movement block out today is the accessor, not the attribute: the only T ever instantiated is
-    //Character, a private setter declared on EntityBase is not inherited, so CanWrite already reads false.
-    //ShallowMergeIgnore guards what the accessor cannot cover - a block declared on the merged type itself
-    private static bool IsMergeable(PropertyInfo property)
-        => property.CanRead && property.CanWrite && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
-
     private static IEnumerable<PropertyInfo> GetRecursiveProperties(Type type)
         => !type.IsInterface
             ? type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
@@ -49,6 +43,12 @@ public static class ShallowMerge<T> where T: class
                  .SelectMany(i => i.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                  .Where(IsMergeable)
                  .DistinctBy(p => p.Name);
+
+    //what keeps the movement block out today is the accessor, not the attribute: the only T ever instantiated is
+    //Character, a private setter declared on EntityBase is not inherited, so CanWrite already reads false.
+    //ShallowMergeIgnore guards what the accessor cannot cover - a block declared on the merged type itself
+    private static bool IsMergeable(PropertyInfo property)
+        => property.CanRead && property.CanWrite && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
 
     /// <summary>
     ///     Merges all (public/non-public) instanced properties from <paramref name="fromObj" /> into

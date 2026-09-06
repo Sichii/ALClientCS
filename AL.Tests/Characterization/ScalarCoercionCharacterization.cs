@@ -174,7 +174,7 @@ public sealed class ScalarCoercionCharacterization
     private sealed record StringBox
     {
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public string V { get; set; } = null!;
+        public string V { get; } = null!;
     }
 
     #region Real production DTOs receiving these shapes

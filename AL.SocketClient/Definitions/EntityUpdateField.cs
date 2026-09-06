@@ -38,10 +38,40 @@ public enum EntityUpdateField : uint
     HP = 1u << 9,
 
     /// <summary>
-    ///     Only a self <c>player</c> frame carries <c>in</c> and <c>map</c> - <c>player_to_client</c>
-    ///     (<c>node/server.js:804</c>) lists them in its !stranger block alone, and <c>monster_to_client</c>
-    ///     (<c>:875</c>) has neither. So no object inside an entities frame sets these, and a monster's or a
-    ///     stranger's map keeps coming from the frame-level stamp that <c>UpdateMap</c> applies by hand.
+    ///     Only a self
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame carries
+    ///     <c>
+    ///         in
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         map
+    ///     </c>
+    ///     -
+    ///     <c>
+    ///         player_to_client
+    ///     </c>
+    ///     (
+    ///     <c>
+    ///         node/server.js:804
+    ///     </c>
+    ///     ) lists them in its !stranger block alone, and
+    ///     <c>
+    ///         monster_to_client
+    ///     </c>
+    ///     (
+    ///     <c>
+    ///         :875
+    ///     </c>
+    ///     ) has neither. So no object inside an entities frame sets these, and a monster's or a stranger's map keeps coming
+    ///     from the frame-level stamp that
+    ///     <c>
+    ///         UpdateMap
+    ///     </c>
+    ///     applies by hand.
     /// </summary>
     In = 1u << 23,
 
@@ -54,9 +84,19 @@ public enum EntityUpdateField : uint
     MP = 1u << 15,
 
     /// <summary>
-    ///     Never actually carried by an entity frame - <c>monster_to_client</c> (<c>node/server.js:878</c>) lists it
-    ///     in neither its soft set nor its hard one, so a monster's reach only ever comes from <c>G.monsters</c>. The
-    ///     flag exists so that backfilling it runs through the same path as every other def-sourced value rather than
+    ///     Never actually carried by an entity frame -
+    ///     <c>
+    ///         monster_to_client
+    ///     </c>
+    ///     (
+    ///     <c>
+    ///         node/server.js:878
+    ///     </c>
+    ///     ) lists it in neither its soft set nor its hard one, so a monster's reach only ever comes from
+    ///     <c>
+    ///         G.monsters
+    ///     </c>
+    ///     . The flag exists so that backfilling it runs through the same path as every other def-sourced value rather than
     ///     being a special case beside them, and so a frame that did carry one would still win.
     /// </summary>
     Range = 1u << 22,

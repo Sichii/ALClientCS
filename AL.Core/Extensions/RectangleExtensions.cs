@@ -14,8 +14,8 @@ public static class RectangleExtensions
     extension<T>(T rect) where T: IRectangle, allows ref struct
     {
         /// <summary>
-        ///     The separation between this rectangle and a point, taken per axis and clamped at zero. An axis the
-        ///     point already lies within contributes nothing, which is what makes this agree with the server.
+        ///     The separation between this rectangle and a point, taken per axis and clamped at zero. An axis the point already
+        ///     lies within contributes nothing, which is what makes this agree with the server.
         /// </summary>
         public float EdgeToCenterDistance<T2>(T2 other) where T2: IPoint, allows ref struct
         {
@@ -26,8 +26,8 @@ public static class RectangleExtensions
         }
 
         /// <summary>
-        ///     The gap between two rectangles, taken per axis and clamped at zero, which is the measure the server
-        ///     resolves every attack, skill and aggro check with.
+        ///     The gap between two rectangles, taken per axis and clamped at zero, which is the measure the server resolves every
+        ///     attack, skill and aggro check with.
         /// </summary>
         public float EdgeToEdgeDistance<T2>(T2 other) where T2: IRectangle, allows ref struct
         {

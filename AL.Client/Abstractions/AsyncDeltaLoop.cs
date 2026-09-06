@@ -23,8 +23,8 @@ public abstract class AsyncDeltaLoop
     /// <summary>
     ///     The source of the cancellation token for the currently running loop.
     ///     <br />
-    ///     Cancelled by <see cref="StopAsync" /> and replaced by <see cref="Start" />, so a loop that has been
-    ///     stopped can be started again.
+    ///     Cancelled by <see cref="StopAsync" /> and replaced by <see cref="Start" />, so a loop that has been stopped can be
+    ///     started again.
     /// </summary>
     protected CancellationTokenSource Ctx { get; private set; }
 

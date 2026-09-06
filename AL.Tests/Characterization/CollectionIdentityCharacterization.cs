@@ -121,22 +121,6 @@ public class CollectionIdentityCharacterization
     }
     #endregion
 
-    #region Inventory.Items — the SetCapacity downcast
-    [Test]
-    public void T13_InventorySetCapacity_DowncastToListSucceeds()
-    {
-        // InventoryConverter must hand the ctor a List<Item?>, or SetCapacity's internal (List<Item?>)Items
-        // breaks in production with an InvalidCastException.
-        var inventory = TestJson.Socket<Inventory>(@"[{""name"":""hpot0""}]")!;
-
-        var act = () => inventory.SetCapacity(42);
-
-        act.Should()
-           .NotThrow();
-    }
-
-    #endregion
-
     #region Inventory.GetEnumerator — SetPrediction lands mid-enumeration
     [Test]
     public void T13_InventoryEnumeration_SurvivesSetPrediction()
@@ -165,6 +149,21 @@ public class CollectionIdentityCharacterization
            .Which
            .Should()
            .Be(3);
+    }
+    #endregion
+
+    #region Inventory.Items — the SetCapacity downcast
+    [Test]
+    public void T13_InventorySetCapacity_DowncastToListSucceeds()
+    {
+        // InventoryConverter must hand the ctor a List<Item?>, or SetCapacity's internal (List<Item?>)Items
+        // breaks in production with an InvalidCastException.
+        var inventory = TestJson.Socket<Inventory>(@"[{""name"":""hpot0""}]")!;
+
+        var act = () => inventory.SetCapacity(42);
+
+        act.Should()
+           .NotThrow();
     }
     #endregion
 
@@ -297,7 +296,7 @@ public class CollectionIdentityCharacterization
     private sealed class SeededListHolder
     {
         [JsonPropertyName("values")]
-        public List<int> Values { get; set; } =
+        public List<int> Values { get; } =
             [
                 1,
                 2,

@@ -36,12 +36,33 @@ public static class CircleExtensions
         /// <summary>
         ///     Whether two circles touch or overlap.
         /// </summary>
-        public bool Intersects<T2>(T2 other) where T2: ICircle, allows ref struct => circle.Distance(other) <= (circle.Radius + other.Radius);
+        public bool Intersects<T2>(T2 other) where T2: ICircle, allows ref struct
+            => circle.Distance(other) <= (circle.Radius + other.Radius);
 
         /// <summary>
         ///     Lazily generates points inside the circle on a grid of <paramref name="numberOfSteps" /> per diameter.
         /// </summary>
-        public IEnumerable<Point> Points(float numberOfSteps) => InnerPoints(circle.X, circle.Y, circle.Radius, numberOfSteps);
+        public IEnumerable<Point> Points(float numberOfSteps)
+            => InnerPoints(
+                circle.X,
+                circle.Y,
+                circle.Radius,
+                numberOfSteps);
+    }
+
+    //an extension member with a ref struct receiver cannot be an iterator, so the lazy ones hand their numbers to these
+    private static IEnumerable<Point> Circumference(
+        float x,
+        float y,
+        float radius,
+        float numberOfPoints,
+        float startingAngle)
+    {
+        var center = new Point(x, y);
+        var anglePerPoint = 360 / numberOfPoints;
+
+        for (var traversedAngle = 0f; traversedAngle.IsLess(360, CONSTANTS.EPSILON); traversedAngle += anglePerPoint)
+            yield return center.AngularOffset(startingAngle + traversedAngle, radius);
     }
 
     //kept on the interface: Contains has the same shape on rectangles, polygons and triangles
@@ -112,21 +133,6 @@ public static class CircleExtensions
         ArgumentNullException.ThrowIfNull(point);
 
         return point.Distance(circle) < circle.Radius;
-    }
-
-    //an extension member with a ref struct receiver cannot be an iterator, so the lazy ones hand their numbers to these
-    private static IEnumerable<Point> Circumference(
-        float x,
-        float y,
-        float radius,
-        float numberOfPoints,
-        float startingAngle)
-    {
-        var center = new Point(x, y);
-        var anglePerPoint = 360 / numberOfPoints;
-
-        for (var traversedAngle = 0f; traversedAngle.IsLess(360, CONSTANTS.EPSILON); traversedAngle += anglePerPoint)
-            yield return center.AngularOffset(startingAngle + traversedAngle, radius);
     }
 
     private static IEnumerable<Point> InnerPoints(

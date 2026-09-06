@@ -83,12 +83,16 @@ public class Merchant : ALClient
     ///     Asynchronously starts Fishing.
     /// </summary>
     /// <remarks>
-    ///     This returns once the server accepts the cast, which starts the channel rather than landing a fish. Fishing
-    ///     runs for its duration and catches something one time in ten; the cooldown is taken then, not now.
+    ///     This returns once the server accepts the cast, which starts the channel rather than landing a fish. Fishing runs
+    ///     for its duration and catches something one time in ten; the cooldown is taken then, not now.
     ///     <br />
-    ///     Fishing is <c>persistent</c>, and the server restores its cooldown on a frame that does not ride login — so
-    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it
-    ///     and it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
+    ///     Fishing is
+    ///     <c>
+    ///         persistent
+    ///     </c>
+    ///     , and the server restores its cooldown on a frame that does not ride login — so between connecting and your first
+    ///     state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready when it is not.
+    ///     Casting anyway costs one call and fails with "(on cooldown)".
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'fishing'. ({reason})
@@ -107,14 +111,68 @@ public class Merchant : ALClient
             });
 
     /// <summary>
+    ///     Asynchronously uses MCourage, raising your defenses.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'mcourage'. ({reason})
+    /// </exception>
+    public Task MCourageAsync() => UseSkillCoreAsync("mcourage");
+
+    /// <summary>
+    ///     Asynchronously uses MFrenzy, raising your attack speed sharply for a short time.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'mfrenzy'. ({reason})
+    /// </exception>
+    public Task MFrenzyAsync() => UseSkillCoreAsync("mfrenzy");
+
+    /// <summary>
+    ///     Asynchronously uses MLuck on a target, luck-buffing them for a long duration.
+    /// </summary>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'mluck' on {targetId}. ({reason})
+    /// </exception>
+    public Task MLuckAsync(string targetId)
+    {
+        if (string.IsNullOrEmpty(targetId))
+            throw new ArgumentNullException(nameof(targetId));
+
+        return UseSkillCoreAsync("mluck", targetId);
+    }
+
+    /// <summary>
     ///     Asynchronously uses MassExchange, buffing your next exchange to take half the time.
     /// </summary>
     /// <remarks>
     ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way.
     ///     <br />
-    ///     No test covers this or <see cref="MassExchangePPAsync" />. The committed <c>data.json</c> once predated the
-    ///     pair and kept them unreachable from the suite; it now carries both in <c>G.skills</c> and
-    ///     <c>G.conditions</c> (<c>design/skills.js:375-396</c>), so <c>CanUseSkill</c> no longer blocks them.
+    ///     No test covers this or <see cref="MassExchangePPAsync" />. The committed
+    ///     <c>
+    ///         data.json
+    ///     </c>
+    ///     once predated the pair and kept them unreachable from the suite; it now carries both in
+    ///     <c>
+    ///         G.skills
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         G.conditions
+    ///     </c>
+    ///     (
+    ///     <c>
+    ///         design/skills.js:375-396
+    ///     </c>
+    ///     ), so
+    ///     <c>
+    ///         CanUseSkill
+    ///     </c>
+    ///     no longer blocks them.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massexchange'. ({reason})
@@ -125,9 +183,9 @@ public class Merchant : ALClient
     ///     Asynchronously uses MassExchangePP, buffing your next exchange to take a tenth of the time.
     /// </summary>
     /// <remarks>
-    ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way. Applied
-    ///     after <see cref="MassExchangeAsync" /> rather than instead of it (node/server.js:6085-6093), so with both
-    ///     up an exchange runs in a twentieth of its time.
+    ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way. Applied after
+    ///     <see cref="MassExchangeAsync" /> rather than instead of it (node/server.js:6085-6093), so with both up an exchange
+    ///     runs in a twentieth of its time.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'massexchangepp'. ({reason})
@@ -157,31 +215,19 @@ public class Merchant : ALClient
     public Task MassProductionPPAsync() => UseSkillCoreAsync("massproductionpp");
 
     /// <summary>
-    ///     Asynchronously uses MCourage, raising your defenses.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mcourage'. ({reason})
-    /// </exception>
-    public Task MCourageAsync() => UseSkillCoreAsync("mcourage");
-
-    /// <summary>
-    ///     Asynchronously uses MFrenzy, raising your attack speed sharply for a short time.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mfrenzy'. ({reason})
-    /// </exception>
-    public Task MFrenzyAsync() => UseSkillCoreAsync("mfrenzy");
-
-    /// <summary>
     ///     Asynchronously starts Mining.
     /// </summary>
     /// <remarks>
-    ///     This returns once the server accepts the cast, which starts the channel rather than landing a strike. Mining
-    ///     runs for its duration and yields something one time in five; the cooldown is taken then, not now.
+    ///     This returns once the server accepts the cast, which starts the channel rather than landing a strike. Mining runs
+    ///     for its duration and yields something one time in five; the cooldown is taken then, not now.
     ///     <br />
-    ///     Mining is <c>persistent</c>, and the server restores its cooldown on a frame that does not ride login — so
-    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it
-    ///     and it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
+    ///     Mining is
+    ///     <c>
+    ///         persistent
+    ///     </c>
+    ///     , and the server restores its cooldown on a frame that does not ride login — so between connecting and your first
+    ///     state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready when it is not.
+    ///     Casting anyway costs one call and fails with "(on cooldown)".
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'mining'. ({reason})
@@ -200,35 +246,31 @@ public class Merchant : ALClient
             });
 
     /// <summary>
-    ///     Asynchronously uses MLuck on a target, luck-buffing them for a long duration.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mluck' on {targetId}. ({reason})
-    /// </exception>
-    public Task MLuckAsync(string targetId)
-    {
-        if (string.IsNullOrEmpty(targetId))
-            throw new ArgumentNullException(nameof(targetId));
-
-        return UseSkillCoreAsync("mluck", targetId);
-    }
-
-    /// <summary>
     ///     Asynchronously opens the merchant stand, favoring a computer.
     /// </summary>
     /// <remarks>
     ///     Both halves match on the item's type rather than on its name. A computer is preferred because it opens a
-    ///     <c>cstand</c>, which grants 24 trade slots below level 70 where a plain stand grants 16
-    ///     (<c>node/server_functions.js:3572</c>) - and matching by type is what makes a <c>supercomputer</c> count,
-    ///     it being typed <c>computer</c> and carrying the same <c>cstand</c>. Named, it matched neither arm, so a
-    ///     merchant carrying one and no plain stand could not open a stand at all. Every item of either type carries
-    ///     a stand, so neither arm can pick one the server then refuses.
+    ///     <c>
+    ///         cstand
+    ///     </c>
+    ///     , which grants 24 trade slots below level 70 where a plain stand grants 16 (
+    ///     <c>
+    ///         node/server_functions.js:3572
+    ///     </c>
+    ///     ) - and matching by type is what makes a
+    ///     <c>
+    ///         supercomputer
+    ///     </c>
+    ///     count, it being typed
+    ///     <c>
+    ///         computer
+    ///     </c>
+    ///     and carrying the same
+    ///     <c>
+    ///         cstand
+    ///     </c>
+    ///     . Named, it matched neither arm, so a merchant carrying one and no plain stand could not open a stand at all. Every
+    ///     item of either type carries a stand, so neither arm can pick one the server then refuses.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to open stand. ({reason})

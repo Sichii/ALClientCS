@@ -23,14 +23,13 @@ public sealed record GNPC : AttributedRecordBase
     public IReadOnlyDictionary<ALAttribute, float>? Aura { get; init; }
 
     /// <summary>
-    ///     If populated, the hex color the client draws this NPC's spoken line in. On main an absent one defaults to
-    ///     white.
+    ///     If populated, the hex color the client draws this NPC's spoken line in. On main an absent one defaults to white.
     /// </summary>
     public string? Color { get; init; }
 
     /// <summary>
-    ///     This NPC's key in the game's NPC table, always the same as the accessor. It is not the live entity's id -
-    ///     that is the NPC's display name.
+    ///     This NPC's key in the game's NPC table, always the same as the accessor. It is not the live entity's id - that is
+    ///     the NPC's display name.
     /// </summary>
     public string Id { get; init; } = null!;
 
@@ -58,8 +57,8 @@ public sealed record GNPC : AttributedRecordBase
     public float Level { get; init; }
 
     /// <summary>
-    ///     Every place this NPC stands, gathered from the maps. Maps flagged as ignored contribute nothing, so an NPC
-    ///     placed only on those has an empty list.
+    ///     Every place this NPC stands, gathered from the maps. Maps flagged as ignored contribute nothing, so an NPC placed
+    ///     only on those has an empty list.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -67,8 +66,8 @@ public sealed record GNPC : AttributedRecordBase
     public IReadOnlyList<Location> Locations { get; internal set; } = new List<Location>();
 
     /// <summary>
-    ///     The name of this NPC as seen on the GUI, and the id its live entity is filed under. Null for the handful
-    ///     of NPCs that carry no name.
+    ///     The name of this NPC as seen on the GUI, and the id its live entity is filed under. Null for the handful of NPCs
+    ///     that carry no name.
     /// </summary>
     public string? Name { get; init; }
 
@@ -87,8 +86,8 @@ public sealed record GNPC : AttributedRecordBase
     public IReadOnlyDictionary<string, int>? Places { get; init; }
 
     /// <summary>
-    ///     The quest tag for this NPC. A recipe or an exchangeable item carrying the same tag is handled here rather
-    ///     than at the usual place.
+    ///     The quest tag for this NPC. A recipe or an exchangeable item carrying the same tag is handled here rather than at
+    ///     the usual place.
     /// </summary>
     public Quest Quest { get; init; }
 

@@ -42,21 +42,6 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </summary>
     public float Intensity { get; init; }
 
-    /// <summary>
-    ///     If populated, the display effect the <see cref="AL.Core.Definitions.Condition.Filter" /> condition applies.
-    ///     <br />
-    ///     The browser treats <c>scale</c> as the one name that draws nothing of its own, because the resizing in
-    ///     <see cref="Scale" /> is the whole effect; every other name is a colour filter over the sprite.
-    /// </summary>
-    public string? Name { get; init; }
-
-    /// <summary>
-    ///     If populated, the multiplier the entity's sprite is drawn at, from the
-    ///     <see cref="AL.Core.Definitions.Condition.Filter" /> condition. This is how an event's oversized monsters
-    ///     get their size, and it replaces the monster's own <c>size</c> rather than multiplying with it.
-    /// </summary>
-    public float? Scale { get; init; }
-
     public bool IsCompensated { get; private set; }
 
     /// <summary>
@@ -75,6 +60,18 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public bool MonstersDeLevel { get; init; }
 
     /// <summary>
+    ///     If populated, the display effect the <see cref="AL.Core.Definitions.Condition.Filter" /> condition applies.
+    ///     <br />
+    ///     The browser treats
+    ///     <c>
+    ///         scale
+    ///     </c>
+    ///     as the one name that draws nothing of its own, because the resizing in <see cref="Scale" /> is the whole effect;
+    ///     every other name is a colour filter over the sprite.
+    /// </summary>
+    public string? Name { get; init; }
+
+    /// <summary>
     ///     If populated, this is the proportion of contribution this character has made towards a coop boss.
     ///     <br />
     ///     See <see cref="Id" /> for the ID of the boss.
@@ -88,6 +85,17 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </summary>
     [JsonPropertyName("c")]
     public float RemainingMonsters { get; init; }
+
+    /// <summary>
+    ///     If populated, the multiplier the entity's sprite is drawn at, from the
+    ///     <see cref="AL.Core.Definitions.Condition.Filter" /> condition. This is how an event's oversized monsters get their
+    ///     size, and it replaces the monster's own
+    ///     <c>
+    ///         size
+    ///     </c>
+    ///     rather than multiplying with it.
+    /// </summary>
+    public float? Scale { get; init; }
 
     /// <summary>
     ///     If populated, the id of the server for this <see cref="AL.Core.Definitions.Condition.MonsterHunt" />.

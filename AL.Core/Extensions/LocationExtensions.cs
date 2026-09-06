@@ -15,8 +15,7 @@ public static class LocationExtensions
     extension<T>(T location) where T: ILocation, allows ref struct
     {
         /// <summary>
-        ///     The euclidean distance between two locations, or <see cref="float.MaxValue" /> when they are on
-        ///     different maps.
+        ///     The euclidean distance between two locations, or <see cref="float.MaxValue" /> when they are on different maps.
         /// </summary>
         public float DistanceWithMapCheck<T2>(T2 other) where T2: ILocation, allows ref struct
             => !location.OnSameMapAs(other) ? float.MaxValue : location.Distance(other);

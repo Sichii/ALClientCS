@@ -29,21 +29,21 @@ public sealed record GClass
     public Stats BaseStats { get; init; } = null!;
 
     /// <summary>
-    ///     Base black-magic resistance, meant for curse and stone. Both conditions have their defense line commented
-    ///     out on the server, so nothing reads this today.
+    ///     Base black-magic resistance, meant for curse and stone. Both conditions have their defense line commented out on
+    ///     the server, so nothing reads this today.
     /// </summary>
     [JsonPropertyName("bmresistance")]
     public int BlackMagicResistance { get; init; }
 
     /// <summary>
-    ///     Set on the warrior alone. Nothing in the published server or browser client reads it, so what it would do
-    ///     is unsettled.
+    ///     Set on the warrior alone. Nothing in the published server or browser client reads it, so what it would do is
+    ///     unsettled.
     /// </summary>
     public bool Brave { get; init; }
 
     /// <summary>
-    ///     How many <see cref="AL.Core.Definitions.DamageType.Physical" /> attackers this class tolerates before fear
-    ///     sets in. Fear slows the character and drops attack to 60%, then 40%, then 20%.
+    ///     How many <see cref="AL.Core.Definitions.DamageType.Physical" /> attackers this class tolerates before fear sets in.
+    ///     Fear slows the character and drops attack to 60%, then 40%, then 20%.
     /// </summary>
     public int Courage { get; init; }
 
@@ -54,13 +54,12 @@ public sealed record GClass
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     The game's own paragraph about this class - "Rangers are skilled archers." It is what the character
-    ///     creation screen shows, and every class carries one.
+    ///     The game's own paragraph about this class - "Rangers are skilled archers." It is what the character creation screen
+    ///     shows, and every class carries one.
     /// </summary>
     /// <remarks>
-    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an ability it
-    ///     describes is implemented elsewhere or not at all. Read it as the game's own words about the class, not
-    ///     as a source of figures.
+    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an ability it describes is
+    ///     implemented elsewhere or not at all. Read it as the game's own words about the class, not as a source of figures.
     /// </remarks>
     public string? Description { get; init; }
 
@@ -74,11 +73,11 @@ public sealed record GClass
     ///     Every cosmetic anyone of this class may wear without owning a copy of it.
     /// </summary>
     /// <remarks>
-    ///     Bound and then enriched. The wire form carries only what the class was granted outright, and most classes
-    ///     send nothing at all for it; the server finishes the list off while it processes game data
-    ///     (js/old_common_functions.js:171-182) by pushing in the free makeups every account may wear and every piece
-    ///     of this class's own <see cref="Looks" />. <see cref="GameData" /> restates that push after load, so this is
-    ///     never just what the payload said.
+    ///     Bound and then enriched. The wire form carries only what the class was granted outright, and most classes send
+    ///     nothing at all for it; the server finishes the list off while it processes game data
+    ///     (js/old_common_functions.js:171-182) by pushing in the free makeups every account may wear and every piece of this
+    ///     class's own <see cref="Looks" />. <see cref="GameData" /> restates that push after load, so this is never just what
+    ///     the payload said.
     /// </remarks>
     [JsonPropertyName("xcx")]
     [JsonInclude]
@@ -91,35 +90,35 @@ public sealed record GClass
     public int FreezeResistance { get; init; }
 
     /// <summary>
-    ///     The class's base attacks per second, before level, stats and gear add to it. Gear states frequency as a
-    ///     percentage and contributes a hundredth of it.
+    ///     The class's base attacks per second, before level, stats and gear add to it. Gear states frequency as a percentage
+    ///     and contributes a hundredth of it.
     /// </summary>
     public float Frequency { get; init; }
 
     /// <summary>
-    ///     The ready-made looks the character creation screen offers for this class. Everyone of the class may wear
-    ///     them, which is why <see cref="ExclusiveCosmetics" /> ends up carrying every piece of every one.
+    ///     The ready-made looks the character creation screen offers for this class. Everyone of the class may wear them,
+    ///     which is why <see cref="ExclusiveCosmetics" /> ends up carrying every piece of every one.
     /// </summary>
     public IReadOnlyList<GClassLook> Looks { get; init; } = new List<GClassLook>();
 
     /// <summary>
-    ///     How many <see cref="AL.Core.Definitions.DamageType.Magical" /> attackers this class tolerates before fear
-    ///     sets in. Priests get the highest.
+    ///     How many <see cref="AL.Core.Definitions.DamageType.Magical" /> attackers this class tolerates before fear sets in.
+    ///     Priests get the highest.
     /// </summary>
     [JsonPropertyName("mcourage")]
     public int MagicCourage { get; init; }
-
-    /// <summary>
-    ///     The mainhand weapons this class can use, and the stat modifications that apply when wielding them.
-    /// </summary>
-    public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Mainhand { get; init; }
-        = new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
 
     /// <summary>
     ///     The stat that scales weapon damage - each point adds a twentieth of the weapon's attack.
     /// </summary>
     [JsonPropertyName("main_stat")]
     public ALAttribute MainStat { get; init; }
+
+    /// <summary>
+    ///     The mainhand weapons this class can use, and the stat modifications that apply when wielding them.
+    /// </summary>
+    public IReadOnlyDictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>> Mainhand { get; init; }
+        = new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
 
     /// <summary>
     ///     Base max hp, before stats and gear. Strength and vitality both add to it.
@@ -152,13 +151,6 @@ public sealed record GClass
     public int Output { get; init; }
 
     /// <summary>
-    ///     How many <see cref="AL.Core.Definitions.DamageType.Pure" /> attackers this class tolerates before fear sets
-    ///     in. This is the pure-damage limit, not a physical one; paladins get the highest.
-    /// </summary>
-    [JsonPropertyName("pcourage")]
-    public int PureCourage { get; init; }
-
-    /// <summary>
     ///     Percent chance to shrug off a stun outright. Stun is the only condition that names it.
     /// </summary>
     [JsonPropertyName("phresistance")]
@@ -174,6 +166,13 @@ public sealed record GClass
     ///     The key of the projectile this class's basic attack uses when the weapon names none.
     /// </summary>
     public string Projectile { get; init; } = null!;
+
+    /// <summary>
+    ///     How many <see cref="AL.Core.Definitions.DamageType.Pure" /> attackers this class tolerates before fear sets in.
+    ///     This is the pure-damage limit, not a physical one; paladins get the highest.
+    /// </summary>
+    [JsonPropertyName("pcourage")]
+    public int PureCourage { get; init; }
 
     /// <summary>
     ///     Base attack range, before a weapon and gear add to it.
@@ -197,8 +196,7 @@ public sealed record GClass
     public Stats StatGrowth { get; init; } = null!;
 
     /// <summary>
-    ///     Percent by which a debuff's duration is cut. It applies to every condition flagged as a debuff, not just
-    ///     stuns.
+    ///     Percent by which a debuff's duration is cut. It applies to every condition flagged as a debuff, not just stuns.
     /// </summary>
     [JsonPropertyName("stresistance")]
     public int StunResistance { get; init; }

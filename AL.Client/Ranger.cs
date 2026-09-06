@@ -48,8 +48,8 @@ public class Ranger : ALClient
     ///     Asynchronously uses 5Shot on one to five targets.
     /// </summary>
     /// <param name="targetIds">
-    ///     The ids of the targets. Five is a ceiling and not a requirement: the server takes however many it is
-    ///     given, so a shorter volley fires fewer arrows for the same mana.
+    ///     The ids of the targets. Five is a ceiling and not a requirement: the server takes however many it is given, so a
+    ///     shorter volley fires fewer arrows for the same mana.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" />
@@ -66,6 +66,53 @@ public class Ranger : ALClient
     ///     Failed to use '5shot' on targets. ({reason})
     /// </exception>
     public Task<List<ActionData>> FiveShotAsync(params string[] targetIds) => MultiShotAsync("5shot", 5, targetIds);
+
+    /// <summary>
+    ///     Asynchronously uses 4Fingers on a target, stopping it from moving or attacking.
+    /// </summary>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use '4fingers' on {targetId}. ({reason})
+    /// </exception>
+    public Task FourFingersAsync(string targetId)
+    {
+        if (string.IsNullOrEmpty(targetId))
+            throw new ArgumentNullException(nameof(targetId));
+
+        return UseSkillCoreAsync("4fingers", targetId);
+    }
+
+    /// <summary>
+    ///     Asynchronously uses HuntersMark on a target, raising the damage it takes.
+    /// </summary>
+    /// <param name="targetId">
+    ///     The id of the target.
+    /// </param>
+    /// <remarks>
+    ///     This produces no projectile — the server answers with a
+    ///     <c>
+    ///         ui
+    ///     </c>
+    ///     frame and the cooldown, nothing else.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     targetId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use 'huntersmark' on {targetId}. ({reason})
+    /// </exception>
+    public Task HuntersMarkAsync(string targetId)
+    {
+        if (string.IsNullOrEmpty(targetId))
+            throw new ArgumentNullException(nameof(targetId));
+
+        return UseSkillCoreAsync("huntersmark", targetId);
+    }
 
     /// <summary>
     ///     The shared body of the two multishots, which differ only in name and ceiling.
@@ -97,49 +144,6 @@ public class Ranger : ALClient
                 name = skillName,
                 ids = targetIds
             });
-    }
-
-    /// <summary>
-    ///     Asynchronously uses 4Fingers on a target, stopping it from moving or attacking.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '4fingers' on {targetId}. ({reason})
-    /// </exception>
-    public Task FourFingersAsync(string targetId)
-    {
-        if (string.IsNullOrEmpty(targetId))
-            throw new ArgumentNullException(nameof(targetId));
-
-        return UseSkillCoreAsync("4fingers", targetId);
-    }
-
-    /// <summary>
-    ///     Asynchronously uses HuntersMark on a target, raising the damage it takes.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <remarks>
-    ///     This produces no projectile — the server answers with a <c>ui</c> frame and the cooldown, nothing else.
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'huntersmark' on {targetId}. ({reason})
-    /// </exception>
-    public Task HuntersMarkAsync(string targetId)
-    {
-        if (string.IsNullOrEmpty(targetId))
-            throw new ArgumentNullException(nameof(targetId));
-
-        return UseSkillCoreAsync("huntersmark", targetId);
     }
 
     /// <summary>
@@ -261,8 +265,8 @@ public class Ranger : ALClient
     ///     Asynchronously uses 3Shot on one to three targets.
     /// </summary>
     /// <param name="targetIds">
-    ///     The ids of the targets. Three is a ceiling and not a requirement: the server takes however many it is
-    ///     given, so a shorter volley fires fewer arrows for the same mana.
+    ///     The ids of the targets. Three is a ceiling and not a requirement: the server takes however many it is given, so a
+    ///     shorter volley fires fewer arrows for the same mana.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" />

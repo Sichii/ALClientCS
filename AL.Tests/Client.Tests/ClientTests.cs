@@ -25,35 +25,132 @@ public class ClientTests
         = @"{""id"":""sichi"",""x"":500,""y"":-700,""going_x"":600,""going_y"":-700,""angle"":180,""move_num"":9,"
           + @"""moving"":true,""map"":""main"",""in"":""main"",""speed"":45,""max_hp"":7826}";
 
-    //the filter RangerCombat picks its multishot targets through - a monster an in-flight arrow has already
-    //killed is not worth a shot, because every shot spends the whole shared attack cooldown. Pinned on a plain
-    //EntityBase so it needs no game data: the Monster arm adds only the _1hp bail-out on top of this arithmetic.
+    /// <summary>
+    ///     Why <see cref="EntityBase.AcceptMovement" /> takes a character frame wholesale where
+    ///     <see cref="EntityBase.Update(EntityBase)" /> gates an entities frame on <see cref="EntityBase.PresentFields" />.
+    ///     The server sends a key only where its player object has one (
+    ///     <c>
+    ///         player_to_client
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         node/server.js:778
+    ///     </c>
+    ///     ), and a player object has no walking keys at all until its first move of the session - so a login or reconnect
+    ///     frame carries the position and the map and none of the walk. Gated, such a frame would leave a persistent character
+    ///     still walking to the destination of a leg on the server it just left.
+    /// </summary>
+    /// <remarks>
+    ///     Both committed captures are real character frames, so this also pins the half the gate would rest on: presence is
+    ///     captured on this route at all.
+    /// </remarks>
     [Test]
-    public void WillDieToProjectilesCountsOnlyTheProjectilesAimedAtThatEntity()
+    [Arguments("character-frame.json")]
+    [Arguments("t11-start-frame.json")]
+    public void ACharacterFrameCarriesNoWalkUntilTheCharacterHasWalked(string snapshot)
     {
-        static ActionData Shot(string targetId, float damage)
-            => new()
-            {
-                Target = targetId,
-                Damage = damage
-            };
+        var frame = TestJson.Socket<CharacterData>(Fixture.ReadCommittedSnapshot(snapshot)!)!;
 
-        var target = TestJson.Socket<Player>(@"{""id"":""m1"",""hp"":100}")!;
+        frame.PresentFields
+             .Should()
+             .HaveFlag(EntityUpdateField.X)
+             .And
+             .HaveFlag(EntityUpdateField.Y)
+             .And
+             .HaveFlag(EntityUpdateField.Map)
+             .And
+             .HaveFlag(EntityUpdateField.In);
 
-        //120 of committed damage against 100 hp, and the 0.95 haircut still clears it
-        target.WillDieToProjectiles([Shot("m1", 60), Shot("m1", 60)])
+        frame.PresentFields
+             .Should()
+             .NotHaveFlag(EntityUpdateField.Moving)
+             .And
+             .NotHaveFlag(EntityUpdateField.GoingX)
+             .And
+             .NotHaveFlag(EntityUpdateField.GoingY)
+             .And
+             .NotHaveFlag(EntityUpdateField.Angle)
+             .And
+             .NotHaveFlag(EntityUpdateField.MoveNum);
+    }
+
+    /// <summary>
+    ///     A cosmetic response with no
+    ///     <c>
+    ///         acx
+    ///     </c>
+    ///     is a shape the server does not send. The handler leaves the last known inventory alone rather than emptying it, so
+    ///     the null has to survive deserialization as a null.
+    /// </summary>
+    [Test]
+    public void ACosmeticResponseWithoutAcxDeserializesToNull()
+    {
+        var obj = TestJson.Socket<GameResponseData>(@"{""response"":""cx_sent"",""name"":""Sichi""}");
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Acx
+           .Should()
+           .BeNull();
+    }
+
+    /// <summary>
+    ///     The other half of the exclusion above: a character frame's position still reaches the live character, through the
+    ///     choke point instead of the merge. Pinned on <see cref="EntityBase.AcceptMovement" /> directly because the call site
+    ///     (
+    ///     <c>
+    ///         ALClient.OnCharacterAsync
+    ///     </c>
+    ///     ) needs a live socket connection.
+    /// </summary>
+    [Test]
+    public void AcceptMovementTakesTheFrameAsSent()
+    {
+        var frame = TestJson.Socket<CharacterData>(MOVING_CHARACTER_FRAME)!;
+
+        var target = new Character();
+        target.UpdateLocation(new Point(10, -20));
+        target.SetMoving(new Point(11, -20));
+
+        target.AcceptMovement(frame);
+
+        //no arbitration - the frame wins outright, exactly as the merge used to make it
+        target.X
+              .Should()
+              .Be(500f);
+
+        target.Y
+              .Should()
+              .Be(-700f);
+
+        target.GoingX
+              .Should()
+              .Be(600f);
+
+        target.GoingY
+              .Should()
+              .Be(-700f);
+
+        target.Angle
+              .Should()
+              .Be(180f);
+
+        target.MoveNum
+              .Should()
+              .Be(9UL);
+
+        target.Moving
               .Should()
               .BeTrue();
 
-        //one arrow short - 57 does not, so the ranger keeps shooting it
-        target.WillDieToProjectiles([Shot("m1", 60)])
+        target.Map
               .Should()
-              .BeFalse();
+              .Be("main");
 
-        //aimed at something else, so it counts for nothing here
-        target.WillDieToProjectiles([Shot("m2", 500)])
+        target.In
               .Should()
-              .BeFalse();
+              .Be("main");
     }
 
     [Test]
@@ -91,6 +188,132 @@ public class ClientTests
 
         (elapsed.TotalMilliseconds > 9000).Should()
                                           .BeTrue();
+    }
+
+    /// <summary>
+    ///     All three cosmetic responses carry
+    ///     <c>
+    ///         player.p.acx
+    ///     </c>
+    ///     whole -
+    ///     <c>
+    ///         cx_new
+    ///     </c>
+    ///     at node/server.js:7243,
+    ///     <c>
+    ///         cx_received
+    ///     </c>
+    ///     at :7984 and
+    ///     <c>
+    ///         cx_sent
+    ///     </c>
+    ///     at :7991 - never a delta, which is why the handler assigns rather than merges. The wire names are the risk here:
+    ///     nothing but the enum's own wire-name mapping turns
+    ///     <c>
+    ///         cx_sent
+    ///     </c>
+    ///     into <see cref="GameResponseType.CosmeticSent" />, so a broken mapping would leave the handler silently never
+    ///     firing.
+    /// </summary>
+    [Test]
+    public void EveryCosmeticResponseCarriesTheWholeInventory()
+    {
+        var sent = TestJson.Socket<GameResponseData>(
+            @"{""response"":""cx_sent"",""name"":""Sichi"",""cx"":""hat100"",""acx"":{""hat101"":1}}");
+
+        sent.Should()
+            .NotBeNull();
+
+        sent.ResponseType
+            .Should()
+            .Be(GameResponseType.CosmeticSent);
+
+        sent.Acx
+            .Should()
+            .ContainKey("hat101")
+            .And
+            .HaveCount(1, "the fixture is the sender's whole post-trade inventory, in which the traded hat no longer appears");
+
+        var received = TestJson.Socket<GameResponseData>(
+            @"{""response"":""cx_received"",""name"":""Sichi"",""cx"":""hat100"",""acx"":{""hat100"":1,""hat101"":2}}");
+
+        received.Should()
+                .NotBeNull();
+
+        received.ResponseType
+                .Should()
+                .Be(GameResponseType.CosmeticReceived);
+
+        received.Acx
+                .Should()
+                .HaveCount(2);
+
+        var opened = TestJson.Socket<GameResponseData>(
+            @"{""response"":""cx_new"",""from"":""cxjar"",""name"":""hat100"",""acx"":{""hat100"":1}}");
+
+        opened.Should()
+              .NotBeNull();
+
+        opened.ResponseType
+              .Should()
+              .Be(GameResponseType.CosmeticNew);
+
+        opened.Acx
+              .Should()
+              .ContainKey("hat100");
+    }
+
+    [Test]
+    public void LocksmithOperation_SerializesToItsWireName()
+    {
+        TestJson.Emit(LocksmithOperation.Lock)
+                .Should()
+                .Be("\"lock\"");
+
+        TestJson.Emit(LocksmithOperation.Seal)
+                .Should()
+                .Be("\"seal\"");
+
+        TestJson.Emit(LocksmithOperation.Unlock)
+                .Should()
+                .Be("\"unlock\"");
+    }
+
+    /// <summary>
+    ///     A character frame reaches
+    ///     <c>
+    ///         OnCharacterAsync
+    ///     </c>
+    ///     by three routes - the
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     subscription, the
+    ///     <c>
+    ///         start
+    ///     </c>
+    ///     frame, and the character nested inside the welcome - and only the first two are a root deserialize. The nested one
+    ///     is the route worth pinning: presence is captured by the converter the attributed factory produces, and the factory
+    ///     has to still claim a member of an outer object it is not itself claiming.
+    /// </summary>
+    [Test]
+    public void PresenceIsCapturedOnACharacterNestedInsideAWelcome()
+    {
+        var welcome = TestJson.Socket<WelcomeData>($@"{{""map"":""main"",""in"":""main"",""character"":{MOVING_CHARACTER_FRAME}}}")!;
+
+        welcome.Character
+               .Should()
+               .NotBeNull();
+
+        welcome.Character!.PresentFields
+               .Should()
+               .HaveFlag(EntityUpdateField.X)
+               .And
+               .HaveFlag(EntityUpdateField.Moving)
+               .And
+               .HaveFlag(EntityUpdateField.MoveNum)
+               .And
+               .HaveFlag(EntityUpdateField.Map);
     }
 
     [Test]
@@ -142,9 +365,9 @@ public class ClientTests
     }
 
     /// <summary>
-    ///     No member of the movement block is assignable by the shallow merge, so that every write to one goes through
-    ///     the single locked path on <see cref="EntityBase" />. What excludes them today is the accessor rather than
-    ///     the attribute: the merge reflects
+    ///     No member of the movement block is assignable by the shallow merge, so that every write to one goes through the
+    ///     single locked path on <see cref="EntityBase" />. What excludes them today is the accessor rather than the
+    ///     attribute: the merge reflects
     ///     <c>
     ///         typeof(Character)
     ///     </c>
@@ -152,14 +375,14 @@ public class ClientTests
     ///     <c>
     ///         CanWrite
     ///     </c>
-    ///     already reads false from there. <see cref="ShallowMergeIgnoreAttribute" /> is the guard for the two cases
-    ///     the accessor cannot cover - a block property declared on <see cref="Character" /> itself, and a setter
-    ///     someone later widens back.
+    ///     already reads false from there. <see cref="ShallowMergeIgnoreAttribute" /> is the guard for the two cases the
+    ///     accessor cannot cover - a block property declared on <see cref="Character" /> itself, and a setter someone later
+    ///     widens back.
     /// </summary>
     /// <remarks>
-    ///     The merge's selection rule is restated here rather than called, because a wrong rule asked about itself
-    ///     agrees with itself. The block is read off <see cref="MovementBlock" />'s own members, so a value added
-    ///     there is guarded the moment it is added.
+    ///     The merge's selection rule is restated here rather than called, because a wrong rule asked about itself agrees with
+    ///     itself. The block is read off <see cref="MovementBlock" />'s own members, so a value added there is guarded the
+    ///     moment it is added.
     /// </remarks>
     [Test]
     public void ShallowMergeLeavesTheMovementBlockAlone()
@@ -173,18 +396,17 @@ public class ClientTests
 
         //ShallowMerge<T>.IsMergeable, restated
         var mergeable = typeof(Character).GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                                         .Where(
-                                             property => property.CanRead
-                                                         && property.CanWrite
-                                                         && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true))
+                                         .Where(property
+                                             => property.CanRead
+                                                && property.CanWrite
+                                                && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true))
                                          .Select(property => property.Name)
                                          .ToArray();
 
         mergeable.Should()
                  .NotBeEmpty("the merge still has to carry everything outside the block")
-                 .And.NotIntersectWith(
-                     block,
-                     "a movement property the merge can assign is a write to the block that never takes the lock");
+                 .And
+                 .NotIntersectWith(block, "a movement property the merge can assign is a write to the block that never takes the lock");
 
         //and the outcome that rule exists for
         var frame = TestJson.Socket<CharacterData>(MOVING_CHARACTER_FRAME)!;
@@ -240,197 +462,38 @@ public class ClientTests
               .Be(7826f);
     }
 
-    /// <summary>
-    ///     The other half of the exclusion above: a character frame's position still reaches the live character,
-    ///     through the choke point instead of the merge. Pinned on
-    ///     <see cref="EntityBase.AcceptMovement" /> directly because the call site
-    ///     (<c>
-    ///         ALClient.OnCharacterAsync
-    ///     </c>
-    ///     ) needs a live socket connection.
-    /// </summary>
+    //the filter RangerCombat picks its multishot targets through - a monster an in-flight arrow has already
+    //killed is not worth a shot, because every shot spends the whole shared attack cooldown. Pinned on a plain
+    //EntityBase so it needs no game data: the Monster arm adds only the _1hp bail-out on top of this arithmetic.
     [Test]
-    public void AcceptMovementTakesTheFrameAsSent()
+    public void WillDieToProjectilesCountsOnlyTheProjectilesAimedAtThatEntity()
     {
-        var frame = TestJson.Socket<CharacterData>(MOVING_CHARACTER_FRAME)!;
+        static ActionData Shot(string targetId, float damage)
+            => new()
+            {
+                Target = targetId,
+                Damage = damage
+            };
 
-        var target = new Character();
-        target.UpdateLocation(new Point(10, -20));
-        target.SetMoving(new Point(11, -20));
+        var target = TestJson.Socket<Player>(@"{""id"":""m1"",""hp"":100}")!;
 
-        target.AcceptMovement(frame);
-
-        //no arbitration - the frame wins outright, exactly as the merge used to make it
-        target.X
-              .Should()
-              .Be(500f);
-
-        target.Y
-              .Should()
-              .Be(-700f);
-
-        target.GoingX
-              .Should()
-              .Be(600f);
-
-        target.GoingY
-              .Should()
-              .Be(-700f);
-
-        target.Angle
-              .Should()
-              .Be(180f);
-
-        target.MoveNum
-              .Should()
-              .Be(9UL);
-
-        target.Moving
+        //120 of committed damage against 100 hp, and the 0.95 haircut still clears it
+        target.WillDieToProjectiles(
+                  [
+                      Shot("m1", 60),
+                      Shot("m1", 60)
+                  ])
               .Should()
               .BeTrue();
 
-        target.Map
+        //one arrow short - 57 does not, so the ranger keeps shooting it
+        target.WillDieToProjectiles([Shot("m1", 60)])
               .Should()
-              .Be("main");
+              .BeFalse();
 
-        target.In
+        //aimed at something else, so it counts for nothing here
+        target.WillDieToProjectiles([Shot("m2", 500)])
               .Should()
-              .Be("main");
-    }
-
-    /// <summary>
-    ///     Why <see cref="EntityBase.AcceptMovement" /> takes a character frame wholesale where
-    ///     <see cref="EntityBase.Update(EntityBase)" /> gates an entities frame on
-    ///     <see cref="EntityBase.PresentFields" />. The server sends a key only where its player object has one
-    ///     (<c>player_to_client</c>, <c>node/server.js:778</c>), and a player object has no walking keys at all until
-    ///     its first move of the session - so a login or reconnect frame carries the position and the map and none of
-    ///     the walk. Gated, such a frame would leave a persistent character still walking to the destination of a leg
-    ///     on the server it just left.
-    /// </summary>
-    /// <remarks>
-    ///     Both committed captures are real character frames, so this also pins the half the gate would rest on:
-    ///     presence is captured on this route at all.
-    /// </remarks>
-    [Test]
-    [Arguments("character-frame.json")]
-    [Arguments("t11-start-frame.json")]
-    public void ACharacterFrameCarriesNoWalkUntilTheCharacterHasWalked(string snapshot)
-    {
-        var frame = TestJson.Socket<CharacterData>(Fixture.ReadCommittedSnapshot(snapshot)!)!;
-
-        frame.PresentFields
-             .Should()
-             .HaveFlag(EntityUpdateField.X)
-             .And.HaveFlag(EntityUpdateField.Y)
-             .And.HaveFlag(EntityUpdateField.Map)
-             .And.HaveFlag(EntityUpdateField.In);
-
-        frame.PresentFields
-             .Should()
-             .NotHaveFlag(EntityUpdateField.Moving)
-             .And.NotHaveFlag(EntityUpdateField.GoingX)
-             .And.NotHaveFlag(EntityUpdateField.GoingY)
-             .And.NotHaveFlag(EntityUpdateField.Angle)
-             .And.NotHaveFlag(EntityUpdateField.MoveNum);
-    }
-
-    /// <summary>
-    ///     A character frame reaches <c>OnCharacterAsync</c> by three routes - the <c>player</c> subscription, the
-    ///     <c>start</c> frame, and the character nested inside the welcome - and only the first two are a root
-    ///     deserialize. The nested one is the route worth pinning: presence is captured by the converter the
-    ///     attributed factory produces, and the factory has to still claim a member of an outer object it is not
-    ///     itself claiming.
-    /// </summary>
-    [Test]
-    public void PresenceIsCapturedOnACharacterNestedInsideAWelcome()
-    {
-        var welcome = TestJson.Socket<WelcomeData>($@"{{""map"":""main"",""in"":""main"",""character"":{MOVING_CHARACTER_FRAME}}}")!;
-
-        welcome.Character
-               .Should()
-               .NotBeNull();
-
-        welcome.Character!.PresentFields
-               .Should()
-               .HaveFlag(EntityUpdateField.X)
-               .And.HaveFlag(EntityUpdateField.Moving)
-               .And.HaveFlag(EntityUpdateField.MoveNum)
-               .And.HaveFlag(EntityUpdateField.Map);
-    }
-
-    [Test]
-    public void LocksmithOperation_SerializesToItsWireName()
-    {
-        TestJson.Emit(LocksmithOperation.Lock).Should().Be("\"lock\"");
-        TestJson.Emit(LocksmithOperation.Seal).Should().Be("\"seal\"");
-        TestJson.Emit(LocksmithOperation.Unlock).Should().Be("\"unlock\"");
-    }
-
-    /// <summary>
-    ///     All three cosmetic responses carry <c>player.p.acx</c> whole - <c>cx_new</c> at node/server.js:7243,
-    ///     <c>cx_received</c> at :7984 and <c>cx_sent</c> at :7991 - never a delta, which is why the handler assigns
-    ///     rather than merges. The wire names are the risk here: nothing but the enum's own wire-name mapping turns
-    ///     <c>cx_sent</c> into <see cref="GameResponseType.CosmeticSent" />, so a broken mapping would leave the
-    ///     handler silently never firing.
-    /// </summary>
-    [Test]
-    public void EveryCosmeticResponseCarriesTheWholeInventory()
-    {
-        var sent = TestJson.Socket<GameResponseData>(@"{""response"":""cx_sent"",""name"":""Sichi"",""cx"":""hat100"",""acx"":{""hat101"":1}}");
-
-        sent.Should()
-            .NotBeNull();
-
-        sent.ResponseType
-            .Should()
-            .Be(GameResponseType.CosmeticSent);
-
-        sent.Acx
-            .Should()
-            .ContainKey("hat101")
-            .And.HaveCount(1, "the fixture is the sender's whole post-trade inventory, in which the traded hat no longer appears");
-
-        var received = TestJson.Socket<GameResponseData>(@"{""response"":""cx_received"",""name"":""Sichi"",""cx"":""hat100"",""acx"":{""hat100"":1,""hat101"":2}}");
-
-        received.Should()
-                .NotBeNull();
-
-        received.ResponseType
-                .Should()
-                .Be(GameResponseType.CosmeticReceived);
-
-        received.Acx
-                .Should()
-                .HaveCount(2);
-
-        var opened = TestJson.Socket<GameResponseData>(@"{""response"":""cx_new"",""from"":""cxjar"",""name"":""hat100"",""acx"":{""hat100"":1}}");
-
-        opened.Should()
-              .NotBeNull();
-
-        opened.ResponseType
-              .Should()
-              .Be(GameResponseType.CosmeticNew);
-
-        opened.Acx
-              .Should()
-              .ContainKey("hat100");
-    }
-
-    /// <summary>
-    ///     A cosmetic response with no <c>acx</c> is a shape the server does not send. The handler leaves the last
-    ///     known inventory alone rather than emptying it, so the null has to survive deserialization as a null.
-    /// </summary>
-    [Test]
-    public void ACosmeticResponseWithoutAcxDeserializesToNull()
-    {
-        var obj = TestJson.Socket<GameResponseData>(@"{""response"":""cx_sent"",""name"":""Sichi""}");
-
-        obj.Should()
-           .NotBeNull();
-
-        obj.Acx
-           .Should()
-           .BeNull();
+              .BeFalse();
     }
 }

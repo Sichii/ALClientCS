@@ -8,11 +8,10 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     Holds the carved winterland corridor to the two rules the server enforces on the crossing: a path onto the
-///     ice golem island must exist, and no leg of it may start or end over the lake, where the server's
-///     move-endpoint check rejects the position. The jail band is restated here from sampled values of the
-///     server's walkability lattice rather than read from the production carve, so a wrong carve cannot agree
-///     with itself.
+///     Holds the carved winterland corridor to the two rules the server enforces on the crossing: a path onto the ice
+///     golem island must exist, and no leg of it may start or end over the lake, where the server's move-endpoint check
+///     rejects the position. The jail band is restated here from sampled values of the server's walkability lattice rather
+///     than read from the production carve, so a wrong carve cannot agree with itself.
 /// </summary>
 public class IceGolemCorridorTests : PathfindingTestBed
 {
@@ -56,10 +55,7 @@ public class IceGolemCorridorTests : PathfindingTestBed
                          edge.End
                      })
             {
-                var jailable = (point.X > JAIL_MIN_X)
-                               && (point.X < JAIL_MAX_X)
-                               && (point.Y > JAIL_MIN_Y)
-                               && (point.Y < JAIL_MAX_Y);
+                var jailable = (point.X > JAIL_MIN_X) && (point.X < JAIL_MAX_X) && (point.Y > JAIL_MIN_Y) && (point.Y < JAIL_MAX_Y);
 
                 jailable.Should()
                         .BeFalse($"no leg may start or end over the lake, but ({point.X}, {point.Y}) does");

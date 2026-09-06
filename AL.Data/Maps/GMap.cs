@@ -20,15 +20,15 @@ public sealed record GMap
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
-    ///     If true, the server builds no walkable-area map for this one, so no position is out of bounds and no
-    ///     move can be jailed for landing off it (node/server_functions.js:4010).
+    ///     If true, the server builds no walkable-area map for this one, so no position is out of bounds and no move can be
+    ///     jailed for landing off it (node/server_functions.js:4010).
     /// </summary>
     [JsonPropertyName("no_bounds")]
     public bool Boundless { get; init; }
 
     /// <summary>
-    ///     Scales the chance an attacker's burn proc lands here (node/server.js:3202). Zero means the map sets
-    ///     none, which the server reads as 1.
+    ///     Scales the chance an attacker's burn proc lands here (node/server.js:3202). Zero means the map sets none, which the
+    ///     server reads as 1.
     /// </summary>
     [JsonPropertyName("burn_multiplier")]
     public float BurnMultiplier { get; init; }
@@ -43,15 +43,15 @@ public sealed record GMap
     ///         Currently not used.
     ///     </b>
     ///     <br />
-    ///     A value used to determine how often items drop. The server hardcoded it to 1000 for every map and left
-    ///     a note saying so (node/server.js:2106).
+    ///     A value used to determine how often items drop. The server hardcoded it to 1000 for every map and left a note
+    ///     saying so (node/server.js:2106).
     /// </summary>
     [JsonPropertyName("drop_norm")]
     public float DropNorm { get; init; }
 
     /// <summary>
-    ///     The map's own drop table, rolled on kills anywhere on it in addition to the monster's own. Empty for a map
-    ///     the game gives none.
+    ///     The map's own drop table, rolled on kills anywhere on it in addition to the monster's own. Empty for a map the game
+    ///     gives none.
     /// </summary>
     /// <remarks>
     ///     Enriched property
@@ -73,16 +73,16 @@ public sealed record GMap
     public IReadOnlyList<Exit> Exits { get; internal set; } = new List<Exit>();
 
     /// <summary>
-    ///     Scales the chance an attacker's freeze proc lands here (node/server.js:3187). Zero means the map sets
-    ///     none, which the server reads as 1.
-    /// </summary>
-    [JsonPropertyName("freeze_multiplier")]
-    public float FreezeMultiplier { get; init; }
-
-    /// <summary>
     ///     The name of the special effect on the map, if it has one. Will also have <see cref="Weather" />.
     /// </summary>
     public string? FX { get; init; }
+
+    /// <summary>
+    ///     Scales the chance an attacker's freeze proc lands here (node/server.js:3187). Zero means the map sets none, which
+    ///     the server reads as 1.
+    /// </summary>
+    [JsonPropertyName("freeze_multiplier")]
+    public float FreezeMultiplier { get; init; }
 
     /// <summary>
     ///     If populated, an object containing information about the geometry for this map.
@@ -100,21 +100,21 @@ public sealed record GMap
     public bool Instance { get; init; }
 
     /// <summary>
-    ///     If true, the client leaves this map out of its travel list and the server skips it when scanning every
-    ///     map for monsters (js/html.js:4960, node/server.js:4950). Jail, the duel and code lands, the resort and
-    ///     the test map carry it.
+    ///     If true, the client leaves this map out of its travel list and the server skips it when scanning every map for
+    ///     monsters (js/html.js:4960, node/server.js:4950). Jail, the duel and code lands, the resort and the test map carry
+    ///     it.
     /// </summary>
     public bool Irregular { get; init; }
 
     /// <summary>
-    ///     Names the map's geometry document in the server's database, as "MP_" plus this value
-    ///     (node/server.js:392). Not the string used to access this map object.
+    ///     Names the map's geometry document in the server's database, as "MP_" plus this value (node/server.js:392). Not the
+    ///     string used to access this map object.
     /// </summary>
     public string Key { get; init; } = null!;
 
     /// <summary>
-    ///     Dead. Nothing in the server or the official client reads it, and the one map that declares it declares
-    ///     it false, so this is always false.
+    ///     Dead. Nothing in the server or the official client reads it, and the one map that declares it declares it false, so
+    ///     this is always false.
     /// </summary>
     public bool Loss { get; init; }
 
@@ -124,21 +124,20 @@ public sealed record GMap
     public IReadOnlyList<GMapMonster> Monsters { get; init; } = new List<GMapMonster>();
 
     /// <summary>
-    ///     Marks a bank level. Entering mounts the account-wide bank onto the character and leaving unmounts it,
-    ///     both asynchronous, and a second attempt while one is in flight fails as "bank_opi"
-    ///     (node/server.js:5449).
+    ///     Marks a bank level. Entering mounts the account-wide bank onto the character and leaving unmounts it, both
+    ///     asynchronous, and a second attempt while one is in flight fails as "bank_opi" (node/server.js:5449).
     /// </summary>
     public bool Mount { get; init; }
-
-    /// <summary>
-    ///     The name of this map. (not the same as the string used to access this map object)
-    /// </summary>
-    public string Name { get; init; } = null!;
 
     /// <summary>
     ///     A list of npcs on this map, as well as where they are located.
     /// </summary>
     public IReadOnlyList<GMapNPC> NPCs { get; init; } = new List<GMapNPC>();
+
+    /// <summary>
+    ///     The name of this map. (not the same as the string used to access this map object)
+    /// </summary>
+    public string Name { get; init; } = null!;
 
     /// <summary>
     ///     The map accessor and spawn id for that map that you will go to if you die on this map.
@@ -161,8 +160,8 @@ public sealed record GMap
     public bool PvP { get; init; }
 
     /// <summary>
-    ///     If true, nothing hostile can be done here: a player's attack is refused as "friendly" and a hostile
-    ///     skill as "skill_cant_safe" (node/server.js:3139, :8930). These maps also carry no monsters.
+    ///     If true, nothing hostile can be done here: a player's attack is refused as "friendly" and a hostile skill as
+    ///     "skill_cant_safe" (node/server.js:3139, :8930). These maps also carry no monsters.
     /// </summary>
     public bool Safe { get; init; }
 
@@ -170,10 +169,10 @@ public sealed record GMap
     ///     Softens the stakes of PvP on this map. Only applies while the server itself is not a PvP server.
     /// </summary>
     /// <remarks>
-    ///     A kill here transfers no gold and costs the loser no xp, and monster packs pay double gold as they do on
-    ///     any PvP map. Item loss is not softened: this flag never feeds the server's own PvP test, so a kill still
-    ///     drops recently looted items, and that mark only clears on banking or at the next login once an hour old.
-    ///     Dying to a monster costs full xp here, because the tenfold discount other PvP maps grant is cancelled.
+    ///     A kill here transfers no gold and costs the loser no xp, and monster packs pay double gold as they do on any PvP
+    ///     map. Item loss is not softened: this flag never feeds the server's own PvP test, so a kill still drops recently
+    ///     looted items, and that mark only clears on banking or at the next login once an hour old. Dying to a monster costs
+    ///     full xp here, because the tenfold discount other PvP maps grant is cancelled.
     /// </remarks>
     [JsonPropertyName("safe_pvp")]
     public bool SafePvP { get; init; }
@@ -189,8 +188,8 @@ public sealed record GMap
     public IReadOnlyList<GTrap> Traps { get; init; } = new List<GTrap>();
 
     /// <summary>
-    ///     If true, the client leaves this map out of its travel list, though it is a perfectly ordinary map
-    ///     otherwise (js/html.js:4959).
+    ///     If true, the client leaves this map out of its travel list, though it is a perfectly ordinary map otherwise
+    ///     (js/html.js:4959).
     /// </summary>
     public bool Unlist { get; init; }
 

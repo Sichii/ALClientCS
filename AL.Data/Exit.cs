@@ -15,8 +15,8 @@ namespace AL.Data;
 public record Exit : ICircle, ILocation
 {
     /// <summary>
-    ///     Whether this exit is still shut. A field, not a property, and nothing in this library ever sets it -
-    ///     a door's own lock lives on <see cref="AL.Data.Maps.GDoor.LockType" />.
+    ///     Whether this exit is still shut. A field, not a property, and nothing in this library ever sets it - a door's own
+    ///     lock lives on <see cref="AL.Data.Maps.GDoor.LockType" />.
     /// </summary>
     public bool Locked;
 
@@ -26,24 +26,27 @@ public record Exit : ICircle, ILocation
     public string Map { get; init; } = null!;
 
     /// <summary>
-    ///     The rectangle the server measures the character against. For a door, the door's box on its own spawn
-    ///     grown by the character's box; for a transporter, a point. See <c>GameData.DoorReachBand</c>. A record
-    ///     holding a collection compares it by reference, so do not lean on an <see cref="Exit" />'s synthesized
+    ///     A single circle about this exit's own position that is wholly inside its reach, for anything that treats an exit as
+    ///     a plain <see cref="ICircle" />. Conservative for a door, exact for a transporter.
+    /// </summary>
+    public float Radius { get; init; }
+
+    /// <summary>
+    ///     The rectangle the server measures the character against. For a door, the door's box on its own spawn grown by the
+    ///     character's box; for a transporter, a point. See
+    ///     <c>
+    ///         GameData.DoorReachBand
+    ///     </c>
+    ///     . A record holding a collection compares it by reference, so do not lean on an <see cref="Exit" />'s synthesized
     ///     equality; the point, location and circle overloads below are the ones to use.
     /// </summary>
     public Rectangle ReachBand { get; init; }
 
     /// <summary>
-    ///     How far outside <see cref="ReachBand" /> the exit still works. The band inflated by this range is the
-    ///     exact region the server accepts, and it is what a walk to this exit stops inside.
+    ///     How far outside <see cref="ReachBand" /> the exit still works. The band inflated by this range is the exact region
+    ///     the server accepts, and it is what a walk to this exit stops inside.
     /// </summary>
     public float ReachRange { get; init; }
-
-    /// <summary>
-    ///     A single circle about this exit's own position that is wholly inside its reach, for anything that treats
-    ///     an exit as a plain <see cref="ICircle" />. Conservative for a door, exact for a transporter.
-    /// </summary>
-    public float Radius { get; init; }
 
     /// <summary>
     ///     The location this exit leads to.

@@ -15,8 +15,8 @@ namespace AL.Tests.SocketClient.Tests;
 ///     <c>
 ///         socket.on
 ///     </c>
-///     name. This pins every member added by the emit-surface and endpoint-coverage passes, along with the older
-///     members that gained a method alongside them, to its handler in node/server.js.
+///     name. This pins every member added by the emit-surface and endpoint-coverage passes, along with the older members
+///     that gained a method alongside them, to its handler in node/server.js.
 /// </summary>
 public class EmitTypeWireNameTests
 {

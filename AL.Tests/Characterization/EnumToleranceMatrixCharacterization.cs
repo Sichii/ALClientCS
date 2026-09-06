@@ -199,14 +199,18 @@ public sealed class EnumToleranceMatrixCharacterization
     /// </summary>
     /// <remarks>
     ///     All but two of the value-position cells across every tolerant enum agree with the pin exactly — including the
-    ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and exception-type names
-    ///     never even come into it. The measured divergence is the five unknown-key cells, one per dictionary-key enum,
-    ///     exactly what the plan predicted, plus the one boolean-token cell corrected after the migration, plus the one
-    ///     numeric cell an enum grew a member for.
+    ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and exception-type names never
+    ///     even come into it. The measured divergence is the five unknown-key cells, one per dictionary-key enum, exactly what
+    ///     the plan predicted, plus the one boolean-token cell corrected after the migration, plus the one numeric cell an
+    ///     enum grew a member for.
     ///     <br />
-    ///     Class 4 counts one because <c>UIDataType</c> is the only tolerant enum whose members reach the number the
-    ///     numeric probe feeds it. A second one means another enum grew past that number, and the same reasoning applies
-    ///     — raise the count rather than reaching for the fixture, which is the pre-migration baseline and stays frozen.
+    ///     Class 4 counts one because
+    ///     <c>
+    ///         UIDataType
+    ///     </c>
+    ///     is the only tolerant enum whose members reach the number the numeric probe feeds it. A second one means another
+    ///     enum grew past that number, and the same reasoning applies — raise the count rather than reaching for the fixture,
+    ///     which is the pre-migration baseline and stays frozen.
     /// </remarks>
     private static readonly IReadOnlyDictionary<string, int> ExpectedDivergenceCounts = new Dictionary<string, int>(StringComparer.Ordinal)
     {
@@ -262,12 +266,18 @@ public sealed class EnumToleranceMatrixCharacterization
 
     /// <summary>
     ///     Whether two cells report the same parsed value under different names. A value cell is written
-    ///     <c>{value} = {decimal}</c>, so the half after the last <c>=</c> is what the converter actually produced and
-    ///     the half before it is only how that number spells itself today.
+    ///     <c>
+    ///         {value} = {decimal}
+    ///     </c>
+    ///     , so the half after the last
+    ///     <c>
+    ///         =
+    ///     </c>
+    ///     is what the converter actually produced and the half before it is only how that number spells itself today.
     /// </summary>
     /// <remarks>
-    ///     Deliberately refuses to fire on a cell that threw on either side: a throw carries no decimal, and reading
-    ///     one out of an exception's name is how a genuine regression would sneak into this class.
+    ///     Deliberately refuses to fire on a cell that threw on either side: a throw carries no decimal, and reading one out
+    ///     of an exception's name is how a genuine regression would sneak into this class.
     /// </remarks>
     private static bool SameUnderlyingValue(string pinned, string stj)
     {
@@ -280,7 +290,12 @@ public sealed class EnumToleranceMatrixCharacterization
         if ((left < 0) || (right < 0))
             return false;
 
-        return string.Equals(pinned[(left + 1)..].Trim(), stj[(right + 1)..].Trim(), StringComparison.Ordinal);
+        return string.Equals(
+            pinned[(left + 1)..]
+                .Trim(),
+            stj[(right + 1)..]
+                .Trim(),
+            StringComparison.Ordinal);
     }
     #endregion
 

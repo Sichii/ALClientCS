@@ -15,15 +15,15 @@ public static class InstancedLocationExtensions
     extension<T>(T location) where T: IInstancedLocation, allows ref struct
     {
         /// <summary>
-        ///     The euclidean distance between two instanced locations, or <see cref="float.MaxValue" /> when they
-        ///     are in different instances or on different maps.
+        ///     The euclidean distance between two instanced locations, or <see cref="float.MaxValue" /> when they are in different
+        ///     instances or on different maps.
         /// </summary>
         public float DistanceWithInstanceCheck<T2>(T2 other) where T2: IInstancedLocation, allows ref struct
             => !location.InSameInstanceAs(other) ? float.MaxValue : location.DistanceWithMapCheck(other);
 
         /// <summary>
-        ///     Whether two locations share an instance. An empty instance matches any; a null one is unknown and
-        ///     only matches another unknown.
+        ///     Whether two locations share an instance. An empty instance matches any; a null one is unknown and only matches
+        ///     another unknown.
         /// </summary>
         public bool InSameInstanceAs<T2>(T2 other) where T2: IInstancedLocation, allows ref struct
         {

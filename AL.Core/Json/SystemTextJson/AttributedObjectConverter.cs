@@ -28,22 +28,16 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 {
+    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the type test is cached
+    private static readonly ConcurrentDictionary<Type, bool> Harvestable = new();
     private readonly Type? Excluded;
 
     public AttributedObjectConverterFactory() { }
 
     private AttributedObjectConverterFactory(Type excluded) => Excluded = excluded;
 
-    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the type test is cached
-    private static readonly ConcurrentDictionary<Type, bool> Harvestable = new();
-
     public override bool CanConvert(Type typeToConvert)
         => (typeToConvert != Excluded) && Harvestable.GetOrAdd(typeToConvert, IsHarvestable);
-
-    private static bool IsHarvestable(Type typeToConvert)
-        => typeof(IAttributed).IsAssignableFrom(typeToConvert)
-           && !typeToConvert.IsAbstract
-           && typeToConvert.GetConstructor(Type.EmptyTypes) is not null;
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         => (JsonConverter)Activator.CreateInstance(typeof(AttributedObjectStjConverter<>).MakeGenericType(typeToConvert), options)!;
@@ -53,6 +47,11 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
     ///     re-enter its own converter, while nested <see cref="IAttributed" /> members still match.
     /// </summary>
     internal AttributedObjectConverterFactory Excluding(Type type) => new(type);
+
+    private static bool IsHarvestable(Type typeToConvert)
+        => typeof(IAttributed).IsAssignableFrom(typeToConvert)
+           && !typeToConvert.IsAbstract
+           && typeToConvert.GetConstructor(Type.EmptyTypes) is not null;
 }
 
 /// <summary>

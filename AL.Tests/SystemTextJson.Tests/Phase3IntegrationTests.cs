@@ -148,6 +148,24 @@ public sealed class Phase3IntegrationTests
     }
 
     [Test]
+    public void GItem_StackSize_EveryWireSpellingIsNumeric()
+        =>
+
+            //the design tables spell most stackables "s":true, and the converter above would read a boolean as its falsy
+            //default of 1 - so every stackable would report a cap of one. That never happens: design/items.js:7441-7443
+            //rewrites true to 9999 before G is serialised. Pinned, so a host serving the raw spelling fails here
+            Fixture.Section("items")
+                   .AsObject()
+                   .Where(entry => entry.Value is JsonObject wire && wire.ContainsKey("s"))
+                   .Select(entry => entry.Value!["s"]!.GetValueKind())
+                   .Distinct()
+                   .Should()
+                   .ContainSingle()
+                   .Which
+                   .Should()
+                   .Be(JsonValueKind.Number);
+
+    [Test]
     public void GItem_StackSize_FalsyValueDegradesToConverterDefault()
     {
         // [JsonConverter(FalsyStackSizeConverter)] on StackSize: a falsy `s` (JavaScript a&&a) must degrade to 1, not
@@ -165,23 +183,6 @@ public sealed class Phase3IntegrationTests
         JsonSerializer.Deserialize<GItem>("{}", ALJson.Options)!.StackSize
                       .Should()
                       .Be(1);
-    }
-
-    [Test]
-    public void GItem_StackSize_EveryWireSpellingIsNumeric()
-    {
-        //the design tables spell most stackables "s":true, and the converter above would read a boolean as its falsy
-        //default of 1 - so every stackable would report a cap of one. That never happens: design/items.js:7441-7443
-        //rewrites true to 9999 before G is serialised. Pinned, so a host serving the raw spelling fails here
-        Fixture.Section("items")
-               .AsObject()
-               .Where(entry => entry.Value is JsonObject wire && wire.ContainsKey("s"))
-               .Select(entry => entry.Value!["s"]!.GetValueKind())
-               .Distinct()
-               .Should()
-               .ContainSingle()
-               .Which.Should()
-               .Be(JsonValueKind.Number);
     }
 
     [Test]

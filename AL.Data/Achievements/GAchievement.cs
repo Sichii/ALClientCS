@@ -6,8 +6,8 @@ namespace AL.Data.Achievements;
 public record GAchievement
 {
     /// <summary>
-    ///     The total this achievement's counter has to reach. What it counts differs per achievement - kills, hits
-    ///     taken, damage dealt - and <see cref="Explanation" /> says which.
+    ///     The total this achievement's counter has to reach. What it counts differs per achievement - kills, hits taken,
+    ///     damage dealt - and <see cref="Explanation" /> says which.
     /// </summary>
     public int Count { get; init; }
 
@@ -17,8 +17,7 @@ public record GAchievement
     public string? Explanation { get; init; }
 
     /// <summary>
-    ///     If populated, the item this achievement declares as its reward. Nothing in the published server hands it
-    ///     out.
+    ///     If populated, the item this achievement declares as its reward. Nothing in the published server hands it out.
     /// </summary>
     public string? Item { get; init; }
 
@@ -28,8 +27,8 @@ public record GAchievement
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     How often progress is reported: the server sends an update each time the counter crosses a multiple of
-    ///     this. Null means every increment.
+    ///     How often progress is reported: the server sends an update each time the counter crosses a multiple of this. Null
+    ///     means every increment.
     /// </summary>
     public int? Rr { get; init; }
 

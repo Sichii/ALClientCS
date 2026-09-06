@@ -14,27 +14,21 @@ using FluentAssertions;
 namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
-///     A character routed through a proxy has to reach the game over SOCKS5, not over an HTTP CONNECT tunnel that
-///     a SOCKS proxy would refuse.
+///     A character routed through a proxy has to reach the game over SOCKS5, not over an HTTP CONNECT tunnel that a SOCKS
+///     proxy would refuse.
 /// </summary>
 /// <remarks>
-///     Restated against the wire rather than against the library. Asking SocketIOClient whether it would use the
-///     proxy, or asking <c>ClientWebSocket</c> what it supports, is a probe agreeing with itself; the only answer
-///     that means anything is the bytes that actually leave. A runtime or library change that quietly stopped
-///     speaking SOCKS would put the character back on the machine's own IP, and nothing else here would notice.
+///     Restated against the wire rather than against the library. Asking SocketIOClient whether it would use the proxy, or
+///     asking
+///     <c>
+///         ClientWebSocket
+///     </c>
+///     what it supports, is a probe agreeing with itself; the only answer that means anything is the bytes that actually
+///     leave. A runtime or library change that quietly stopped speaking SOCKS would put the character back on the
+///     machine's own IP, and nothing else here would notice.
 /// </remarks>
 public class ProxyTests
 {
-    [Test]
-    public void NoProxyByDefault()
-    {
-        var client = new ALSocketClient(Logger());
-
-        client.Proxy
-              .Should()
-              .BeNull();
-    }
-
     [Test]
     public async Task ConnectsThroughTheProxyAsSocks5()
     {
@@ -68,44 +62,16 @@ public class ProxyTests
             //SOCKS5: version 5, one authentication method offered, method 0 (none). An HTTP CONNECT tunnel would
             //instead open with the ascii "CONNECT ".
             first.Should()
-                 .StartWith([(byte)0x05, (byte)0x01, (byte)0x00]);
+                 .StartWith(
+                     [
+                         0x05,
+                         0x01,
+                         0x00
+                     ]);
         } finally
         {
             listener.Stop();
         }
-    }
-
-    /// <summary>
-    ///     <c>ALClient.EnsureSocketCarriesProxy</c> throws when the socket about to connect was not built
-    ///     with this character's configured proxy.
-    /// </summary>
-    /// <remarks>
-    ///     Two earlier attempts pinned this invariant by scanning <c>ALClient.cs</c>'s source text for how a
-    ///     replacement socket's construction was spelled, and each was fooled by a different legal spelling of
-    ///     the same construction. A source scan can only ever recognize spellings it was told about. Driving an
-    ///     actual reconnect to exercise the real call site needs a live server, so instead this calls the guard
-    ///     method directly (<c>internal</c>, visible here via <c>InternalsVisibleTo</c>) against a client
-    ///     assembled by hand - the smallest honest way to prove the check fires on a mismatch and stays quiet
-    ///     on a match, without caring how any particular socket happened to get built.
-    /// </remarks>
-    [Test]
-    public void ThrowsWhenTheSocketDoesNotCarryTheConfiguredProxy()
-    {
-        var proxy = new WebProxy("socks5://127.0.0.1:1");
-
-        //the socket was built without the proxy this character is configured to use - the exact shape of the bug
-        //an evasive third construction site would produce
-        var client = new Warrior("routed-character", new UnusedApiClient(), new ALSocketClient(Logger()))
-        {
-            SocketProxy = proxy
-        };
-
-        var act = () => client.EnsureSocketCarriesProxy();
-
-        act.Should()
-           .Throw<InvalidOperationException>()
-           .WithMessage("*routed-character*")
-           .WithMessage("*NewSocket()*");
     }
 
     [Test]
@@ -126,6 +92,16 @@ public class ProxyTests
 
     private static FormattedLogger Logger() => new("proxy-test", LogManager.GetLogger<ALSocketClient>());
 
+    [Test]
+    public void NoProxyByDefault()
+    {
+        var client = new ALSocketClient(Logger());
+
+        client.Proxy
+              .Should()
+              .BeNull();
+    }
+
     private static async Task<byte[]> ReadFirstBytesAsync(TcpListener listener)
     {
         using var accepted = await listener.AcceptTcpClientAsync();
@@ -136,6 +112,51 @@ public class ProxyTests
         var read = await stream.ReadAsync(buffer, timeout.Token);
 
         return buffer[..read];
+    }
+
+    /// <summary>
+    ///     <c>
+    ///         ALClient.EnsureSocketCarriesProxy
+    ///     </c>
+    ///     throws when the socket about to connect was not built with this character's configured proxy.
+    /// </summary>
+    /// <remarks>
+    ///     Two earlier attempts pinned this invariant by scanning
+    ///     <c>
+    ///         ALClient.cs
+    ///     </c>
+    ///     's source text for how a replacement socket's construction was spelled, and each was fooled by a different legal
+    ///     spelling of the same construction. A source scan can only ever recognize spellings it was told about. Driving an
+    ///     actual reconnect to exercise the real call site needs a live server, so instead this calls the guard method
+    ///     directly (
+    ///     <c>
+    ///         internal
+    ///     </c>
+    ///     , visible here via
+    ///     <c>
+    ///         InternalsVisibleTo
+    ///     </c>
+    ///     ) against a client assembled by hand - the smallest honest way to prove the check fires on a mismatch and stays
+    ///     quiet on a match, without caring how any particular socket happened to get built.
+    /// </remarks>
+    [Test]
+    public void ThrowsWhenTheSocketDoesNotCarryTheConfiguredProxy()
+    {
+        var proxy = new WebProxy("socks5://127.0.0.1:1");
+
+        //the socket was built without the proxy this character is configured to use - the exact shape of the bug
+        //an evasive third construction site would produce
+        var client = new Warrior("routed-character", new UnusedApiClient(), new ALSocketClient(Logger()))
+        {
+            SocketProxy = proxy
+        };
+
+        var act = () => client.EnsureSocketCarriesProxy();
+
+        act.Should()
+           .Throw<InvalidOperationException>()
+           .WithMessage("*routed-character*")
+           .WithMessage("*NewSocket()*");
     }
 
     /// <summary>

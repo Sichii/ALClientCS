@@ -35,27 +35,13 @@ public class BankIndexTests
     }
 
     [Test]
-    public void AnEmptySlotPastTheEndOfATrimmedPackIsStillAValidTarget()
+    public void APackThisCharacterCannotReachIsRefused()
     {
-        //a pack arrives trimmed to its highest occupied slot, so the array is shorter than the 42 slots the server
-        //counts. Bounding on the array's length rejects free slots
         var client = ClientHolding(Item("hpot0"));
 
-        client.FindOptimalBankIndex(Indexed("cscroll0"), PACK, 41)
+        client.FindOptimalBankIndex(Indexed("cscroll0"), BankPack.Items7, 0)
               .Should()
-              .Be((PACK, 41));
-    }
-
-    [Test]
-    public void TheStoreSentinelIsAccepted()
-    {
-        //-1 is both this method's own stacking answer and the server's "you pick a slot". Feeding the method's own
-        //output back in has to survive
-        var client = ClientHolding(Item("hpot0"));
-
-        client.FindOptimalBankIndex(Indexed("hpot0"), PACK, -1)
-              .Should()
-              .Be((PACK, -1));
+              .BeNull();
     }
 
     [Test]
@@ -73,13 +59,15 @@ public class BankIndexTests
     }
 
     [Test]
-    public void APackThisCharacterCannotReachIsRefused()
+    public void AnEmptySlotPastTheEndOfATrimmedPackIsStillAValidTarget()
     {
+        //a pack arrives trimmed to its highest occupied slot, so the array is shorter than the 42 slots the server
+        //counts. Bounding on the array's length rejects free slots
         var client = ClientHolding(Item("hpot0"));
 
-        client.FindOptimalBankIndex(Indexed("cscroll0"), BankPack.Items7, 0)
+        client.FindOptimalBankIndex(Indexed("cscroll0"), PACK, 41)
               .Should()
-              .BeNull();
+              .Be((PACK, 41));
     }
 
     private static Warrior ClientHolding(params Item?[] pack)
@@ -98,8 +86,7 @@ public class BankIndexTests
         };
 
         //private setter: the frame that normally fills this arrives over the socket, and none of these tests has one
-        typeof(ALClient).GetProperty(nameof(ALClient.Bank))!
-                        .SetValue(client, bank);
+        typeof(ALClient).GetProperty(nameof(ALClient.Bank))!.SetValue(client, bank);
 
         return client;
     }
@@ -117,6 +104,18 @@ public class BankIndexTests
             Name = name,
             Quantity = 1
         };
+
+    [Test]
+    public void TheStoreSentinelIsAccepted()
+    {
+        //-1 is both this method's own stacking answer and the server's "you pick a slot". Feeding the method's own
+        //output back in has to survive
+        var client = ClientHolding(Item("hpot0"));
+
+        client.FindOptimalBankIndex(Indexed("hpot0"), PACK, -1)
+              .Should()
+              .Be((PACK, -1));
+    }
 
     /// <summary>
     ///     The constructor rejects a null API client and nothing under test calls one.

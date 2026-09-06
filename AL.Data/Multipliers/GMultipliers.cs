@@ -22,8 +22,8 @@ public sealed record GMultipliers
     public int ExtraShells { get; init; }
 
     /// <summary>
-    ///     The multiplier on an item's value when buying it back from the lost-and-found NPC. Cash items get no
-    ///     separate rate here, unlike at second-hands.
+    ///     The multiplier on an item's value when buying it back from the lost-and-found NPC. Cash items get no separate rate
+    ///     here, unlike at second-hands.
     /// </summary>
     [JsonPropertyName("lostandfound_mult")]
     public float LostAndFoundMult { get; init; }

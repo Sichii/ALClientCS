@@ -88,6 +88,9 @@ public class MonstersDatum : DatumBase<GMonster>
     [JsonPropertyName("cutebee")]
     public GMonster Cutebee { get; init; } = null!;
 
+    [JsonPropertyName("d_wiz")]
+    public GMonster DWiz { get; init; } = null!;
+
     [JsonPropertyName("dknight2")]
     public GMonster Dknight2 { get; init; } = null!;
 
@@ -96,9 +99,6 @@ public class MonstersDatum : DatumBase<GMonster>
 
     [JsonPropertyName("dryad")]
     public GMonster Dryad { get; init; } = null!;
-
-    [JsonPropertyName("d_wiz")]
-    public GMonster DWiz { get; init; } = null!;
 
     [JsonPropertyName("eelemental")]
     public GMonster Eelemental { get; init; } = null!;

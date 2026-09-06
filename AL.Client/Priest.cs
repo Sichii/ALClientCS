@@ -139,8 +139,7 @@ public class Priest : ALClient
     ///     The slot holding the essence of life to use. Left unset, the server picks the last one in your inventory.
     /// </param>
     /// <remarks>
-    ///     The essence is consumed before the server checks the gravestone, so a target below full hp costs one and
-    ///     throws.
+    ///     The essence is consumed before the server checks the gravestone, so a target below full hp costs one and throws.
     /// </remarks>
     /// <exception cref="ArgumentNullException">
     ///     targetId
@@ -156,6 +155,7 @@ public class Priest : ALClient
         return UseSkillCoreAsync(
             "revive",
             targetId,
+
             //the gravestone rejection is answered by revive_failed alone - the reject beside it carries no "failed",
             //so without this the skill_timeout that follows would settle the await as a success
             extraFailure: static data => data.ResponseType == GameResponseType.ReviveFailed ? "gravestone not fully healed" : null,

@@ -41,16 +41,16 @@ public record CharacterInfo : IInstancedLocation
     public string? Secret { get; init; }
 
     /// <summary>
-    ///     The character's class as the server names it - "warrior", "mage", "merchant" and so on.
-    /// </summary>
-    public string? Type { get; init; }
-
-    /// <summary>
     ///     If the character is <see cref="IsOnline" />, this is the <see cref="AL.APIClient.Definitions.ServerRegion" /> and
     ///     <see cref="AL.APIClient.Definitions.ServerId" />
     /// </summary>
     [JsonPropertyName("server")]
     public string? ServerKey { get; init; }
+
+    /// <summary>
+    ///     The character's class as the server names it - "warrior", "mage", "merchant" and so on.
+    /// </summary>
+    public string? Type { get; init; }
 
     public float X { get; init; }
     public float Y { get; init; }

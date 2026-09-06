@@ -31,8 +31,8 @@ public sealed record GDrop
     ///     <c>
     ///         random() / (share * luckm * level * mult) &lt; rate
     ///     </c>
-    ///     (node/server.js:2189), so a rate of 1 or more is a guaranteed drop rather than a probability - several
-    ///     tables express that as 100 or 10000.
+    ///     (node/server.js:2189), so a rate of 1 or more is a guaranteed drop rather than a probability - several tables
+    ///     express that as 100 or 10000.
     /// </summary>
     public float Rate { get; init; }
 }
@@ -50,8 +50,8 @@ public sealed record GDrop
 ///     <c>
 ///         [rate, "open", tableName]
 ///     </c>
-///     . <see cref="AL.Core.Json.SystemTextJson.ArrayToObjectConverter{T}" /> cannot express that - it binds one
-///     declared type per index.
+///     . <see cref="AL.Core.Json.SystemTextJson.ArrayToObjectConverter{T}" /> cannot express that - it binds one declared
+///     type per index.
 /// </summary>
 public sealed class GDropConverter : JsonConverter<GDrop>
 {
@@ -68,7 +68,8 @@ public sealed class GDropConverter : JsonConverter<GDrop>
 
         using var document = JsonDocument.ParseValue(ref reader);
 
-        var slots = document.RootElement.EnumerateArray()
+        var slots = document.RootElement
+                            .EnumerateArray()
                             .ToArray();
 
         //a rate that is not a number, or a second slot that is not a name, is not an entry this can mean anything
@@ -80,7 +81,7 @@ public sealed class GDropConverter : JsonConverter<GDrop>
             .GetSingle();
 
         var second = slots[1]
-                     .GetString()
+                         .GetString()
                      ?? string.Empty;
 
         //"open" is the marker, and the table name follows it in the slot a quantity would otherwise occupy
@@ -90,7 +91,7 @@ public sealed class GDropConverter : JsonConverter<GDrop>
                 Rate = rate,
                 Name = (slots.Length > 2) && (slots[2].ValueKind == JsonValueKind.String)
                     ? slots[2]
-                        .GetString()
+                          .GetString()
                       ?? string.Empty
                     : string.Empty,
                 Quantity = 1,

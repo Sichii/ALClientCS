@@ -10,10 +10,9 @@ using FluentAssertions;
 namespace AL.Tests.Client.Tests;
 
 /// <summary>
-///     Restates the server's mitigation rule for in-flight damage rather than calling a production probe: a
-///     projectile's damage is reduced by the target's defense less TWICE the shooter's pierce, because the server
-///     subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
-///     (node/server.js:3179, :3611).
+///     Restates the server's mitigation rule for in-flight damage rather than calling a production probe: a projectile's
+///     damage is reduced by the target's defense less TWICE the shooter's pierce, because the server subtracts both the
+///     attacker's live stat and the copy stamped onto the projectile at creation (node/server.js:3179, :3611).
 /// </summary>
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public class ProjectileMitigationTests
@@ -41,8 +40,7 @@ public class ProjectileMitigationTests
                 Source = source
             };
 
-        EntityBase? FindAttacker(string id)
-            => id == "a1" ? attacker : null;
+        EntityBase? FindAttacker(string id) => id == "a1" ? attacker : null;
 
         //armor 400 less twice the 100 pierce is 200, a 0.80 multiplier: 100 * 0.80 * 0.95 = 76 clears 70.
         //subtracting pierce once would leave armor 300, a 0.705 multiplier, and 66.98 would not

@@ -13,35 +13,23 @@ using ExitType = AL.Core.Definitions.ExitType;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     The cross-map graph: arrival nodes (spawns that something lands on), departure nodes (exits), and the
-///     static edges between them, with walk costs funnelled once at build. A search adds a virtual start and the
-///     ends, runs Dijkstra over the nodes, and expands the winning chain into legs.
+///     The cross-map graph: arrival nodes (spawns that something lands on), departure nodes (exits), and the static edges
+///     between them, with walk costs funnelled once at build. A search adds a virtual start and the ends, runs Dijkstra
+///     over the nodes, and expands the winning chain into legs.
 /// </summary>
 internal sealed class PortalGraph
 {
-    internal readonly record struct Edge(int From, int To, EdgeType Type, float Cost);
-
-    private sealed class Node
-    {
-        public required NavMesh Mesh { get; init; }
-        public required ILocation Location { get; init; }
-        public required int Triangle { get; init; }
-        public required Point Entry { get; init; }
-        public Exit? Exit { get; init; }
-        public int SpawnIndex { get; init; } = -1;
-        public Reach Reach { get; init; }
-    }
-
-    private readonly IReadOnlyDictionary<string, NavMesh> Meshes;
-    private readonly List<Node> Nodes = [];
+    private static readonly List<int> EmptyNodes = [];
     private readonly Dictionary<(string Map, int Spawn), int> ArrivalIndex = new(MapSpawnComparer.Instance);
     private readonly Dictionary<string, List<int>> ArrivalsOnMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<int>> DeparturesOnMap = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly List<int> EmptyNodes = [];
+    private readonly int[] EdgeStart;
+
+    private readonly IReadOnlyDictionary<string, NavMesh> Meshes;
+    private readonly List<Node> Nodes = [];
 
     //static edges in CSR form by From
     private readonly Edge[] StaticEdges;
-    private readonly int[] EdgeStart;
 
     public PortalGraph(IReadOnlyDictionary<string, NavMesh> meshes)
     {
@@ -137,28 +125,6 @@ internal sealed class PortalGraph
             .Add(index);
     }
 
-    //build time only: grows the per-map lists. the search reads them through NodesOn and never touches the dictionaries
-    private (List<int> Arrivals, List<int> Departures) Lists(string map)
-    {
-        if (!ArrivalsOnMap.TryGetValue(map, out var arrivals))
-        {
-            arrivals = [];
-            ArrivalsOnMap[map] = arrivals;
-        }
-
-        if (!DeparturesOnMap.TryGetValue(map, out var departures))
-        {
-            departures = [];
-            DeparturesOnMap[map] = departures;
-        }
-
-        return (arrivals, departures);
-    }
-
-    //a map that got no nodes has an empty list; searches on several threads read these at once
-    private static List<int> NodesOn(Dictionary<string, List<int>> byMap, string map)
-        => byMap.TryGetValue(map, out var nodes) ? nodes : EmptyNodes;
-
     private (Edge[] Edges, int[] Start) BuildStaticEdges()
     {
         var edges = new List<Edge>();
@@ -176,7 +142,13 @@ internal sealed class PortalGraph
                 if (ArrivalIndex.TryGetValue((exit.ToLocation.Map, exit.ToSpawnIndex), out var to))
                 {
                     var type = exit.Type == ExitType.Door ? EdgeType.Door : EdgeType.Transport;
-                    edges.Add(new Edge(index, to, type, CONSTANTS.TRANSPORT_HEURISTIC));
+
+                    edges.Add(
+                        new Edge(
+                            index,
+                            to,
+                            type,
+                            CONSTANTS.TRANSPORT_HEURISTIC));
                 }
 
                 continue;
@@ -199,17 +171,32 @@ internal sealed class PortalGraph
                 if (cost == float.MaxValue)
                     continue;
 
-                edges.Add(new Edge(index, departure, EdgeType.Walk, node.Entry.Distance(node.Location) + cost));
+                edges.Add(
+                    new Edge(
+                        index,
+                        departure,
+                        EdgeType.Walk,
+                        node.Entry.Distance(node.Location) + cost));
             }
 
             //a recall from anywhere the character lands, to the map's town spawn; priced per search
             var gMap = GameData.Maps[map];
 
             if ((node.SpawnIndex != 0) && gMap is { Boundless: false } && ArrivalIndex.TryGetValue((map, 0), out var town))
-                edges.Add(new Edge(index, town, EdgeType.Town, 0f));
+                edges.Add(
+                    new Edge(
+                        index,
+                        town,
+                        EdgeType.Town,
+                        0f));
 
             if ((mainSpawn >= 0) && CONSTANTS.AcceptsLeave(map))
-                edges.Add(new Edge(index, mainSpawn, EdgeType.Leave, CONSTANTS.TRANSPORT_HEURISTIC));
+                edges.Add(
+                    new Edge(
+                        index,
+                        mainSpawn,
+                        EdgeType.Leave,
+                        CONSTANTS.TRANSPORT_HEURISTIC));
         }
 
         edges.Sort((a, b) => a.From.CompareTo(b.From));
@@ -226,17 +213,18 @@ internal sealed class PortalGraph
 
     /// <summary>
     ///     The cheapest route from <paramref name="start" /> to any of <paramref name="ends" />. A start that already
-    ///     satisfies an end is routed as a single zero-cost <see cref="EdgeType.Walk" /> leg from the start to itself,
-    ///     so the route is never empty and a caller always finds where it arrived at the last leg; a walk stops inside
-    ///     an end's reach rather than on its centre, and this one has no distance left to walk.
+    ///     satisfies an end is routed as a single zero-cost <see cref="EdgeType.Walk" /> leg from the start to itself, so the
+    ///     route is never empty and a caller always finds where it arrived at the last leg; a walk stops inside an end's reach
+    ///     rather than on its centre, and this one has no distance left to walk.
     /// </summary>
-    /// <exception cref="InvalidOperationException">No end can be reached.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     No end can be reached.
+    /// </exception>
     public IReadOnlyList<PathEdge> FindPath<T>(
         ILocation start,
         IEnumerable<T> ends,
         bool useTownIfOptimal,
-        float? walkSpeed)
-        where T: ILocation, ICircle
+        float? walkSpeed) where T: ILocation, ICircle
     {
         if (!Meshes.TryGetValue(start.Map, out var startMesh))
             throw new InvalidOperationException($"No mesh for the map \"{start.Map}\".");
@@ -247,12 +235,18 @@ internal sealed class PortalGraph
 
         //a start the server would refuse to move from steps onto the nearest accepted cell first
         var startPoint = new Point(start.X, start.Y);
-        ILocation cursor = start;
+        var cursor = start;
 
         if (!startMesh.IsWalkable(startPoint.X, startPoint.Y) && startMesh.TryFindNearestWalkable(startPoint, out var unstuck))
         {
             var unstuckLocation = new Location(start.Map, unstuck);
-            result.Add(new PathEdge(EdgeType.Walk, start, unstuckLocation, startPoint.Distance(unstuck)));
+
+            result.Add(
+                new PathEdge(
+                    EdgeType.Walk,
+                    start,
+                    unstuckLocation,
+                    startPoint.Distance(unstuck)));
             startPoint = new Point(unstuck.X, unstuck.Y);
             cursor = unstuckLocation;
         }
@@ -295,7 +289,9 @@ internal sealed class PortalGraph
                 continue;
 
             endMesh.Search(scratch.EndTriangle[j], scratch.EndEntry[j], scratch);
-            var endOffset = scratch.EndEntry[j].Distance(endList[j]);
+
+            var endOffset = scratch.EndEntry[j]
+                                   .Distance(endList[j]);
 
             foreach (var arrival in NodesOn(ArrivalsOnMap, endList[j].Map))
             {
@@ -307,10 +303,15 @@ internal sealed class PortalGraph
                     node.Entry,
                     scratch.EndReach[j],
                     scratch,
-                    reversed: true);
+                    true);
 
                 if (cost < float.MaxValue)
-                    scratch.SearchEdges.Add(new Edge(arrival, firstEnd + j, EdgeType.Walk, endOffset + cost));
+                    scratch.SearchEdges.Add(
+                        new Edge(
+                            arrival,
+                            firstEnd + j,
+                            EdgeType.Walk,
+                            endOffset + cost));
             }
         }
 
@@ -332,7 +333,12 @@ internal sealed class PortalGraph
                 scratch);
 
             if (cost < float.MaxValue)
-                scratch.SearchEdges.Add(new Edge(startNode, departure, EdgeType.Walk, startOffset + cost));
+                scratch.SearchEdges.Add(
+                    new Edge(
+                        startNode,
+                        departure,
+                        EdgeType.Walk,
+                        startOffset + cost));
         }
 
         for (var j = 0; j < endList.Count; j++)
@@ -348,16 +354,31 @@ internal sealed class PortalGraph
                 scratch);
 
             if (cost < float.MaxValue)
-                scratch.SearchEdges.Add(new Edge(startNode, firstEnd + j, EdgeType.Walk, startOffset + cost));
+                scratch.SearchEdges.Add(
+                    new Edge(
+                        startNode,
+                        firstEnd + j,
+                        EdgeType.Walk,
+                        startOffset + cost));
         }
 
         var startMap = GameData.Maps[start.Map];
 
         if (useTownIfOptimal && startMap is { Boundless: false } && ArrivalIndex.TryGetValue((start.Map, 0), out var startTown))
-            scratch.SearchEdges.Add(new Edge(startNode, startTown, EdgeType.Town, 0f));
+            scratch.SearchEdges.Add(
+                new Edge(
+                    startNode,
+                    startTown,
+                    EdgeType.Town,
+                    0f));
 
         if (CONSTANTS.AcceptsLeave(start.Map) && ArrivalIndex.TryGetValue(("main", 0), out var mainSpawn))
-            scratch.SearchEdges.Add(new Edge(startNode, mainSpawn, EdgeType.Leave, CONSTANTS.TRANSPORT_HEURISTIC));
+            scratch.SearchEdges.Add(
+                new Edge(
+                    startNode,
+                    mainSpawn,
+                    EdgeType.Leave,
+                    CONSTANTS.TRANSPORT_HEURISTIC));
 
         //dijkstra over the nodes; the first end settled is the cheapest
         scratch.NodeCost[startNode] = 0f;
@@ -428,7 +449,7 @@ internal sealed class PortalGraph
                 {
                     var isEnd = edge.To >= firstEnd;
                     var endIndex = edge.To - firstEnd;
-                    ILocation target = isEnd ? endList[endIndex] : Nodes[edge.To].Location;
+                    var target = isEnd ? endList[endIndex] : Nodes[edge.To].Location;
                     var targetTriangle = isEnd ? scratch.EndTriangle[endIndex] : Nodes[edge.To].Triangle;
                     var reach = isEnd ? scratch.EndReach[endIndex] : Nodes[edge.To].Reach;
                     var targetEntry = isEnd ? scratch.EndEntry[endIndex] : Nodes[edge.To].Entry;
@@ -438,7 +459,13 @@ internal sealed class PortalGraph
                     if (!NavMesh.IsSame(cursorPoint, cursorEntry))
                     {
                         var entryLocation = new Location(cursor.Map, cursorEntry);
-                        result.Add(new PathEdge(EdgeType.Walk, cursor, entryLocation, cursorPoint.Distance(cursorEntry)));
+
+                        result.Add(
+                            new PathEdge(
+                                EdgeType.Walk,
+                                cursor,
+                                entryLocation,
+                                cursorPoint.Distance(cursorEntry)));
                         cursor = entryLocation;
                         cursorPoint = cursorEntry;
                     }
@@ -471,9 +498,17 @@ internal sealed class PortalGraph
                     if (isEnd && (polyline.Count < 2))
                     {
                         if (result.Count == 0)
-                            result.Add(new PathEdge(EdgeType.Walk, cursor, cursor, 0f));
+                            result.Add(
+                                new PathEdge(
+                                    EdgeType.Walk,
+                                    cursor,
+                                    cursor,
+                                    0f));
                         else if (NavMesh.IsSame(cursorPoint, targetPoint))
-                            result[^1] = result[^1] with { End = target };
+                            result[^1] = result[^1] with
+                            {
+                                End = target
+                            };
                     }
 
                     for (var i = 1; i < polyline.Count; i++)
@@ -482,11 +517,17 @@ internal sealed class PortalGraph
 
                         //the last leg ends on the caller's own end object where it reaches the end exactly, so a
                         //caller can find its destination in the path by equality
-                        ILocation next = last && isEnd && NavMesh.IsSame(polyline[i], targetPoint)
+                        var next = last && isEnd && NavMesh.IsSame(polyline[i], targetPoint)
                             ? target
                             : new Location(cursor.Map, polyline[i]);
 
-                        result.Add(new PathEdge(EdgeType.Walk, cursor, next, polyline[i - 1].Distance(polyline[i])));
+                        result.Add(
+                            new PathEdge(
+                                EdgeType.Walk,
+                                cursor,
+                                next,
+                                polyline[i - 1]
+                                    .Distance(polyline[i])));
                         cursor = next;
                         cursorPoint = polyline[i];
                     }
@@ -498,7 +539,13 @@ internal sealed class PortalGraph
                 case EdgeType.Transport:
                 {
                     var arrival = Nodes[edge.To];
-                    result.Add(new PathEdge(edge.Type, Nodes[edge.From].Location, arrival.Location, edge.Cost));
+
+                    result.Add(
+                        new PathEdge(
+                            edge.Type,
+                            Nodes[edge.From].Location,
+                            arrival.Location,
+                            edge.Cost));
                     MoveCursor(arrival);
 
                     break;
@@ -507,7 +554,13 @@ internal sealed class PortalGraph
                 case EdgeType.Town:
                 {
                     var arrival = Nodes[edge.To];
-                    result.Add(new PathEdge(EdgeType.Town, cursor, arrival.Location, townCost));
+
+                    result.Add(
+                        new PathEdge(
+                            EdgeType.Town,
+                            cursor,
+                            arrival.Location,
+                            townCost));
                     MoveCursor(arrival);
 
                     break;
@@ -516,7 +569,13 @@ internal sealed class PortalGraph
                 case EdgeType.Leave:
                 {
                     var arrival = Nodes[edge.To];
-                    result.Add(new PathEdge(EdgeType.Leave, cursor, arrival.Location, edge.Cost));
+
+                    result.Add(
+                        new PathEdge(
+                            EdgeType.Leave,
+                            cursor,
+                            arrival.Location,
+                            edge.Cost));
                     MoveCursor(arrival);
 
                     break;
@@ -538,6 +597,28 @@ internal sealed class PortalGraph
             cursorEntry = arrival.Entry;
         }
     }
+
+    //build time only: grows the per-map lists. the search reads them through NodesOn and never touches the dictionaries
+    private (List<int> Arrivals, List<int> Departures) Lists(string map)
+    {
+        if (!ArrivalsOnMap.TryGetValue(map, out var arrivals))
+        {
+            arrivals = [];
+            ArrivalsOnMap[map] = arrivals;
+        }
+
+        if (!DeparturesOnMap.TryGetValue(map, out var departures))
+        {
+            departures = [];
+            DeparturesOnMap[map] = departures;
+        }
+
+        return (arrivals, departures);
+    }
+
+    //a map that got no nodes has an empty list; searches on several threads read these at once
+    private static List<int> NodesOn(Dictionary<string, List<int>> byMap, string map)
+        => byMap.TryGetValue(map, out var nodes) ? nodes : EmptyNodes;
 
     private static void Relax(
         in Edge edge,
@@ -563,12 +644,30 @@ internal sealed class PortalGraph
         scratch.NodeQueue.Enqueue(edge.To, cost);
     }
 
+    internal readonly record struct Edge(
+        int From,
+        int To,
+        EdgeType Type,
+        float Cost);
+
     private sealed class MapSpawnComparer : IEqualityComparer<(string Map, int Spawn)>
     {
         public static readonly MapSpawnComparer Instance = new();
 
         public bool Equals((string Map, int Spawn) x, (string Map, int Spawn) y) => (x.Spawn == y.Spawn) && x.Map.EqualsI(y.Map);
 
-        public int GetHashCode((string Map, int Spawn) obj) => HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Map), obj.Spawn);
+        public int GetHashCode((string Map, int Spawn) obj)
+            => HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Map), obj.Spawn);
+    }
+
+    private sealed class Node
+    {
+        public required Point Entry { get; init; }
+        public Exit? Exit { get; init; }
+        public required ILocation Location { get; init; }
+        public required NavMesh Mesh { get; init; }
+        public Reach Reach { get; init; }
+        public int SpawnIndex { get; init; } = -1;
+        public required int Triangle { get; init; }
     }
 }

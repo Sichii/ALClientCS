@@ -73,6 +73,8 @@ public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: clas
 /// </summary>
 public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
 {
+    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the attribute read is cached
+    private static readonly ConcurrentDictionary<Type, bool> Dual = new();
     private readonly Type? Excluded;
 
     public StringOrObjectConverterFactory() { }
@@ -82,9 +84,6 @@ public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcl
     // the object branch's inner fill runs under a copy of the options where this factory declines T, so T resolves
     // the default object converter instead of re-entering this converter and recursing until the stack overflows.
     public JsonConverterFactory Excluding(Type type) => new StringOrObjectConverterFactory(type);
-
-    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the attribute read is cached
-    private static readonly ConcurrentDictionary<Type, bool> Dual = new();
 
     public override bool CanConvert(Type typeToConvert)
         => (typeToConvert != Excluded)

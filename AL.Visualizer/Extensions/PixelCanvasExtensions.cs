@@ -16,16 +16,6 @@ namespace AL.Visualizer.Extensions;
 public static class PixelCanvasExtensions
 {
     /// <summary>
-    ///     The point in canvas pixels for a map point.
-    /// </summary>
-    public static IPoint ToCanvas(this NavMesh navMesh, IPoint point)
-    {
-        var geometry = GameData.Geometry[navMesh.Map]!;
-
-        return new Point(point.X - geometry.MinX, point.Y - geometry.MinY);
-    }
-
-    /// <summary>
     ///     Draws every triangle edge of the mesh.
     /// </summary>
     public static PixelCanvas DrawEdges(this PixelCanvas canvas, NavMesh navMesh, SKColor color = default)
@@ -224,5 +214,15 @@ public static class PixelCanvasExtensions
         });
 
         return canvas;
+    }
+
+    /// <summary>
+    ///     The point in canvas pixels for a map point.
+    /// </summary>
+    public static IPoint ToCanvas(this NavMesh navMesh, IPoint point)
+    {
+        var geometry = GameData.Geometry[navMesh.Map]!;
+
+        return new Point(point.X - geometry.MinX, point.Y - geometry.MinY);
     }
 }

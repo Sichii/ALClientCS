@@ -99,6 +99,20 @@ public class ItemStatRecoveryCharacterization
     }
 
     [Test]
+    public void T3_StringStatItems_AreExactlyTwentyTwo()
+    {
+        StringStatItems.Value
+                       .Should()
+                       .HaveCount(22, "the snapshot contains exactly this many items whose stat is a string");
+
+        // the hardcoded expectation set must cover every discovered stat string and nothing else
+        StringStatItems.Value
+                       .Select(scroll => scroll.Wire["stat"]!.GetValue<string>())
+                       .Should()
+                       .BeEquivalentTo(ExpectedScrollStat.Keys);
+    }
+
+    [Test]
     public void T3_StringStat_GradeIsNull_AbsentFromWire()
     {
         // the plan lists Grade as a resume canary, but grade is absent from all 22 scrolls' wire; it stays null.
@@ -161,20 +175,6 @@ public class ItemStatRecoveryCharacterization
                 .Should()
                 .Be(wire["s"]!.GetValue<int>(), "StackSize follows stat in the wire and must bind after recovery for {0}", accessor);
         }
-    }
-
-    [Test]
-    public void T3_StringStatItems_AreExactlyTwentyTwo()
-    {
-        StringStatItems.Value
-                       .Should()
-                       .HaveCount(22, "the snapshot contains exactly this many items whose stat is a string");
-
-        // the hardcoded expectation set must cover every discovered stat string and nothing else
-        StringStatItems.Value
-                       .Select(scroll => scroll.Wire["stat"]!.GetValue<string>())
-                       .Should()
-                       .BeEquivalentTo(ExpectedScrollStat.Keys);
     }
 
     private sealed record ScrollItem(string Accessor, JsonObject Wire, GItem Item);

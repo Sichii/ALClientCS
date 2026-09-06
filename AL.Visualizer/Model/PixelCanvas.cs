@@ -18,16 +18,6 @@ public sealed class PixelCanvas
     private readonly uint[] Pixels;
 
     /// <summary>
-    ///     The height of the canvas, in pixels.
-    /// </summary>
-    public int Height { get; }
-
-    /// <summary>
-    ///     The width of the canvas, in pixels.
-    /// </summary>
-    public int Width { get; }
-
-    /// <summary>
     ///     Gets or sets the color of the pixel at the given coordinates.
     /// </summary>
     /// <param name="x">
@@ -57,6 +47,16 @@ public sealed class PixelCanvas
             Pixels[y * Width + x] = (uint)value;
         }
     }
+
+    /// <summary>
+    ///     The height of the canvas, in pixels.
+    /// </summary>
+    public int Height { get; }
+
+    /// <summary>
+    ///     The width of the canvas, in pixels.
+    /// </summary>
+    public int Width { get; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="PixelCanvas" /> class.
@@ -106,7 +106,11 @@ public sealed class PixelCanvas
         ArgumentException.ThrowIfNullOrEmpty(path);
 
         //Bgra8888 in memory is little-endian 0xAARRGGBB, which is exactly how SKColor packs into a uint
-        var info = new SKImageInfo(Width, Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+        var info = new SKImageInfo(
+            Width,
+            Height,
+            SKColorType.Bgra8888,
+            SKAlphaType.Unpremul);
 
         using var image = SKImage.FromPixelCopy(info, MemoryMarshal.AsBytes(Pixels));
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);

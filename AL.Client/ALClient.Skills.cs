@@ -100,21 +100,28 @@ public abstract partial class ALClient
     ///     Emits a skill and waits for the server to acknowledge it.
     /// </summary>
     /// <param name="skillName">
-    ///     The name of the skill as the server knows it, e.g. <c>hardshell</c>.
+    ///     The name of the skill as the server knows it, e.g.
+    ///     <c>
+    ///         hardshell
+    ///     </c>
+    ///     .
     /// </param>
     /// <param name="targetId">
     ///     The id of the entity to use the skill on, for skills that take one.
     /// </param>
     /// <param name="targetIds">
-    ///     Every id a multi-target skill was aimed at. Carried alongside <paramref name="payload" /> rather than read out
-    ///     of it, since each such skill shapes its own arguments. Only used to decide what to drop on a refusal.
+    ///     Every id a multi-target skill was aimed at. Carried alongside <paramref name="payload" /> rather than read out of
+    ///     it, since each such skill shapes its own arguments. Only used to decide what to drop on a refusal.
     /// </param>
     /// <param name="completion">
     ///     The signal to await. Defaults to whatever <see cref="SkillCompletion.ForSkill" /> derives from G.
     /// </param>
     /// <param name="extraFailure">
-    ///     Inspects each response for a failure specific to this skill, returning the reason or <c>null</c>. The four
-    ///     failures every skill shares are handled already.
+    ///     Inspects each response for a failure specific to this skill, returning the reason or
+    ///     <c>
+    ///         null
+    ///     </c>
+    ///     . The four failures every skill shares are handled already.
     /// </param>
     /// <param name="collectActions">
     ///     Whether to collect the projectiles this skill produces.
@@ -124,13 +131,32 @@ public abstract partial class ALClient
     ///     inventory, which may well be one you meant to keep.
     /// </param>
     /// <param name="payload">
-    ///     The complete emit body, for the few skills whose arguments are not <c>name</c>, <c>id</c> and <c>num</c>. Must
-    ///     carry <c>name</c> itself.
+    ///     The complete emit body, for the few skills whose arguments are not
+    ///     <c>
+    ///         name
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         id
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         num
+    ///     </c>
+    ///     . Must carry
+    ///     <c>
+    ///         name
+    ///     </c>
+    ///     itself.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" /> of <see cref="ActionData" />
     ///     <br />
-    ///     The projectiles produced, or empty when <paramref name="collectActions" /> is <c>false</c>.
+    ///     The projectiles produced, or empty when <paramref name="collectActions" /> is
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
     /// </returns>
     /// <exception cref="ArgumentNullException">
     ///     skillName
@@ -417,8 +443,7 @@ public abstract partial class ALClient
     ///     The y coordinate to warp to.
     /// </param>
     /// <param name="instance">
-    ///     The instance to warp into. Defaults to the one you are already in — the server would otherwise send you to
-    ///     main.
+    ///     The instance to warp into. Defaults to the one you are already in — the server would otherwise send you to main.
     /// </param>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'warp'. ({reason})

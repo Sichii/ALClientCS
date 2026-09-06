@@ -27,5 +27,4 @@ internal static class TriangleNetExtensions
 
         return inside;
     }
-
 }

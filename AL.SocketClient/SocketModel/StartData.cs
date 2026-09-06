@@ -125,20 +125,6 @@ public class StartData : CharacterData
     public IReadOnlyList<string> Friends { get; init; } = new List<string>();
 
     /// <summary>
-    ///     The current instance's info blob. Shape depends on the instance type (e.g. duel state); defaults to an empty
-    ///     object.
-    /// </summary>
-    /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         info
-    ///     </c>
-    ///     on join (node/server.js:10578).
-    /// </remarks>
-    [JsonPropertyName("info")]
-    public JsonObject? InstanceInfo { get; init; }
-
-    /// <summary>
     ///     A short-lived token used to re-authenticate to the API without the password.
     /// </summary>
     /// <remarks>
@@ -156,6 +142,20 @@ public class StartData : CharacterData
 
     // ReSharper disable once InconsistentNaming
     public string? IPass { get; init; }
+
+    /// <summary>
+    ///     The current instance's info blob. Shape depends on the instance type (e.g. duel state); defaults to an empty
+    ///     object.
+    /// </summary>
+    /// <remarks>
+    ///     Start-only: sent as
+    ///     <c>
+    ///         info
+    ///     </c>
+    ///     on join (node/server.js:10578).
+    /// </remarks>
+    [JsonPropertyName("info")]
+    public JsonObject? InstanceInfo { get; init; }
 
     /// <summary>
     ///     A collection of all of the cosmetics owned by this character.

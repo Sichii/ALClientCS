@@ -8,8 +8,8 @@ using AL.Core.Interfaces;
 namespace AL.Core.Extensions;
 
 /// <summary>
-///     Provides a set of extensions for <see cref="IPoint" />s. Generic over the receiver so a struct point is never
-///     boxed to call them, and open to ref structs so <see cref="ValuePoint" /> can call them too.
+///     Provides a set of extensions for <see cref="IPoint" />s. Generic over the receiver so a struct point is never boxed
+///     to call them, and open to ref structs so <see cref="ValuePoint" /> can call them too.
 /// </summary>
 public static class PointExtensions
 {
@@ -78,7 +78,12 @@ public static class PointExtensions
         /// <summary>
         ///     Lazily generates the grid cells a line drawn from this point to <paramref name="other" /> crosses.
         /// </summary>
-        public RayTrace RayTraceTo<T2>(T2 other) where T2: IPoint, allows ref struct => new(point.X, point.Y, other.X, other.Y);
+        public RayTrace RayTraceTo<T2>(T2 other) where T2: IPoint, allows ref struct
+            => new(
+                point.X,
+                point.Y,
+                other.X,
+                other.Y);
 
         /// <summary>
         ///     Creates a new <see cref="Point" /> from this point.

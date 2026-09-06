@@ -47,10 +47,10 @@ public abstract class AttributedObjectBase : IAttributed
     public float Cuteness { get; protected set; }
 
     [JsonInclude]
-    public float Dex { get; protected set; }
+    public float DReturn { get; protected set; }
 
     [JsonInclude]
-    public float DReturn { get; protected set; }
+    public float Dex { get; protected set; }
 
     [JsonInclude]
     public float Evasion { get; protected set; }
@@ -82,12 +82,12 @@ public abstract class AttributedObjectBase : IAttributed
     [JsonInclude]
     public float GoldSteal { get; protected set; }
 
+    [JsonInclude]
+    public float HP { get; protected set; }
+
     [JsonPropertyName("healm")]
     [JsonInclude]
     public float HealMod { get; protected set; }
-
-    [JsonInclude]
-    public float HP { get; protected set; }
 
     [JsonInclude]
     public float Int { get; protected set; }
@@ -99,12 +99,6 @@ public abstract class AttributedObjectBase : IAttributed
     public float Luck { get; protected set; }
 
     [JsonInclude]
-    public float ManaSteal { get; protected set; }
-
-    [JsonInclude]
-    public float Miss { get; protected set; }
-
-    [JsonInclude]
     public float MP { get; protected set; }
 
     [JsonInclude]
@@ -113,6 +107,12 @@ public abstract class AttributedObjectBase : IAttributed
     [JsonPropertyName("mp_reduction")]
     [JsonInclude]
     public float MPReduction { get; protected set; }
+
+    [JsonInclude]
+    public float ManaSteal { get; protected set; }
+
+    [JsonInclude]
+    public float Miss { get; protected set; }
 
     [JsonInclude]
     public float Output { get; protected set; }
@@ -126,6 +126,9 @@ public abstract class AttributedObjectBase : IAttributed
     public float PotionsMod { get; protected set; }
 
     [JsonInclude]
+    public float RPiercing { get; protected set; }
+
+    [JsonInclude]
     public float Range { get; protected set; }
 
     [JsonInclude]
@@ -133,9 +136,6 @@ public abstract class AttributedObjectBase : IAttributed
 
     [JsonInclude]
     public float Resistance { get; protected set; }
-
-    [JsonInclude]
-    public float RPiercing { get; protected set; }
 
     [JsonInclude]
     public float Speed { get; protected set; }

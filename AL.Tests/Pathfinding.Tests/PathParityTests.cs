@@ -13,41 +13,22 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     The previous pathfinder's answers for 1,000 seeded random routes, recorded in Release before the rewrite
-///     (start, end, radius, every leg, cost, best-of-three time, allocation). The new pathfinder must find every
-///     route the old one found, may be materially longer on at most 1% of them, must emit only walk legs the wall
-///     test accepts, and in Release must be faster and lighter in aggregate.
+///     The previous pathfinder's answers for 1,000 seeded random routes, recorded in Release before the rewrite (start,
+///     end, radius, every leg, cost, best-of-three time, allocation). The new pathfinder must find every route the old one
+///     found, may be materially longer on at most 1% of them, must emit only walk legs the wall test accepts, and in
+///     Release must be faster and lighter in aggregate.
 /// </summary>
 public class PathParityTests : PathfindingTestBed
 {
-    private sealed record Spot(string Map, float X, float Y);
+    private static bool IsOptimized()
+    {
+        var attribute = typeof(Pathfinder).Assembly
+                                          .GetCustomAttributes(typeof(DebuggableAttribute), false)
+                                          .OfType<DebuggableAttribute>()
+                                          .FirstOrDefault();
 
-    private sealed record Leg(
-        string Type,
-        Spot Start,
-        Spot End,
-        float Cost);
-
-    private sealed record Case(
-        int Id,
-        Spot Start,
-        Spot End,
-        float Radius,
-        bool Found,
-        float Cost,
-        double Micros,
-        long Bytes,
-        List<Leg> Legs);
-
-    private sealed record Corpus(
-        int Seed,
-        string Config,
-        int Cases,
-        int Found,
-        double MeanMicros,
-        double MedianMicros,
-        double MeanBytes,
-        List<Case> Paths);
+        return attribute is null || !attribute.IsJITOptimizerDisabled;
+    }
 
     [Test]
     public async Task TheNewPathfinderMatchesTheRecordedCorpus()
@@ -73,7 +54,10 @@ public class PathParityTests : PathfindingTestBed
             var before = GC.GetAllocatedBytesForCurrentThread();
             var started = Stopwatch.GetTimestamp();
             var found = TryFind(recorded, out var path);
-            newMicros += Stopwatch.GetElapsedTime(started).TotalMilliseconds * 1000.0;
+
+            newMicros += Stopwatch.GetElapsedTime(started)
+                                  .TotalMilliseconds
+                         * 1000.0;
             newBytes += GC.GetAllocatedBytesForCurrentThread() - before;
             oldMicros += recorded.Micros;
             oldBytes += recorded.Bytes;
@@ -146,13 +130,32 @@ public class PathParityTests : PathfindingTestBed
         return (last.Map == recorded.End.Map) && (last.Distance(end) <= (recorded.Radius + 0.01f));
     }
 
-    private static bool IsOptimized()
-    {
-        var attribute = typeof(Pathfinder).Assembly
-                                          .GetCustomAttributes(typeof(DebuggableAttribute), false)
-                                          .OfType<DebuggableAttribute>()
-                                          .FirstOrDefault();
+    private sealed record Case(
+        int Id,
+        Spot Start,
+        Spot End,
+        float Radius,
+        bool Found,
+        float Cost,
+        double Micros,
+        long Bytes,
+        List<Leg> Legs);
 
-        return attribute is null || !attribute.IsJITOptimizerDisabled;
-    }
+    private sealed record Corpus(
+        int Seed,
+        string Config,
+        int Cases,
+        int Found,
+        double MeanMicros,
+        double MedianMicros,
+        double MeanBytes,
+        List<Case> Paths);
+
+    private sealed record Leg(
+        string Type,
+        Spot Start,
+        Spot End,
+        float Cost);
+
+    private sealed record Spot(string Map, float X, float Y);
 }

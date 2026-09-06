@@ -48,14 +48,15 @@ public readonly ref struct ValueLocation : ILocation, IEquatable<ValueLocation>
 
     public bool Equals(IPoint? other) => other is not null && X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 
-    public bool Equals(ILocation? other) => other is not null && Map is not null && other.Map is not null && Map.EqualsI(other.Map) && Equals((IPoint)other);
+    public bool Equals(ILocation? other)
+        => other is not null && Map is not null && other.Map is not null && Map.EqualsI(other.Map) && Equals((IPoint)other);
 
     public bool Equals(ValueLocation other)
         => Map is not null
-            && other.Map is not null
-            && Map.EqualsI(other.Map)
-            && X.IsNear(other.X, CONSTANTS.EPSILON)
-            && Y.IsNear(other.Y, CONSTANTS.EPSILON);
+           && other.Map is not null
+           && Map.EqualsI(other.Map)
+           && X.IsNear(other.X, CONSTANTS.EPSILON)
+           && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 
     public override bool Equals(object? obj) => obj is ILocation other && Equals(other);
 

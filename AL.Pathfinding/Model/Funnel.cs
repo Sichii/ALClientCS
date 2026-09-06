@@ -7,16 +7,22 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     The simple stupid funnel: string-pulls a corridor of triangles into the shortest polyline through the
-///     portals between them. Every corner it emits is a mesh vertex, and mesh vertices are the centres of walkable
-///     raster cells a unit clear of the padded walls, which is what lets every leg pass the exact line test.
+///     The simple stupid funnel: string-pulls a corridor of triangles into the shortest polyline through the portals
+///     between them. Every corner it emits is a mesh vertex, and mesh vertices are the centres of walkable raster cells a
+///     unit clear of the padded walls, which is what lets every leg pass the exact line test.
 /// </summary>
 public static class Funnel
 {
+    //appends only if it would not duplicate the last point already in path
+    private static void Append(List<Point> path, Point point)
+    {
+        if ((path.Count == 0) || !Same(path[^1], point))
+            path.Add(point);
+    }
+
     /// <summary>
-    ///     Pulls the corridor into <paramref name="path" />, which is cleared first. The corridor lists triangle ids
-    ///     from the one containing <paramref name="start" /> to the one containing <paramref name="end" />, each
-    ///     adjacent to the next.
+    ///     Pulls the corridor into <paramref name="path" />, which is cleared first. The corridor lists triangle ids from the
+    ///     one containing <paramref name="start" /> to the one containing <paramref name="end" />, each adjacent to the next.
     /// </summary>
     public static void Pull(
         TriangleMesh mesh,
@@ -68,7 +74,12 @@ public static class Funnel
                 //portals: one per triangle boundary, plus the end as a zero-width portal. left and right are chosen
                 //so that TriArea2(previous centroid, left, right) > 0, which is the orientation the pull below assumes
                 //a zero-area result (a sliver so thin the centroid is collinear with the portal) falls to the else and picks a side arbitrarily
-                if (TriArea2(cx, cy, a, b) > 0f)
+                if (TriArea2(
+                        cx,
+                        cy,
+                        a,
+                        b)
+                    > 0f)
                 {
                     lefts[i] = a;
                     rights[i] = b;
@@ -135,8 +146,6 @@ public static class Funnel
                         leftIndex = apexIndex;
                         rightIndex = apexIndex;
                         i = apexIndex;
-
-                        continue;
                     }
                 }
             }
@@ -152,12 +161,8 @@ public static class Funnel
         }
     }
 
-    //appends only if it would not duplicate the last point already in path
-    private static void Append(List<Point> path, Point point)
-    {
-        if ((path.Count == 0) || !Same(path[^1], point))
-            path.Add(point);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool Same(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
 
     //which slot of 'from' faces 'to'
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -180,7 +185,4 @@ public static class Funnel
         Point b,
         Point c)
         => (c.X - ax) * (b.Y - ay) - (b.X - ax) * (c.Y - ay);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool Same(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
 }

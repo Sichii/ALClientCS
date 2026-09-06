@@ -33,8 +33,8 @@ public sealed record LimitDcReportData
     ///     <c>
     ///         [timestamp, method, cost]
     ///     </c>
-    ///     triples, one per run of consecutive same-method calls (add_call_cost, node/server_functions.js:4621, folds a
-    ///     repeat into the previous entry rather than appending). Mixed element types, so kept raw.
+    ///     triples, one per run of consecutive same-method calls (add_call_cost, node/server_functions.js:4621, folds a repeat
+    ///     into the previous entry rather than appending). Mixed element types, so kept raw.
     /// </summary>
     [JsonPropertyName("calls")]
     public JsonArray? Calls { get; init; }

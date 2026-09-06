@@ -34,8 +34,8 @@ public readonly ref struct ValueRectangle : IRectangle
         ];
 
     /// <summary>
-    ///     Initializes a rectangle from its centre and size, the same shape <see cref="Rectangle" />'s primary
-    ///     constructor takes.
+    ///     Initializes a rectangle from its centre and size, the same shape <see cref="Rectangle" />'s primary constructor
+    ///     takes.
     /// </summary>
     public ValueRectangle(
         float x,
@@ -49,7 +49,12 @@ public readonly ref struct ValueRectangle : IRectangle
         Height = height;
     }
 
-    public static implicit operator ValueRectangle(Rectangle rectangle) => new(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+    public static implicit operator ValueRectangle(Rectangle rectangle)
+        => new(
+            rectangle.X,
+            rectangle.Y,
+            rectangle.Width,
+            rectangle.Height);
 
     /// <summary>
     ///     Initializes a rectangle from two opposing corners.
@@ -59,12 +64,21 @@ public readonly ref struct ValueRectangle : IRectangle
         float y1,
         float x2,
         float y2)
-        => new((x1 + x2) / 2, (y1 + y2) / 2, Math.Abs(x1 - x2), Math.Abs(y1 - y2));
+        => new(
+            (x1 + x2) / 2,
+            (y1 + y2) / 2,
+            Math.Abs(x1 - x2),
+            Math.Abs(y1 - y2));
 
     /// <summary>
     ///     Copies any <see cref="IRectangle" /> onto the stack.
     /// </summary>
-    public static ValueRectangle From(IRectangle rectangle) => new(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+    public static ValueRectangle From(IRectangle rectangle)
+        => new(
+            rectangle.X,
+            rectangle.Y,
+            rectangle.Width,
+            rectangle.Height);
 
     public bool Equals(IPoint? other) => other is not null && X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 

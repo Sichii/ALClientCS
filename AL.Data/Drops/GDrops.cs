@@ -10,34 +10,17 @@ namespace AL.Data.Drops;
 /// </summary>
 /// <remarks>
 ///     Every key of the wire object is reachable: <see cref="Gold" />, <see cref="Monsters" />, <see cref="Maps" />
-///     <see cref="Konami" /> and <see cref="MonstersHomeServer" /> by name, and every remaining table - one per drop id an exchange or a chest rolls
-///     - through <see cref="Tables" />.
+///     <see cref="Konami" /> and <see cref="MonstersHomeServer" /> by name, and every remaining table - one per drop id an
+///     exchange or a chest rolls - through <see cref="Tables" />.
 /// </remarks>
 public sealed record GDrops
 {
     /// <summary>
-    ///     The constants behind a kill's gold reward. They scale the monster's own gold figure, which is then
-    ///     multiplied by its level and your share of the kill (node/server.js:2118).
+    ///     The constants behind a kill's gold reward. They scale the monster's own gold figure, which is then multiplied by
+    ///     its level and your share of the kill (node/server.js:2118).
     /// </summary>
     [JsonPropertyName("gold")]
     public GGoldDrop Gold { get; init; } = new();
-
-    /// <summary>
-    ///     Each monster's own drop table, keyed by monster accessor. Every entry is rolled separately on every
-    ///     kill, so a table naming one item twice gives it two independent chances and the rates add
-    ///     (node/server.js:2197).
-    /// </summary>
-    [JsonPropertyName("monsters")]
-    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Monsters { get; init; }
-        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    ///     The per-map and global tables, keyed by map accessor. These divide by the monster's HP multiplier where a
-    ///     monster's own table does not, so a rate here is not comparable with a rate in <see cref="Monsters" />.
-    /// </summary>
-    [JsonPropertyName("maps")]
-    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Maps { get; init; }
-        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     ///     What the konami code rolls on.
@@ -46,19 +29,45 @@ public sealed record GDrops
     public IReadOnlyList<GDrop> Konami { get; init; } = [];
 
     /// <summary>
-    ///     A second table a few monsters carry, rolled beside their own only when the killer is on the server
-    ///     they call home (node/server.js:2230). Keyed by monster accessor; entries roll and scale exactly as
-    ///     <see cref="Monsters" /> do.
+    ///     The per-map and global tables, keyed by map accessor. These divide by the monster's HP multiplier where a monster's
+    ///     own table does not, so a rate here is not comparable with a rate in <see cref="Monsters" />.
+    /// </summary>
+    [JsonPropertyName("maps")]
+    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Maps { get; init; }
+        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     Each monster's own drop table, keyed by monster accessor. Every entry is rolled separately on every kill, so a
+    ///     table naming one item twice gives it two independent chances and the rates add (node/server.js:2197).
+    /// </summary>
+    [JsonPropertyName("monsters")]
+    public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Monsters { get; init; }
+        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     A second table a few monsters carry, rolled beside their own only when the killer is on the server they call home
+    ///     (node/server.js:2230). Keyed by monster accessor; entries roll and scale exactly as <see cref="Monsters" /> do.
     /// </summary>
     [JsonPropertyName("monsters_home_server")]
     public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> MonstersHomeServer { get; init; }
         = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     Every other table, keyed by the drop id the server rolls it under: what an exchange or an opened chest
-    ///     hands back. The id is an item's name for most of them, an item's name plus its level for the one
-    ///     exchangeable that takes levels, and neither for the rest - <c>xN</c>, <c>f1</c>, <c>skins</c> and their
-    ///     like name no item at all, which is why this stays reachable rather than being folded entirely into
+    ///     Every other table, keyed by the drop id the server rolls it under: what an exchange or an opened chest hands back.
+    ///     The id is an item's name for most of them, an item's name plus its level for the one exchangeable that takes
+    ///     levels, and neither for the rest -
+    ///     <c>
+    ///         xN
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         f1
+    ///     </c>
+    ///     ,
+    ///     <c>
+    ///         skins
+    ///     </c>
+    ///     and their like name no item at all, which is why this stays reachable rather than being folded entirely into
     ///     <see cref="AL.Data.Items.GItem.ExchangeRewards" />.
     /// </summary>
     /// <remarks>
@@ -69,8 +78,12 @@ public sealed record GDrops
         = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     The wire's remaining keys, held as they arrived until <c>GameData.EnrichDrops</c> turns them into
-    ///     <see cref="Tables" />. Anything the game adds to this object lands here rather than being discarded.
+    ///     The wire's remaining keys, held as they arrived until
+    ///     <c>
+    ///         GameData.EnrichDrops
+    ///     </c>
+    ///     turns them into <see cref="Tables" />. Anything the game adds to this object lands here rather than being
+    ///     discarded.
     /// </summary>
     [JsonExtensionData]
     public IDictionary<string, JsonElement>? Unbound { get; init; }
@@ -81,8 +94,11 @@ public sealed record GDrops
 ///     <c>
 ///         round(1 + gold * (BASE + rand() * RANDOM)) * level * mult
 ///     </c>
-///     (node/server.js:2119), then two independent jackpots at :2247. The monster's own <c>gold</c> is not in the
-///     game data - it reaches a client only as the start frame's base_gold table.
+///     (node/server.js:2119), then two independent jackpots at :2247. The monster's own
+///     <c>
+///         gold
+///     </c>
+///     is not in the game data - it reaches a client only as the start frame's base_gold table.
 /// </summary>
 public sealed record GGoldDrop
 {

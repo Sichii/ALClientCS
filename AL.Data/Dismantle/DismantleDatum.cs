@@ -7,8 +7,8 @@ namespace AL.Data.Dismantle;
 /// <summary>
 ///     <inheritdoc cref="DatumBase{T}" />
 ///     <br />
-///     The dismantle table: every item the craftsman can break down, keyed by the item you hand over, each holding
-///     what comes back and the gold it costs.
+///     The dismantle table: every item the craftsman can break down, keyed by the item you hand over, each holding what
+///     comes back and the gold it costs.
 /// </summary>
 /// <seealso cref="DatumBase{T}" />
 public class DismantleDatum : DatumBase<Recipe>

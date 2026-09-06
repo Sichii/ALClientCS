@@ -10,15 +10,6 @@ namespace AL.Data.Skills;
 /// <seealso cref="DatumBase{T}" />
 public class SkillsDatum : DatumBase<GSkill>
 {
-    [JsonPropertyName("3shot")]
-    public GSkill _3Shot { get; init; } = null!;
-
-    [JsonPropertyName("4fingers")]
-    public GSkill _4Fingers { get; init; } = null!;
-
-    [JsonPropertyName("5shot")]
-    public GSkill _5Shot { get; init; } = null!;
-
     [JsonPropertyName("absorb")]
     public GSkill Absorb { get; init; } = null!;
 
@@ -280,11 +271,11 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("scare")]
     public GSkill Scare { get; init; } = null!;
 
-    [JsonPropertyName("selfheal")]
-    public GSkill Selfheal { get; init; } = null!;
-
     [JsonPropertyName("self_healing")]
     public GSkill SelfHealing { get; init; } = null!;
+
+    [JsonPropertyName("selfheal")]
+    public GSkill Selfheal { get; init; } = null!;
 
     [JsonPropertyName("shadowstrike")]
     public GSkill Shadowstrike { get; init; } = null!;
@@ -390,4 +381,13 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("zapperzap")]
     public GSkill Zapperzap { get; init; } = null!;
+
+    [JsonPropertyName("3shot")]
+    public GSkill _3Shot { get; init; } = null!;
+
+    [JsonPropertyName("4fingers")]
+    public GSkill _4Fingers { get; init; } = null!;
+
+    [JsonPropertyName("5shot")]
+    public GSkill _5Shot { get; init; } = null!;
 }

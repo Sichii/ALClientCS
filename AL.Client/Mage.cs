@@ -55,8 +55,8 @@ public class Mage : ALClient
     public Task AlchemyAsync() => UseSkillCoreAsync("alchemy");
 
     /// <summary>
-    ///     Asynchronously uses Arcane Needle on a target: a wand shot at 75% damage that pierces 500 resistance and
-    ///     cannot be reflected. It shares the attack cooldown, so it is the plain attack spent differently.
+    ///     Asynchronously uses Arcane Needle on a target: a wand shot at 75% damage that pierces 500 resistance and cannot be
+    ///     reflected. It shares the attack cooldown, so it is the plain attack spent differently.
     /// </summary>
     /// <param name="targetId">
     ///     The id of the target.
@@ -126,8 +126,8 @@ public class Mage : ALClient
     ///     Asynchronously uses CBurst, bursting several targets at once for a chosen amount of mp each.
     /// </summary>
     /// <param name="targets">
-    ///     The targets to burst and the mp to spend on each. The server reads at most
-    ///     <see cref="MAX_CBURST_TARGETS" /> of them and ignores a target repeated within the same cast.
+    ///     The targets to burst and the mp to spend on each. The server reads at most <see cref="MAX_CBURST_TARGETS" /> of
+    ///     them and ignores a target repeated within the same cast.
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///     targets
@@ -203,8 +203,7 @@ public class Mage : ALClient
     ///     Asynchronously uses Light, revealing invisible entities nearby.
     /// </summary>
     /// <remarks>
-    ///     Light has no cooldown, so the server acknowledges it with nothing and this returns as soon as the emit is
-    ///     written.
+    ///     Light has no cooldown, so the server acknowledges it with nothing and this returns as soon as the emit is written.
     /// </remarks>
     public Task LightAsync() => UseSkillCoreAsync("light", completion: SkillCompletion.Immediate);
 

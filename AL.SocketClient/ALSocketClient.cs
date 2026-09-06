@@ -31,38 +31,31 @@ namespace AL.SocketClient;
 /// <seealso cref="IAsyncDisposable" />
 public sealed class ALSocketClient : IALSocketClient
 {
-    private readonly IFormattedLogger Logger;
-    private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
-    private bool Disposed;
-    private SocketIOClient.SocketIO Socket = null!;
-
-    /// <summary>Frames waiting to be handled, in the order the transport read them off the wire.</summary>
-    private readonly Channel<QueuedFrame> Frames;
-
-    /// <summary>The single consumer of <see cref="Frames" />. One per client, which is what makes the order one.</summary>
-    private readonly Task Pump;
-
     /// <summary>
     ///     How long a frame may sit behind the one in front before that is worth a line.
     /// </summary>
     /// <remarks>
-    ///     There is no budget being enforced here and nothing is dropped when it is exceeded. It exists because the
-    ///     cost of ordering is exactly this wait, and a number nobody can see is a number nobody can argue about -
-    ///     the last attempt at ordering was reverted on an impression rather than a reading.
+    ///     There is no budget being enforced here and nothing is dropped when it is exceeded. It exists because the cost of
+    ///     ordering is exactly this wait, and a number nobody can see is a number nobody can argue about - the last attempt at
+    ///     ordering was reverted on an impression rather than a reading.
     /// </remarks>
     private static readonly TimeSpan QUEUE_LAG_WARN = TimeSpan.FromMilliseconds(50);
 
-    /// <summary>One frame, decoded and waiting its turn.</summary>
-    /// <remarks>
-    ///     Decoding happens on the transport's receive loop, before the frame is queued, so the queue holds work that
-    ///     is already done rather than json waiting to be parsed. What waits here is only the handler call.
-    /// </remarks>
-    private readonly record struct QueuedFrame(
-        ALSocketMessageType MessageType,
-        ALSocketSubscriptionList Subscriptions,
-        object Data,
-        string EventName,
-        long EnqueuedAt);
+    /// <summary>
+    ///     Frames waiting to be handled, in the order the transport read them off the wire.
+    /// </summary>
+    private readonly Channel<QueuedFrame> Frames;
+
+    private readonly IFormattedLogger Logger;
+
+    /// <summary>
+    ///     The single consumer of <see cref="Frames" />. One per client, which is what makes the order one.
+    /// </summary>
+    private readonly Task Pump;
+
+    private readonly ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList> Subscriptions;
+    private bool Disposed;
+    private SocketIOClient.SocketIO Socket = null!;
 
     /// <summary>
     ///     Whether or not this socket is currently connected.
@@ -82,12 +75,12 @@ public sealed class ALSocketClient : IALSocketClient
     ///     The proxy this socket dials the game through, or null for the machine's own connection.
     /// </summary>
     /// <remarks>
-    ///     Per socket rather than static, unlike <see cref="UseSecureTransport" />: the point of it is that one
-    ///     character in a process reaches the game from a different address than the rest.
+    ///     Per socket rather than static, unlike <see cref="UseSecureTransport" />: the point of it is that one character in a
+    ///     process reaches the game from a different address than the rest.
     ///     <br />
-    ///     A dead proxy refuses the connection and the login fails. It does not fall back to the machine's own
-    ///     connection, and it must not be made to - a silent fallback is the character rejoining on an address it
-    ///     was configured to avoid, with nothing in the log saying it happened.
+    ///     A dead proxy refuses the connection and the login fails. It does not fall back to the machine's own connection, and
+    ///     it must not be made to - a silent fallback is the character rejoining on an address it was configured to avoid,
+    ///     with nothing in the log saying it happened.
     /// </remarks>
     public IWebProxy? Proxy { get; }
 
@@ -120,55 +113,6 @@ public sealed class ALSocketClient : IALSocketClient
             });
 
         Pump = PumpAsync();
-    }
-
-    /// <summary>
-    ///     Hands each frame to its subscribers, one at a time, in the order the transport read them.
-    /// </summary>
-    /// <remarks>
-    ///     <b>No subscriber may await a server response.</b> Its answer arrives as a frame, and that frame queues
-    ///     behind the subscriber waiting for it, so the wait never ends. Nothing does this today - the only
-    ///     <c>async</c> subscriber in the client awaits nothing at all - and a new one that did would not fail
-    ///     visibly, it would stop the socket. Register a callback that records what it saw and returns.
-    ///     <br />
-    ///     Hitchhiked events are not affected: they arrive inside a frame already being handled and dispatch through
-    ///     <see cref="HandleEventAsync" /> inline, which is the order they belong in anyway.
-    /// </remarks>
-    private async Task PumpAsync()
-    {
-        var previousEvent = "nothing";
-
-        await foreach (var frame in Frames.Reader.ReadAllAsync()
-                                          .ConfigureAwait(false))
-        {
-            var waited = Stopwatch.GetElapsedTime(frame.EnqueuedAt);
-
-            //names the frame ahead of this one, because that is the one whose handler held the line. The pair of
-            //warnings is what identifies the offender: this line says the queue backed up, the one below says who
-            if (waited > QUEUE_LAG_WARN)
-                Logger.Warn(
-                    $"Frame \"{frame.EventName}\" waited {waited.TotalMilliseconds:N0}ms to be handled, behind \"{previousEvent}\".");
-
-            var startedAt = Stopwatch.GetTimestamp();
-
-            try
-            {
-                await InvokeAsync(frame.MessageType, frame.Subscriptions, frame.Data)
-                    .ConfigureAwait(false);
-            } catch (Exception e)
-            {
-                //one frame's handler must not end the pump, which would leave the socket connected and deaf
-                Logger.Error($"Handler for \"{frame.EventName}\" threw. {e}");
-            }
-
-            var handling = Stopwatch.GetElapsedTime(startedAt);
-
-            //a slow handler with nothing queued behind it delays the next frame just as much and warns nowhere else
-            if (handling > QUEUE_LAG_WARN)
-                Logger.Warn($"Handler for \"{frame.EventName}\" took {handling.TotalMilliseconds:N0}ms.");
-
-            previousEvent = frame.EventName;
-        }
     }
 
     /// <inheritdoc />
@@ -420,8 +364,8 @@ RAW JSON:
     public event EventHandler<string>? OnDisconnected;
 
     /// <summary>
-    ///     Raised after each emit reaches the wire, carrying what was sent. Every one of those is billed against the
-    ///     server's <see cref="CallCost.LIMIT" />, so this is the hook for metering who is spending the budget.
+    ///     Raised after each emit reaches the wire, carrying what was sent. Every one of those is billed against the server's
+    ///     <see cref="CallCost.LIMIT" />, so this is the hook for metering who is spending the budget.
     /// </summary>
     public event EventHandler<ALSocketEmitType>? OnEmit;
 
@@ -548,21 +492,80 @@ RAW JSON:
     }
 
     /// <summary>
+    ///     Hands each frame to its subscribers, one at a time, in the order the transport read them.
+    /// </summary>
+    /// <remarks>
+    ///     <b>
+    ///         No subscriber may await a server response.
+    ///     </b>
+    ///     Its answer arrives as a frame, and that frame queues behind the subscriber waiting for it, so the wait never ends.
+    ///     Nothing does this today - the only
+    ///     <c>
+    ///         async
+    ///     </c>
+    ///     subscriber in the client awaits nothing at all - and a new one that did would not fail visibly, it would stop the
+    ///     socket. Register a callback that records what it saw and returns.
+    ///     <br />
+    ///     Hitchhiked events are not affected: they arrive inside a frame already being handled and dispatch through
+    ///     <see cref="HandleEventAsync" /> inline, which is the order they belong in anyway.
+    /// </remarks>
+    private async Task PumpAsync()
+    {
+        var previousEvent = "nothing";
+
+        await foreach (var frame in Frames.Reader
+                                          .ReadAllAsync()
+                                          .ConfigureAwait(false))
+        {
+            var waited = Stopwatch.GetElapsedTime(frame.EnqueuedAt);
+
+            //names the frame ahead of this one, because that is the one whose handler held the line. The pair of
+            //warnings is what identifies the offender: this line says the queue backed up, the one below says who
+            if (waited > QUEUE_LAG_WARN)
+                Logger.Warn(
+                    $"Frame \"{frame.EventName}\" waited {waited.TotalMilliseconds:N0}ms to be handled, behind \"{previousEvent}\".");
+
+            var startedAt = Stopwatch.GetTimestamp();
+
+            try
+            {
+                await InvokeAsync(frame.MessageType, frame.Subscriptions, frame.Data)
+                    .ConfigureAwait(false);
+            } catch (Exception e)
+            {
+                //one frame's handler must not end the pump, which would leave the socket connected and deaf
+                Logger.Error($"Handler for \"{frame.EventName}\" threw. {e}");
+            }
+
+            var handling = Stopwatch.GetElapsedTime(startedAt);
+
+            //a slow handler with nothing queued behind it delays the next frame just as much and warns nowhere else
+            if (handling > QUEUE_LAG_WARN)
+                Logger.Warn($"Handler for \"{frame.EventName}\" took {handling.TotalMilliseconds:N0}ms.");
+
+            previousEvent = frame.EventName;
+        }
+    }
+
+    /// <summary>
     ///     Queues a decoded frame for the pump to hand to its subscribers.
     /// </summary>
     /// <remarks>
-    ///     Frames are queued rather than handled on the socket callback so that handling happens in arrival order
-    ///     rather than in whatever order the thread pool gets to it. Two frames from one server burst race
-    ///     otherwise, and the loser can be the older one: a character frame carrying no town channel, applied after
-    ///     the one that opened it, reads as a recall somebody cancelled. The same shape sits under every "did this
-    ///     field go away" test in the client, and under ShallowMerge writing a stale snapshot over a fresh one.
+    ///     Frames are queued rather than handled on the socket callback so that handling happens in arrival order rather than
+    ///     in whatever order the thread pool gets to it. Two frames from one server burst race otherwise, and the loser can be
+    ///     the older one: a character frame carrying no town channel, applied after the one that opened it, reads as a recall
+    ///     somebody cancelled. The same shape sits under every "did this field go away" test in the client, and under
+    ///     ShallowMerge writing a stale snapshot over a fresh one.
     ///     <br />
-    ///     An ordered chain was tried once before and reverted. What was measured then was pathfinding that was
-    ///     broken for unrelated reasons, so the reading did not say what it appeared to; the cost that is real is
-    ///     the wait the pump warns about.
+    ///     An ordered chain was tried once before and reverted. What was measured then was pathfinding that was broken for
+    ///     unrelated reasons, so the reading did not say what it appeared to; the cost that is real is the wait the pump warns
+    ///     about.
     /// </remarks>
     /// <returns>
-    ///     <c>false</c> when nothing subscribes to <paramref name="messageType" />, or the queue has closed
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     when nothing subscribes to <paramref name="messageType" />, or the queue has closed
     /// </returns>
     internal bool TryEnqueue(ALSocketMessageType messageType, object data, string eventName)
     {
@@ -579,19 +582,32 @@ RAW JSON:
     }
 
     /// <summary>
+    ///     One frame, decoded and waiting its turn.
+    /// </summary>
+    /// <remarks>
+    ///     Decoding happens on the transport's receive loop, before the frame is queued, so the queue holds work that is
+    ///     already done rather than json waiting to be parsed. What waits here is only the handler call.
+    /// </remarks>
+    private readonly record struct QueuedFrame(
+        ALSocketMessageType MessageType,
+        ALSocketSubscriptionList Subscriptions,
+        object Data,
+        string EventName,
+        long EnqueuedAt);
+
+    /// <summary>
     ///     The transport's serializer, with every event frame queued from inside its parse.
     /// </summary>
     /// <remarks>
-    ///     The library hands each received frame to its handlers on a thread-pool task of its own, so two frames
-    ///     from one server burst reach a handler in whichever order the pool schedules them, and a small frame
-    ///     overtakes a large one more often than not. That is how a buy receipt ran ahead of the inventory frame
-    ///     the server sent before it: the receipt resolved the buy, the bench read an inventory that did not hold
-    ///     the scroll yet, and the swap it built on that view waited out its timeout on slots that were never going
-    ///     to match.
+    ///     The library hands each received frame to its handlers on a thread-pool task of its own, so two frames from one
+    ///     server burst reach a handler in whichever order the pool schedules them, and a small frame overtakes a large one
+    ///     more often than not. That is how a buy receipt ran ahead of the inventory frame the server sent before it: the
+    ///     receipt resolved the buy, the bench read an inventory that did not hold the scroll yet, and the swap it built on
+    ///     that view waited out its timeout on slots that were never going to match.
     ///     <br />
-    ///     The parse is the one call the library still makes inline on its receive loop, in arrival order, so the
-    ///     queue is fed from there. Re-implementing the interface on a derived class is what lets that one method
-    ///     be intercepted without restating the other nine. Binary frames are not hooked; the server sends none.
+    ///     The parse is the one call the library still makes inline on its receive loop, in arrival order, so the queue is fed
+    ///     from there. Re-implementing the interface on a derived class is what lets that one method be intercepted without
+    ///     restating the other nine. Binary frames are not hooked; the server sends none.
     /// </remarks>
     internal sealed class SynchronousSerializer(ALSocketClient owner, JsonSerializerOptions options)
         : SystemTextJsonSerializer(options), ISerializer

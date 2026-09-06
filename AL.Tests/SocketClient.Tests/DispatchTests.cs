@@ -11,10 +11,9 @@ namespace AL.Tests.SocketClient.Tests;
 public class DispatchTests : SocketTestBed
 {
     /// <summary>
-    ///     Pins the ordering the town recall depends on. Handling a frame per thread pool work item lets two frames
-    ///     from one burst race, and the loser can be the older one, which is what made a live recall read as
-    ///     cancelled. The subscriber here is slow on purpose: under an unordered dispatch the second frame overtakes
-    ///     it.
+    ///     Pins the ordering the town recall depends on. Handling a frame per thread pool work item lets two frames from one
+    ///     burst race, and the loser can be the older one, which is what made a live recall read as cancelled. The subscriber
+    ///     here is slow on purpose: under an unordered dispatch the second frame overtakes it.
     /// </summary>
     [Test]
     public async Task FramesAreHandledInArrivalOrderTest()

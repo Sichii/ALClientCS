@@ -808,8 +808,8 @@ public class JsonConverterTests
         //the top-level num is the inventory slot the operation runs in - the same ref.num the q entry carries - and
         //p is that slot's prediction, whose nums are the roll's digits as they are revealed
         obj!.Slot
-           .Should()
-           .Be(1);
+            .Should()
+            .Be(1);
 
         obj.Prediction
            .Should()

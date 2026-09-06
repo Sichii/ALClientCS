@@ -16,8 +16,8 @@ namespace AL.Data.Skills;
 public sealed record GSkill : AttributedRecordBase
 {
     /// <summary>
-    ///     A label on the skill's effect - "heal" for the two heals, "rate" for alchemy. Only those three carry
-    ///     one, and nothing in the server or the official client reads it.
+    ///     A label on the skill's effect - "heal" for the two heals, "rate" for alchemy. Only those three carry one, and
+    ///     nothing in the server or the official client reads it.
     /// </summary>
     public string? Action { get; init; }
 
@@ -73,8 +73,8 @@ public sealed record GSkill : AttributedRecordBase
     public string? Consume { get; init; }
 
     /// <summary>
-    ///     The cooldown of this skill in milliseconds. The four long channelled skills spell it "reuse_cooldown"
-    ///     instead; the server takes whichever is set and so does this (node/server.js:8900).
+    ///     The cooldown of this skill in milliseconds. The four long channelled skills spell it "reuse_cooldown" instead; the
+    ///     server takes whichever is set and so does this (node/server.js:8900).
     /// </summary>
     [JsonPropertyName("cooldown")]
     [JsonInclude]
@@ -100,20 +100,19 @@ public sealed record GSkill : AttributedRecordBase
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     The duration of this skill in milliseconds. A skill that names a <see cref="Condition" /> and sets no
-    ///     duration of its own is given that condition's duration when the game data is built
-    ///     (design/skills.js:1210), so this is often copied rather than authored.
+    ///     The duration of this skill in milliseconds. A skill that names a <see cref="Condition" /> and sets no duration of
+    ///     its own is given that condition's duration when the game data is built (design/skills.js:1210), so this is often
+    ///     copied rather than authored.
     /// </summary>
     public float Duration { get; init; }
 
     /// <summary>
-    ///     If populated, the game's own line about this skill - "Hits 3 targets at once!". Nearly all of them
-    ///     carry one; the two that do not are client actions rather than skills.
+    ///     If populated, the game's own line about this skill - "Hits 3 targets at once!". Nearly all of them carry one; the
+    ///     two that do not are client actions rather than skills.
     /// </summary>
     /// <remarks>
-    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it
-    ///     describes is implemented elsewhere or not at all. Read it as the game's own words about the skill, not
-    ///     as a source of figures.
+    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it describes is
+    ///     implemented elsewhere or not at all. Read it as the game's own words about the skill, not as a source of figures.
     /// </remarks>
     public string? Explanation { get; init; }
 
@@ -167,15 +166,15 @@ public sealed record GSkill : AttributedRecordBase
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     The item type the offhand must hold for this skill to be usable, or null when the offhand is not checked.
-    ///     Shield Slam is the one skill carrying it, and it names <see cref="ItemType.Shield" />.
+    ///     The item type the offhand must hold for this skill to be usable, or null when the offhand is not checked. Shield
+    ///     Slam is the one skill carrying it, and it names <see cref="ItemType.Shield" />.
     /// </summary>
     [JsonPropertyName("offhand_type")]
     public ItemType? OffhandType { get; init; }
 
     /// <summary>
-    ///     If true, this skill is never cast; it is always on. A monster keeps running its passive skills even
-    ///     while stunned or frozen (node/server.js:12565).
+    ///     If true, this skill is never cast; it is always on. A monster keeps running its passive skills even while stunned
+    ///     or frozen (node/server.js:12565).
     /// </summary>
     public bool Passive { get; init; }
 
@@ -191,9 +190,8 @@ public sealed record GSkill : AttributedRecordBase
     public bool PiercesImmunity { get; init; }
 
     /// <summary>
-    ///     If true, a player casting this skill rolls the mainhand's burn, poison, freeze and stun procs as a plain
-    ///     attack would (node/server.js:2993). Absent means false: quickstab procs, quickpunch does not. Monsters
-    ///     proc regardless.
+    ///     If true, a player casting this skill rolls the mainhand's burn, poison, freeze and stun procs as a plain attack
+    ///     would (node/server.js:2993). Absent means false: quickstab procs, quickpunch does not. Monsters proc regardless.
     /// </summary>
     public bool Procs { get; init; }
 
@@ -230,8 +228,8 @@ public sealed record GSkill : AttributedRecordBase
     ///     </b>
     ///     . If populated, this skill requires an item to be equipped.
     ///     <br />
-    ///     Each entry pairs a slot with the item that has to be in it. Several entries are alternatives, not all
-    ///     required - a zapper in either ring slot enables zapperzap.
+    ///     Each entry pairs a slot with the item that has to be in it. Several entries are alternatives, not all required - a
+    ///     zapper in either ring slot enables zapperzap.
     /// </summary>
     [JsonPropertyName("slot")]
     public IReadOnlyList<(EquipmentSlot Slot, string ItemName)>? RequiredSlotItems { get; init; }
@@ -245,9 +243,8 @@ public sealed record GSkill : AttributedRecordBase
     }
 
     /// <summary>
-    ///     If populated, this is the name of the skill this skill shares a cooldown with. Both the length and the
-    ///     last-used timestamp come from that skill, so using either starts the timer for both
-    ///     (node/server.js:8895).
+    ///     If populated, this is the name of the skill this skill shares a cooldown with. Both the length and the last-used
+    ///     timestamp come from that skill, so using either starts the timer for both (node/server.js:8895).
     ///     <br />
     ///     Check <see cref="CooldownMultiplier" /> for a cooldown multiplier.
     /// </summary>
@@ -255,16 +252,23 @@ public sealed record GSkill : AttributedRecordBase
     public string? SharedCooldown { get; init; }
 
     /// <summary>
-    ///     What this skill may be aimed at: a monster, a player, or either. Absent means the skill takes no target
-    ///     at all, and aiming at the wrong kind is refused as "invalid_target" (node/server.js:8936).
+    ///     What this skill may be aimed at: a monster, a player, or either. Absent means the skill takes no target at all, and
+    ///     aiming at the wrong kind is refused as "invalid_target" (node/server.js:8936).
     /// </summary>
     /// <summary>
-    ///     If populated, the name of this skill's icon art in <c>G.positions</c>. Read the same way a condition's
-    ///     icon is, through the item pipeline rather than a sprite sheet.
+    ///     If populated, the name of this skill's icon art in
+    ///     <c>
+    ///         G.positions
+    ///     </c>
+    ///     . Read the same way a condition's icon is, through the item pipeline rather than a sprite sheet.
     /// </summary>
     /// <remarks>
-    ///     Usually <c>skill_</c> and the skill's own key, but not reliably enough to build: a dozen skills borrow a
-    ///     condition's or an item's art instead, and the healing skills share one icon between them.
+    ///     Usually
+    ///     <c>
+    ///         skill_
+    ///     </c>
+    ///     and the skill's own key, but not reliably enough to build: a dozen skills borrow a condition's or an item's art
+    ///     instead, and the healing skills share one icon between them.
     /// </remarks>
     public string? Skin { get; init; }
 
@@ -282,8 +286,8 @@ public sealed record GSkill : AttributedRecordBase
     public SkillType Type { get; init; }
 
     /// <summary>
-    ///     If true, this skill is useable on monsters. Only three skills state it either way, and what the server
-    ///     actually enforces is <see cref="TargetType" />.
+    ///     If true, this skill is useable on monsters. Only three skills state it either way, and what the server actually
+    ///     enforces is <see cref="TargetType" />.
     /// </summary>
     [JsonPropertyName("monsters")]
     public bool UseableOnMonsters { get; init; }

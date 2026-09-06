@@ -15,13 +15,16 @@ namespace AL.Data.Titles;
 public sealed record GTitle : AttributedRecordBase
 {
     /// <summary>
-    ///     If populated, the key of the <see cref="GAchievement" /> that stamps this title onto the item that earned
-    ///     it.
+    ///     If populated, the key of the <see cref="GAchievement" /> that stamps this title onto the item that earned it.
     /// </summary>
     public string? Achievement { get; init; }
 
     /// <summary>
-    ///     What this title can land on - an item type, an equipment slot, or <c>all_items</c> for anything.
+    ///     What this title can land on - an item type, an equipment slot, or
+    ///     <c>
+    ///         all_items
+    ///     </c>
+    ///     for anything.
     /// </summary>
     [JsonPropertyName("type")]
     public string? AffectsItemType { get; init; }

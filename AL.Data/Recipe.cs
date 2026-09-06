@@ -16,15 +16,15 @@ public sealed record Recipe
     public long Cost { get; init; }
 
     /// <summary>
-    ///     The items on the other side of the recipe: what crafting consumes, or what dismantling hands back. The
-    ///     level is an exact requirement when crafting, and is zero unless the recipe names one.
+    ///     The items on the other side of the recipe: what crafting consumes, or what dismantling hands back. The level is an
+    ///     exact requirement when crafting, and is zero unless the recipe names one.
     /// </summary>
     public IReadOnlyList<(float Quantity, string ItemName, int Level)> Items { get; init; }
         = new List<(float Quantity, string ItemName, int Level)>();
 
     /// <summary>
-    ///     The NPC a craft recipe is run at - its quest NPC when it has a quest tag, the craftsman otherwise. Null on
-    ///     a dismantle recipe, which the server still requires the craftsman for.
+    ///     The NPC a craft recipe is run at - its quest NPC when it has a quest tag, the craftsman otherwise. Null on a
+    ///     dismantle recipe, which the server still requires the craftsman for.
     /// </summary>
     /// <remarks>
     ///     Enriched property

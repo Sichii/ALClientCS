@@ -13,8 +13,8 @@ using Common.Logging;
 namespace AL.Pathfinding;
 
 /// <summary>
-///     The static entry point to pathfinding: builds every map's mesh once, then answers walks, wall checks and
-///     routes from any thread.
+///     The static entry point to pathfinding: builds every map's mesh once, then answers walks, wall checks and routes
+///     from any thread.
 /// </summary>
 public static class Pathfinder
 {
@@ -34,7 +34,9 @@ public static class Pathfinder
     /// <summary>
     ///     Whether a character can move in a straight line from start to end on a map: the server's own test.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The map has no mesh.
+    /// </exception>
     public static bool CanMove(string mapAccessor, IPoint start, IPoint end)
     {
         ArgumentException.ThrowIfNullOrEmpty(mapAccessor);
@@ -59,22 +61,27 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     The cheapest route from <paramref name="start" /> to any of <paramref name="ends" />, as legs. A walk
-    ///     stops inside an end's radius rather than on it. "No path" is an <see cref="InvalidOperationException" />.
+    ///     The cheapest route from <paramref name="start" /> to any of <paramref name="ends" />, as legs. A walk stops inside
+    ///     an end's radius rather than on it. "No path" is an <see cref="InvalidOperationException" />.
     /// </summary>
-    /// <param name="start">Where the character is.</param>
-    /// <param name="ends">Any of these is an acceptable destination; the cheapest to reach is chosen.</param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether a recall counts as a move. True prices one from anywhere on the route, the start map and every map
-    ///     the route lands on alike; false leaves the route without a single recall leg.
+    /// <param name="start">
+    ///     Where the character is.
     /// </param>
-    /// <param name="walkSpeed">The character's speed, which prices a recall; nominal when null.</param>
+    /// <param name="ends">
+    ///     Any of these is an acceptable destination; the cheapest to reach is chosen.
+    /// </param>
+    /// <param name="useTownIfOptimal">
+    ///     Whether a recall counts as a move. True prices one from anywhere on the route, the start map and every map the
+    ///     route lands on alike; false leaves the route without a single recall leg.
+    /// </param>
+    /// <param name="walkSpeed">
+    ///     The character's speed, which prices a recall; nominal when null.
+    /// </param>
     public static IReadOnlyList<PathEdge> FindPath<T>(
         ILocation start,
         IEnumerable<T> ends,
         bool useTownIfOptimal = true,
-        float? walkSpeed = null)
-        where T: ILocation, ICircle
+        float? walkSpeed = null) where T: ILocation, ICircle
     {
         ArgumentNullException.ThrowIfNull(start);
         ArgumentNullException.ThrowIfNull(ends);
@@ -90,15 +97,17 @@ public static class Pathfinder
 
     /// <inheritdoc cref="FindPath{T}" />
     /// <remarks>
-    ///     For callers that iterate the path with <c>await foreach</c>. The search itself runs to completion on the
-    ///     calling thread before the first leg is yielded.
+    ///     For callers that iterate the path with
+    ///     <c>
+    ///         await foreach
+    ///     </c>
+    ///     . The search itself runs to completion on the calling thread before the first leg is yielded.
     /// </remarks>
     public static IAsyncEnumerable<PathEdge> FindPathAsync<T>(
         ILocation start,
         IEnumerable<T> ends,
         bool useTownIfOptimal = true,
-        float? walkSpeed = null)
-        where T: ILocation, ICircle
+        float? walkSpeed = null) where T: ILocation, ICircle
         => FindPath(
                 start,
                 ends,
@@ -107,9 +116,9 @@ public static class Pathfinder
             .ToAsyncEnumerable();
 
     /// <summary>
-    ///     Retrieves the navmesh for a map, or null before <see cref="Initialize" /> has run, for an unknown map, or
-    ///     for a null name. Callers ask this to find out whether a mesh can answer at all before they trust what it
-    ///     says, and a character holds no map until its first new_map.
+    ///     Retrieves the navmesh for a map, or null before <see cref="Initialize" /> has run, for an unknown map, or for a
+    ///     null name. Callers ask this to find out whether a mesh can answer at all before they trust what it says, and a
+    ///     character holds no map until its first new_map.
     /// </summary>
     public static NavMesh? GetNavMesh(string? name) => name is not null && Meshes.TryGetValue(name, out var mesh) ? mesh : null;
 
@@ -149,21 +158,8 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     Whether a character standing here has a wall inside its collision box, or is off the map.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
-    public static bool IsWall(ILocation location)
-    {
-        ArgumentNullException.ThrowIfNull(location);
-
-        var mesh = GetNavMesh(location.Map) ?? throw new InvalidOperationException($"No mesh found for the map \"{location.Map}\"");
-
-        return mesh.IsWall(location);
-    }
-
-    /// <summary>
-    ///     Whether a walk may end here: inside the ground the mesh was built from. False for a map with no
-    ///     mesh rather than a throw: a map the pathfinder never modelled is one nothing can be routed onto.
+    ///     Whether a walk may end here: inside the ground the mesh was built from. False for a map with no mesh rather than a
+    ///     throw: a map the pathfinder never modelled is one nothing can be routed onto.
     /// </summary>
     public static bool IsWalkable(ILocation location)
     {
@@ -175,16 +171,18 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     The nearest point inside the ground, within <c>CONSTANTS.MAX_UNSTICK_DISTANCE</c>.
-    ///     False for a map with no mesh, for the reason <see cref="IsWalkable" /> is.
+    ///     Whether a character standing here has a wall inside its collision box, or is off the map.
     /// </summary>
-    public static bool TryFindNearestWalkable(ILocation location, out IPoint walkable)
+    /// <exception cref="InvalidOperationException">
+    ///     The map has no mesh.
+    /// </exception>
+    public static bool IsWall(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
 
-        walkable = Point.None;
+        var mesh = GetNavMesh(location.Map) ?? throw new InvalidOperationException($"No mesh found for the map \"{location.Map}\"");
 
-        return GetNavMesh(location.Map) is { } mesh && mesh.TryFindNearestWalkable(location, out walkable);
+        return mesh.IsWall(location);
     }
 
     private static NavMesh? TryBuildNavMesh(string name, GMap map)
@@ -202,5 +200,21 @@ public static class Pathfinder
         Logger.Debug($"Prepared {name}");
 
         return new NavMesh(map, geometry, mesh);
+    }
+
+    /// <summary>
+    ///     The nearest point inside the ground, within
+    ///     <c>
+    ///         CONSTANTS.MAX_UNSTICK_DISTANCE
+    ///     </c>
+    ///     . False for a map with no mesh, for the reason <see cref="IsWalkable" /> is.
+    /// </summary>
+    public static bool TryFindNearestWalkable(ILocation location, out IPoint walkable)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        walkable = Point.None;
+
+        return GetNavMesh(location.Map) is { } mesh && mesh.TryFindNearestWalkable(location, out walkable);
     }
 }

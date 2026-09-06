@@ -37,9 +37,9 @@ public abstract record AttributedRecordBase : IAttributed
 
     public float Cuteness { get; init; }
 
-    public float Dex { get; init; }
-
     public float DReturn { get; init; }
+
+    public float Dex { get; init; }
 
     public float Evasion { get; init; }
 
@@ -63,21 +63,17 @@ public abstract record AttributedRecordBase : IAttributed
 
     public float GoldSteal { get; init; }
 
-    [JsonPropertyName("healm")]
-    public float HealMod { get; init; }
-
     [JsonInclude]
     public float HP { get; protected set; }
+
+    [JsonPropertyName("healm")]
+    public float HealMod { get; init; }
 
     public float Int { get; init; }
 
     public float Lifesteal { get; init; }
 
     public float Luck { get; init; }
-
-    public float ManaSteal { get; init; }
-
-    public float Miss { get; init; }
 
     [JsonInclude]
     public float MP { get; protected set; }
@@ -88,6 +84,10 @@ public abstract record AttributedRecordBase : IAttributed
     [JsonPropertyName("mp_reduction")]
     public float MPReduction { get; init; }
 
+    public float ManaSteal { get; init; }
+
+    public float Miss { get; init; }
+
     public float Output { get; init; }
 
     [JsonPropertyName("pnresistance")]
@@ -96,6 +96,8 @@ public abstract record AttributedRecordBase : IAttributed
     [JsonPropertyName("potionsm")]
     public float PotionsMod { get; init; }
 
+    public float RPiercing { get; init; }
+
     [JsonInclude]
     public float Range { get; protected set; }
 
@@ -103,8 +105,6 @@ public abstract record AttributedRecordBase : IAttributed
 
     [JsonInclude]
     public float Resistance { get; protected set; }
-
-    public float RPiercing { get; init; }
 
     [JsonInclude]
     public float Speed { get; protected set; }

@@ -10,36 +10,45 @@ namespace AL.Pathfinding.Model;
 
 /// <summary>
 ///     A map's walkable ground as a flat triangle mesh: unique vertices, three corner indices per triangle, three
-///     neighbour ids per triangle, and a uniform grid for point location. Neighbour slot i is the triangle across
-///     the edge opposite corner i, or -1 where that edge is a wall.
+///     neighbour ids per triangle, and a uniform grid for point location. Neighbour slot i is the triangle across the edge
+///     opposite corner i, or -1 where that edge is a wall.
 /// </summary>
 public sealed class TriangleMesh
 {
-    /// <summary>The unique vertices, in map coordinates.</summary>
-    public Point[] Vertices { get; }
+    private readonly int[] CellStart;
+    private readonly int[] CellTriangles;
+    private readonly int GridColumns;
 
-    /// <summary>Three vertex indices per triangle.</summary>
-    public int[] Corners { get; }
-
-    /// <summary>Three neighbour triangle ids per triangle, -1 for none.</summary>
-    public int[] Neighbours { get; }
-
-    /// <summary>How many triangles the mesh has.</summary>
-    public int TriangleCount => Corners.Length / 3;
-
-    private readonly int[] VertexTriangle;
+    //uniform grid in CSR form: CellStart[c]..CellStart[c+1] index into CellTriangles
+    private readonly int GridMinX;
+    private readonly int GridMinY;
+    private readonly int GridRows;
 
     //vertex adjacency in CSR form: VertexEdgeStart[v]..VertexEdgeStart[v+1] index into VertexEdgeTo
     private readonly int[] VertexEdgeStart;
     private readonly int[] VertexEdgeTo;
 
-    //uniform grid in CSR form: CellStart[c]..CellStart[c+1] index into CellTriangles
-    private readonly int GridMinX;
-    private readonly int GridMinY;
-    private readonly int GridColumns;
-    private readonly int GridRows;
-    private readonly int[] CellStart;
-    private readonly int[] CellTriangles;
+    private readonly int[] VertexTriangle;
+
+    /// <summary>
+    ///     Three vertex indices per triangle.
+    /// </summary>
+    public int[] Corners { get; }
+
+    /// <summary>
+    ///     Three neighbour triangle ids per triangle, -1 for none.
+    /// </summary>
+    public int[] Neighbours { get; }
+
+    /// <summary>
+    ///     The unique vertices, in map coordinates.
+    /// </summary>
+    public Point[] Vertices { get; }
+
+    /// <summary>
+    ///     How many triangles the mesh has.
+    /// </summary>
+    public int TriangleCount => Corners.Length / 3;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="TriangleMesh" /> class.
@@ -91,7 +100,12 @@ public sealed class TriangleMesh
 
         for (var triangle = 0; triangle < TriangleCount; triangle++)
         {
-            Bounds(triangle, out var c0, out var r0, out var c1, out var r1);
+            Bounds(
+                triangle,
+                out var c0,
+                out var r0,
+                out var c1,
+                out var r1);
 
             for (var row = r0; row <= r1; row++)
                 for (var column = c0; column <= c1; column++)
@@ -107,7 +121,12 @@ public sealed class TriangleMesh
 
         for (var triangle = 0; triangle < TriangleCount; triangle++)
         {
-            Bounds(triangle, out var c0, out var r0, out var c1, out var r1);
+            Bounds(
+                triangle,
+                out var c0,
+                out var r0,
+                out var c1,
+                out var r1);
 
             for (var row = r0; row <= r1; row++)
                 for (var column = c0; column <= c1; column++)
@@ -119,71 +138,31 @@ public sealed class TriangleMesh
         }
     }
 
-    /// <summary>
-    ///     Builds a mesh from Poly2Tri's output, translating raster coordinates back into map coordinates.
-    /// </summary>
-    internal static TriangleMesh FromPoly2Tri(IReadOnlyList<DelaunayTriangle> triangles, int xOffset, int yOffset)
+    private void Bounds(
+        int triangle,
+        out int column0,
+        out int row0,
+        out int column1,
+        out int row1)
     {
-        var vertexIndex = new Dictionary<(double X, double Y), int>();
-        var vertices = new List<Point>();
-        var triangleIndex = new Dictionary<DelaunayTriangle, int>(ReferenceEqualityComparer.Instance);
+        var a = Vertices[Corners[triangle * 3]];
+        var b = Vertices[Corners[triangle * 3 + 1]];
+        var c = Vertices[Corners[triangle * 3 + 2]];
 
-        for (var i = 0; i < triangles.Count; i++)
-            triangleIndex[triangles[i]] = i;
+        var minX = MathF.Min(a.X, MathF.Min(b.X, c.X));
+        var minY = MathF.Min(a.Y, MathF.Min(b.Y, c.Y));
+        var maxX = MathF.Max(a.X, MathF.Max(b.X, c.X));
+        var maxY = MathF.Max(a.Y, MathF.Max(b.Y, c.Y));
 
-        var corners = new int[triangles.Count * 3];
-        var neighbours = new int[triangles.Count * 3];
-
-        for (var t = 0; t < triangles.Count; t++)
-        {
-            var triangle = triangles[t];
-
-            for (var i = 0; i < 3; i++)
-            {
-                var point = triangle.Points[i];
-                var key = (point.X, point.Y);
-
-                if (!vertexIndex.TryGetValue(key, out var index))
-                {
-                    index = vertices.Count;
-                    vertexIndex[key] = index;
-                    vertices.Add(new Point((float)point.X - xOffset, (float)point.Y - yOffset));
-                }
-
-                corners[t * 3 + i] = index;
-
-                //a constrained edge is a polygon edge, which is a wall; a neighbour outside the walkable set is
-                //one Poly2Tri made in the exterior and is not in the index
-                var across = triangle.Neighbors[i];
-
-                neighbours[t * 3 + i] = !triangle.EdgeIsConstrained[i] && across is not null && triangleIndex.TryGetValue(across, out var ni)
-                    ? ni
-                    : -1;
-            }
-        }
-
-        return new TriangleMesh(vertices.ToArray(), corners, neighbours);
-    }
-
-    /// <summary>The neighbour across the edge opposite corner <paramref name="slot" />, or -1.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Neighbour(int triangle, int slot) => Neighbours[triangle * 3 + slot];
-
-    /// <summary>A triangle the vertex belongs to.</summary>
-    public int TriangleOfVertex(int vertex) => VertexTriangle[vertex];
-
-    /// <summary>The vertices joined to <paramref name="vertex" /> by a triangle edge.</summary>
-    internal ReadOnlySpan<int> EdgesFrom(int vertex)
-        => VertexEdgeTo.AsSpan(VertexEdgeStart[vertex], VertexEdgeStart[vertex + 1] - VertexEdgeStart[vertex]);
-
-    /// <summary>The corner slot <paramref name="vertex" /> occupies in <paramref name="triangle" />, or -1.</summary>
-    internal int SlotOfVertex(int triangle, int vertex)
-    {
-        for (var slot = 0; slot < 3; slot++)
-            if (Corners[triangle * 3 + slot] == vertex)
-                return slot;
-
-        return -1;
+        CellRange(
+            minX,
+            minY,
+            maxX,
+            maxY,
+            out column0,
+            out row0,
+            out column1,
+            out row1);
     }
 
     //every triangle edge once, in both directions, each vertex's targets ascending. a vertex whose triangles do not
@@ -237,6 +216,75 @@ public sealed class TriangleMesh
         return (start, targets);
     }
 
+    private void CellRange(
+        float minX,
+        float minY,
+        float maxX,
+        float maxY,
+        out int column0,
+        out int row0,
+        out int column1,
+        out int row1)
+    {
+        column0 = Math.Clamp(((int)MathF.Floor(minX) - GridMinX) / CONSTANTS.MESH_GRID_CELL, 0, GridColumns - 1);
+        row0 = Math.Clamp(((int)MathF.Floor(minY) - GridMinY) / CONSTANTS.MESH_GRID_CELL, 0, GridRows - 1);
+        column1 = Math.Clamp(((int)MathF.Ceiling(maxX) - GridMinX) / CONSTANTS.MESH_GRID_CELL, 0, GridColumns - 1);
+        row1 = Math.Clamp(((int)MathF.Ceiling(maxY) - GridMinY) / CONSTANTS.MESH_GRID_CELL, 0, GridRows - 1);
+    }
+
+    /// <summary>
+    ///     The mean of the triangle's corners.
+    /// </summary>
+    public (float X, float Y) Centroid(int triangle)
+    {
+        var a = Vertices[Corners[triangle * 3]];
+        var b = Vertices[Corners[triangle * 3 + 1]];
+        var c = Vertices[Corners[triangle * 3 + 2]];
+
+        return ((a.X + b.X + c.X) / 3f, (a.Y + b.Y + c.Y) / 3f);
+    }
+
+    /// <summary>
+    ///     Whether (x, y) is inside the triangle, edges included.
+    /// </summary>
+    public bool Contains(int triangle, float x, float y)
+    {
+        var a = Vertices[Corners[triangle * 3]];
+        var b = Vertices[Corners[triangle * 3 + 1]];
+        var c = Vertices[Corners[triangle * 3 + 2]];
+
+        var d1 = Sign(
+            x,
+            y,
+            a,
+            b);
+
+        var d2 = Sign(
+            x,
+            y,
+            b,
+            c);
+
+        var d3 = Sign(
+            x,
+            y,
+            c,
+            a);
+
+        //a hair of tolerance so a point on an edge belongs to both triangles rather than neither
+        const float TOLERANCE = 1e-3f;
+        var hasNegative = (d1 < -TOLERANCE) || (d2 < -TOLERANCE) || (d3 < -TOLERANCE);
+        var hasPositive = (d1 > TOLERANCE) || (d2 > TOLERANCE) || (d3 > TOLERANCE);
+
+        return !(hasNegative && hasPositive);
+    }
+
+    /// <summary>
+    ///     The vertices joined to <paramref name="vertex" /> by a triangle edge.
+    /// </summary>
+    internal ReadOnlySpan<int> EdgesFrom(int vertex)
+        => VertexEdgeTo.AsSpan(VertexEdgeStart[vertex], VertexEdgeStart[vertex + 1] - VertexEdgeStart[vertex]);
+
     //how many of the triangles at the vertex are reached from its first one by stepping across the edges that meet
     //there, both ways round; equal to the incident count exactly when they form one sector
     private int FanSize(int vertex)
@@ -268,60 +316,55 @@ public sealed class TriangleMesh
         return count;
     }
 
-    /// <summary>The mean of the triangle's corners.</summary>
-    public (float X, float Y) Centroid(int triangle)
-    {
-        var a = Vertices[Corners[triangle * 3]];
-        var b = Vertices[Corners[triangle * 3 + 1]];
-        var c = Vertices[Corners[triangle * 3 + 2]];
-
-        return ((a.X + b.X + c.X) / 3f, (a.Y + b.Y + c.Y) / 3f);
-    }
-
     /// <summary>
-    ///     The triangle containing (x, y), or -1. A point on a shared edge answers whichever triangle the grid lists
-    ///     first.
+    ///     Builds a mesh from Poly2Tri's output, translating raster coordinates back into map coordinates.
     /// </summary>
-    public int TriangleAt(float x, float y)
+    internal static TriangleMesh FromPoly2Tri(IReadOnlyList<DelaunayTriangle> triangles, int xOffset, int yOffset)
     {
-        var column = ((int)MathF.Floor(x) - GridMinX) / CONSTANTS.MESH_GRID_CELL;
-        var row = ((int)MathF.Floor(y) - GridMinY) / CONSTANTS.MESH_GRID_CELL;
+        var vertexIndex = new Dictionary<(double X, double Y), int>();
+        var vertices = new List<Point>();
+        var triangleIndex = new Dictionary<DelaunayTriangle, int>(ReferenceEqualityComparer.Instance);
 
-        if ((x < GridMinX) || (y < GridMinY) || (column < 0) || (column >= GridColumns) || (row < 0) || (row >= GridRows))
-            return -1;
+        for (var i = 0; i < triangles.Count; i++)
+            triangleIndex[triangles[i]] = i;
 
-        var cell = row * GridColumns + column;
+        var corners = new int[triangles.Count * 3];
+        var neighbours = new int[triangles.Count * 3];
 
-        for (var i = CellStart[cell]; i < CellStart[cell + 1]; i++)
-            if (Contains(CellTriangles[i], x, y))
-                return CellTriangles[i];
+        for (var t = 0; t < triangles.Count; t++)
+        {
+            var triangle = triangles[t];
 
-        return -1;
-    }
+            for (var i = 0; i < 3; i++)
+            {
+                var point = triangle.Points[i];
+                var key = (point.X, point.Y);
 
-    /// <summary>Whether (x, y) is inside the triangle, edges included.</summary>
-    public bool Contains(int triangle, float x, float y)
-    {
-        var a = Vertices[Corners[triangle * 3]];
-        var b = Vertices[Corners[triangle * 3 + 1]];
-        var c = Vertices[Corners[triangle * 3 + 2]];
+                if (!vertexIndex.TryGetValue(key, out var index))
+                {
+                    index = vertices.Count;
+                    vertexIndex[key] = index;
+                    vertices.Add(new Point((float)point.X - xOffset, (float)point.Y - yOffset));
+                }
 
-        var d1 = Sign(x, y, a, b);
-        var d2 = Sign(x, y, b, c);
-        var d3 = Sign(x, y, c, a);
+                corners[t * 3 + i] = index;
 
-        //a hair of tolerance so a point on an edge belongs to both triangles rather than neither
-        const float TOLERANCE = 1e-3f;
-        var hasNegative = (d1 < -TOLERANCE) || (d2 < -TOLERANCE) || (d3 < -TOLERANCE);
-        var hasPositive = (d1 > TOLERANCE) || (d2 > TOLERANCE) || (d3 > TOLERANCE);
+                //a constrained edge is a polygon edge, which is a wall; a neighbour outside the walkable set is
+                //one Poly2Tri made in the exterior and is not in the index
+                var across = triangle.Neighbors[i];
 
-        return !(hasNegative && hasPositive);
+                neighbours[t * 3 + i]
+                    = !triangle.EdgeIsConstrained[i] && across is not null && triangleIndex.TryGetValue(across, out var ni) ? ni : -1;
+            }
+        }
+
+        return new TriangleMesh(vertices.ToArray(), corners, neighbours);
     }
 
     /// <summary>
     ///     The nearest vertex to (x, y) that <paramref name="accept" /> allows, trying the nearest
-    ///     <see cref="CONSTANTS.NEAREST_VERTEX_CANDIDATES" /> in distance order; the nearest of all when none is
-    ///     allowed. -1 on an empty mesh.
+    ///     <see cref="CONSTANTS.NEAREST_VERTEX_CANDIDATES" /> in distance order; the nearest of all when none is allowed. -1
+    ///     on an empty mesh.
     /// </summary>
     public int NearestVertex(float x, float y, Func<int, bool> accept)
     {
@@ -367,9 +410,60 @@ public sealed class TriangleMesh
     }
 
     /// <summary>
-    ///     The nearest point inside the mesh to (x, y), within <paramref name="maxDistance" />: the point itself when
-    ///     it is inside, otherwise the nearest point on a boundary edge stepped one unit into its triangle. False
-    ///     when no boundary edge is within range.
+    ///     The neighbour across the edge opposite corner <paramref name="slot" />, or -1.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Neighbour(int triangle, int slot) => Neighbours[triangle * 3 + slot];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Sign(
+        float x,
+        float y,
+        Point a,
+        Point b)
+        => (x - b.X) * (a.Y - b.Y) - (a.X - b.X) * (y - b.Y);
+
+    /// <summary>
+    ///     The corner slot <paramref name="vertex" /> occupies in <paramref name="triangle" />, or -1.
+    /// </summary>
+    internal int SlotOfVertex(int triangle, int vertex)
+    {
+        for (var slot = 0; slot < 3; slot++)
+            if (Corners[triangle * 3 + slot] == vertex)
+                return slot;
+
+        return -1;
+    }
+
+    /// <summary>
+    ///     The triangle containing (x, y), or -1. A point on a shared edge answers whichever triangle the grid lists first.
+    /// </summary>
+    public int TriangleAt(float x, float y)
+    {
+        var column = ((int)MathF.Floor(x) - GridMinX) / CONSTANTS.MESH_GRID_CELL;
+        var row = ((int)MathF.Floor(y) - GridMinY) / CONSTANTS.MESH_GRID_CELL;
+
+        if ((x < GridMinX) || (y < GridMinY) || (column < 0) || (column >= GridColumns) || (row < 0) || (row >= GridRows))
+            return -1;
+
+        var cell = row * GridColumns + column;
+
+        for (var i = CellStart[cell]; i < CellStart[cell + 1]; i++)
+            if (Contains(CellTriangles[i], x, y))
+                return CellTriangles[i];
+
+        return -1;
+    }
+
+    /// <summary>
+    ///     A triangle the vertex belongs to.
+    /// </summary>
+    public int TriangleOfVertex(int vertex) => VertexTriangle[vertex];
+
+    /// <summary>
+    ///     The nearest point inside the mesh to (x, y), within <paramref name="maxDistance" />: the point itself when it is
+    ///     inside, otherwise the nearest point on a boundary edge stepped one unit into its triangle. False when no boundary
+    ///     edge is within range.
     /// </summary>
     public bool TryNearestInside(
         float x,
@@ -470,55 +564,4 @@ public sealed class TriangleMesh
 
         return true;
     }
-
-    private void CellRange(
-        float minX,
-        float minY,
-        float maxX,
-        float maxY,
-        out int column0,
-        out int row0,
-        out int column1,
-        out int row1)
-    {
-        column0 = Math.Clamp(((int)MathF.Floor(minX) - GridMinX) / CONSTANTS.MESH_GRID_CELL, 0, GridColumns - 1);
-        row0 = Math.Clamp(((int)MathF.Floor(minY) - GridMinY) / CONSTANTS.MESH_GRID_CELL, 0, GridRows - 1);
-        column1 = Math.Clamp(((int)MathF.Ceiling(maxX) - GridMinX) / CONSTANTS.MESH_GRID_CELL, 0, GridColumns - 1);
-        row1 = Math.Clamp(((int)MathF.Ceiling(maxY) - GridMinY) / CONSTANTS.MESH_GRID_CELL, 0, GridRows - 1);
-    }
-
-    private void Bounds(
-        int triangle,
-        out int column0,
-        out int row0,
-        out int column1,
-        out int row1)
-    {
-        var a = Vertices[Corners[triangle * 3]];
-        var b = Vertices[Corners[triangle * 3 + 1]];
-        var c = Vertices[Corners[triangle * 3 + 2]];
-
-        var minX = MathF.Min(a.X, MathF.Min(b.X, c.X));
-        var minY = MathF.Min(a.Y, MathF.Min(b.Y, c.Y));
-        var maxX = MathF.Max(a.X, MathF.Max(b.X, c.X));
-        var maxY = MathF.Max(a.Y, MathF.Max(b.Y, c.Y));
-
-        CellRange(
-            minX,
-            minY,
-            maxX,
-            maxY,
-            out column0,
-            out row0,
-            out column1,
-            out row1);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Sign(
-        float x,
-        float y,
-        Point a,
-        Point b)
-        => (x - b.X) * (a.Y - b.Y) - (a.X - b.X) * (y - b.Y);
 }

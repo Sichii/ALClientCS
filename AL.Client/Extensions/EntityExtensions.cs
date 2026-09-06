@@ -114,6 +114,71 @@ public static class EntityExtensions
         return entity.Attack * damageMultiplier;
     }
 
+    //the fraction of a projectile's damage that gets through the target's defenses. pierce counts twice because
+    //the server subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
+    //(node/server.js:3179, :3611)
+    private static float MitigationAgainst(EntityBase target, ActionData projectile, Func<string, EntityBase?>? findAttacker)
+    {
+        var attacker = string.IsNullOrEmpty(projectile.AttackerId) ? null : findAttacker?.Invoke(projectile.AttackerId);
+
+        if (attacker is null)
+            return 1f;
+
+        //a skill can stamp extra pierce onto its projectile - piercingshot's 500 - which the server adds to the
+        //creation-time copy on top of the doubled stat (node/server.js:3049, :3179)
+        var skill = string.IsNullOrEmpty(projectile.Source) ? null : GameData.Skills[projectile.Source];
+
+        return ResolveDamageType(attacker, projectile.Source) switch
+        {
+            DamageType.Physical => Utilities.CalculateDamageMultiplier(target.Armor - attacker.APiercing * 2 - (skill?.APiercing ?? 0f)),
+            DamageType.Magical =>
+                Utilities.CalculateDamageMultiplier(target.Resistance - attacker.RPiercing * 2 - (skill?.RPiercing ?? 0f)),
+
+            //pure ignores defenses entirely, and heals never carry damage
+            _ => 1f
+        };
+    }
+
+    //restates the server's damage-type selection: monster data or class, then mainhand weapon override, then
+    //skill override for anything but a basic attack (node/server.js:2966-2978). unset falls back to physical
+    private static DamageType ResolveDamageType(EntityBase attacker, string? source)
+    {
+        var damageType = attacker switch
+        {
+            Monster monster => monster.GetData()
+                                      .DamageType,
+            Player player => ResolvePlayerDamageType(player),
+            _             => DamageType.Physical
+        };
+
+        if (!string.IsNullOrEmpty(source) && !source.EqualsI("attack"))
+        {
+            var skillDamageType = GameData.Skills[source]?.DamageType ?? DamageType.None;
+
+            if (skillDamageType != DamageType.None)
+                damageType = skillDamageType;
+        }
+
+        return damageType == DamageType.None ? DamageType.Physical : damageType;
+    }
+
+    private static DamageType ResolvePlayerDamageType(Player player)
+    {
+        var damageType = player.GetData()
+                               ?.DamageType
+                         ?? DamageType.Physical;
+
+        if (player.Slots.TryGetValue(Slot.MainHand, out var mainHand) && mainHand is not null)
+        {
+            var weaponDamageType = GameData.Items[mainHand.Name]?.DamageType ?? DamageType.None;
+
+            if (weaponDamageType != DamageType.None)
+                damageType = weaponDamageType;
+        }
+
+        return damageType;
+    }
+
     /// <summary>
     ///     Calculates whether or not the entity will die to burning damage.
     /// </summary>
@@ -177,9 +242,9 @@ public static class EntityExtensions
     ///     The projectiles to use in the check.
     /// </param>
     /// <param name="findAttacker">
-    ///     Resolves a projectile's attacker id to a live entity. When provided, each projectile's damage is reduced by
-    ///     the target's armor or resistance less twice the attacker's pierce, matching the server's math. A projectile
-    ///     whose attacker cannot be resolved counts at full damage.
+    ///     Resolves a projectile's attacker id to a live entity. When provided, each projectile's damage is reduced by the
+    ///     target's armor or resistance less twice the attacker's pierce, matching the server's math. A projectile whose
+    ///     attacker cannot be resolved counts at full damage.
     /// </param>
     /// <returns>
     ///     <see cref="bool" />
@@ -211,69 +276,5 @@ public static class EntityExtensions
                            .Sum()
                 * 0.95)
                > entity.HP;
-    }
-
-    //the fraction of a projectile's damage that gets through the target's defenses. pierce counts twice because
-    //the server subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
-    //(node/server.js:3179, :3611)
-    private static float MitigationAgainst(EntityBase target, ActionData projectile, Func<string, EntityBase?>? findAttacker)
-    {
-        var attacker = string.IsNullOrEmpty(projectile.AttackerId) ? null : findAttacker?.Invoke(projectile.AttackerId);
-
-        if (attacker is null)
-            return 1f;
-
-        //a skill can stamp extra pierce onto its projectile - piercingshot's 500 - which the server adds to the
-        //creation-time copy on top of the doubled stat (node/server.js:3049, :3179)
-        var skill = string.IsNullOrEmpty(projectile.Source) ? null : GameData.Skills[projectile.Source];
-
-        return ResolveDamageType(attacker, projectile.Source) switch
-        {
-            DamageType.Physical => Utilities.CalculateDamageMultiplier(target.Armor - attacker.APiercing * 2 - (skill?.APiercing ?? 0f)),
-            DamageType.Magical  => Utilities.CalculateDamageMultiplier(target.Resistance - attacker.RPiercing * 2 - (skill?.RPiercing ?? 0f)),
-
-            //pure ignores defenses entirely, and heals never carry damage
-            _ => 1f
-        };
-    }
-
-    //restates the server's damage-type selection: monster data or class, then mainhand weapon override, then
-    //skill override for anything but a basic attack (node/server.js:2966-2978). unset falls back to physical
-    private static DamageType ResolveDamageType(EntityBase attacker, string? source)
-    {
-        var damageType = attacker switch
-        {
-            Monster monster => monster.GetData()
-                                      .DamageType,
-            Player player => ResolvePlayerDamageType(player),
-            _             => DamageType.Physical
-        };
-
-        if (!string.IsNullOrEmpty(source) && !source.EqualsI("attack"))
-        {
-            var skillDamageType = GameData.Skills[source]?.DamageType ?? DamageType.None;
-
-            if (skillDamageType != DamageType.None)
-                damageType = skillDamageType;
-        }
-
-        return damageType == DamageType.None ? DamageType.Physical : damageType;
-    }
-
-    private static DamageType ResolvePlayerDamageType(Player player)
-    {
-        var damageType = player.GetData()
-                               ?.DamageType
-                         ?? DamageType.Physical;
-
-        if (player.Slots.TryGetValue(Slot.MainHand, out var mainHand) && mainHand is not null)
-        {
-            var weaponDamageType = GameData.Items[mainHand.Name]?.DamageType ?? DamageType.None;
-
-            if (weaponDamageType != DamageType.None)
-                damageType = weaponDamageType;
-        }
-
-        return damageType;
     }
 }

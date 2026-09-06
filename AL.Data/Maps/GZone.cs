@@ -22,8 +22,8 @@ public sealed record GZone
     public ZoneType Type { get; init; }
 
     /// <summary>
-    ///     A polygon representing the bounds of the zone. You work it from beside it, not inside it: the server
-    ///     checks a point 24 units away in each of the four directions (node/server.js:9128).
+    ///     A polygon representing the bounds of the zone. You work it from beside it, not inside it: the server checks a point
+    ///     24 units away in each of the four directions (node/server.js:9128).
     /// </summary>
     [JsonPropertyName("polygon")]
     public Polygon Vertices { get; init; } = null!;

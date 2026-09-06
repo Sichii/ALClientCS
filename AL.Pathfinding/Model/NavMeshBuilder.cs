@@ -47,8 +47,8 @@ public sealed class NavMeshBuilder
     }
 
     /// <summary>
-    ///     Builds the flat triangle mesh for this map. The raster is only used during the build and is not kept. A
-    ///     builder instance builds once: the flood marks the raster as it goes, so a second call answers an empty mesh.
+    ///     Builds the flat triangle mesh for this map. The raster is only used during the build and is not kept. A builder
+    ///     instance builds once: the flood marks the raster as it goes, so a second call answers an empty mesh.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TriangleMesh BuildMesh()

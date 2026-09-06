@@ -12,15 +12,15 @@ namespace AL.Client.Model;
 public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 {
     /// <summary>
-    ///     How far short of the round trip <see cref="CompensateOnce" /> stops, so the next use aims just past the
-    ///     server's expiry rather than exactly at it.
+    ///     How far short of the round trip <see cref="CompensateOnce" /> stops, so the next use aims just past the server's
+    ///     expiry rather than exactly at it.
     /// </summary>
     /// <remarks>
-    ///     Needed because the offset is a 5th percentile of the ping window rather than its minimum, and the server
-    ///     keeps no grace: any leg quicker than the offset reaches the server before its cooldown expires and is
-    ///     refused outright. The percentile sits a measured 2.5ms above the minimum on a typical window, which this
-    ///     covers, and under 7ms on 95% of them, which it does not - so a bad window still loses the occasional emit,
-    ///     traded for aiming that much closer to the expiry on every other one.
+    ///     Needed because the offset is a 5th percentile of the ping window rather than its minimum, and the server keeps no
+    ///     grace: any leg quicker than the offset reaches the server before its cooldown expires and is refused outright. The
+    ///     percentile sits a measured 2.5ms above the minimum on a typical window, which this covers, and under 7ms on 95% of
+    ///     them, which it does not - so a bad window still loses the occasional emit, traded for aiming that much closer to
+    ///     the expiry on every other one.
     /// </remarks>
     private const float JITTER_GUARD_MS = 5f;
 

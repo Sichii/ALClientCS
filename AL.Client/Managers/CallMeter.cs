@@ -17,9 +17,9 @@ namespace AL.Client.Managers;
 public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 {
     /// <summary>
-    ///     The same spend broken down one level further, or empty when this row is already the finest grain asked
-    ///     for. An init property rather than a fourth positional parameter, so every existing construction site and
-    ///     deconstruction of this record keeps working untouched.
+    ///     The same spend broken down one level further, or empty when this row is already the finest grain asked for. An init
+    ///     property rather than a fourth positional parameter, so every existing construction site and deconstruction of this
+    ///     record keeps working untouched.
     /// </summary>
     public IReadOnlyList<CallBudgetRow> Children { get; init; } = [];
 }
@@ -29,9 +29,9 @@ public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 ///     <c>
 ///         player
 ///     </c>
-///     frame. Authoritative. <paramref name="Cost" /> is the same bill worked out from the emits and should agree
-///     with it to within a frame; where the two part for long, a row in <see cref="CallCost" /> has drifted from
-///     the server, not the meter.
+///     frame. Authoritative. <paramref name="Cost" /> is the same bill worked out from the emits and should agree with it
+///     to within a frame; where the two part for long, a row in <see cref="CallCost" /> has drifted from the server, not
+///     the meter.
 /// </param>
 /// <param name="Cost">
 ///     What the emits in the window cost, by <see cref="CallCost.Of" />, dated the way the server dates them.
@@ -52,19 +52,23 @@ public sealed record CallBudgetSnapshot(
     IReadOnlyList<CallBudgetRow> BySource,
     IReadOnlyList<CallBudgetRow> ByEmitType)
 {
-    public static readonly CallBudgetSnapshot EMPTY = new(0d, 0d, 0, [], []);
+    public static readonly CallBudgetSnapshot EMPTY = new(
+        0d,
+        0d,
+        0,
+        [],
+        []);
 }
 
 /// <summary>
-///     Keeps the window the server meters over, entry for entry, so what a character has spent can be read back
-///     broken down rather than as the one number the server sends. Every emit that reaches the wire is recorded,
-///     priced or free, so the emit counts stay honest even where the cost is zero.
+///     Keeps the window the server meters over, entry for entry, so what a character has spent can be read back broken
+///     down rather than as the one number the server sends. Every emit that reaches the wire is recorded, priced or free,
+///     so the emit counts stay honest even where the cost is zero.
 /// </summary>
 /// <remarks>
-///     Attribution is the consumer's business - this layer has no idea what a caller is. Set
-///     <see cref="SourceResolver" /> to whatever names the code path in flight (a component, a script, a task);
-///     it is called on the emitting thread, so it must be cheap, and an unset resolver simply groups everything
-///     under one name.
+///     Attribution is the consumer's business - this layer has no idea what a caller is. Set <see cref="SourceResolver" />
+///     to whatever names the code path in flight (a component, a script, a task); it is called on the emitting thread, so
+///     it must be cheap, and an unset resolver simply groups everything under one name.
 /// </remarks>
 public sealed class CallMeter
 {
@@ -73,8 +77,8 @@ public sealed class CallMeter
     private readonly Lock Sync = new();
 
     /// <summary>
-    ///     Names whatever is making the call. Runs inline on the emit, so it wants to be a field read rather than
-    ///     a lookup; returning null (or leaving this unset) files the emit under
+    ///     Names whatever is making the call. Runs inline on the emit, so it wants to be a field read rather than a lookup;
+    ///     returning null (or leaving this unset) files the emit under
     ///     <c>
     ///         (unattributed)
     ///     </c>
@@ -82,35 +86,17 @@ public sealed class CallMeter
     /// </summary>
     public Func<string?>? SourceResolver { get; set; }
 
-    /// <summary>Stopwatch ticks now. Replaceable so a test can move the window rather than wait on it.</summary>
+    /// <summary>
+    ///     Stopwatch ticks now. Replaceable so a test can move the window rather than wait on it.
+    /// </summary>
     internal Func<long> Timestamp { get; init; } = Stopwatch.GetTimestamp;
 
-    internal void Record(ALSocketEmitType emitType)
-    {
-        var now = Timestamp();
-        var cost = CallCost.Of(emitType);
-        var source = SourceResolver?.Invoke() ?? UNATTRIBUTED;
-
-        lock (Sync)
-        {
-            Prune(now);
-
-            //the server folds a charge into its last entry when the method matches and keeps that entry's date, so a
-            //run of one method leaves the window as a block four seconds after the run began (add_call_cost,
-            //node/server_functions.js:4656). A free emit pushes nothing there, so it neither joins a run nor ends one
-            var run = Entries.FindLastIndex(entry => entry.Cost > 0);
-            var stamp = (cost > 0) && (run >= 0) && (Entries[run].Emit == emitType) ? Entries[run].Stamp : now;
-
-            Entries.Add(new Entry(stamp, source, emitType, cost));
-        }
-    }
-
     /// <summary>
-    ///     Corrects the newest emit of this type by <paramref name="cost" />, for what the server charges on the
-    ///     strength of an emit's payload rather than its name - a bank crossing, a party's chest, a potion that
-    ///     bills under the equip row. Folded into the entry the emit hook already made rather than counted as an
-    ///     emit of its own, and never below nothing; only when that entry has left the window does a charge open a
-    ///     new one, and a refund then has nothing to come off.
+    ///     Corrects the newest emit of this type by <paramref name="cost" />, for what the server charges on the strength of
+    ///     an emit's payload rather than its name - a bank crossing, a party's chest, a potion that bills under the equip row.
+    ///     Folded into the entry the emit hook already made rather than counted as an emit of its own, and never below
+    ///     nothing; only when that entry has left the window does a charge open a new one, and a refund then has nothing to
+    ///     come off.
     /// </summary>
     internal void Charge(ALSocketEmitType emitType, double cost)
     {
@@ -136,7 +122,67 @@ public sealed class CallMeter
             }
 
             if (cost > 0)
-                Entries.Add(new Entry(now, SourceResolver?.Invoke() ?? UNATTRIBUTED, emitType, cost));
+                Entries.Add(
+                    new Entry(
+                        now,
+                        SourceResolver?.Invoke() ?? UNATTRIBUTED,
+                        emitType,
+                        cost));
+        }
+    }
+
+    /// <param name="window">
+    ///     The entries to group into rows.
+    /// </param>
+    /// <param name="key">
+    ///     What to group each entry by - the row's <see cref="CallBudgetRow.Name" />.
+    /// </param>
+    /// <param name="children">
+    ///     Given the entries of one group, the breakdown to hang under it. Null leaves the row a leaf.
+    /// </param>
+    private static IReadOnlyList<CallBudgetRow> Group(
+        IReadOnlyList<Entry> window,
+        Func<Entry, string> key,
+        Func<IReadOnlyList<Entry>, IReadOnlyList<CallBudgetRow>>? children = null)
+        => window.GroupBy(key)
+                 .Select(group =>
+                 {
+                     var rows = group.ToList();
+
+                     return new CallBudgetRow(group.Key, rows.Sum(entry => entry.Cost), rows.Count)
+                     {
+                         Children = children?.Invoke(rows) ?? []
+                     };
+                 })
+                 .OrderByDescending(row => row.Cost)
+                 .ToList();
+
+    //a free emit is dated when it happened while the run it sits inside is dated earlier, so what has expired is
+    //not always a prefix
+    private void Prune(long now) => Entries.RemoveAll(entry => Stopwatch.GetElapsedTime(entry.Stamp, now) > CallCost.WINDOW);
+
+    internal void Record(ALSocketEmitType emitType)
+    {
+        var now = Timestamp();
+        var cost = CallCost.Of(emitType);
+        var source = SourceResolver?.Invoke() ?? UNATTRIBUTED;
+
+        lock (Sync)
+        {
+            Prune(now);
+
+            //the server folds a charge into its last entry when the method matches and keeps that entry's date, so a
+            //run of one method leaves the window as a block four seconds after the run began (add_call_cost,
+            //node/server_functions.js:4656). A free emit pushes nothing there, so it neither joins a run nor ends one
+            var run = Entries.FindLastIndex(entry => entry.Cost > 0);
+            var stamp = (cost > 0) && (run >= 0) && (Entries[run].Emit == emitType) ? Entries[run].Stamp : now;
+
+            Entries.Add(
+                new Entry(
+                    stamp,
+                    source,
+                    emitType,
+                    cost));
         }
     }
 
@@ -154,7 +200,7 @@ public sealed class CallMeter
         lock (Sync)
         {
             Prune(Timestamp());
-            window = [..Entries];
+            window = [.. Entries];
         }
 
         if (window.Length == 0)
@@ -174,37 +220,9 @@ public sealed class CallMeter
             Group(window, entry => entry.Emit.ToString(), inner => Group(inner, entry => entry.Source)));
     }
 
-    /// <param name="window">
-    ///     The entries to group into rows.
-    /// </param>
-    /// <param name="key">
-    ///     What to group each entry by - the row's <see cref="CallBudgetRow.Name" />.
-    /// </param>
-    /// <param name="children">
-    ///     Given the entries of one group, the breakdown to hang under it. Null leaves the row a leaf.
-    /// </param>
-    private static IReadOnlyList<CallBudgetRow> Group(
-        IReadOnlyList<Entry> window,
-        Func<Entry, string> key,
-        Func<IReadOnlyList<Entry>, IReadOnlyList<CallBudgetRow>>? children = null)
-        => window.GroupBy(key)
-                 .Select(
-                     group =>
-                     {
-                         var rows = group.ToList();
-
-                         return new CallBudgetRow(group.Key, rows.Sum(entry => entry.Cost), rows.Count)
-                         {
-                             Children = children?.Invoke(rows) ?? []
-                         };
-                     })
-                 .OrderByDescending(row => row.Cost)
-                 .ToList();
-
-    //a free emit is dated when it happened while the run it sits inside is dated earlier, so what has expired is
-    //not always a prefix
-    private void Prune(long now)
-        => Entries.RemoveAll(entry => Stopwatch.GetElapsedTime(entry.Stamp, now) > CallCost.WINDOW);
-
-    private readonly record struct Entry(long Stamp, string Source, ALSocketEmitType Emit, double Cost);
+    private readonly record struct Entry(
+        long Stamp,
+        string Source,
+        ALSocketEmitType Emit,
+        double Cost);
 }

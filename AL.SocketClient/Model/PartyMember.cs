@@ -28,14 +28,14 @@ public record PartyMember : IInstancedLocation
     public int Luck { get; init; }
     public string Map { get; init; } = string.Empty;
 
+    [JsonPropertyName("pdps")]
+    public float PDPS { get; init; }
+
     /// <summary>
     ///     The maximum party size this member can be apart of.
     /// </summary>
     [JsonPropertyName("l")]
     public int PartyLimit { get; init; }
-
-    [JsonPropertyName("pdps")]
-    public float PDPS { get; init; }
 
     /// <summary>
     ///     True when this member is dead. Only sent while the member is dead.

@@ -15,18 +15,18 @@ namespace AL.SocketClient.SocketModel;
 public sealed record HitData
 {
     /// <summary>
-    ///     GUI related. If populated, name of the animation played for this hit.
-    /// </summary>
-    [JsonPropertyName("anim")]
-    public string? Animation { get; init; }
-
-    /// <summary>
     ///     Whether or not this hit was part of an area-of-effect attack such as cleave or shadowstrike.
     /// </summary>
     [JsonPropertyName("aoe")]
 
     // ReSharper disable once InconsistentNaming
     public bool? AOE { get; init; }
+
+    /// <summary>
+    ///     GUI related. If populated, name of the animation played for this hit.
+    /// </summary>
+    [JsonPropertyName("anim")]
+    public string? Animation { get; init; }
 
     /// <summary>
     ///     TODO: Unsure, I see it a lot for heal projectiles when the target moves a long distance away from their initial
@@ -40,6 +40,14 @@ public sealed record HitData
     public float? Crit { get; init; }
 
     /// <summary>
+    ///     The amount of damage returned to the attacker from this hit.
+    ///     <br />
+    ///     DReturn is <see cref="AL.Core.Definitions.DamageType.Physical" /> damage only, and this number ignores the source
+    ///     entity's armor because this number results from calculating damage on the target entity using it's armor.
+    /// </summary>
+    public float DReturn { get; init; }
+
+    /// <summary>
     ///     The amount of damage this hit did.
     /// </summary>
     public int Damage { get; init; }
@@ -49,14 +57,6 @@ public sealed record HitData
     /// </summary>
     [JsonPropertyName("damage_type")]
     public DamageType? DamageType { get; init; }
-
-    /// <summary>
-    ///     The amount of damage returned to the attacker from this hit.
-    ///     <br />
-    ///     DReturn is <see cref="AL.Core.Definitions.DamageType.Physical" /> damage only, and this number ignores the source
-    ///     entity's armor because this number results from calculating damage on the target entity using it's armor.
-    /// </summary>
-    public float DReturn { get; init; }
 
     /// <summary>
     ///     Whether or not the hit was evaded by <see cref="AL.Core.Definitions.ALAttribute.Evasion" />.
@@ -97,6 +97,13 @@ public sealed record HitData
     public float LifeSteal { get; init; }
 
     /// <summary>
+    ///     If populated, the portion of this hit's damage absorbed by the target's mana shield, taken from their mana instead
+    ///     of their health.
+    /// </summary>
+    [JsonPropertyName("mp_damage")]
+    public float? MPDamage { get; init; }
+
+    /// <summary>
     ///     The amount of mana restored to the source entity from manasteal.
     /// </summary>
     public float ManaSteal { get; init; }
@@ -112,13 +119,6 @@ public sealed record HitData
     ///     If populated, the target's running combo counter - how many hits in a row it has taken.
     /// </summary>
     public int? Mobbing { get; init; }
-
-    /// <summary>
-    ///     If populated, the portion of this hit's damage absorbed by the target's mana shield, taken from their mana instead
-    ///     of their health.
-    /// </summary>
-    [JsonPropertyName("mp_damage")]
-    public float? MPDamage { get; init; }
 
     /// <summary>
     ///     If populated, the name of the projectile that caused this hit.

@@ -8,15 +8,15 @@ namespace AL.SocketClient.SocketModel;
 ///     .
 /// </summary>
 /// <remarks>
-///     The server sends this to both ends of a whisper, and <see cref="To" /> is the only thing that tells them
-///     apart: it is populated on the copy echoed back to the sender and absent on the copy the recipient receives.
-///     So a sent message needs no local echo - it arrives here like any other.
+///     The server sends this to both ends of a whisper, and <see cref="To" /> is the only thing that tells them apart: it
+///     is populated on the copy echoed back to the sender and absent on the copy the recipient receives. So a sent message
+///     needs no local echo - it arrives here like any other.
 /// </remarks>
 public sealed record PmData
 {
     /// <summary>
-    ///     The entity id of the sender. Carries the sender's account owner id rather than a character id on a
-    ///     cross-server whisper (node/server.js:4562).
+    ///     The entity id of the sender. Carries the sender's account owner id rather than a character id on a cross-server
+    ///     whisper (node/server.js:4562).
     /// </summary>
     public string Id { get; init; } = null!;
 
@@ -31,8 +31,8 @@ public sealed record PmData
     public string Owner { get; init; } = null!;
 
     /// <summary>
-    ///     The character name the message was addressed to, populated only on the copy echoed back to the sender.
-    ///     Null identifies a message this character received.
+    ///     The character name the message was addressed to, populated only on the copy echoed back to the sender. Null
+    ///     identifies a message this character received.
     /// </summary>
     public string? To { get; init; }
 }

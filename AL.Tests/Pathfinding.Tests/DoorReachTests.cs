@@ -13,9 +13,9 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     Holds the door reach model against the server's own rule, restated here rather than shared with the code
-///     under test - a probe that calls the thing it is checking agrees with itself while the character stands
-///     outside the door wondering why it will not open.
+///     Holds the door reach model against the server's own rule, restated here rather than shared with the code under test
+///     - a probe that calls the thing it is checking agrees with itself while the character stands outside the door
+///     wondering why it will not open.
 /// </summary>
 public class DoorReachTests : PathfindingTestBed
 {
@@ -26,12 +26,14 @@ public class DoorReachTests : PathfindingTestBed
     ///     How far inside the limit a stop point has to be, rather than merely inside it.
     /// </summary>
     /// <remarks>
-    ///     Being inside is not enough, and a suite that only checked that stayed green while every door in the game
-    ///     refused to open. The walk stops on the edge of a reach circle, and the server has the character a few
-    ///     units behind where the client reckons it by the time the emit lands, so a model that clears the limit by
-    ///     nothing clears it by nothing in practice either. Just under the 5.6 units
-    ///     <c>CONSTANTS.RANGE_SHAVE</c> leaves on a door, so returning that shave to the 2.5% it replaced
-    ///     fails here.
+    ///     Being inside is not enough, and a suite that only checked that stayed green while every door in the game refused to
+    ///     open. The walk stops on the edge of a reach circle, and the server has the character a few units behind where the
+    ///     client reckons it by the time the emit lands, so a model that clears the limit by nothing clears it by nothing in
+    ///     practice either. Just under the 5.6 units
+    ///     <c>
+    ///         CONSTANTS.RANGE_SHAVE
+    ///     </c>
+    ///     leaves on a door, so returning that shave to the 2.5% it replaced fails here.
     /// </remarks>
     private const float REQUIRED_MARGIN = 5f;
 
@@ -41,35 +43,42 @@ public class DoorReachTests : PathfindingTestBed
     private const float SERVER_CHARACTER_HEIGHT = 36f;
 
     /// <summary>
-    ///     The server's door check, written out from its own source. A box the size of the door is placed on the
-    ///     spawn the door's entry names - not on the door - and measured against the character's box. Both boxes
-    ///     hang upward from their positions. The gap is taken per axis, clamped at zero, and combined.
+    ///     The reach model is only worth having if the pathfinder actually uses it, so this walks a real route and checks the
+    ///     point the character is left standing on before each door.
     /// </summary>
-    private static float ServerDoorDistance(GMap map, GDoor door, IPoint standing)
+    [Test]
+    public async Task APathStopsSomewhereTheDoorActuallyOpens()
     {
-        var spawn = map.Spawns[(int)door.CurrentMapSpawnId];
+        var path = await Pathfinder.FindPathAsync(new Location("main", -1582, 496), [new Destination(new Location("main", 1891, -47), 0)])
+                                   .ToArrayAsync();
 
-        var doorLeft = spawn.X - door.Width / 2;
-        var doorRight = spawn.X + door.Width / 2;
-        var doorTop = spawn.Y - door.Height;
-        var doorBottom = spawn.Y;
+        var doorsWalked = 0;
 
-        var standingLeft = standing.X - SERVER_CHARACTER_WIDTH / 2;
-        var standingRight = standing.X + SERVER_CHARACTER_WIDTH / 2;
-        var standingTop = standing.Y - SERVER_CHARACTER_HEIGHT;
-        var standingBottom = standing.Y;
+        for (var i = 1; i < path.Length; i++)
+        {
+            if (path[i].Type != EdgeType.Door)
+                continue;
 
-        var gapX = MathF.Max(MathF.Max(standingLeft - doorRight, doorLeft - standingRight), 0f);
-        var gapY = MathF.Max(MathF.Max(standingTop - doorBottom, doorTop - standingBottom), 0f);
+            var exit = (Exit)path[i].Start;
+            var standing = path[i - 1].End;
 
-        return MathF.Sqrt(gapX * gapX + gapY * gapY);
-    }
+            (var map, var door, _) = EveryDoor()
+                .Single(d => SpawnIsResolvable(d.Map, d.Door)
+                             && d.Map.Accessor.Equals(exit.Map, StringComparison.OrdinalIgnoreCase)
+                             && IPoint.Comparer.Equals(d.Exit, exit)
+                             && d.Door.DestinationMap.Equals(exit.ToLocation.Map, StringComparison.OrdinalIgnoreCase));
 
-    private static bool SpawnIsResolvable(GMap map, GDoor door)
-    {
-        var spawnId = (int)door.CurrentMapSpawnId;
+            doorsWalked++;
 
-        return (spawnId >= 0) && (spawnId < map.Spawns.Count);
+            ServerDoorDistance(map, door, standing)
+                .Should()
+                .BeLessThan(
+                    SERVER_DOOR_DIST - REQUIRED_MARGIN,
+                    $"the path stops at {standing} to use the door {map.Accessor} => {door.DestinationMap}");
+        }
+
+        doorsWalked.Should()
+                   .BeGreaterThan(0, "this route is chosen because it goes through doors");
     }
 
     private static IEnumerable<(GMap Map, GDoor Door, Exit Exit)> EveryDoor()
@@ -83,7 +92,9 @@ public class DoorReachTests : PathfindingTestBed
             {
                 var exit = map.Exits.FirstOrDefault(e => (e.Type == ExitType.Door)
                                                          && IPoint.Comparer.Equals(e, door)
-                                                         && e.ToLocation.Map.Equals(door.DestinationMap, StringComparison.OrdinalIgnoreCase));
+                                                         && e.ToLocation.Map.Equals(
+                                                             door.DestinationMap,
+                                                             StringComparison.OrdinalIgnoreCase));
 
                 if (exit != null)
                     yield return (map, door, exit);
@@ -92,9 +103,9 @@ public class DoorReachTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     Every point on the reach's boundary has to be a place the server accepts. The boundary is sampled by
-    ///     taking the near-edge point from 72 directions well outside the region, which walks the whole rounded
-    ///     rectangle; the middle of the region is inside by construction.
+    ///     Every point on the reach's boundary has to be a place the server accepts. The boundary is sampled by taking the
+    ///     near-edge point from 72 directions well outside the region, which walks the whole rounded rectangle; the middle of
+    ///     the region is inside by construction.
     /// </summary>
     [Test]
     public async Task EveryPointOnTheReachBoundaryIsInsideTheServersDoorRange()
@@ -139,41 +150,34 @@ public class DoorReachTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     The reach model is only worth having if the pathfinder actually uses it, so this walks a real route and
-    ///     checks the point the character is left standing on before each door.
+    ///     The server's door check, written out from its own source. A box the size of the door is placed on the spawn the
+    ///     door's entry names - not on the door - and measured against the character's box. Both boxes hang upward from their
+    ///     positions. The gap is taken per axis, clamped at zero, and combined.
     /// </summary>
-    [Test]
-    public async Task APathStopsSomewhereTheDoorActuallyOpens()
+    private static float ServerDoorDistance(GMap map, GDoor door, IPoint standing)
     {
-        var path = await Pathfinder.FindPathAsync(new Location("main", -1582, 496), [new Destination(new Location("main", 1891, -47), 0)])
-                                   .ToArrayAsync();
+        var spawn = map.Spawns[(int)door.CurrentMapSpawnId];
 
-        var doorsWalked = 0;
+        var doorLeft = spawn.X - door.Width / 2;
+        var doorRight = spawn.X + door.Width / 2;
+        var doorTop = spawn.Y - door.Height;
+        var doorBottom = spawn.Y;
 
-        for (var i = 1; i < path.Length; i++)
-        {
-            if (path[i].Type != EdgeType.Door)
-                continue;
+        var standingLeft = standing.X - SERVER_CHARACTER_WIDTH / 2;
+        var standingRight = standing.X + SERVER_CHARACTER_WIDTH / 2;
+        var standingTop = standing.Y - SERVER_CHARACTER_HEIGHT;
+        var standingBottom = standing.Y;
 
-            var exit = (Exit)path[i].Start;
-            var standing = path[i - 1].End;
+        var gapX = MathF.Max(MathF.Max(standingLeft - doorRight, doorLeft - standingRight), 0f);
+        var gapY = MathF.Max(MathF.Max(standingTop - doorBottom, doorTop - standingBottom), 0f);
 
-            (var map, var door, _) = EveryDoor()
-                .Single(d => SpawnIsResolvable(d.Map, d.Door)
-                             && d.Map.Accessor.Equals(exit.Map, StringComparison.OrdinalIgnoreCase)
-                             && IPoint.Comparer.Equals(d.Exit, exit)
-                             && d.Door.DestinationMap.Equals(exit.ToLocation.Map, StringComparison.OrdinalIgnoreCase));
+        return MathF.Sqrt(gapX * gapX + gapY * gapY);
+    }
 
-            doorsWalked++;
+    private static bool SpawnIsResolvable(GMap map, GDoor door)
+    {
+        var spawnId = (int)door.CurrentMapSpawnId;
 
-            ServerDoorDistance(map, door, standing)
-                .Should()
-                .BeLessThan(
-                    SERVER_DOOR_DIST - REQUIRED_MARGIN,
-                    $"the path stops at {standing} to use the door {map.Accessor} => {door.DestinationMap}");
-        }
-
-        doorsWalked.Should()
-                   .BeGreaterThan(0, "this route is chosen because it goes through doors");
+        return (spawnId >= 0) && (spawnId < map.Spawns.Count);
     }
 }

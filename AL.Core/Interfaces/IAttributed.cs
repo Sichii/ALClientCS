@@ -31,9 +31,9 @@ public interface IAttributed
 
     public float Cuteness { get; }
 
-    public float Dex { get; }
-
     public float DReturn { get; }
+
+    public float Dex { get; }
 
     public float Evasion { get; }
 
@@ -53,9 +53,9 @@ public interface IAttributed
 
     public float GoldSteal { get; }
 
-    public float HealMod { get; }
-
     public float HP { get; }
+
+    public float HealMod { get; }
 
     public float Int { get; }
 
@@ -63,15 +63,15 @@ public interface IAttributed
 
     public float Luck { get; }
 
-    public float ManaSteal { get; }
-
-    public float Miss { get; }
-
     public float MP { get; }
 
     public float MPCost { get; }
 
     public float MPReduction { get; }
+
+    public float ManaSteal { get; }
+
+    public float Miss { get; }
 
     public float Output { get; }
 
@@ -79,13 +79,13 @@ public interface IAttributed
 
     public float PotionsMod { get; }
 
+    public float RPiercing { get; }
+
     public float Range { get; }
 
     public float Reflection { get; }
 
     public float Resistance { get; }
-
-    public float RPiercing { get; }
 
     public float Speed { get; }
 

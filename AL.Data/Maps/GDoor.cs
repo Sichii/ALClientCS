@@ -18,12 +18,16 @@ namespace AL.Data.Maps;
 public record GDoor : IRectangle
 {
     /// <summary>
-    ///     If a door is 2-way, this is the id of the spawn when coming back through this door. The server measures
-    ///     the door's range from that spawn rather than from the door, so a door carrying no such id is one it
-    ///     cannot resolve at all - it faults reading the spawn, and the door opens from nowhere.
+    ///     If a door is 2-way, this is the id of the spawn when coming back through this door. The server measures the door's
+    ///     range from that spawn rather than from the door, so a door carrying no such id is one it cannot resolve at all - it
+    ///     faults reading the spawn, and the door opens from nowhere.
     ///     <br />
-    ///     An absent id deserializes to the same nought a real spawn 0 does, so the two are not distinguishable
-    ///     here. Nothing downstream needs them to be: see <c>GameData.DoorReachableRegion</c>.
+    ///     An absent id deserializes to the same nought a real spawn 0 does, so the two are not distinguishable here. Nothing
+    ///     downstream needs them to be: see
+    ///     <c>
+    ///         GameData.DoorReachableRegion
+    ///     </c>
+    ///     .
     /// </summary>
     [JsonArrayIndex(6)]
     public float CurrentMapSpawnId { get; init; }
@@ -47,8 +51,7 @@ public record GDoor : IRectangle
     public float Height { get; init; }
 
     /// <summary>
-    ///     The key item needed to unlock this door. Only a door whose <see cref="LockType" /> is a key carries
-    ///     one.
+    ///     The key item needed to unlock this door. Only a door whose <see cref="LockType" /> is a key carries one.
     /// </summary>
     [JsonArrayIndex(8)]
     public KeyType KeyType { get; init; }
@@ -85,8 +88,8 @@ public record GDoor : IRectangle
     public float Bottom => Y + Height / 2;
 
     /// <summary>
-    ///     The x coordinate of the left edge - except it returns X + Width / 2, which is the right one.
-    ///     <see cref="Right" /> has the same fault in reverse.
+    ///     The x coordinate of the left edge - except it returns X + Width / 2, which is the right one. <see cref="Right" />
+    ///     has the same fault in reverse.
     /// </summary>
     public float Left => X + Width / 2;
 
@@ -102,8 +105,8 @@ public record GDoor : IRectangle
     public float Top => Y - Height / 2;
 
     /// <summary>
-    ///     The four corners of the door rectangle. Each is built with its y value passed as x and its x value as
-    ///     y, so every corner comes back transposed.
+    ///     The four corners of the door rectangle. Each is built with its y value passed as x and its x value as y, so every
+    ///     corner comes back transposed.
     /// </summary>
     public IReadOnlyList<IPoint> Vertices
         =>

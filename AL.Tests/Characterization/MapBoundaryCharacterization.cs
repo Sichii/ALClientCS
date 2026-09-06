@@ -180,14 +180,13 @@ public class MapBoundaryCharacterization
     ///     <c>
     ///         float.TryParse
     ///     </c>
-    ///     and is taken as the map name rather than a coordinate; the 4-element form carries no map name. All four
-    ///     coordinates have been
+    ///     and is taken as the map name rather than a coordinate; the 4-element form carries no map name. All four coordinates
+    ///     have been
     ///     <c>
     ///         float
     ///     </c>
-    ///     since the Phase 1 widening, so no fraction is lost either way: center X = (100.7 + 300.4) / 2 = 200.55, center
-    ///     Y = (200.9 + 400.6) / 2 = 300.75, and both extents are 199.7. This is the mechanism the snapshot captures in
-    ///     aggregate.
+    ///     since the Phase 1 widening, so no fraction is lost either way: center X = (100.7 + 300.4) / 2 = 200.55, center Y =
+    ///     (200.9 + 400.6) / 2 = 300.75, and both extents are 199.7. This is the mechanism the snapshot captures in aggregate.
     /// </summary>
     [Test]
     [Arguments("[100.7, 200.9, 300.4, 400.6]", "")]

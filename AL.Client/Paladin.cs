@@ -42,12 +42,12 @@ public class Paladin : ALClient
         : base(characterName, apiClient, socketClient) { }
 
     /// <summary>
-    ///     Asynchronously toggles Aether Shield, which lets magical damage through to health but restores mana from
-    ///     the health lost. It replaces Mana Shield: the two cannot be worn together.
+    ///     Asynchronously toggles Aether Shield, which lets magical damage through to health but restores mana from the health
+    ///     lost. It replaces Mana Shield: the two cannot be worn together.
     /// </summary>
     /// <remarks>
-    ///     A toggle sharing Mana Shield's zero cooldown, so the call completes on the shield condition changing —
-    ///     whichever way it went. Needs level 60.
+    ///     A toggle sharing Mana Shield's zero cooldown, so the call completes on the shield condition changing — whichever
+    ///     way it went. Needs level 60.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'aether_shield'. ({reason})
@@ -55,8 +55,8 @@ public class Paladin : ALClient
     public Task AetherShieldAsync() => UseSkillCoreAsync("aether_shield", completion: SkillCompletion.OnCondition(Condition.AetherShield));
 
     /// <summary>
-    ///     Asynchronously uses Beacon of Resolve, giving every friendly player within 480 15 fortitude and a point of
-    ///     each courage for 8 seconds.
+    ///     Asynchronously uses Beacon of Resolve, giving every friendly player within 480 15 fortitude and a point of each
+    ///     courage for 8 seconds.
     /// </summary>
     /// <remarks>
     ///     640 mana on a 60 second cooldown, needs level 70. No target: the server picks the audience.
@@ -91,8 +91,8 @@ public class Paladin : ALClient
     }
 
     /// <summary>
-    ///     Asynchronously uses Guardian's Oath on an ally, taking 35% of their damage for 8 seconds and restoring
-    ///     mana from the health this paladin loses to it.
+    ///     Asynchronously uses Guardian's Oath on an ally, taking 35% of their damage for 8 seconds and restoring mana from
+    ///     the health this paladin loses to it.
     /// </summary>
     /// <param name="targetId">
     ///     The id of the ally. Never the paladin itself: the skill refuses self.
@@ -118,8 +118,8 @@ public class Paladin : ALClient
     ///     Asynchronously toggles MShield, trading damage for damage reduction.
     /// </summary>
     /// <remarks>
-    ///     This is a toggle and the server sends no cooldown for it, so the call completes on the shield condition
-    ///     changing — whichever way it went.
+    ///     This is a toggle and the server sends no cooldown for it, so the call completes on the shield condition changing —
+    ///     whichever way it went.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'mshield'. ({reason})
@@ -127,15 +127,15 @@ public class Paladin : ALClient
     public Task MShieldAsync() => UseSkillCoreAsync("mshield", completion: SkillCompletion.OnCondition(Condition.MShield));
 
     /// <summary>
-    ///     Asynchronously sets the paladin's aura to the given form. One aura is carried at a time and strengthens
-    ///     every friendly within 320; casting again with another form changes it.
+    ///     Asynchronously sets the paladin's aura to the given form. One aura is carried at a time and strengthens every
+    ///     friendly within 320; casting again with another form changes it.
     /// </summary>
     /// <param name="form">
     ///     The form to carry.
     /// </param>
     /// <remarks>
-    ///     Free, on a 500ms cooldown, needs level 60. The official client sends the form where a target id would
-    ///     go, and so does this.
+    ///     Free, on a 500ms cooldown, needs level 60. The official client sends the form where a target id would go, and so
+    ///     does this.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'paladin_aura'. ({reason})
@@ -192,8 +192,8 @@ public class Paladin : ALClient
     }
 
     /// <summary>
-    ///     Asynchronously uses Shield Slam on a target: physical damage of three times attack plus twelve times
-    ///     armour, the armour counted up to 1000. It pierces immunity, never crits and triggers no item effect.
+    ///     Asynchronously uses Shield Slam on a target: physical damage of three times attack plus twelve times armour, the
+    ///     armour counted up to 1000. It pierces immunity, never crits and triggers no item effect.
     /// </summary>
     /// <param name="targetId">
     ///     The id of the target.

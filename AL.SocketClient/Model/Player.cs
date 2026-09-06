@@ -84,15 +84,15 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     [JsonInclude]
     public string? Owner { get; protected set; }
 
-    [JsonPropertyName("party")]
-    [JsonInclude]
-    public string? PartyLeader { get; protected set; }
-
     /// <summary>
     ///     This is a value indicating the overall contribution a player is making towards his party. (higher is better)
     /// </summary>
     [JsonInclude]
     public float PDPS { get; protected set; }
+
+    [JsonPropertyName("party")]
+    [JsonInclude]
+    public string? PartyLeader { get; protected set; }
 
     /// <summary>
     ///     <b>

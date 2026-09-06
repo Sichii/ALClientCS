@@ -45,20 +45,20 @@ public enum ALAttribute
     None,
 
     /// <summary>
-    ///     Physical defense, fed to the server's diminishing-returns curve. The first 100 points cut incoming
-    ///     physical damage by 0.1% each, tapering to 0.04% per point past 800.
+    ///     Physical defense, fed to the server's diminishing-returns curve. The first 100 points cut incoming physical damage
+    ///     by 0.1% each, tapering to 0.04% per point past 800.
     /// </summary>
     Armor,
 
     /// <summary>
-    ///     How many physically-attacking monsters may target you before fear sets in, which cuts speed and attack
-    ///     sharply. Magical and pure attackers count against MagicalCourage and PureCourage instead.
+    ///     How many physically-attacking monsters may target you before fear sets in, which cuts speed and attack sharply.
+    ///     Magical and pure attackers count against MagicalCourage and PureCourage instead.
     /// </summary>
     Courage,
 
     /// <summary>
-    ///     Percent chance to shrug off frozen and deepfreezed outright. An all-or-nothing roll as the condition
-    ///     lands, not damage reduction.
+    ///     Percent chance to shrug off frozen and deepfreezed outright. An all-or-nothing roll as the condition lands, not
+    ///     damage reduction.
     /// </summary>
     [EnumMember(Value = "fzresistance")]
     FreezeResistance,
@@ -76,46 +76,46 @@ public enum ALAttribute
     PoisonResistance,
 
     /// <summary>
-    ///     The game's own notes call this status resistance and intend it to shorten debuffs, but no live server
-    ///     code reads it. Stuns are resisted by PhysicalResistance instead, despite this member's name.
+    ///     The game's own notes call this status resistance and intend it to shorten debuffs, but no live server code reads
+    ///     it. Stuns are resisted by PhysicalResistance instead, despite this member's name.
     /// </summary>
     [EnumMember(Value = "stresistance")]
     StunResistance,
 
     /// <summary>
-    ///     Percent chance to resist the stunned condition outright. The game's notes call it impact resistance; it
-    ///     does not reduce physical damage, which is Armor's job.
+    ///     Percent chance to resist the stunned condition outright. The game's notes call it impact resistance; it does not
+    ///     reduce physical damage, which is Armor's job.
     /// </summary>
     [EnumMember(Value = "phresistance")]
     PhysicalResistance,
 
     /// <summary>
-    ///     Magic defense, run through the same diminishing-returns curve as Armor. The per-element resistances are
-    ///     unrelated: those roll to block a condition rather than reducing damage.
+    ///     Magic defense, run through the same diminishing-returns curve as Armor. The per-element resistances are unrelated:
+    ///     those roll to block a condition rather than reducing damage.
     /// </summary>
     Resistance,
 
     /// <summary>
-    ///     Percent chance to bounce an incoming magical attack back at its caster and take nothing. Capped at 30,
-    ///     or 50 while the reflection buff is up.
+    ///     Percent chance to bounce an incoming magical attack back at its caster and take nothing. Capped at 30, or 50 while
+    ///     the reflection buff is up.
     /// </summary>
     Reflection,
 
     /// <summary>
-    ///     Percent of an incoming physical hit dealt straight back to a melee attacker, one whose range is under
-    ///     75. Measured against the raw hit, before your armor reduced it.
+    ///     Percent of an incoming physical hit dealt straight back to a melee attacker, one whose range is under 75. Measured
+    ///     against the raw hit, before your armor reduced it.
     /// </summary>
     DReturn,
 
     /// <summary>
-    ///     Percent chance to dodge an incoming physical attack entirely. Capped at 50, and it does nothing against
-    ///     magical damage.
+    ///     Percent chance to dodge an incoming physical attack entirely. Capped at 50, and it does nothing against magical
+    ///     damage.
     /// </summary>
     Evasion,
 
     /// <summary>
-    ///     Percent chance that your own attacks miss. A self-inflicted penalty carried by alcohol and by two-handed
-    ///     bows; nothing on a target makes an incoming attack miss.
+    ///     Percent chance that your own attacks miss. A self-inflicted penalty carried by alcohol and by two-handed bows;
+    ///     nothing on a target makes an incoming attack miss.
     /// </summary>
     Miss,
 
@@ -130,14 +130,14 @@ public enum ALAttribute
     Mp,
 
     /// <summary>
-    ///     Armor piercing, subtracted from the target's armor before the damage curve. Driving the total negative
-    ///     is worth up to 32% extra damage, where the curve stops.
+    ///     Armor piercing, subtracted from the target's armor before the damage curve. Driving the total negative is worth up
+    ///     to 32% extra damage, where the curve stops.
     /// </summary>
     APiercing,
 
     /// <summary>
-    ///     Resistance piercing, subtracted from the target's resistance before the damage curve. The magical
-    ///     counterpart of APiercing.
+    ///     Resistance piercing, subtracted from the target's resistance before the damage curve. The magical counterpart of
+    ///     APiercing.
     /// </summary>
     RPiercing,
 
@@ -147,14 +147,14 @@ public enum ALAttribute
     Crit,
 
     /// <summary>
-    ///     Percentage points added to the 2x crit multiplier, so 60 makes a crit hit for 2.6x. Worth nothing on its
-    ///     own without Crit.
+    ///     Percentage points added to the 2x crit multiplier, so 60 makes a crit hit for 2.6x. Worth nothing on its own
+    ///     without Crit.
     /// </summary>
     CritDamage,
 
     /// <summary>
-    ///     Base damage per hit, before the server's 10% random spread, Output and the target's defenses. A weapon's
-    ///     attack is also scaled by the wielder's main stat.
+    ///     Base damage per hit, before the server's 10% random spread, Output and the target's defenses. A weapon's attack is
+    ///     also scaled by the wielder's main stat.
     /// </summary>
     Attack,
 
@@ -164,8 +164,8 @@ public enum ALAttribute
     Range,
 
     /// <summary>
-    ///     Attacks per second, on two scales. A class's base and a monster's own value are the rate itself, roughly
-    ///     0.35 to 1.6; anything layered on by gear or a condition is hundredths, so 60 means +0.6.
+    ///     Attacks per second, on two scales. A class's base and a monster's own value are the rate itself, roughly 0.35 to
+    ///     1.6; anything layered on by gear or a condition is hundredths, so 60 means +0.6.
     /// </summary>
     Frequency,
 
@@ -180,8 +180,8 @@ public enum ALAttribute
     ManaSteal,
 
     /// <summary>
-    ///     Marks a monster that steals gold when it hits you. A flag rather than a magnitude: the amount taken is 1
-    ///     to 12 gold whatever the value says.
+    ///     Marks a monster that steals gold when it hits you. A flag rather than a magnitude: the amount taken is 1 to 12 gold
+    ///     whatever the value says.
     /// </summary>
     GoldSteal,
 
@@ -191,8 +191,8 @@ public enum ALAttribute
     Speed,
 
     /// <summary>
-    ///     Generic stat points on scrollable gear rather than a stat of its own. They convert wholesale into
-    ///     whichever stat the item was scrolled to, scaled by that stat's own rate.
+    ///     Generic stat points on scrollable gear rather than a stat of its own. They convert wholesale into whichever stat
+    ///     the item was scrolled to, scaled by that stat's own rate.
     /// </summary>
     Stat,
 
@@ -202,8 +202,8 @@ public enum ALAttribute
     Str,
 
     /// <summary>
-    ///     Intelligence. Adds resistance, maximum mp and a little attack speed, and scales weapon damage for mages,
-    ///     priests and merchants.
+    ///     Intelligence. Adds resistance, maximum mp and a little attack speed, and scales weapon damage for mages, priests
+    ///     and merchants.
     /// </summary>
     Int,
 
@@ -218,8 +218,8 @@ public enum ALAttribute
     Vit,
 
     /// <summary>
-    ///     Fortitude. Reduces damage taken from other players only, each point counting as 5 defense. Nothing to do
-    ///     with Str, despite reading like an abbreviation of it.
+    ///     Fortitude. Reduces damage taken from other players only, each point counting as 5 defense. Nothing to do with Str,
+    ///     despite reading like an abbreviation of it.
     /// </summary>
     For,
 
@@ -229,20 +229,19 @@ public enum ALAttribute
     Luck,
 
     /// <summary>
-    ///     Percent multiplier on your attack. Most classes start at 100 and a priest at 40; the server floors the
-    ///     total at 5.
+    ///     Percent multiplier on your attack. Most classes start at 100 and a priest at 40; the server floors the total at 5.
     /// </summary>
     Output,
 
     /// <summary>
-    ///     Splash intensity for magical hits. The splash reaches intensity/3.6 units and lands for that percent of
-    ///     a full hit, still reduced by each victim's resistance.
+    ///     Splash intensity for magical hits. The splash reaches intensity/3.6 units and lands for that percent of a full hit,
+    ///     still reduced by each victim's resistance.
     /// </summary>
     Blast,
 
     /// <summary>
-    ///     Splash intensity for physical hits, worked out exactly as Blast is. The pairing runs the opposite way
-    ///     round from what the two names suggest.
+    ///     Splash intensity for physical hits, worked out exactly as Blast is. The pairing runs the opposite way round from
+    ///     what the two names suggest.
     /// </summary>
     Explosion,
 
@@ -263,35 +262,35 @@ public enum ALAttribute
     Gold,
 
     /// <summary>
-    ///     Healing power. A priest's is set equal to their attack; on a condition or a monster ability it is the hp
-    ///     restored on each tick.
+    ///     Healing power. A priest's is set equal to their attack; on a condition or a monster ability it is the hp restored
+    ///     on each tick.
     /// </summary>
     Heal,
 
     /// <summary>
-    ///     The fraction of healing a condition lets through, 0.25 on poison. The server hard-codes the same number
-    ///     rather than reading this key, so treat it as descriptive.
+    ///     The fraction of healing a condition lets through, 0.25 on poison. The server hard-codes the same number rather than
+    ///     reading this key, so treat it as descriptive.
     /// </summary>
     [EnumMember(Value = "healm")]
     HealMod,
 
     /// <summary>
-    ///     A condition's multiplier on attack speed, as a fraction, where Frequency is the rate itself. The server
-    ///     hard-codes the multiplier rather than reading this key.
+    ///     A condition's multiplier on attack speed, as a fraction, where Frequency is the rate itself. The server hard-codes
+    ///     the multiplier rather than reading this key.
     /// </summary>
     [EnumMember(Value = "frequencym")]
     FrequencyMod,
 
     /// <summary>
-    ///     The fraction of a potion's effect a condition lets through, 0.5 on poison. The server hard-codes the
-    ///     halving rather than reading this key.
+    ///     The fraction of a potion's effect a condition lets through, 0.5 on poison. The server hard-codes the halving rather
+    ///     than reading this key.
     /// </summary>
     [EnumMember(Value = "potionsm")]
     PotionsMod,
 
     /// <summary>
-    ///     Lowers the chance a monster picks you as its target. Only the gap to Bling counts: the server rolls
-    ///     against (bling - cuteness)/100.
+    ///     Lowers the chance a monster picks you as its target. Only the gap to Bling counts: the server rolls against (bling
+    ///     - cuteness)/100.
     /// </summary>
     Cuteness,
 
@@ -301,15 +300,15 @@ public enum ALAttribute
     Charisma,
 
     /// <summary>
-    ///     Percent off the mp a skill costs, applied both to the affordability check and to the deduction. Separate
-    ///     from MpCost, which is the mp a normal attack spends.
+    ///     Percent off the mp a skill costs, applied both to the affordability check and to the deduction. Separate from
+    ///     MpCost, which is the mp a normal attack spends.
     /// </summary>
     [EnumMember(Value = "mp_reduction")]
     MPReduction,
 
     /// <summary>
-    ///     Raises the chance a monster picks you as its target, the inverse of Cuteness. The server rolls against
-    ///     (bling - cuteness)/100.
+    ///     Raises the chance a monster picks you as its target, the inverse of Cuteness. The server rolls against (bling -
+    ///     cuteness)/100.
     /// </summary>
     Bling,
 
@@ -320,22 +319,22 @@ public enum ALAttribute
 
     //needed because AL.Data.Classes. doublehands/mainhand/offhand use it as a mod
     /// <summary>
-    ///     Mp spent per normal attack. The class sets the base and gear adjusts it, then it grows with level and
-    ///     with your crit, lifesteal and piercing.
+    ///     Mp spent per normal attack. The class sets the base and gear adjusts it, then it grows with level and with your
+    ///     crit, lifesteal and piercing.
     /// </summary>
     [EnumMember(Value = "mp_cost")]
     MpCost,
 
     /// <summary>
-    ///     The first of two free-form numbers an item's ability or aura carries. Its meaning belongs to that
-    ///     ability, and is most often a percent proc chance.
+    ///     The first of two free-form numbers an item's ability or aura carries. Its meaning belongs to that ability, and is
+    ///     most often a percent proc chance.
     /// </summary>
     [Obsolete("No idea what this is.")]
     Attr0,
 
     /// <summary>
-    ///     The second free-form number an item's ability or aura carries. Rarely populated, and its meaning
-    ///     likewise belongs to the ability.
+    ///     The second free-form number an item's ability or aura carries. Rarely populated, and its meaning likewise belongs
+    ///     to the ability.
     /// </summary>
     [Obsolete("No idea what this is.")]
     Attr1,
@@ -349,24 +348,31 @@ public enum ALAttribute
     //appended rather than placed beside Courage: a numeric wire value is parsed as an ordinal, so inserting a
     //member mid-enum silently repoints every member after it
     /// <summary>
-    ///     How many magical attackers this can be engaged by before fear sets in. The server counts magical
-    ///     attackers separately from physical and pure ones, and compares each count against its own limit.
+    ///     How many magical attackers this can be engaged by before fear sets in. The server counts magical attackers
+    ///     separately from physical and pure ones, and compares each count against its own limit.
     /// </summary>
     [EnumMember(Value = "mcourage")]
     MagicalCourage,
 
     /// <summary>
-    ///     How many pure-damage attackers this can be engaged by before fear sets in. The rarest of the three, and
-    ///     the one paladins carry most of.
+    ///     How many pure-damage attackers this can be engaged by before fear sets in. The rarest of the three, and the one
+    ///     paladins carry most of.
     /// </summary>
     [EnumMember(Value = "pcourage")]
     PureCourage
 }
 
 /// <summary>
-///     What stops an item being disposed of, read from the socket item field <c>l</c>. The server deletes the field
-///     rather than clearing it, so an item whose unlock has run to completion arrives carrying no <c>l</c> at all and
-///     reads back as <see cref="None" /> (node/server.js:6313, :6324).
+///     What stops an item being disposed of, read from the socket item field
+///     <c>
+///         l
+///     </c>
+///     . The server deletes the field rather than clearing it, so an item whose unlock has run to completion arrives
+///     carrying no
+///     <c>
+///         l
+///     </c>
+///     at all and reads back as <see cref="None" /> (node/server.js:6313, :6324).
 /// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ItemLockType
@@ -380,14 +386,24 @@ public enum ItemLockType
     Sealed,
 
     /// <summary>
-    ///     A seal 48 hours into being lifted - not a lock that has been lifted. The countdown starts when the unseal
-    ///     is paid for, and the item stays fully protected for every hour of it: the branches that refuse a locked
-    ///     item test <c>item.l</c> for truthiness rather than for one particular letter, so a sale and a fresh lock
-    ///     are refused here exactly as they are on <see cref="Locked" /> (node/server.js:6307-6318, :6328).
+    ///     A seal 48 hours into being lifted - not a lock that has been lifted. The countdown starts when the unseal is paid
+    ///     for, and the item stays fully protected for every hour of it: the branches that refuse a locked item test
+    ///     <c>
+    ///         item.l
+    ///     </c>
+    ///     for truthiness rather than for one particular letter, so a sale and a fresh lock are refused here exactly as they
+    ///     are on <see cref="Locked" /> (node/server.js:6307-6318, :6328).
     /// </summary>
     /// <remarks>
-    ///     The deadline itself is <c>item.ld</c>, which this library does not model. How long is left has to come
-    ///     from the server's <c>locksmith_unsealing</c> response.
+    ///     The deadline itself is
+    ///     <c>
+    ///         item.ld
+    ///     </c>
+    ///     , which this library does not model. How long is left has to come from the server's
+    ///     <c>
+    ///         locksmith_unsealing
+    ///     </c>
+    ///     response.
     /// </remarks>
     [EnumMember(Value = "u")]
     Unsealing
@@ -404,8 +420,15 @@ public enum DoorLockType
 
     /// <summary>
     ///     A bank level the account has not unlocked. The server refuses the transport when the door reads
-    ///     <c>"ulocked"</c> and <c>player.user.unlocked</c> holds no entry for the destination
-    ///     (node/server.js:5510-5518), so the pathfinder leaves these doors out of the navmesh entirely.
+    ///     <c>
+    ///         "ulocked"
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         player.user.unlocked
+    ///     </c>
+    ///     holds no entry for the destination (node/server.js:5510-5518), so the pathfinder leaves these doors out of the
+    ///     navmesh entirely.
     /// </summary>
     [EnumMember(Value = "ulocked")]
     AccountLocked,
@@ -416,7 +439,13 @@ public enum DoorLockType
     [EnumMember(Value = "key")]
     Key,
 
-    /// <summary>Local marker, never on the wire - <c>GDoor.Unlock()</c> is the only thing that sets it.</summary>
+    /// <summary>
+    ///     Local marker, never on the wire -
+    ///     <c>
+    ///         GDoor.Unlock()
+    ///     </c>
+    ///     is the only thing that sets it.
+    /// </summary>
     Unlocked
 }
 
@@ -441,24 +470,44 @@ public enum KeyType
     Complicated
 }
 
-/// <summary>The three things the locksmith can do to an item (node/server.js:6279).</summary>
+/// <summary>
+///     The three things the locksmith can do to an item (node/server.js:6279).
+/// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum LocksmithOperation
 {
-    /// <summary>Set <c>item.l</c> to <c>"l"</c>. Comes off again instantly for the same price.</summary>
+    /// <summary>
+    ///     Set
+    ///     <c>
+    ///         item.l
+    ///     </c>
+    ///     to
+    ///     <c>
+    ///         "l"
+    ///     </c>
+    ///     . Comes off again instantly for the same price.
+    /// </summary>
     [EnumMember(Value = "lock")]
     Lock,
 
     /// <summary>
-    ///     Set <c>item.l</c> to <c>"s"</c>. Protects exactly as a lock does; the difference is entirely in the
-    ///     removal, which costs another 250,000 gold and then two real days.
+    ///     Set
+    ///     <c>
+    ///         item.l
+    ///     </c>
+    ///     to
+    ///     <c>
+    ///         "s"
+    ///     </c>
+    ///     . Protects exactly as a lock does; the difference is entirely in the removal, which costs another 250,000 gold and
+    ///     then two real days.
     /// </summary>
     [EnumMember(Value = "seal")]
     Seal,
 
     /// <summary>
-    ///     Advance one step toward unlocked, whatever the current state is: a lock clears outright, a seal starts a
-    ///     48-hour timer, and a running timer either reports its remaining hours or clears once it has passed.
+    ///     Advance one step toward unlocked, whatever the current state is: a lock clears outright, a seal starts a 48-hour
+    ///     timer, and a running timer either reports its remaining hours or clears once it has passed.
     /// </summary>
     [EnumMember(Value = "unlock")]
     Unlock
@@ -748,12 +797,12 @@ public enum Condition
 }
 
 /// <summary>
-///     The form a paladin's aura takes. One is carried at a time, and the skill is cast with the wanted form to
-///     change it; each maps to the condition of the same name.
+///     The form a paladin's aura takes. One is carried at a time, and the skill is cast with the wanted form to change it;
+///     each maps to the condition of the same name.
 /// </summary>
 /// <remarks>
-///     No tolerant converter, unlike its neighbours: this never arrives on the wire. The client spells it out
-///     itself when casting, and a consumer's configuration is the only JSON it ever sits in.
+///     No tolerant converter, unlike its neighbours: this never arrives on the wire. The client spells it out itself when
+///     casting, and a consumer's configuration is the only JSON it ever sits in.
 /// </remarks>
 public enum PaladinAuraForm
 {
@@ -1257,10 +1306,22 @@ public enum UIDataType
     [EnumMember(Value = "item_sent")]
     ItemSent,
 
-    /// <summary>Rogue Swiftness cast line + consume animation on the receiver.</summary>
+    /// <summary>
+    ///     Rogue Swiftness cast line + consume animation on the receiver.
+    /// </summary>
     RSpeed,
 
-    /// <summary>Warrior Stomp. <c>Name</c> is the warrior, <c>Ids</c> everything it stunned.</summary>
+    /// <summary>
+    ///     Warrior Stomp.
+    ///     <c>
+    ///         Name
+    ///     </c>
+    ///     is the warrior,
+    ///     <c>
+    ///         Ids
+    ///     </c>
+    ///     everything it stunned.
+    /// </summary>
     Stomp
 }
 

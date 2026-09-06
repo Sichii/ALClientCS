@@ -187,15 +187,15 @@ public sealed class ForcedObjectConverterFactory : JsonConverterFactory
 
     public override bool CanConvert(Type typeToConvert) => Convertible.GetOrAdd(typeToConvert, Evaluate);
 
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+        => (JsonConverter)Activator.CreateInstance(typeof(ForcedObjectConverter<>).MakeGenericType(typeToConvert))!;
+
     private static bool Evaluate(Type typeToConvert)
         => !typeToConvert.IsAbstract
            && typeof(IEnumerable).IsAssignableFrom(typeToConvert)
            && typeToConvert.GetConstructor(Type.EmptyTypes) is not null
            && !HasArrayIndex(typeToConvert)
            && ForcedToObject(typeToConvert);
-
-    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        => (JsonConverter)Activator.CreateInstance(typeof(ForcedObjectConverter<>).MakeGenericType(typeToConvert))!;
 
     //[JsonForcedObject] on the type or an implemented interface (e.g. IRectangle) forces an object contract
     private static bool ForcedToObject(Type type)

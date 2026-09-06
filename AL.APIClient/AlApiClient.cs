@@ -181,32 +181,11 @@ public sealed class AlApiClient : IAlApiClient
 
     // data.js is ~2.6MB and the server often trickles it well past the 100s default.
     private static IRestClient CreateRestClient(string baseUrl)
-        => new RestClient(new RestClientOptions(baseUrl) { Timeout = TimeSpan.FromMinutes(5) });
-
-    /// <summary>
-    ///     Asynchronously fetches the "G" data json.
-    ///     <br />
-    ///     You do not need to be logged in to fetch this data.
-    /// </summary>
-    /// <param name="baseUrl">
-    ///     The host to fetch from. Defaults to the public game host.
-    /// </param>
-    /// <returns>
-    ///     <see cref="string" />
-    ///     <br />
-    ///     A json string of the "G" data.
-    /// </returns>
-    /// <summary>
-    ///     Fetches <c>data.js</c>, once per host for the life of the process.
-    /// </summary>
-    /// <remarks>
-    ///     The body is multiple megabytes and the server can spend minutes sending it, so a second caller downloading
-    ///     it again is the most expensive thing a boot can do. The data is static for a server session anyway. A failed
-    ///     fetch evicts itself, so a transient one does not poison every later caller.
-    /// </remarks>
-    public static Task<string> GetGameDataAsync(string baseUrl = DEFAULT_BASE_URL)
-        => GameDataCache.GetOrAdd(baseUrl, url => new Lazy<Task<string>>(() => FetchGameDataAsync(url)))
-                        .Value;
+        => new RestClient(
+            new RestClientOptions(baseUrl)
+            {
+                Timeout = TimeSpan.FromMinutes(5)
+            });
 
     private static async Task<string> FetchGameDataAsync(string baseUrl)
     {
@@ -233,6 +212,35 @@ public sealed class AlApiClient : IAlApiClient
             throw;
         }
     }
+
+    /// <summary>
+    ///     Asynchronously fetches the "G" data json.
+    ///     <br />
+    ///     You do not need to be logged in to fetch this data.
+    /// </summary>
+    /// <param name="baseUrl">
+    ///     The host to fetch from. Defaults to the public game host.
+    /// </param>
+    /// <returns>
+    ///     <see cref="string" />
+    ///     <br />
+    ///     A json string of the "G" data.
+    /// </returns>
+    /// <summary>
+    ///     Fetches
+    ///     <c>
+    ///         data.js
+    ///     </c>
+    ///     , once per host for the life of the process.
+    /// </summary>
+    /// <remarks>
+    ///     The body is multiple megabytes and the server can spend minutes sending it, so a second caller downloading it again
+    ///     is the most expensive thing a boot can do. The data is static for a server session anyway. A failed fetch evicts
+    ///     itself, so a transient one does not poison every later caller.
+    /// </remarks>
+    public static Task<string> GetGameDataAsync(string baseUrl = DEFAULT_BASE_URL)
+        => GameDataCache.GetOrAdd(baseUrl, url => new Lazy<Task<string>>(() => FetchGameDataAsync(url)))
+                        .Value;
 
     /// <summary>
     ///     Asynchronously logs in to the API.

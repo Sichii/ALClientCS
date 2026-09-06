@@ -164,6 +164,11 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
 {
     private const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
+    //shared across every Excluding() copy: the exclusion is a reference compare on the way in, and everything after
+    //it is a property of the type alone. The question is asked again for every JsonSerializerOptions instance the
+    //nesting converters mint, and each miss walks every member reading attributes
+    private static readonly ConcurrentDictionary<Type, bool> Positional = new();
+
     private readonly Type? Excluded;
 
     public ArrayToObjectConverterFactory() { }
@@ -174,13 +179,12 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
     // the default object converter and cannot re-enter its own converter, while nested positional types still match.
     public JsonConverterFactory Excluding(Type type) => new ArrayToObjectConverterFactory(type);
 
-    //shared across every Excluding() copy: the exclusion is a reference compare on the way in, and everything after
-    //it is a property of the type alone. The question is asked again for every JsonSerializerOptions instance the
-    //nesting converters mint, and each miss walks every member reading attributes
-    private static readonly ConcurrentDictionary<Type, bool> Positional = new();
+    public override bool CanConvert(Type typeToConvert) => (typeToConvert != Excluded) && Positional.GetOrAdd(typeToConvert, IsPositional);
 
-    public override bool CanConvert(Type typeToConvert)
-        => (typeToConvert != Excluded) && Positional.GetOrAdd(typeToConvert, IsPositional);
+    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+        => (JsonConverter)Activator.CreateInstance(typeof(ArrayToObjectConverter<>).MakeGenericType(typeToConvert))!;
+
+    private static bool HasIndex(MemberInfo member) => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null;
 
     private static bool IsPositional(Type typeToConvert)
         => !typeToConvert.IsAbstract
@@ -189,9 +193,4 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
                             .Any(HasIndex)
                || typeToConvert.GetFields(FLAGS)
                                .Any(HasIndex));
-
-    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        => (JsonConverter)Activator.CreateInstance(typeof(ArrayToObjectConverter<>).MakeGenericType(typeToConvert))!;
-
-    private static bool HasIndex(MemberInfo member) => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null;
 }

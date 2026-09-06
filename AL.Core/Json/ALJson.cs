@@ -37,8 +37,8 @@ namespace AL.Core.Json;
 ///     </c>
 ///     ) stays unbound by construction, which is why the transitional resolver modifier could be removed outright rather
 ///     than reproduced. The converters are registered here as type-matched factories/instances —
-///     <see cref="AttributedObjectConverterFactory" /> for every <see cref="AL.Core.Interfaces.IAttributed" />, and factories
-///     keyed on the AL-local markers (
+///     <see cref="AttributedObjectConverterFactory" /> for every <see cref="AL.Core.Interfaces.IAttributed" />, and
+///     factories keyed on the AL-local markers (
 ///     <c>
 ///         [JsonStringOrObject]
 ///     </c>

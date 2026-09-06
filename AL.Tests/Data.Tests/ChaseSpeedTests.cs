@@ -6,13 +6,33 @@ using FluentAssertions;
 namespace AL.Tests.Data.Tests;
 
 /// <summary>
-///     What a monster chases at once it holds a target. Only the monsters the design data names a charge for carry
-///     one on the wire; the rest are filled in when the game loads G, and reading the raw field instead reports
-///     every one of them as standing still.
+///     What a monster chases at once it holds a target. Only the monsters the design data names a charge for carry one on
+///     the wire; the rest are filled in when the game loads G, and reading the raw field instead reports every one of them
+///     as standing still.
 /// </summary>
 public class ChaseSpeedTests : GameDataTestBed
 {
-    /// <summary>The ladder the game applies, restated here rather than read back off the property it pins.</summary>
+    /// <summary>
+    ///     Where the data does name one, it is used as it stands - the ladder is a fallback, not a scaling.
+    /// </summary>
+    [Test]
+    public void AMonsterThatNamesAChargeChasesAtExactlyThat()
+    {
+        //a mole wanders at 18 and charges at 60, which is neither its speed nor any multiple of it on the ladder
+        var mole = GameData.Monsters["mole"]!;
+
+        mole.ChargeSpeed
+            .Should()
+            .BeGreaterThan(0f);
+
+        mole.ChaseSpeed
+            .Should()
+            .Be(mole.ChargeSpeed);
+    }
+
+    /// <summary>
+    ///     The ladder the game applies, restated here rather than read back off the property it pins.
+    /// </summary>
     [Test]
     public void AMonsterWithNoChargeOfItsOwnChasesAtAMultipleOfItsSpeed()
     {
@@ -44,21 +64,5 @@ public class ChaseSpeedTests : GameDataTestBed
                    .Should()
                    .BeApproximately(MathF.Floor(monster.Speed * multiplier + 0.5f), 0.001f, $"{monster.Accessor} names no charge");
         }
-    }
-
-    /// <summary>Where the data does name one, it is used as it stands - the ladder is a fallback, not a scaling.</summary>
-    [Test]
-    public void AMonsterThatNamesAChargeChasesAtExactlyThat()
-    {
-        //a mole wanders at 18 and charges at 60, which is neither its speed nor any multiple of it on the ladder
-        var mole = GameData.Monsters["mole"]!;
-
-        mole.ChargeSpeed
-            .Should()
-            .BeGreaterThan(0f);
-
-        mole.ChaseSpeed
-            .Should()
-            .Be(mole.ChargeSpeed);
     }
 }

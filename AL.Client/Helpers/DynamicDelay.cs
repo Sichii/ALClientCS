@@ -83,11 +83,10 @@ public sealed class DynamicDelay
                 break;
 
             await using (await Sync.WaitAsync())
-            {
+
                 //the delay was cancelled and nothing replaced it, so the wait is over
                 if (!NewDelay)
                     break;
-            }
         }
     }
 }

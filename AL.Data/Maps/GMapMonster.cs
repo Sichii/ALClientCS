@@ -39,15 +39,14 @@ public sealed record GMapMonster
     public GMonster? Data { get; internal set; }
 
     /// <summary>
-    ///     While any monster from this entry is alive, a door marked "protected" on the same instance refuses
-    ///     passage with "transport_cant_protection" (node/server.js:5432).
+    ///     While any monster from this entry is alive, a door marked "protected" on the same instance refuses passage with
+    ///     "transport_cant_protection" (node/server.js:5432).
     /// </summary>
     public bool GateKeeper { get; init; }
 
     /// <summary>
-    ///     Keeps the pack full and its members weak. A kill respawns at once while the population is below two
-    ///     thirds, two extras spawn below half, and each level gained adds far less than usual
-    ///     (node/server.js:11872, :12114, :1656).
+    ///     Keeps the pack full and its members weak. A kill respawns at once while the population is below two thirds, two
+    ///     extras spawn below half, and each level gained adds far less than usual (node/server.js:11872, :12114, :1656).
     /// </summary>
     public bool Grow { get; init; }
 
@@ -58,8 +57,8 @@ public sealed record GMapMonster
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     For an entry that gives a single position instead of a boundary, the half-width of the square the
-    ///     monster spawns and wanders in around it (node/server.js:12000, :12982).
+    ///     For an entry that gives a single position instead of a boundary, the half-width of the square the monster spawns
+    ///     and wanders in around it (node/server.js:12000, :12982).
     /// </summary>
     public int Radius { get; init; }
 
@@ -67,9 +66,9 @@ public sealed record GMapMonster
     ///     <b>
     ///         NULLABLE
     ///     </b>
-    ///     . If populated, standing anywhere inside this rectangle makes every monster from this entry drop what
-    ///     it was doing and come for you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds
-    ///     per instance, and high enough bling against cuteness can cancel it (node/server.js:12432).
+    ///     . If populated, standing anywhere inside this rectangle makes every monster from this entry drop what it was doing
+    ///     and come for you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds per instance, and high
+    ///     enough bling against cuteness can cancel it (node/server.js:12432).
     /// </summary>
     [JsonPropertyName("rage")]
     public MapRectangle? RageRect { get; init; }
@@ -80,8 +79,8 @@ public sealed record GMapMonster
     public bool Roam { get; init; }
 
     /// <summary>
-    ///     Specifies the way in which this monster spawns/respawns. "randomrespawn" picks one of the entry's
-    ///     boundaries at random each time, which chooses the map as well as the rectangle (node/server.js:11944).
+    ///     Specifies the way in which this monster spawns/respawns. "randomrespawn" picks one of the entry's boundaries at
+    ///     random each time, which chooses the map as well as the rectangle (node/server.js:11944).
     /// </summary>
     [JsonPropertyName("stype")]
     public SpawnType SpawnType { get; init; }

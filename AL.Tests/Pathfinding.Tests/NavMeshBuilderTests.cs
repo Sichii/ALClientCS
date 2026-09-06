@@ -17,37 +17,18 @@ public class NavMeshBuilderTests : GameDataTestBed
     }
 
     [Test]
-    public void MainTriangulatesAndContainsItsSpawn()
+    public void BuildingMainAllocatesFarLessThanTheOldStackDid()
     {
-        var mesh = BuildMain();
-        var spawn = GameData.Maps.Main.Spawns[0];
+        //main used to pre-size a 2.6M-entry flood stack up front; the build is now bounded by the raster. Measured
+        //per thread, since the suite runs other classes alongside this one and a process-wide count reads theirs too
+        BuildMain();
 
-        mesh.TriangleCount
-            .Should()
-            .BeGreaterThan(1000);
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        BuildMain();
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        mesh.TriangleAt(spawn.X, spawn.Y)
-            .Should()
-            .NotBe(-1);
-    }
-
-    [Test]
-    public void NeighbourRelationsAreSymmetric()
-    {
-        var mesh = BuildMain();
-
-        for (var triangle = 0; triangle < mesh.TriangleCount; triangle++)
-            for (var slot = 0; slot < 3; slot++)
-            {
-                var neighbour = mesh.Neighbour(triangle, slot);
-
-                if (neighbour < 0)
-                    continue;
-
-                (mesh.Neighbour(neighbour, 0) == triangle || mesh.Neighbour(neighbour, 1) == triangle || mesh.Neighbour(neighbour, 2) == triangle)
-                    .Should()
-                    .BeTrue($"triangle {triangle} names {neighbour} across slot {slot}, which must name it back");
-            }
+        allocated.Should()
+                 .BeLessThan(60L * 1024 * 1024);
     }
 
     [Test]
@@ -69,25 +50,28 @@ public class NavMeshBuilderTests : GameDataTestBed
     }
 
     [Test]
-    public void BuildingMainAllocatesFarLessThanTheOldStackDid()
+    public void MainTriangulatesAndContainsItsSpawn()
     {
-        //main used to pre-size a 2.6M-entry flood stack up front; the build is now bounded by the raster. Measured
-        //per thread, since the suite runs other classes alongside this one and a process-wide count reads theirs too
-        BuildMain();
+        var mesh = BuildMain();
+        var spawn = GameData.Maps.Main.Spawns[0];
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        BuildMain();
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        mesh.TriangleCount
+            .Should()
+            .BeGreaterThan(1000);
 
-        allocated.Should()
-                 .BeLessThan(60L * 1024 * 1024);
+        mesh.TriangleAt(spawn.X, spawn.Y)
+            .Should()
+            .NotBe(-1);
     }
 
     /// <summary>
-    ///     Both halves of the builder's rule on a live mesh: a vertex whose incident triangles form one fan carries
-    ///     adjacency, a vertex whose fan is only part of them carries none. Main has no pinch, so the first half is
-    ///     what this holds here and <c>TriangleMeshTests.PinchVertexGetsNoEdges</c> covers the second; a mesh whose
-    ///     adjacency was dropped wholesale used to pass this and now does not.
+    ///     Both halves of the builder's rule on a live mesh: a vertex whose incident triangles form one fan carries adjacency,
+    ///     a vertex whose fan is only part of them carries none. Main has no pinch, so the first half is what this holds here
+    ///     and
+    ///     <c>
+    ///         TriangleMeshTests.PinchVertexGetsNoEdges
+    ///     </c>
+    ///     covers the second; a mesh whose adjacency was dropped wholesale used to pass this and now does not.
     /// </summary>
     [Test]
     public void MainVerticesCarryEdgesExactlyWhenTheyAreNotAPinch()
@@ -110,7 +94,10 @@ public class NavMeshBuilderTests : GameDataTestBed
 
             //flood the triangles at the vertex across the two edges that meet there, which is the walk the builder
             //counts with FanSize; one sector reaching them all is its non-pinch case
-            var reached = new HashSet<int> { triangles[0] };
+            var reached = new HashSet<int>
+            {
+                triangles[0]
+            };
             var pending = new Stack<int>();
             pending.Push(triangles[0]);
 
@@ -151,5 +138,26 @@ public class NavMeshBuilderTests : GameDataTestBed
                   .BeGreaterThan(0, "the rule is only worth anything if some vertex was put to it");
 
         Console.WriteLine($"PINCH main vertices={mesh.Vertices.Length} classified={classified} pinched={pinched}");
+    }
+
+    [Test]
+    public void NeighbourRelationsAreSymmetric()
+    {
+        var mesh = BuildMain();
+
+        for (var triangle = 0; triangle < mesh.TriangleCount; triangle++)
+            for (var slot = 0; slot < 3; slot++)
+            {
+                var neighbour = mesh.Neighbour(triangle, slot);
+
+                if (neighbour < 0)
+                    continue;
+
+                ((mesh.Neighbour(neighbour, 0) == triangle)
+                 || (mesh.Neighbour(neighbour, 1) == triangle)
+                 || (mesh.Neighbour(neighbour, 2) == triangle)).Should()
+                                                               .BeTrue(
+                                                                   $"triangle {triangle} names {neighbour} across slot {slot}, which must name it back");
+            }
     }
 }

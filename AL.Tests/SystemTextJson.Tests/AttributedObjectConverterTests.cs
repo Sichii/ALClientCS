@@ -165,8 +165,8 @@ public sealed class AttributedObjectConverterTests
         public float Crit { get; init; }
         public float CritDamage { get; init; }
         public float Cuteness { get; init; }
-        public float Dex { get; init; }
         public float DReturn { get; init; }
+        public float Dex { get; init; }
         public float Evasion { get; init; }
         public float Explosion { get; init; }
         public float FireResistance { get; init; }
@@ -176,23 +176,23 @@ public sealed class AttributedObjectConverterTests
         public float FrequencyMod { get; init; }
         public float Gold { get; init; }
         public float GoldSteal { get; init; }
-        public float HealMod { get; init; }
         public float HP { get; init; }
+        public float HealMod { get; init; }
         public float Int { get; init; }
         public float Lifesteal { get; init; }
         public float Luck { get; init; }
-        public float ManaSteal { get; init; }
-        public float Miss { get; init; }
         public float MP { get; init; }
         public float MPCost { get; init; }
         public float MPReduction { get; init; }
+        public float ManaSteal { get; init; }
+        public float Miss { get; init; }
         public float Output { get; init; }
         public float PoisonResistance { get; init; }
         public float PotionsMod { get; init; }
+        public float RPiercing { get; init; }
         public float Range { get; init; }
         public float Reflection { get; init; }
         public float Resistance { get; init; }
-        public float RPiercing { get; init; }
         public float Speed { get; init; }
         public float Stat { get; init; }
         public float Str { get; init; }

@@ -10,12 +10,6 @@ namespace AL.Data.Achievements;
 /// <seealso cref="DatumBase{T}" />
 public class AchievementsDatum : DatumBase<GAchievement>
 {
-    [JsonPropertyName("1000boss")]
-    public GAchievement _1000Boss { get; init; } = null!;
-
-    [JsonPropertyName("100boss")]
-    public GAchievement _100Boss { get; init; } = null!;
-
     [JsonPropertyName("abtesting")]
     public GAchievement Abtesting { get; init; } = null!;
 
@@ -63,4 +57,10 @@ public class AchievementsDatum : DatumBase<GAchievement>
 
     [JsonPropertyName("upgrade10")]
     public GAchievement Upgrade10 { get; init; } = null!;
+
+    [JsonPropertyName("1000boss")]
+    public GAchievement _1000Boss { get; init; } = null!;
+
+    [JsonPropertyName("100boss")]
+    public GAchievement _100Boss { get; init; } = null!;
 }

@@ -10,9 +10,6 @@ namespace AL.Data.Items;
 /// <seealso cref="DatumBase{T}" />
 public class ItemsDatum : DatumBase<GItem>
 {
-    [JsonPropertyName("5bucks")]
-    public GItem _5Bucks { get; init; } = null!;
-
     [JsonPropertyName("ale")]
     public GItem Ale { get; init; } = null!;
 
@@ -1749,6 +1746,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("zapper")]
     public GItem Zapper { get; init; } = null!;
+
+    [JsonPropertyName("5bucks")]
+    public GItem _5Bucks { get; init; } = null!;
 
     internal override void BuildLookupTable()
     {

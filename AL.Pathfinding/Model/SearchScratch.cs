@@ -5,68 +5,42 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Everything a search writes to, held per thread so searches never share state and never allocate once warm.
-///     The mesh arrays are sized to the largest mesh searched so far, the node arrays to the portal graph plus the
-///     ends of the current search.
+///     Everything a search writes to, held per thread so searches never share state and never allocate once warm. The mesh
+///     arrays are sized to the largest mesh searched so far, the node arrays to the portal graph plus the ends of the
+///     current search.
 /// </summary>
 internal sealed class SearchScratch
 {
     [ThreadStatic]
     private static SearchScratch? Current;
 
-    //the vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from
-    public float[] VertexCost = [];
-    public int[] VertexParent = [];
-    public int SearchTriangle = -1;
-    public readonly PriorityQueue<int, float> VertexQueue = new();
-    public readonly List<int> VertexChain = [];
-    public readonly List<int> Corridor = [];
     public readonly List<int> Chain = [];
+    public readonly List<int> Corridor = [];
+    public readonly PriorityQueue<int, float> NodeQueue = new();
     public readonly List<Point> Polyline = [];
+    public readonly List<PortalGraph.Edge> SearchEdges = [];
+    public readonly List<int> VertexChain = [];
+    public readonly PriorityQueue<int, float> VertexQueue = new();
+    public Point[] EndEntry = [];
+
+    //the current search's ends, resolved onto their meshes; a null mesh is an end that resolved nowhere
+    public NavMesh?[] EndMesh = [];
+    public Reach[] EndReach = [];
+    public int[] EndTriangle = [];
 
     public float[] NodeCost = [];
     public int[] NodeParent = [];
     public int[] NodeParentEdge = [];
-    public readonly PriorityQueue<int, float> NodeQueue = new();
-    public readonly List<PortalGraph.Edge> SearchEdges = [];
+    public int SearchTriangle = -1;
 
-    //the current search's ends, resolved onto their meshes; a null mesh is an end that resolved nowhere
-    public NavMesh?[] EndMesh = [];
-    public int[] EndTriangle = [];
-    public Point[] EndEntry = [];
-    public Reach[] EndReach = [];
+    //the vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from
+    public float[] VertexCost = [];
+    public int[] VertexParent = [];
 
-    /// <summary>The calling thread's scratch, created on first use.</summary>
+    /// <summary>
+    ///     The calling thread's scratch, created on first use.
+    /// </summary>
     public static SearchScratch Rent() => Current ??= new SearchScratch();
-
-    public void ResetVertices(int vertices)
-    {
-        if (VertexCost.Length < vertices)
-        {
-            VertexCost = new float[vertices];
-            VertexParent = new int[vertices];
-        }
-
-        Array.Fill(VertexCost, float.MaxValue, 0, vertices);
-        Array.Fill(VertexParent, -1, 0, vertices);
-        VertexQueue.Clear();
-    }
-
-    public void ResetNodes(int nodes)
-    {
-        if (NodeCost.Length < nodes)
-        {
-            NodeCost = new float[nodes];
-            NodeParent = new int[nodes];
-            NodeParentEdge = new int[nodes];
-        }
-
-        Array.Fill(NodeCost, float.MaxValue, 0, nodes);
-        Array.Fill(NodeParent, -1, 0, nodes);
-        Array.Fill(NodeParentEdge, -1, 0, nodes);
-        NodeQueue.Clear();
-        SearchEdges.Clear();
-    }
 
     public void ResetEnds(int ends)
     {
@@ -79,5 +53,57 @@ internal sealed class SearchScratch
         }
 
         Array.Clear(EndMesh, 0, ends);
+    }
+
+    public void ResetNodes(int nodes)
+    {
+        if (NodeCost.Length < nodes)
+        {
+            NodeCost = new float[nodes];
+            NodeParent = new int[nodes];
+            NodeParentEdge = new int[nodes];
+        }
+
+        Array.Fill(
+            NodeCost,
+            float.MaxValue,
+            0,
+            nodes);
+
+        Array.Fill(
+            NodeParent,
+            -1,
+            0,
+            nodes);
+
+        Array.Fill(
+            NodeParentEdge,
+            -1,
+            0,
+            nodes);
+        NodeQueue.Clear();
+        SearchEdges.Clear();
+    }
+
+    public void ResetVertices(int vertices)
+    {
+        if (VertexCost.Length < vertices)
+        {
+            VertexCost = new float[vertices];
+            VertexParent = new int[vertices];
+        }
+
+        Array.Fill(
+            VertexCost,
+            float.MaxValue,
+            0,
+            vertices);
+
+        Array.Fill(
+            VertexParent,
+            -1,
+            0,
+            vertices);
+        VertexQueue.Clear();
     }
 }

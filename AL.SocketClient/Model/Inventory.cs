@@ -19,9 +19,9 @@ public sealed class Inventory : IReadOnlyList<Item?>
     ///     Walks the slots by index rather than handing out the backing list's enumerator.
     /// </summary>
     /// <remarks>
-    ///     <see cref="SetPrediction" /> writes a slot in place off the socket thread, which bumps the list's version
-    ///     and makes every enumerator a consumer is holding throw. Slots are only ever replaced, never inserted or
-    ///     removed, so reading by index sees either the old item or the new one, and neither is a torn read.
+    ///     <see cref="SetPrediction" /> writes a slot in place off the socket thread, which bumps the list's version and makes
+    ///     every enumerator a consumer is holding throw. Slots are only ever replaced, never inserted or removed, so reading
+    ///     by index sees either the old item or the new one, and neither is a torn read.
     /// </remarks>
     public IEnumerator<Item?> GetEnumerator()
     {
@@ -46,10 +46,16 @@ public sealed class Inventory : IReadOnlyList<Item?>
     /// </summary>
     /// <remarks>
     ///     This is the only way an in-progress upgrade or compound's detail reaches the item it belongs to. The server
-    ///     publishes it on <c>q_data</c> carrying nothing but the slot number (<c>node/server.js:13240</c>) and never
-    ///     folds it into an inventory frame, so without this the placeholder occupying that slot keeps whatever
-    ///     prediction it was deserialized with - which for the roll's digits means an empty list for the whole
-    ///     operation.
+    ///     publishes it on
+    ///     <c>
+    ///         q_data
+    ///     </c>
+    ///     carrying nothing but the slot number (
+    ///     <c>
+    ///         node/server.js:13240
+    ///     </c>
+    ///     ) and never folds it into an inventory frame, so without this the placeholder occupying that slot keeps whatever
+    ///     prediction it was deserialized with - which for the roll's digits means an empty list for the whole operation.
     /// </remarks>
     internal void SetPrediction(int index, Prediction? prediction)
     {
@@ -60,6 +66,9 @@ public sealed class Inventory : IReadOnlyList<Item?>
         if ((index < 0) || (index >= items.Count) || items[index] is not { } item)
             return;
 
-        items[index] = item with { Prediction = prediction };
+        items[index] = item with
+        {
+            Prediction = prediction
+        };
     }
 }

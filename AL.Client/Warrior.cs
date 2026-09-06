@@ -84,8 +84,8 @@ public sealed class Warrior : ALClient
     ///     The y coordinate to jump to. Must be within 50 units, or the server rejects the jump.
     /// </param>
     /// <remarks>
-    ///     Dash has no cooldown, so the server acknowledges it with nothing and this returns as soon as the emit is
-    ///     written. A rejected jump is reported only by the character's position not changing.
+    ///     Dash has no cooldown, so the server acknowledges it with nothing and this returns as soon as the emit is written. A
+    ///     rejected jump is reported only by the character's position not changing.
     /// </remarks>
     public Task DashAsync(float x, float y)
         => UseSkillCoreAsync(
