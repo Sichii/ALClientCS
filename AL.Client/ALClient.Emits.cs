@@ -599,10 +599,35 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Joins a giveaway posted in a player's stand slot (node/server.js:7987).
+    ///     Joins a giveaway posted in a player's stand slot (node/server.js:8087). Throws where the server refuses: out of
+    ///     range, seller gone, listing gone or replaced, or not a giveaway.
     /// </summary>
-    public Task JoinGiveawayAsync(string sellerId, TradeSlot slot, string? rid = null)
-        => Socket.EmitAsync(
+    /// <remarks>
+    ///     Every answer is a <c>game_response</c> whose place is the emit's own name: <c>failed</c> with the reason as the
+    ///     response, or <c>success</c>. The seller's participant list is not an acknowledgement: the server rewrites it on
+    ///     the live slot without re-caching the copy other players are sent, so a joiner never sees its own name arrive.
+    /// </remarks>
+    public async Task JoinGiveawayAsync(string sellerId, TradeSlot slot, string? rid = null)
+    {
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver
+                if (!"join_giveaway".EqualsI(data.Place!))
+                    return TaskCache.FALSE;
+
+                if (data.Failed)
+                    source.TrySetResult($"Failed to join {sellerId}'s giveaway. ({data.Reason ?? data.ResponseType.ToString()})");
+                else if (data.Success)
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(
             ALSocketEmitType.JoinGiveaway,
             new
             {
@@ -610,6 +635,10 @@ public abstract partial class ALClient
                 slot,
                 rid
             });
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+    }
 
     /// <summary>
     ///     Donates gold at a shrine; a donation of 1,000,000+ unlocks lost-and-found access (node/server.js:7897).
