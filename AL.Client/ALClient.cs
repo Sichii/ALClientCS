@@ -2151,7 +2151,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         await Socket.EmitAsync(
             ALSocketEmitType.SecondHandsBuy,
             lostAndFound
-                ? new
+                // ReSharper disable once RedundantCast
+                ? (object)new
                 {
                     rid = item.Id,
                     f = true
