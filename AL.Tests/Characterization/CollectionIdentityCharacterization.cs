@@ -296,7 +296,7 @@ public class CollectionIdentityCharacterization
     private sealed class SeededListHolder
     {
         [JsonPropertyName("values")]
-        public List<int> Values { get; } =
+        public List<int> Values { get; set; } =
             [
                 1,
                 2,

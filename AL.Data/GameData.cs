@@ -9,7 +9,6 @@ using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
-using AL.Core.Interfaces;
 using AL.Core.Json;
 using AL.Data.Achievements;
 using AL.Data.Classes;
@@ -34,6 +33,7 @@ using AL.Data.Titles;
 using AL.Data.Tokens;
 using Chaos.Extensions.Common;
 using Common.Logging;
+using JetBrains.Annotations;
 #endregion
 
 //the G-data statics are written only by Bind's reflection, which requires GetSetMethod(true) to be non-null
@@ -217,12 +217,24 @@ public record GameData
     //defaulted for the same reason Multipliers is: a payload missing "drops" degrades to an empty table rather
     //than throwing, and every consumer already has to handle a monster that drops nothing
     [GameDataRoot]
-    public static GDrops Drops { get; } = new();
+    public static GDrops Drops
+    {
+        get;
+
+        [UsedImplicitly]
+        private set;
+    } = new();
 
     //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing. The setter is
     //what Bind needs to reach it at all - get-only, it was skipped by the setter filter and every ratio stayed 0
     [GameDataRoot]
-    public static GMultipliers Multipliers { get; } = new();
+    public static GMultipliers Multipliers
+    {
+        get;
+
+        [UsedImplicitly]
+        private set;
+    } = new();
 
     [JsonIgnore]
     public static int ShellsToGold => Multipliers.ShellsToGold;
@@ -583,7 +595,7 @@ public record GameData
 
         foreach (var gClass in Classes.Values)
         {
-            var exclusives = new List<string>(gClass.ExclusiveCosmetics ?? []);
+            var exclusives = new List<string>(gClass.ExclusiveCosmetics);
 
             foreach (var cosmetic in FREE_COSMETICS)
                 if (!exclusives.Contains(cosmetic))
@@ -592,15 +604,12 @@ public record GameData
             //a look short of its name or its slot map is skipped rather than thrown on. The server's own loop
             //shrugs the same gap off, and this runs inside Populate - throwing here would stop every character
             //logging in over one malformed entry
-            foreach (var look in gClass.Looks ?? [])
+            foreach (var look in gClass.Looks)
             {
-                if (look is null)
-                    continue;
-
-                if (look.Name is not null && !exclusives.Contains(look.Name))
+                if (!exclusives.Contains(look.Name))
                     exclusives.Add(look.Name);
 
-                foreach (var piece in look.Pieces?.Values ?? [])
+                foreach (var piece in look.Pieces.Values)
                     if (!exclusives.Contains(piece))
                         exclusives.Add(piece);
             }
