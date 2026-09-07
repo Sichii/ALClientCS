@@ -5905,7 +5905,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         //raised before the drop, since the id is all the frame carries and the type is on the entity
         if (Monsters.TryGetValue(data.Id, out var monster))
-            OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name));
+            OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name, data.Points));
 
         DestroyEntity(data.Id);
 

@@ -9,4 +9,8 @@ namespace AL.Client.Model;
 /// <param name="Type">
 ///     Its monster type, the key into game data.
 /// </param>
-public sealed record MonsterDeathData(string Id, string Type);
+/// <param name="Points">
+///     For a cooperative boss, the server's final tally of points by character name, everyone included; null for any
+///     other monster.
+/// </param>
+public sealed record MonsterDeathData(string Id, string Type, IReadOnlyDictionary<string, float>? Points = null);

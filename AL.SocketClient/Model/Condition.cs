@@ -72,12 +72,13 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public string? Name { get; init; }
 
     /// <summary>
-    ///     If populated, this is the proportion of contribution this character has made towards a coop boss.
+    ///     If populated, the points the server credits this character with on a coop boss: its accumulated damage and
+    ///     healing, not a share. Loot on the boss is paid by these.
     ///     <br />
     ///     See <see cref="Id" /> for the ID of the boss.
     /// </summary>
     [JsonPropertyName("p")]
-    public float? Proportion { get; init; }
+    public float? Points { get; init; }
 
     /// <summary>
     ///     The remaining number of monsters you need to kill to complete the
