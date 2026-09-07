@@ -1566,16 +1566,34 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously accepts a magiport offer.
     /// </summary>
     /// <param name="from">
-    ///     The name of the character who offered the magiport.
+    ///     The name of the mage who offered the magiport.
     /// </param>
-    /// <returns>
-    ///     <see cref="NewMapData" />
-    ///     <br />
-    ///     Information about the map you got magiported to.
-    /// </returns>
     /// <exception cref="ArgumentNullException">
     ///     from
     /// </exception>
+    /// <exception cref="TimeoutException">
+    ///     The server did not answer within <see cref="ALClientSettings.NetworkTimeoutMS" />.
+    /// </exception>
+    /// <exception cref="Exception">
+    ///     The server refused the accept.
+    /// </exception>
+    /// <remarks>
+    ///     The server files the offer under the mage's name when the cast is read and refuses an accept it has no offer for
+    ///     as gone (node/server.js:11292), so this belongs after <see cref="OnMagiport" /> has delivered the offer - the cast
+    ///     and the accept travel on different sockets, and nothing else orders them. The refusal lands on
+    ///     <c>
+    ///         game_response
+    ///     </c>
+    ///     with
+    ///     <c>
+    ///         failed: true
+    ///     </c>
+    ///     under the
+    ///     <c>
+    ///         magiport
+    ///     </c>
+    ///     place, and is listened for so a refused accept says why rather than burning the timeout.
+    /// </remarks>
     public async Task AcceptMagiportAsync(string from)
     {
         if (string.IsNullOrEmpty(from))
@@ -1590,6 +1608,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 source.TrySetResult(Expectation.Success);
 
                 return TaskCache.FALSE;
+            });
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (data.Stale || !data.Failed || !"magiport".EqualsI(data.Place!))
+                    return TaskCache.FALSE;
+
+                return Task.FromResult(
+                    source.TrySetResult($"Failed to accept magiport from {from}. ({data.Reason ?? data.ResponseType.ToString()})"));
             });
 
         await Socket.EmitAsync(
