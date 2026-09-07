@@ -11,10 +11,12 @@ namespace AL.SocketClient.Model;
 public class Monster : EntityBase, IEquatable<Monster>
 {
     /// <summary>
-    ///     Whether kills on this monster count for every attacker, not just the tag holder.
+    ///     Whether kills on this monster count for every attacker, not just the tag holder. Null when the frame did not
+    ///     carry it, which is the usual case: the server sends a soft property only when the instance differs from its
+    ///     definition, so read this through the extension that falls back to G rather than directly.
     /// </summary>
     [JsonPropertyName("cooperative")]
-    public bool Cooperative { get; init; }
+    public bool? Cooperative { get; init; }
 
     /// <summary>
     ///     <b>

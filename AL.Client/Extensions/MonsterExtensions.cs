@@ -86,4 +86,15 @@ public static class MonsterExtensions
 
         return GameData.Monsters[monster.Name]!;
     }
+
+    /// <summary>
+    ///     Whether kills on this monster count for every attacker. The frame carries the flag only when the instance differs
+    ///     from its definition, so an absent one means whatever G says.
+    /// </summary>
+    public static bool IsCooperative(this Monster monster)
+    {
+        ArgumentNullException.ThrowIfNull(monster);
+
+        return monster.Cooperative ?? monster.GetData().Cooperative;
+    }
 }
