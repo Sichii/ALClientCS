@@ -103,6 +103,9 @@ public class ProjectilesDatum : DatumBase<GProjectile>
     [JsonPropertyName("quickstab")]
     public GProjectile Quickstab { get; init; } = null!;
 
+    [JsonPropertyName("reunionarrow")]
+    public GProjectile Reunionarrow { get; init; } = null!;
+
     [JsonPropertyName("sburst")]
     public GProjectile Sburst { get; init; } = null!;
 

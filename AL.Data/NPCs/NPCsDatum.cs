@@ -10,6 +10,9 @@ namespace AL.Data.NPCs;
 /// <seealso cref="DatumBase{T}" />
 public class NPCsDatum : DatumBase<GNPC>
 {
+    [JsonPropertyName("anniversary_baker")]
+    public GNPC AnniversaryBaker { get; init; } = null!;
+
     [JsonPropertyName("antip2w")]
     public GNPC Antip2W { get; init; } = null!;
 
@@ -72,6 +75,9 @@ public class NPCsDatum : DatumBase<GNPC>
 
     [JsonPropertyName("citizen21")]
     public GNPC Citizen21 { get; init; } = null!;
+
+    [JsonPropertyName("citizen22")]
+    public GNPC Citizen22 { get; init; } = null!;
 
     [JsonPropertyName("citizen3")]
     public GNPC Citizen3 { get; init; } = null!;

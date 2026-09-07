@@ -25,6 +25,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("angelwings")]
     public GItem Angelwings { get; init; } = null!;
 
+    [JsonPropertyName("anniversarygift")]
+    public GItem Anniversarygift { get; init; } = null!;
+
     [JsonPropertyName("apiercingscroll")]
     public GItem Apiercingscroll { get; init; } = null!;
 
@@ -145,6 +148,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("cake")]
     public GItem Cake { get; init; } = null!;
 
+    [JsonPropertyName("candleward")]
+    public GItem Candleward { get; init; } = null!;
+
     [JsonPropertyName("candy0")]
     public GItem Candy0 { get; init; } = null!;
 
@@ -174,6 +180,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("cape")]
     public GItem Cape { get; init; } = null!;
+
+    [JsonPropertyName("caravanbrigandine")]
+    public GItem Caravanbrigandine { get; init; } = null!;
 
     [JsonPropertyName("carrot")]
     public GItem Carrot { get; init; } = null!;
@@ -342,6 +351,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("dstones")]
     public GItem Dstones { get; init; } = null!;
+
+    [JsonPropertyName("duskweavehood")]
+    public GItem Duskweavehood { get; init; } = null!;
 
     [JsonPropertyName("ecape")]
     public GItem Ecape { get; init; } = null!;
@@ -652,6 +664,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("gstaff")]
     public GItem Gstaff { get; init; } = null!;
 
+    [JsonPropertyName("guestbook")]
+    public GItem Guestbook { get; init; } = null!;
+
     [JsonPropertyName("gum")]
     public GItem Gum { get; init; } = null!;
 
@@ -693,6 +708,15 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("hhelmet")]
     public GItem Hhelmet { get; init; } = null!;
+
+    [JsonPropertyName("homecomingcape")]
+    public GItem Homecomingcape { get; init; } = null!;
+
+    [JsonPropertyName("homecomingcoat")]
+    public GItem Homecomingcoat { get; init; } = null!;
+
+    [JsonPropertyName("homecominghelm")]
+    public GItem Homecominghelm { get; init; } = null!;
 
     [JsonPropertyName("horsecape")]
     public GItem Horsecape { get; init; } = null!;
@@ -745,11 +769,17 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("intscroll")]
     public GItem Intscroll { get; init; } = null!;
 
+    [JsonPropertyName("ironheelboots")]
+    public GItem Ironheelboots { get; init; } = null!;
+
     [JsonPropertyName("jacko")]
     public GItem Jacko { get; init; } = null!;
 
     [JsonPropertyName("jewellerybox")]
     public GItem Jewellerybox { get; init; } = null!;
+
+    [JsonPropertyName("keepsakependant")]
+    public GItem Keepsakependant { get; init; } = null!;
 
     [JsonPropertyName("kitty1")]
     public GItem Kitty1 { get; init; } = null!;
@@ -771,6 +801,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("ledger")]
     public GItem Ledger { get; init; } = null!;
+
+    [JsonPropertyName("ledgerlight")]
+    public GItem Ledgerlight { get; init; } = null!;
 
     [JsonPropertyName("licence")]
     public GItem Licence { get; init; } = null!;
@@ -811,6 +844,12 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("manastealscroll")]
     public GItem Manastealscroll { get; init; } = null!;
 
+    [JsonPropertyName("marketparcel")]
+    public GItem Marketparcel { get; init; } = null!;
+
+    [JsonPropertyName("marketwatch")]
+    public GItem Marketwatch { get; init; } = null!;
+
     [JsonPropertyName("mbelt")]
     public GItem Mbelt { get; init; } = null!;
 
@@ -840,6 +879,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("merry")]
     public GItem Merry { get; init; } = null!;
+
+    [JsonPropertyName("mirrorsteelgauntlet")]
+    public GItem Mirrorsteelgauntlet { get; init; } = null!;
 
     [JsonPropertyName("mistletoe")]
     public GItem Mistletoe { get; init; } = null!;
@@ -976,6 +1018,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("nheart")]
     public GItem Nheart { get; init; } = null!;
 
+    [JsonPropertyName("nighttill")]
+    public GItem Nighttill { get; init; } = null!;
+
     [JsonPropertyName("northstar")]
     public GItem Northstar { get; init; } = null!;
 
@@ -1050,6 +1095,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("pants1")]
     public GItem Pants1 { get; init; } = null!;
+
+    [JsonPropertyName("paradequiver")]
+    public GItem Paradequiver { get; init; } = null!;
 
     [JsonPropertyName("partyhat")]
     public GItem Partyhat { get; init; } = null!;
@@ -1180,6 +1228,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("resolutesallet")]
     public GItem Resolutesallet { get; init; } = null!;
 
+    [JsonPropertyName("reunionbow")]
+    public GItem Reunionbow { get; init; } = null!;
+
     [JsonPropertyName("rfangs")]
     public GItem Rfangs { get; init; } = null!;
 
@@ -1261,8 +1312,29 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("silkgrips")]
     public GItem Silkgrips { get; init; } = null!;
 
+    [JsonPropertyName("sixcake")]
+    public GItem Sixcake { get; init; } = null!;
+
     [JsonPropertyName("skullamulet")]
     public GItem Skullamulet { get; init; } = null!;
+
+    [JsonPropertyName("slice_blueberry")]
+    public GItem SliceBlueberry { get; init; } = null!;
+
+    [JsonPropertyName("slice_citrus")]
+    public GItem SliceCitrus { get; init; } = null!;
+
+    [JsonPropertyName("slice_honey")]
+    public GItem SliceHoney { get; init; } = null!;
+
+    [JsonPropertyName("slice_mint")]
+    public GItem SliceMint { get; init; } = null!;
+
+    [JsonPropertyName("slice_nightberry")]
+    public GItem SliceNightberry { get; init; } = null!;
+
+    [JsonPropertyName("slice_strawberry")]
+    public GItem SliceStrawberry { get; init; } = null!;
 
     [JsonPropertyName("slimestaff")]
     public GItem Slimestaff { get; init; } = null!;
@@ -1411,6 +1483,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("supermittens")]
     public GItem Supermittens { get; init; } = null!;
 
+    [JsonPropertyName("surety")]
+    public GItem Surety { get; init; } = null!;
+
     [JsonPropertyName("svenom")]
     public GItem Svenom { get; init; } = null!;
 
@@ -1482,6 +1557,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("tigerstone")]
     public GItem Tigerstone { get; init; } = null!;
+
+    [JsonPropertyName("tollkeeperspike")]
+    public GItem Tollkeeperspike { get; init; } = null!;
 
     [JsonPropertyName("tombkey")]
     public GItem Tombkey { get; init; } = null!;
@@ -1611,6 +1689,9 @@ public class ItemsDatum : DatumBase<GItem>
 
     [JsonPropertyName("wattire")]
     public GItem Wattire { get; init; } = null!;
+
+    [JsonPropertyName("waybill")]
+    public GItem Waybill { get; init; } = null!;
 
     [JsonPropertyName("wbasher")]
     public GItem Wbasher { get; init; } = null!;

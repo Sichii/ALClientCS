@@ -661,6 +661,9 @@ public enum Condition
     [EnumMember(Value = "aether_shield")]
     AetherShield,
     Anger,
+
+    [EnumMember(Value = "anniversary_visit")]
+    AnniversaryVisit,
     Authfail,
 
     [EnumMember(Value = "beacon_of_resolve")]

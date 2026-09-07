@@ -19,6 +19,9 @@ public class SetsDatum : DatumBase<GSet>
     [JsonPropertyName("holidays")]
     public GSet Holidays { get; init; } = null!;
 
+    [JsonPropertyName("homecoming")]
+    public GSet Homecoming { get; init; } = null!;
+
     [JsonPropertyName("legends")]
     public GSet Legends { get; init; } = null!;
 

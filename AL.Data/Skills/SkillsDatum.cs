@@ -133,6 +133,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("huntersmark")]
     public GSkill Huntersmark { get; init; } = null!;
 
+    [JsonPropertyName("ikissyou")]
+    public GSkill Ikissyou { get; init; } = null!;
+
     [JsonPropertyName("interact")]
     public GSkill Interact { get; init; } = null!;
 
@@ -150,6 +153,9 @@ public class SkillsDatum : DatumBase<GSkill>
 
     [JsonPropertyName("magiport")]
     public GSkill Magiport { get; init; } = null!;
+
+    [JsonPropertyName("makeawish")]
+    public GSkill Makeawish { get; init; } = null!;
 
     [JsonPropertyName("massexchange")]
     public GSkill Massexchange { get; init; } = null!;

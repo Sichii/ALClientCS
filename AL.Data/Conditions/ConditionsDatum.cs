@@ -13,6 +13,9 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("aether_shield")]
     public GCondition AetherShield { get; init; } = null!;
 
+    [JsonPropertyName("anniversary_visit")]
+    public GCondition AnniversaryVisit { get; init; } = null!;
+
     [JsonPropertyName("authfail")]
     public GCondition Authfail { get; init; } = null!;
 

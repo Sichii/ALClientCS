@@ -45,6 +45,9 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("cake")]
     public Recipe Cake { get; init; } = null!;
 
+    [JsonPropertyName("candleward")]
+    public Recipe Candleward { get; init; } = null!;
+
     [JsonPropertyName("candycanesword")]
     public Recipe Candycanesword { get; init; } = null!;
 
@@ -159,6 +162,9 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("gstaff")]
     public Recipe Gstaff { get; init; } = null!;
 
+    [JsonPropertyName("guestbook")]
+    public Recipe Guestbook { get; init; } = null!;
+
     [JsonPropertyName("harpybow")]
     public Recipe Harpybow { get; init; } = null!;
 
@@ -167,6 +173,18 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("heartwood")]
     public Recipe Heartwood { get; init; } = null!;
+
+    [JsonPropertyName("homecomingcape")]
+    public Recipe Homecomingcape { get; init; } = null!;
+
+    [JsonPropertyName("homecomingcoat")]
+    public Recipe Homecomingcoat { get; init; } = null!;
+
+    [JsonPropertyName("homecominghelm")]
+    public Recipe Homecominghelm { get; init; } = null!;
+
+    [JsonPropertyName("keepsakependant")]
+    public Recipe Keepsakependant { get; init; } = null!;
 
     [JsonPropertyName("knifebelt")]
     public Recipe Knifebelt { get; init; } = null!;
@@ -179,6 +197,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("maceofthedead")]
     public Recipe Maceofthedead { get; init; } = null!;
+
+    [JsonPropertyName("makeawishjar")]
+    public Recipe Makeawishjar { get; init; } = null!;
 
     [JsonPropertyName("merry")]
     public Recipe Merry { get; init; } = null!;
@@ -209,6 +230,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("ornamentstaff")]
     public Recipe Ornamentstaff { get; init; } = null!;
+
+    [JsonPropertyName("paradequiver")]
+    public Recipe Paradequiver { get; init; } = null!;
 
     [JsonPropertyName("pickaxe")]
     public Recipe Pickaxe { get; init; } = null!;
@@ -246,6 +270,9 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("resolutesallet")]
     public Recipe Resolutesallet { get; init; } = null!;
 
+    [JsonPropertyName("reunionbow")]
+    public Recipe Reunionbow { get; init; } = null!;
+
     [JsonPropertyName("rimeboots")]
     public Recipe Rimeboots { get; init; } = null!;
 
@@ -263,6 +290,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("silkgrips")]
     public Recipe Silkgrips { get; init; } = null!;
+
+    [JsonPropertyName("sixcake")]
+    public Recipe Sixcake { get; init; } = null!;
 
     [JsonPropertyName("slimestaff")]
     public Recipe Slimestaff { get; init; } = null!;
