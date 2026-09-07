@@ -225,8 +225,17 @@ public sealed class ALSocketClient : IALSocketClient
 
             Subscriptions.Clear();
 
-            await Socket.DisconnectAsync()
-                        .ConfigureAwait(false);
+            //graceful first, then the transport unconditionally: a close handshake that throws must still take the
+            //socket down, or the server goes on counting this character until its ping timeout - and refuses the
+            //account's next login with "limits"
+            try
+            {
+                await Socket.DisconnectAsync()
+                            .ConfigureAwait(false);
+            } catch (Exception e)
+            {
+                Logger.Warn($"Graceful disconnect failed; closing the socket. {e.Message}");
+            }
 
             try
             {

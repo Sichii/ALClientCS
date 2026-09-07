@@ -1288,14 +1288,44 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //timed out for the same reason the handshake below is: without one, a connect that never completes never
-        //throws either, so ReconnectAsync's retry loop never runs, FatalError is never set, and nothing anywhere
-        //learns the character is down. The socket is left open on a timeout - ReconnectAsync disposes it.
-        await Socket.ConnectAsync(Server)
-                    .WithTimeout(10000);
+        //a refused login is answered with disconnect_reason and a drop rather than game_error - "limits" when the
+        //account is over its character cap (node/server.js:10746) - so without this a refusal costs the whole
+        //handshake timeout and surfaces as one. The reason is emitted before the drop, so it is on the socket by now
+        void FailHandshake(object? _, string message)
+        {
+            var reason = Socket.LastDisconnectReason;
 
-        var result = await source.Task.WithTimeout(10000);
-        result.ThrowIfUnsuccessful();
+            if (reason is null)
+            {
+                source.TrySetResult($"Disconnected during login: {message}");
+
+                return;
+            }
+
+            //the same verdict ReconnectAsync reaches for the reason on an established socket, so a reconnect refused
+            //this way stops retrying too
+            if ("limits".EqualsI(reason))
+                FatalError = "limits";
+
+            source.TrySetResult($"Server refused the login (\"{reason}\").");
+        }
+
+        Socket.OnDisconnected += FailHandshake;
+
+        try
+        {
+            //timed out for the same reason the handshake below is: without one, a connect that never completes never
+            //throws either, so ReconnectAsync's retry loop never runs, FatalError is never set, and nothing anywhere
+            //learns the character is down. The socket is left open on a timeout - ReconnectAsync disposes it.
+            await Socket.ConnectAsync(Server)
+                        .WithTimeout(10000);
+
+            var result = await source.Task.WithTimeout(10000);
+            result.ThrowIfUnsuccessful();
+        } finally
+        {
+            Socket.OnDisconnected -= FailHandshake;
+        }
 
         Socket.OnDisconnected += OnDisconnected;
         EntityManager.Start();
@@ -1320,6 +1350,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     while the client is healthy.
     /// </summary>
     public string? FatalError { get; private set; }
+
+    /// <summary>
+    ///     Set by <see cref="DisconnectAsync" /> and never cleared: a client told to disconnect stays down.
+    /// </summary>
+    /// <remarks>
+    ///     Read by <see cref="ReconnectAsync" /> between attempts. Without it a disconnect that lands while a reconnect is
+    ///     waiting out its delay is undone by that reconnect's next attempt, and the character is back online with nothing
+    ///     holding a reference to it - still counted against the account's cap.
+    /// </remarks>
+    public bool Disposed { get; private set; }
 
     /// <summary>
     ///     Whether the handshake has completed and this character is actually in the world. False from the moment a drop is
@@ -1435,10 +1475,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         while (reconnectCount < 10)
             try
             {
+                //checked before every attempt, and again after one lands: a disconnect can arrive during either delay
+                //above or while the handshake is in flight, and a client that was disposed must not come back
+                if (Disposed)
+                {
+                    Logger.Info("Not reconnecting: the client was disconnected.");
+
+                    return;
+                }
+
                 Socket = NewSocket();
                 Logger.Info($"Attempting to reconnect. (Retry: {++reconnectCount})");
 
                 await InternalConnectAsync();
+
+                if (Disposed)
+                {
+                    Logger.Info("Disconnected during the reconnect; closing the new socket.");
+                    await Socket.DisposeAsync();
+
+                    return;
+                }
 
                 try
                 {
@@ -1491,6 +1548,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         await using var @lock = await Sync.WaitAsync();
 
         LoggedIn = false;
+        Disposed = true;
         Logger.Warn("Disconnecting");
 
         //stopped here rather than left to OnDisconnected: an intentional disconnect clears Connected before the
