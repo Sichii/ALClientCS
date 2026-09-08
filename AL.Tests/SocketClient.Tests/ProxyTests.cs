@@ -170,7 +170,7 @@ public class ProxyTests
 
         public IAsyncEnumerable<MerchantInfo> GetMerchantsAsync() => throw new NotSupportedException();
 
-        public Task<ServersAndCharactersResponse> GetServersAndCharactersAsync() => throw new NotSupportedException();
+        public Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false) => throw new NotSupportedException();
 
         public Task ReadMailAsync(Mail mail) => throw new NotSupportedException();
 

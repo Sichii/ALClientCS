@@ -43,7 +43,11 @@ public interface IAlApiClient
     ///     <br />
     ///     If they have been fetched recently, instead returns a cached instance.
     /// </returns>
-    Task<ServersAndCharactersResponse> GetServersAndCharactersAsync();
+    /// <param name="forceRefresh">
+    ///     Whether to read from the API even when a recent copy is cached. For a question the cache cannot answer, such as
+    ///     whether a logout a moment ago has landed.
+    /// </param>
+    Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false);
 
     /// <summary>
     ///     Asynchronously marks a mail as having been read.

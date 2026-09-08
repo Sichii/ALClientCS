@@ -14,6 +14,7 @@ public enum ServerId
     I,
     II,
     III,
+    IV,
     PvP,
     Test,
     Dungeon

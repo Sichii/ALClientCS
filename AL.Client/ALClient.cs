@@ -1058,6 +1058,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     How many logins <see cref="ChangeServerAsync" /> attempts on the far server before giving up, and how long it
+    ///     waits between them. Together they outlast the 24s sync_loop pass the old server's logout can be deferred to.
+    /// </summary>
+    private const int CHANGE_SERVER_ATTEMPTS = 10;
+    private const int CHANGE_SERVER_RETRY_MS = 3000;
+
+    /// <summary>
     ///     Moves this character to another server without rebuilding the client. The socket is replaced and
     ///     <see cref="OnReconnected" /> is raised, which is the road an automatic reconnect already takes - so a consumer that
     ///     re-registers its subscriptions on that event needs no second code path for this.
@@ -1091,9 +1098,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     </c>
     ///     too, which is a wider change than this one.
     ///     <br />
-    ///     A refused login on the far server throws, leaving the client holding a socket that never authenticated and
-    ///     <see cref="LoggedIn" /> false. Deliberately not handled here - the socket we came from is already gone, so there is
-    ///     nothing to fall back to at this level. The caller decides.
+    ///     A refused login on the far server is retried for <see cref="CHANGE_SERVER_ATTEMPTS" /> attempts, since the old
+    ///     server's logout lands after the drop and the far one answers "ingame" until it has. One that outlasts the retries
+    ///     throws, leaving the client holding a socket that never authenticated and <see cref="LoggedIn" /> false.
+    ///     Deliberately not handled past that - the socket we came from is already gone, so there is nothing to fall back to
+    ///     at this level. The caller decides.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     Server {region} {identifier} not found.
@@ -1131,11 +1140,39 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         Server = serverInfo;
 
-        //a fresh one rather than the old one reconnected: ALSocketClient disposes its inner socket on disconnect and
-        //refuses to open again, which is why the reconnect path builds one too
-        Socket = NewSocket();
+        //the old server clears this character's seat in a transaction it runs after the socket drops
+        //(node/server.js:12266 → stop_call :15796), and until that lands every other server answers the login with
+        //"ingame" (:10911). Ordinarily sub-second, but a sync in flight at the drop defers it to the next sync_loop
+        //pass, 24s later (:15861, :15907). Retried rather than surfaced: past the disconnect above there is no
+        //socket to fall back to, so a refusal that clears itself otherwise strands the character
+        for (var attempt = 1;; attempt++)
+        {
+            //a fresh one rather than the old one reconnected: ALSocketClient disposes its inner socket on disconnect
+            //and refuses to open again, which is why the reconnect path builds one too
+            Socket = NewSocket();
 
-        await InternalConnectAsync();
+            try
+            {
+                await InternalConnectAsync();
+
+                break;
+            } catch (Exception e) when (FatalError is null && (attempt < CHANGE_SERVER_ATTEMPTS))
+            {
+                //the attempt owns the socket it failed on, for ReconnectAsync's reason: left undisposed it is an
+                //unauthenticated session the server keeps counting against this character
+                try
+                {
+                    await Socket.DisposeAsync();
+                } catch
+                {
+                    //ignored
+                }
+
+                Logger.Warn($"Login on {serverInfo.Key} refused ({e.Message}); retrying in {CHANGE_SERVER_RETRY_MS}ms. (Attempt {attempt})");
+
+                await Task.Delay(CHANGE_SERVER_RETRY_MS);
+            }
+        }
 
         try
         {

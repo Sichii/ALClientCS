@@ -114,13 +114,13 @@ public sealed class AlApiClient : IAlApiClient
             yield return merchant;
     }
 
-    public async Task<ServersAndCharactersResponse> GetServersAndCharactersAsync()
+    public async Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false)
     {
         await Sync.WaitAsync();
 
         try
         {
-            if (!ShouldUpdate && (ServersAndCharacters != null))
+            if (!forceRefresh && !ShouldUpdate && (ServersAndCharacters != null))
                 return ServersAndCharacters;
 
             Logger.Info("Fetching servers and characters");
