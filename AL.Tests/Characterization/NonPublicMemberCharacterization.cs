@@ -194,7 +194,7 @@ public sealed class NonPublicMemberCharacterization
         // GGeometry/GDoor/GSkill/BossInfo, which are static or boss data rather than an entity frame. The count
         // below moves whenever a frame-reachable setter is added or one moves off an entity type
         frameReachable.Should()
-                      .HaveCount(99);
+                      .HaveCount(100);
 
         // the setters the start, player and entities frames drive away from their defaults. Five of Phase 11's eight
         // Character stats are non-default in the captured start frame; incdmgamp, mcourage and pcourage stay
@@ -244,6 +244,7 @@ public sealed class NonPublicMemberCharacterization
                      "Player.Controller",
                      "Player.RIP",
                      "Player.Stand",
+                     "Player.Team",
                      "Player.Teleporting");
     }
 
