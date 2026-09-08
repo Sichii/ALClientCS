@@ -1,4 +1,4 @@
-field	instance	AL.Data	AL.Data.Conditions.GCondition	_canMove	can_move
+﻿field	instance	AL.Data	AL.Data.Conditions.GCondition	_canMove	can_move
 field	instance	AL.Data	AL.Data.Maps.GMapNPC	_name	name
 field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_amount	amount
 field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_damage	damage
@@ -126,4 +126,5 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	RIP
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Skin	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Slots	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Stand	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Team	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Teleporting	tp

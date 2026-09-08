@@ -95,6 +95,13 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     public string? PartyLeader { get; protected set; }
 
     /// <summary>
+    ///     If populated, this player's assigned side ("A" or "B") in a team-based PVP event such as the A/B Testing
+    ///     arena or a duel. Null outside such an event — the server deletes the field the moment the player leaves.
+    /// </summary>
+    [JsonInclude]
+    public string? Team { get; protected set; }
+
+    /// <summary>
     ///     <b>
     ///         NULLABLE.
     ///     </b>
@@ -204,6 +211,7 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
             RIP = other.RIP;
             Slots = other.Slots;
             Stand = other.Stand;
+            Team = other.Team;
         }
 
         base.Update(other);

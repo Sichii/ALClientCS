@@ -134,9 +134,9 @@ public sealed class NonPublicMemberCharacterization
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
         // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
         // ALClient.IsRecalling, 156 until Character.Courage, 157 until GSet.Accessor and GSet.Tiers, 159 until
-        // ALClient.ExclusiveCosmetics and GClass.ExclusiveCosmetics, now 161.
+        // ALClient.ExclusiveCosmetics and GClass.ExclusiveCosmetics, now 161, 162 until Player.Team.
         allInstanceNonPublicSetters.Should()
-                                   .Be(161);
+                                   .Be(162);
     }
 
     [Test]
@@ -194,7 +194,7 @@ public sealed class NonPublicMemberCharacterization
         // GGeometry/GDoor/GSkill/BossInfo, which are static or boss data rather than an entity frame. The count
         // below moves whenever a frame-reachable setter is added or one moves off an entity type
         frameReachable.Should()
-                      .HaveCount(99);
+                      .HaveCount(100);
 
         // the setters the start, player and entities frames drive away from their defaults. Five of Phase 11's eight
         // Character stats are non-default in the captured start frame; incdmgamp, mcourage and pcourage stay
@@ -244,6 +244,7 @@ public sealed class NonPublicMemberCharacterization
                      "Player.Controller",
                      "Player.RIP",
                      "Player.Stand",
+                     "Player.Team",
                      "Player.Teleporting");
     }
 
