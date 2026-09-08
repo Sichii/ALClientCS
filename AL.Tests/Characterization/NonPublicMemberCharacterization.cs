@@ -134,9 +134,9 @@ public sealed class NonPublicMemberCharacterization
         // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
         // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
         // ALClient.IsRecalling, 156 until Character.Courage, 157 until GSet.Accessor and GSet.Tiers, 159 until
-        // ALClient.ExclusiveCosmetics and GClass.ExclusiveCosmetics, now 161.
+        // ALClient.ExclusiveCosmetics and GClass.ExclusiveCosmetics, now 161, 162 until Player.Team.
         allInstanceNonPublicSetters.Should()
-                                   .Be(161);
+                                   .Be(162);
     }
 
     [Test]
