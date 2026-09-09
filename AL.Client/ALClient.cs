@@ -4931,8 +4931,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //`in` is what tells one copy of a dungeon from another. It is declared non-nullable on NewMapData but
         //initialized `null!`, so it is optional in practice - hence the test rather than a `??`, which would read as
-        //a null check the compiler can see is redundant
-        return string.IsNullOrWhiteSpace(newMap.In) ? newMap.Map : newMap.In;
+        //a null check the compiler can see is redundant. Joining a named instance already says which one that is,
+        //so a missing `in` there falls back to the name asked for rather than to the bare map name - the map name
+        //is only the right answer for the create form, where there is nothing else to fall back to
+        var resolvedInstance = !string.IsNullOrWhiteSpace(newMap.In)
+            ? newMap.In
+            : !string.IsNullOrWhiteSpace(instance)
+                ? instance
+                : newMap.Map;
+
+        //the NewMap subscription that feeds Character (OnNewMapAsync, registered at setup) sees this same frame and
+        //already applied whatever `in` it carried - empty, on the join form above. Left uncorrected, every reader of
+        //Character.In from here on (not least the dungeon run's own "am I in this copy" check) would see the wrong
+        //copy or none at all, even though the join itself succeeded. Character.In can genuinely be null here, which
+        //EqualsI treats as a receiver rather than an argument would - hence the plain comparison
+        if (!string.Equals(Character.In, resolvedInstance, StringComparison.OrdinalIgnoreCase))
+            Character.UpdateMap(resolvedInstance, Character.Map);
+
+        return resolvedInstance;
     }
 
     /// <summary>
@@ -6014,7 +6030,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             data.Map,
             data.UpdateType);
 
-        Character.UpdateMap(data.In, data.Map);
+        //`in` is optional in practice on some frames - see EnterDungeonAsync's own remark on NewMapData.In, which
+        //this same value is one copy of. UpdateMap throws on an empty one, and this frame is not the only writer of
+        //Character.In: skipping the call here leaves whatever an earlier writer already set (empty included) rather
+        //than crashing this handler and, with it, every later subscriber this same raw frame would otherwise reach
+        if (!string.IsNullOrEmpty(data.In))
+            Character.UpdateMap(data.In, data.Map);
 
         return TaskCache.FALSE;
     }
