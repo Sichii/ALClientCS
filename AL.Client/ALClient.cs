@@ -134,6 +134,49 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyList<string> Friends { get; private set; }
 
     /// <summary>
+    ///     Whether the server has this character's
+    ///     <c>
+    ///         player.computer
+    ///     </c>
+    ///     set, which waives the distance check on eleven NPC handlers.
+    /// </summary>
+    /// <remarks>
+    ///     Read off the bags because the flag is never on the wire:
+    ///     <c>
+    ///         player_to_client
+    ///     </c>
+    ///     (node/server.js:755) whitelists neither
+    ///     <c>
+    ///         computer
+    ///     </c>
+    ///     nor
+    ///     <c>
+    ///         tracker
+    ///     </c>
+    ///     on either the stranger or the own-character list. Not a proxy for the flag - the server derives it from exactly
+    ///     this scan of
+    ///     <c>
+    ///         player.items
+    ///     </c>
+    ///     in
+    ///     <c>
+    ///         calculate_player_stats
+    ///     </c>
+    ///     (node/server.js:1328), which reruns on every resend. The bank is not scanned, so a banked one counts for nothing.
+    ///     <br />
+    ///     Both names, because a supercomputer sets
+    ///     <c>
+    ///         player.computer
+    ///     </c>
+    ///     as well as
+    ///     <c>
+    ///         player.tracker
+    ///     </c>
+    ///     . A spelling that listed one name would send a supercomputer-carrying merchant on trips it does not owe.
+    /// </remarks>
+    public bool HasComputer => Character.Inventory.ContainsItem("computer") || Character.Inventory.ContainsItem("supercomputer");
+
+    /// <summary>
     ///     The <see cref="Character" />'s unique identifier, as fetched via the <see cref="API" />.
     /// </summary>
     public string? Identifier { get; private set; }
@@ -422,6 +465,38 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     #region Checks
     /// <summary>
+    ///     Whether the open bank frame refuses the emit outright, whatever the distance says.
+    /// </summary>
+    /// <param name="distanceCheck">
+    ///     The caller's own distance flag. False means the caller is asking what a stall would answer, so this answers false
+    ///     too.
+    /// </param>
+    /// <remarks>
+    ///     Every handler <see cref="CanBuy" />, <see cref="CanCraft" />, <see cref="CanExchange" /> and <see cref="CanSell" />
+    ///     stand in for tests
+    ///     <c>
+    ///         player.user
+    ///     </c>
+    ///     and answers
+    ///     <c>
+    ///         cant_in_bank
+    ///     </c>
+    ///     before it reaches the distance arm - buy at node/server.js:8014, sell at :7673, craft at :6227, exchange at :6312 -
+    ///     and <see cref="HasComputer" /> waives none of it. The flag is set on entering the vault and cleared on leaving
+    ///     (:15645, :15702), so it covers a whole visit rather than an instant.
+    ///     <br />
+    ///     Worth asking in its own right because the two used to share one answer: a character out of position walked, and the
+    ///     walk left the vault on its way. One that no longer has to walk no longer leaves.
+    ///     <br />
+    ///     <c>
+    ///         Character.Bank
+    ///     </c>
+    ///     and never <see cref="Bank" />: the second is populated on the first visit and never cleared, so it would refuse
+    ///     everything the character did for the rest of the session.
+    /// </remarks>
+    private bool BankFrameRefuses(bool distanceCheck) => distanceCheck && (Character.Bank is not null);
+
+    /// <summary>
     ///     Determines if you should be able to buy an item.
     /// </summary>
     /// <param name="itemName">
@@ -470,18 +545,26 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (price > Character.Gold)
             return false;
 
-        if (!distanceCheck || Character.Inventory.ContainsItem("computer"))
-            return true;
+        if (BankFrameRefuses(distanceCheck))
+            return false;
 
+        //no computer arm here, and that is the whole of why Ponty is checked before it: sbuy tests one hardcoded 500
+        //against the pool's own NPC and carries no player.computer branch (node/server.js:7965), unlike every handler
+        //below. A merchant that took the waiver here would walk nowhere and be refused at the counter
         if (fromPonty)
-            return GameData.NPCs["secondhands"]!.Locations.Any(location
-                => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
+            return !distanceCheck
+                   || GameData.NPCs["secondhands"]!.Locations.Any(location
+                       => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
 
-        // ReSharper disable once ConvertIfStatementToReturnStatement
+        //ahead of the distance arms rather than behind them, because the server asks it in that order too: buy fails
+        //buy_cant_npc on a name outside can_buy (node/server.js:8022) whatever the distance says, and can_buy holds
+        //every name any NPC lists - which is what the seller-first pass in GameData.EnrichItems writes as Buy
         if (data.ObtainType != ObtainType.Buy)
             return false;
 
-        return data.ObtainableFromNPC!.Locations.Any(location => Character.DistanceWithMapCheck(location) < CORE_CONSTANTS.NPC_RANGE);
+        return !distanceCheck
+               || HasComputer
+               || data.ObtainableFromNPC!.Locations.Any(location => Character.DistanceWithMapCheck(location) < CORE_CONSTANTS.NPC_RANGE);
     }
 
     /// <summary>
@@ -538,9 +621,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (!includeBank || (Bank?.FindItem(name, level, quantityMin: (int)quantity) == null))
                     return false;
 
-        return !distanceCheck
-               || Character.Inventory.ContainsItem("computer")
-               || data.ObtainableFromNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
+        return !BankFrameRefuses(distanceCheck)
+               && (!distanceCheck
+                   || HasComputer
+                   || data.ObtainableFromNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE));
     }
 
     /// <summary>
@@ -583,9 +667,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Character.Inventory.FindItem(itemName, quantityMin: data.ExchangeCount.Value) == null)
             return false;
 
-        return !distanceCheck
-               || Character.Inventory.ContainsItem("computer")
-               || data.ExchangeAtNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
+        return !BankFrameRefuses(distanceCheck)
+               && (!distanceCheck
+                   || HasComputer
+                   || data.ExchangeAtNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE));
     }
 
     /// <summary>
@@ -618,7 +703,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!Character.Inventory.ContainsItem(itemName))
             return false;
 
-        if (!distanceCheck || Character.Inventory.ContainsItem("computer"))
+        if (BankFrameRefuses(distanceCheck))
+            return false;
+
+        if (!distanceCheck || HasComputer)
             return true;
 
         var map = GameData.Maps[Character.Map];
