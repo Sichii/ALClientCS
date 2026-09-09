@@ -158,6 +158,10 @@ public class Rogue : ALClient
     ///     This returns once the server accepts the cast, which starts the attempt rather than finishing it. The steal
     ///     resolves later and mostly fails; the long cooldown is taken only when it succeeds.
     ///     <br />
+    ///     No token can correlate this cast, for the reasons on <see cref="Merchant.FishingAsync" /> - the acknowledgement
+    ///     is built without one (node/server.js:9540). The steal itself resolves 200 to 2000 ms after the emit, so its
+    ///     frames land past <see cref="ALClientSettings.NetworkTimeoutMS" /> on the slower rolls.
+    ///     <br />
     ///     Pickpocket is
     ///     <c>
     ///         persistent

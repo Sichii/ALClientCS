@@ -1,5 +1,6 @@
 #region
 using System.Text.Json.Serialization;
+using AL.APIClient.Model;
 using AL.Core.Definitions;
 using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;
@@ -99,6 +100,16 @@ public sealed record GameResponseData : IOptionalObject
     public float Duration { get; init; }
 
     /// <summary>
+    ///     On a correlated tavern info reply, the percentage of a win's profit the house keeps; see
+    ///     <see cref="TavernData.Edge" />, which is the same number off the uncorrelated tavern event. On a correlated
+    ///     dice settlement it is instead the gold the house took out of that one bet, already subtracted from the
+    ///     payout - a different unit under the same name, so read it as a percentage only on the tavern info reply.
+    ///     Zero on every other frame.
+    /// </summary>
+    [JsonPropertyName("edge")]
+    public float Edge { get; init; }
+
+    /// <summary>
     ///     Whether the operation failed. Set by every
     ///     <c>
     ///         fail_response
@@ -163,10 +174,24 @@ public sealed record GameResponseData : IOptionalObject
     public ResponseItem? Item { get; init; } = null!;
 
     /// <summary>
+    ///     The listing a correlated secondhands or lostandfound request asked for. Null on every other frame. The server
+    ///     reverses it on the way out, so this is newest-first where the bare secondhands event is oldest-first.
+    /// </summary>
+    [JsonPropertyName("items")]
+    public TradeItem[]? Items { get; init; }
+
+    /// <summary>
     ///     The level of the item that was upgraded, compounded, or dismantled.
     /// </summary>
     [JsonPropertyName("level")]
     public int Level { get; init; }
+
+    /// <summary>
+    ///     On a correlated tavern info reply, the largest net win the bank will cover on one dice bet. Zero on every other
+    ///     frame; see <see cref="TavernData.Max" />, which is the same number off the uncorrelated tavern event.
+    /// </summary>
+    [JsonPropertyName("max")]
+    public long MaxPayout { get; init; }
 
     /// <summary>
     ///     The name of the monster that defeated the player.
@@ -211,6 +236,16 @@ public sealed record GameResponseData : IOptionalObject
     ///     The reason you are unable to enter the bank.
     /// </summary>
     public string? Reason { get; init; }
+
+    /// <summary>
+    ///     The correlation token this frame's emit supplied, echoed back verbatim. Null on every frame the server
+    ///     produced on its own, and on every handler that does not support correlation.
+    ///     <br />
+    ///     An awaiting method that supplied one may match on it alone; the shape-matching predicates elsewhere in this
+    ///     record exist for the emits that cannot.
+    /// </summary>
+    [JsonPropertyName("request_id")]
+    public string? RequestId { get; init; }
 
     /// <summary>
     ///     The type of the response.

@@ -86,6 +86,14 @@ public class Merchant : ALClient
     ///     This returns once the server accepts the cast, which starts the channel rather than landing a fish. Fishing runs
     ///     for its duration and catches something one time in ten; the cooldown is taken then, not now.
     ///     <br />
+    ///     That acknowledgement is the only frame this await can settle on, and the skill handler builds it without a
+    ///     <c>
+    ///         request_id
+    ///     </c>
+    ///     even when the cast carried one (node/server.js:9578), so no token can correlate it. The completion does echo the
+    ///     token, but it arrives 5 to 15 seconds after the emit, far past
+    ///     <see cref="ALClientSettings.NetworkTimeoutMS" /> - the channel has to be watched rather than awaited.
+    ///     <br />
     ///     Fishing is
     ///     <c>
     ///         persistent
@@ -220,6 +228,9 @@ public class Merchant : ALClient
     /// <remarks>
     ///     This returns once the server accepts the cast, which starts the channel rather than landing a strike. Mining runs
     ///     for its duration and yields something one time in five; the cooldown is taken then, not now.
+    ///     <br />
+    ///     No token can correlate this cast either, for the reasons on <see cref="FishingAsync" />; the two share a handler
+    ///     branch and a 5 to 15 second duration.
     ///     <br />
     ///     Mining is
     ///     <c>

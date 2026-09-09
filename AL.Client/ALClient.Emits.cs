@@ -84,16 +84,24 @@ public abstract partial class ALClient
     ///         Ask again per bet rather than caching it.
     ///     </b>
     ///     <br />
-    ///     The reply arrives on the same
+    ///     The request carries a
+    ///     <c>
+    ///         request_id
+    ///     </c>
+    ///     , which moves the reply onto
+    ///     <c>
+    ///         game_response
+    ///     </c>
+    ///     and takes it off the
     ///     <c>
     ///         tavern
     ///     </c>
-    ///     event that carries the round's bet, win and loss broadcasts, so this resolves on <see cref="TavernData.Event" />
-    ///     being
+    ///     event, which is then left carrying the round's bet, win and loss broadcasts and the roulette bet-record echo. The
+    ///     <see cref="TavernData" /> handed back is built from that reply, so it fills <see cref="TavernData.Event" /> with
     ///     <c>
     ///         info
     ///     </c>
-    ///     and leaves the rest for whoever else is listening.
+    ///     , plus <see cref="TavernData.Edge" /> and <see cref="TavernData.Max" />, and nothing else.
     ///     <br />
     ///     The handler has no map, state or gold check, so it answers wherever the character is standing. It throws
     ///     <see cref="TimeoutException" /> only when no reply comes at all, which on a live server means a tavern instance
@@ -109,18 +117,31 @@ public abstract partial class ALClient
     /// </remarks>
     public async Task<TavernData> RequestTavernInfoAsync()
     {
+        var requestId = RequestId.New();
         var source = new TaskCompletionSource<Expectation<TavernData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //false on anything else: returning true consumes the frame, starving a subscriber waiting on bet/won/lost
-        using var tavernCallback = Socket.On<TavernData>(
-            ALSocketMessageType.Tavern,
-            data => Task.FromResult(data.Event is not null && "info".EqualsI(data.Event) && source.TrySetResult(data)));
+        //gated on the success code as well as the token: a refusal the handler grows later would otherwise resolve an
+        //all-zero reading, and a caller holding one treats it as authoritative rather than falling back
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data => Task.FromResult(
+                (data.ResponseType == GameResponseType.Data)
+                && (data.RequestId != null)
+                && requestId.EqualsI(data.RequestId)
+                && source.TrySetResult(
+                    new TavernData
+                    {
+                        Event = "info",
+                        Edge = data.Edge,
+                        Max = data.MaxPayout
+                    })));
 
         await Socket.EmitAsync(
             ALSocketEmitType.Tavern,
             new
             {
-                @event = "info"
+                @event = "info",
+                request_id = requestId
             });
 
         return (await source.Task.WithNetworkTimeout()).Result;

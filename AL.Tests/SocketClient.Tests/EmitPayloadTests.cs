@@ -131,6 +131,25 @@ public class EmitPayloadTests
                 .Be(Slot.None);
     }
 
+    /// <summary>
+    ///     The correlation token rides as a plain "request_id" field beside the emit's own fields. The server reads it
+    ///     off data.request_id and echoes it; a misspelling produces a reply that correlates to nothing and an await
+    ///     that can only time out.
+    /// </summary>
+    [Test]
+    public void RequestIdRidesAsAPlainFieldBesideThePayload()
+    {
+        var payload = new
+        {
+            rid = "r1",
+            request_id = "a1b2c3"
+        };
+
+        TestJson.Emit(payload)
+                .Should()
+                .Be(@"{""rid"":""r1"",""request_id"":""a1b2c3""}");
+    }
+
     [Test]
     public void TradeSlotsSerializeLowercase()
     {

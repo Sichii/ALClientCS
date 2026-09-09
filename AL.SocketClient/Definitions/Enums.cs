@@ -373,7 +373,8 @@ public enum GameResponseType
     LostAndFoundInfo,
 
     //the lost-and-found listing's refusal for an account that has not donated on this connection
-    //(node/server.js:6891). Built by hand rather than by fail_response, so it carries neither place nor failed
+    //(node/server.js:6891). The uncorrelated branch is built by hand and carries neither place nor failed; the
+    //correlated one goes through fail_response and carries both, plus reason "donation_required"
     [EnumMember(Value = "lostandfound_donate")]
     LostAndFoundDonate,
 

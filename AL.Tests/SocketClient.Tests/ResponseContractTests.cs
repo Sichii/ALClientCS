@@ -1,4 +1,5 @@
 #region
+using AL.Client.Helpers;
 using AL.Core.Definitions;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.SocketModel;
@@ -71,6 +72,97 @@ public class ResponseContractTests
         named.CEvent
              .Should()
              .Be("sell");
+    }
+
+    /// <summary>
+    ///     With a token every sbuy refusal arrives on game_response carrying the pool it was asked of as its place - which
+    ///     is what tells a buy's refusal from the listing read's, since both answer distance from the same counter.
+    ///     no_space and item_gone are the two that used to arrive as a disappearing_text and a game_log instead.
+    /// </summary>
+    [Test]
+    [Arguments(@"{ ""response"":""lostandfound_donate"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
+                  ""reason"":""donation_required"", ""request_id"":""a1b2c3"" }", GameResponseType.LostAndFoundDonate, "lostandfound")]
+    [Arguments(@"{ ""response"":""no_space"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
+                  ""request_id"":""a1b2c3"" }", GameResponseType.NoSpace, "lostandfound")]
+    [Arguments(@"{ ""response"":""item_gone"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
+                  ""request_id"":""a1b2c3"" }", GameResponseType.ItemGone, "lostandfound")]
+    [Arguments(@"{ ""response"":""cant_when_sick"", ""goblin"":true, ""place"":""lostandfound"", ""failed"":true,
+                  ""rid"":""r1"", ""request_id"":""a1b2c3"" }", GameResponseType.CantWhenSick, "lostandfound")]
+
+    //Ponty's counter answers distance through the same handler, and the buy's arm no longer asks which pool it was -
+    //place is the only thing left telling this frame from the listing read's identical refusal
+    [Arguments(@"{ ""response"":""distance"", ""place"":""secondhands"", ""failed"":true, ""rid"":""r1"",
+                  ""request_id"":""a1b2c3"" }", GameResponseType.Distance, "secondhands")]
+    public void CorrelatedSecondHandBuyRefusalsCarryThePoolAsTheirPlace(string response, GameResponseType expected, string expectedPlace)
+    {
+        var data = TestJson.Socket<GameResponseData>(response);
+
+        data.Should()
+            .NotBeNull();
+
+        data.Failed
+            .Should()
+            .BeTrue();
+
+        data.ResponseType
+            .Should()
+            .Be(expected);
+
+        //the gate the buy uses is place plus token, so a refusal that lost either would be declined and time out
+        data.Place
+            .Should()
+            .Be(expectedPlace);
+
+        data.RequestId
+            .Should()
+            .Be("a1b2c3");
+    }
+
+    /// <summary>
+    ///     The reason field is what separates the buy's donation refusal from the listing read's, which carries the same
+    ///     code and no reason at all.
+    /// </summary>
+    [Test]
+    public void CorrelatedSecondHandBuyNamesDonationRequiredAsItsReason()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""lostandfound_donate"", ""place"":""lostandfound"", ""failed"":true,
+                ""reason"":""donation_required"", ""request_id"":""a1b2c3"" }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.Reason
+            .Should()
+            .Be("donation_required");
+    }
+
+    /// <summary>
+    ///     With a token, the Ponty listing arrives inside the game_response rather than on the secondhands event, and
+    ///     the server reverses it on the way out (csold.slice().reverse()) - newest first, the opposite of the event.
+    /// </summary>
+    [Test]
+    public void CorrelatedSecondHandsFrameCarriesTheListing()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""data"", ""place"":""secondhands"", ""success"":true, ""request_id"":""a1b2c3"",
+                ""items"":[{""name"":""firebow"",""level"":2},{""name"":""hpbelt""}] }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.RequestId
+            .Should()
+            .Be("a1b2c3");
+
+        data.Items
+            .Should()
+            .HaveCount(2);
+
+        data.Items![0]
+            .Name
+            .Should()
+            .Be("firebow");
     }
 
     /// <summary>
@@ -239,6 +331,20 @@ public class ResponseContractTests
     }
 
     /// <summary>
+    ///     Two calls that were in flight at once must not share a token, or each would answer the other's frames. The
+    ///     server neither parses nor bounds the value, so distinctness is the whole of the contract.
+    /// </summary>
+    [Test]
+    public void MintedRequestIdsAreDistinct()
+    {
+        var first = RequestId.New();
+        var second = RequestId.New();
+
+        first.Should()
+             .NotBe(second);
+    }
+
+    /// <summary>
     ///     Turning in a finished monster hunt answers with this instead of monsterhunt_started, and it is the only
     ///     game_response on that path - so nothing else can complete the await.
     /// </summary>
@@ -325,6 +431,51 @@ public class ResponseContractTests
             .Length
             .Should()
             .Be(2);
+    }
+
+    /// <summary>
+    ///     The correlation token an emit supplied, echoed back verbatim. fail_response and success_response copy the
+    ///     whole data object into the frame (node/server_functions.js fail_response), so it arrives as a plain field.
+    /// </summary>
+    [Test]
+    public void RequestIdBindsFromTheEchoedField()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""data"", ""place"":""secondhands"", ""success"":true, ""request_id"":""a1b2c3"" }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.RequestId
+            .Should()
+            .Be("a1b2c3");
+    }
+
+    /// <summary>
+    ///     Nothing supplies a token but an emit that sent one, so every frame the server raises by itself arrives
+    ///     without one - including the bare strings, which have no room for a field at all. That is what the gates key
+    ///     on: a null token means the frame cannot be attributed, not that it belongs to the call that is waiting.
+    /// </summary>
+    [Test]
+    public void RequestIdIsNullOnAFrameTheServerProducedOnItsOwn()
+    {
+        var data = TestJson.Socket<GameResponseData>(@"{ ""response"":""data"", ""place"":""secondhands"" }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.RequestId
+            .Should()
+            .BeNull();
+
+        var bareString = TestJson.Socket<GameResponseData>(@"""distance""");
+
+        bareString.Should()
+                  .NotBeNull();
+
+        bareString.RequestId
+                  .Should()
+                  .BeNull();
     }
 
     /// <summary>

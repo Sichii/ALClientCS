@@ -2282,6 +2282,39 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     </c>
     ///     .
     /// </summary>
+    /// <remarks>
+    ///     The emit carries a
+    ///     <c>
+    ///         request_id
+    ///     </c>
+    ///     , which moves every refusal onto
+    ///     <c>
+    ///         game_response
+    ///     </c>
+    ///     at the pool's own place. Two of them used to arrive elsewhere and no longer do:
+    ///     <c>
+    ///         no_space
+    ///     </c>
+    ///     was a
+    ///     <c>
+    ///         disappearing_text
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         item_gone
+    ///     </c>
+    ///     a
+    ///     <c>
+    ///         game_log
+    ///     </c>
+    ///     , so the callbacks that read those two frames were removed rather than kept beside these arms.
+    ///     <br />
+    ///     It also turns on a refusal that does not otherwise run: the lost-and-found arm answers
+    ///     <c>
+    ///         lostandfound_donate
+    ///     </c>
+    ///     to a connection that has not donated, where the uncorrelated arm would have sold.
+    /// </remarks>
     private async Task<InventoryIndexer> BuySecondHandAsync(TradeItem item, bool lostAndFound)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -2290,6 +2323,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //which one was asked cannot be read afterwards
         var seller = lostAndFound ? "the lost and found" : "Ponty";
 
+        //the place every correlated answer carries: the handler's own event name for the pool that was asked
+        var place = lostAndFound ? "lostandfound" : "secondhands";
+
+        var requestId = RequestId.New();
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var existingCount = Character.Inventory.CountOf(item.Name);
@@ -2299,48 +2336,45 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
+                //place as well as the token, because both are needed to be sure: a frame carrying someone else's token
+                //belongs to that call, and one with no token at all is a handler that does not echo - which the listing
+                //reads for these same two pools do not, so an ungated arm would end this buy on a read's refusal. The
+                //literal is the receiver: Place can be null and EqualsI throws on a null receiver
+                if (!place.EqualsI(data.Place!) || ((data.RequestId != null) && !requestId.EqualsI(data.RequestId)))
+                    return TaskCache.FALSE;
+
                 var result = data.ResponseType switch
                 {
+                    //correlated-only, and the one refusal worth a million gold rather than a walk: the lost-and-found
+                    //arm will not sell to a connection that has not donated
+                    GameResponseType.LostAndFoundDonate => source.TrySetResult(
+                        $"Failed to buy {item.Name} from {seller}. ({LOSTANDFOUND_DONATION_REQUIRED}; one of 1,000,000 gold or more unlocks it)"),
                     GameResponseType.BuyCost => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (not enough gold)"),
 
-                    //both arms are lost-and-found only, and deliberately. Hopsickness is refused for that pool alone,
-                    //and the distance frame is a bare string carrying no place - so listening for it on a Ponty buy
-                    //would let an unrelated distance refusal fail one for a caller standing at the stall
-                    GameResponseType.CantWhenSick when lostAndFound => source.TrySetResult(
+                    //no_space and item_gone used to arrive as a disappearing_text and a game_log; the token moves both
+                    //onto game_response and stops the loose frames, so this is where they are read now
+                    GameResponseType.NoSpace => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (no space)"),
+                    GameResponseType.ItemGone => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (item gone)"),
+
+                    //hopsickness is refused for the lost-and-found pool alone; Ponty is served the same handler and is
+                    //deliberately left selling through it
+                    GameResponseType.CantWhenSick => source.TrySetResult(
                         $"Failed to buy {item.Name} from {seller}. (hopsickness; the lost and found will not sell while it is up)"),
-                    GameResponseType.Distance when lostAndFound => source.TrySetResult(
-                        $"Failed to buy {item.Name} from {seller}. (get closer)"),
+                    GameResponseType.Distance => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (get closer)"),
+
+                    //carries no reason of its own, so the catch-all below would put the bare enum name in front of
+                    //whoever is reading the failure
+                    GameResponseType.CantInBank => source.TrySetResult(
+                        $"Failed to buy {item.Name} from {seller}. (the character is standing in the bank)"),
+                    _ when data.Failed => source.TrySetResult($"Failed to buy {item.Name} from {seller}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
                 return Task.FromResult(result);
             });
 
-        using var gameLogCallback = Socket.On<GameMessageData>(
-            ALSocketMessageType.GameLog,
-            data =>
-            {
-                var result = false;
-                var message = data.Message;
-
-                if (message.EqualsI("item gone"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from {seller}. ({message})");
-
-                return Task.FromResult(result);
-            });
-
-        using var disappearingTextCallback = Socket.On<DisappearingTextData>(
-            ALSocketMessageType.DisappearingText,
-            data =>
-            {
-                var result = false;
-
-                if (data.Message.EqualsI("no space"))
-                    result = source.TrySetResult($"Failed to buy {item.Name} from {seller}. ({data.Message})");
-
-                return Task.FromResult(result);
-            });
-
+        //the success frame names the item but not the slot it landed in, so arrival is still read off the inventory
+        //rather than off the reply
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
             data =>
@@ -2366,11 +2400,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 ? (object)new
                 {
                     rid = item.Id,
-                    f = true
+                    f = true,
+                    request_id = requestId
                 }
                 : new
                 {
-                    rid = item.Id
+                    rid = item.Id,
+                    request_id = requestId
                 });
 
         return await source.Task.WithNetworkTimeout();
@@ -3736,15 +3772,29 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task<IReadOnlyList<TradeItem>> RequestPontyItemsAsync()
     {
+        var requestId = RequestId.New();
         var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
+                //a frame carrying someone else's token is that call's to resolve, not this one's - sbuy refuses with
+                //place "secondhands" and failed set, so an ungated arm below would end this read on an unrelated buy's
+                //refusal. A frame with no token at all is a handler that does not echo one and still has to land here
+                if ((data.RequestId != null) && !requestId.EqualsI(data.RequestId))
+                    return TaskCache.FALSE;
+
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.Distance => source.TrySetResult("Failed to get ponty items. (get closer)"),
+                    //the token moves the listing onto game_response; the bare secondhands event is no longer sent
+                    GameResponseType.Data when (data.RequestId != null) && (data.Items is not null) =>
+                        //reversed back because the server ships it newest-first (csold.slice().reverse()) while the
+                        //bare event shipped it oldest-first, and callers buy down the list in the order they get it
+                        source.TrySetResult(data.Items.Reverse().ToArray()),
+                    //the null-id branch is dead for this arm: once a token is sent the server always echoes it back on
+                    //the refusal, so an un-tokened distance frame on this socket is some other call's to answer
+                    GameResponseType.Distance when data.RequestId != null => source.TrySetResult("Failed to get ponty items. (get closer)"),
                     _ when data.Failed && "secondhands".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to get ponty items. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
@@ -3753,16 +3803,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return Task.FromResult(result);
             });
 
-        using var onSecondHandsCallback = Socket.On<TradeItem[]>(
-            ALSocketMessageType.SecondHands,
-            data =>
+        await Socket.EmitAsync(
+            ALSocketEmitType.SecondHands,
+            new
             {
-                source.TrySetResult(data);
-
-                return TaskCache.FALSE;
+                request_id = requestId
             });
-
-        await Socket.EmitAsync(ALSocketEmitType.SecondHands);
 
         return (await source.Task.WithNetworkTimeout()).Result;
     }
@@ -3813,24 +3859,36 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     /// <remarks>
     ///     A caller has to tell that refusal from the other ways the call can fail, because it is the only one worth spending
-    ///     a million gold on - and the refusal arrives as a response code with nothing else on the frame, so the sentence is
-    ///     all there is to match. Named here so the match is against a constant both sides compile against rather than against
+    ///     a million gold on - and what reaches the caller is an exception message, so the sentence is all there is to
+    ///     match. Named here so the match is against a constant both sides compile against rather than against
     ///     a string typed out twice.
     /// </remarks>
     public const string LOSTANDFOUND_DONATION_REQUIRED = "no donation on this connection";
 
     public async Task<IReadOnlyList<TradeItem>> RequestLostAndFoundItemsAsync()
     {
+        var requestId = RequestId.New();
         var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
+                //a frame carrying someone else's token is that call's to resolve, not this one's - sbuy answers both
+                //distance and lostandfound_donate from the same counter, so an ungated arm below would end this read
+                //on an unrelated buy's refusal. A frame with no token is a handler that does not echo one and lands here
+                if ((data.RequestId != null) && !requestId.EqualsI(data.RequestId))
+                    return TaskCache.FALSE;
+
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.Distance => source.TrySetResult("Failed to get lost-and-found items. (get closer)"),
-                    GameResponseType.LostAndFoundDonate => source.TrySetResult(
+                    //the token moves the listing onto game_response; the bare lostandfound event is no longer sent
+                    GameResponseType.Data when (data.RequestId != null) && (data.Items is not null) =>
+                        //reversed back because the server ships it newest-first (cfound.slice().reverse()) while the
+                        //bare event shipped it oldest-first, and callers read down the list in the order they get it
+                        source.TrySetResult(data.Items.Reverse().ToArray()),
+                    GameResponseType.Distance when data.RequestId != null => source.TrySetResult("Failed to get lost-and-found items. (get closer)"),
+                    GameResponseType.LostAndFoundDonate when data.RequestId != null => source.TrySetResult(
                         $"Failed to get lost-and-found items. ({LOSTANDFOUND_DONATION_REQUIRED}; one of 1,000,000 gold or more unlocks it)"),
                     _ => false
                 };
@@ -3838,16 +3896,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return Task.FromResult(result);
             });
 
-        using var lostAndFoundCallback = Socket.On<TradeItem[]>(
-            ALSocketMessageType.LostAndFound,
-            data =>
+        await Socket.EmitAsync(
+            ALSocketEmitType.LostAndFound,
+            new
             {
-                source.TrySetResult(data);
-
-                return TaskCache.FALSE;
+                request_id = requestId
             });
-
-        await Socket.EmitAsync(ALSocketEmitType.LostAndFound);
 
         return (await source.Task.WithNetworkTimeout()).Result;
     }
