@@ -108,7 +108,7 @@ public record GameData
     ///     The game-data version the data members were last generated against. AL.MemberGenerator emits the stamp as generated
     ///     output (dataMembers/version.txt); paste it here when refreshing the datums.
     /// </summary>
-    public const int KNOWN_VERSION = 8507;
+    public const int KNOWN_VERSION = 14978;
 
     /// <summary>
     ///     What a monster with no entry in the dimensions table is squared off at before its size multiplier.

@@ -13,6 +13,9 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("aether_shield")]
     public GCondition AetherShield { get; init; } = null!;
 
+    [JsonPropertyName("anniversary_kiss")]
+    public GCondition AnniversaryKiss { get; init; } = null!;
+
     [JsonPropertyName("anniversary_visit")]
     public GCondition AnniversaryVisit { get; init; } = null!;
 
@@ -60,6 +63,15 @@ public class ConditionsDatum : DatumBase<GCondition>
 
     [JsonPropertyName("eheal")]
     public GCondition Eheal { get; init; } = null!;
+
+    [JsonPropertyName("encouragement_lonewolf")]
+    public GCondition EncouragementLonewolf { get; init; } = null!;
+
+    [JsonPropertyName("encouragement_new")]
+    public GCondition EncouragementNew { get; init; } = null!;
+
+    [JsonPropertyName("encouragement_returning")]
+    public GCondition EncouragementReturning { get; init; } = null!;
 
     [JsonPropertyName("energized")]
     public GCondition Energized { get; init; } = null!;
