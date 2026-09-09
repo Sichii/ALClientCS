@@ -54,8 +54,9 @@ internal sealed class PortalGraph
                 {
                     var door = gMap.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, exit));
 
-                    //no support yet for entering instances with keys
-                    if (door is { LockType: DoorLockType.AccountLocked })
+                    //a key door is not a walk, and the way back out lands on the entry spawn - so left in, the round
+                    //trip prices as the cheapest route to the spot in front of the door
+                    if (door is { LockType: DoorLockType.AccountLocked or DoorLockType.Key })
                         continue;
                 }
 
