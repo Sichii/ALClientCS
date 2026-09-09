@@ -4859,9 +4859,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The instance id we landed in, read off the new map frame.
     /// </returns>
     /// <remarks>
-    ///     Separate from <see cref="TransportAsync" /> because the server has two transport shapes and they share only their
-    ///     name: that one emits a map and a spawn index, this one a place and an optional instance. Both forms here refuse
-    ///     from further than 120 units of the dungeon's fixed reference point.
+    ///     Separate from <see cref="TransportAsync" /> because these are two different socket events: <c>transport</c> walks
+    ///     static doors and takes a map and a spawn index (node/server.js:5630), <c>enter</c> creates and joins instances and
+    ///     takes a place and an optional instance name (:5783). Sending this payload to <c>transport</c> answers
+    ///     <c>cant_enter</c> on the handler's first guard, because a dungeon payload carries no <c>to</c>. Both forms here
+    ///     refuse from further than 120 units of the dungeon's fixed reference point.
     /// </remarks>
     public async Task<string> EnterDungeonAsync(string place, string? instance = null)
     {
@@ -4911,7 +4913,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the server reads the absence of `name` as "make me a new one", so an empty string would be a join against
         //an instance called "" and is refused rather than opening anything
         await Socket.EmitAsync(
-            ALSocketEmitType.Transport,
+            ALSocketEmitType.Enter,
             string.IsNullOrWhiteSpace(instance)
                 ? new
                 {
