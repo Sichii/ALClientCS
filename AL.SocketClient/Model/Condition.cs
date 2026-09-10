@@ -88,6 +88,19 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public float RemainingMonsters { get; init; }
 
     /// <summary>
+    ///     If populated, the anniversary round this
+    ///     <see cref="AL.Core.Definitions.Condition.AnniversaryVisit" />
+    ///     was issued for.
+    /// </summary>
+    /// <remarks>
+    ///     The server issues one invitation per round and honours it against no other, so one left over from an earlier
+    ///     round is a kiss that can never land - and it refuses without saying which of its rules it refused on. Compare
+    ///     this against the round the event table reports before spending a walk on it.
+    /// </remarks>
+    [JsonPropertyName("round")]
+    public long? Round { get; init; }
+
+    /// <summary>
     ///     If populated, the multiplier the entity's sprite is drawn at, from the
     ///     <see cref="AL.Core.Definitions.Condition.Filter" /> condition. This is how an event's oversized monsters get their
     ///     size, and it replaces the monster's own

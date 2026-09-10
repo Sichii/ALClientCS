@@ -49,6 +49,13 @@ public record BossInfo : ILocation, IMutable<Mutation>
     public float? MaxHP { get; protected set; }
 
     /// <summary>
+    ///     For the anniversary event, the round that is running. Absent for a boss, which has no rounds.
+    /// </summary>
+    /// <seealso cref="Condition.Round" />
+    [JsonPropertyName("round")]
+    public long? Round { get; init; }
+
+    /// <summary>
     ///     If populated, the current target of the boss.
     /// </summary>
     public string? Target { get; init; }
