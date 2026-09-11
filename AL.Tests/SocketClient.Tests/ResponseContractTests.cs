@@ -222,6 +222,7 @@ public class ResponseContractTests
     [Arguments("slots_fail", GameResponseType.SlotsFail)]
     [Arguments("door_unlocked", GameResponseType.DoorUnlocked)]
     [Arguments("bank_pack_unlocked", GameResponseType.BankPackUnlocked)]
+    [Arguments("bank_new_pack", GameResponseType.BankNewPack)]
     [Arguments("only_in_bank", GameResponseType.OnlyInBank)]
     [Arguments("already_unlocked", GameResponseType.AlreadyUnlocked)]
     [Arguments("nothing", GameResponseType.Nothing)]
