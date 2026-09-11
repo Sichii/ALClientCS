@@ -471,6 +471,9 @@ public enum GameResponseType
     [EnumMember(Value = "bank_pack_unlocked")]
     BankPackUnlocked,
 
+    [EnumMember(Value = "bank_new_pack")]
+    BankNewPack,
+
     [EnumMember(Value = "only_in_bank")]
     OnlyInBank,
 

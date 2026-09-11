@@ -2845,6 +2845,87 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Unlocks a paid bank pack with gold on the pack's floor map (node/server.js bank
+    ///     <c>
+    ///         operation: "unlock"
+    ///     </c>
+    ///     branch). Gold-only — shells and key items are out of scope.
+    /// </summary>
+    /// <param name="pack">
+    ///     The bank pack to unlock, e.g. <see cref="BankPack.Items3" />.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to unlock bank pack {pack}. ({reason})
+    /// </exception>
+    public async Task UnlockBankPackAsync(BankPack pack)
+    {
+        var packWire = pack.ToString().ToLowerInvariant();
+
+        if (Character.Bank == null)
+            throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (not in bank)");
+
+        //bank_packs (js/old_common_functions.js:54) puts items0-7 on "bank", items8-23 on "bank_b" and items24-47 on "bank_u"
+        var requiredMap = (int)pack switch
+        {
+            >= 1 and <= 8   => "bank",
+            >= 9 and <= 24  => "bank_b",
+            >= 25 and <= 48 => "bank_u",
+            _                 => throw new ArgumentOutOfRangeException(nameof(pack))
+        };
+
+        if (!Character.Map.EqualsI(requiredMap))
+            throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (wrong bank)");
+
+        if (Bank!.ContainsKey(pack))
+            throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (already unlocked)");
+
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (data.ResponseType == GameResponseType.BankNewPack
+                    && (string.IsNullOrEmpty(data.Pack) || packWire.EqualsI(data.Pack)))
+                {
+                    source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                }
+
+                if (data.Failed && "bank".EqualsI(data.Place!))
+                    source.TrySetResult($"Failed to unlock bank pack {packWire}. ({data.ResponseType})");
+
+                if (data.ResponseType == GameResponseType.GoldNotEnough)
+                    source.TrySetResult($"Failed to unlock bank pack {packWire}. (not enough gold)");
+
+                return TaskCache.FALSE;
+            });
+
+        using var characterCallback = Socket.On<CharacterData>(
+            ALSocketMessageType.Character,
+            data =>
+            {
+                if (data.Bank?.ContainsKey(pack) == true)
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Bank,
+            new
+            {
+                operation = "unlock",
+                pack = packWire,
+                gold = 1
+            });
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
     ///     Asynchronously deposits an item in the bank.
     /// </summary>
     /// <param name="inventorySlot">

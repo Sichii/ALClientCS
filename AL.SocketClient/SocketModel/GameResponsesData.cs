@@ -222,6 +222,12 @@ public sealed record GameResponseData : IOptionalObject
     public string[]? Pids { get; init; }
 
     /// <summary>
+    ///     Bank pack key echoed by unlock success (<c>bank_new_pack</c>), e.g. <c>items3</c>.
+    /// </summary>
+    [JsonPropertyName("pack")]
+    public string? Pack { get; init; }
+
+    /// <summary>
     ///     Extra information about the response. Often the name of a skill or action.
     /// </summary>
     public string? Place { get; init; }
