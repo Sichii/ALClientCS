@@ -9,8 +9,8 @@ namespace AL.SocketClient.Model;
 
 public sealed record SimplePlayer : ISimplePlayer
 {
-    [JsonConverter(typeof(StjConverters.AfkConverter))]
-    public bool AFK { get; init; }
+    [JsonConverter(typeof(StjConverters.AfkStateConverter))]
+    public AfkState AFK { get; init; }
 
     public int Age { get; init; }
 

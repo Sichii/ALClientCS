@@ -7,13 +7,11 @@ namespace AL.SocketClient.Interfaces;
 public interface ISimplePlayer
 {
     /// <summary>
-    ///     Whether or not the player is AFK. "CODE" results in
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     here.
+    ///     What the server last said about this player being away, which is four answers rather than two - a character
+    ///     running CODE carries the flag for its whole session, and a frame that never mentioned it says nothing either
+    ///     way.
     /// </summary>
-    bool AFK { get; }
+    AfkState AFK { get; }
 
     /// <summary>
     ///     The age of the character in days.

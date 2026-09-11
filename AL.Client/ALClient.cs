@@ -528,7 +528,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (string.IsNullOrEmpty(itemName))
             throw new ArgumentNullException(nameof(itemName));
 
-        if (Character.EmptySlots == 0)
+        //not == 0: esize is isize minus the bag's length, so a bag holding more than isize reports it negative
+        //(node/server.js:1322), and there is less than no room in that one, not an unknown amount
+        if (Character.EmptySlots <= 0)
             return false;
 
         var data = GameData.Items[itemName];
@@ -2884,6 +2886,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Character.Bank == null)
             throw new InvalidOperationException($"Failed to deposit item {inventorySlot}. (not in bank)");
 
+        //the bank handler clamps inv to isize-1 rather than refusing it (node/server.js:8899), so an index past the
+        //bags deposits the last bag slot's item under the name of the one that was asked for - it banked a merchant's
+        //stand computer that way. Slots past isize are real: add_item pushes onto the end when the bags are full
+        //(node/server.js:1933), and imove is the only handler that addresses one, so move it down into the bags first
+        if (inventorySlot >= Character.InventorySize)
+        {
+            var freeSlot = Enumerable.Range(0, Math.Min(Character.InventorySize, Character.Inventory.Count))
+                                     .FirstOrDefault(slot => Character.Inventory[slot] is null, -1);
+
+            if (freeSlot < 0)
+                throw new InvalidOperationException(
+                    $"Failed to deposit item {inventorySlot}. (overflow slot, and no free bag slot to move it into)");
+
+            await SwapInventorySlotsAsync(inventorySlot, freeSlot);
+            inventorySlot = freeSlot;
+        }
+
         var item = Character.Inventory[inventorySlot];
 
         if (item == null)
@@ -4588,7 +4607,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             }
         }
 
-        if (edgesWalked == 0)
+        //a start already inside one of its ends is answered with a zero-length walk, skipped above - an arrival rather
+        //than a failure, and the one case that repeats: a mover standing on its destination re-plans every tick, and
+        //every one of those plans is correctly empty. 5,297 lines of it in one night's log
+        if ((edgesWalked == 0) && !ends.Any(end => start.DistanceWithMapCheck(end) <= end.Radius))
             Logger.Debug($"No path walked from {start} to {string.Join(", ", ends.Select(end => end.ToString()))}.");
     }
 
@@ -4856,10 +4878,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </exception>
     public async Task SwapInventorySlotsAsync(int inventorySlot1, int inventorySlot2)
     {
-        if ((inventorySlot1 < 0) || (inventorySlot1 >= Character.InventorySize))
+        //imove takes any index below items.length, not just below isize (node/server.js:8699), and it is the only
+        //handler that does - so this is the one call that can reach a slot the bags overflowed into and move it back
+        var addressable = Math.Max(Character.InventorySize, Character.Inventory.Count);
+
+        if ((inventorySlot1 < 0) || (inventorySlot1 >= addressable))
             throw new ArgumentOutOfRangeException(nameof(inventorySlot1));
 
-        if ((inventorySlot2 < 0) || (inventorySlot2 >= Character.InventorySize))
+        if ((inventorySlot2 < 0) || (inventorySlot2 >= addressable))
             throw new ArgumentOutOfRangeException(nameof(inventorySlot2));
 
         var item1 = Character.Inventory[inventorySlot1];
@@ -5114,7 +5140,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (item == null)
             throw new InvalidOperationException($"Failed to unequip item {slot}. (no item in slot)");
 
-        if (Character.EmptySlots == 0)
+        if (Character.EmptySlots <= 0)
             throw new InvalidOperationException($"Failed to unequip item {item.Name}. (no space)");
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);

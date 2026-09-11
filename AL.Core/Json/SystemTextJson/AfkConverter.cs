@@ -6,20 +6,20 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads
+///     Reads the bool-or-name fields where only the presence of the name matters -
 ///     <c>
-///         Player.AFK
+///         rip
 ///     </c>
-///     , which the server sends inconsistently:
+///     , whose string form is a gravestone cosmetic no headless client has a use for:
 ///     <c>
 ///         null
 ///     </c>
-///     -&gt; false, any string (a timestamp/code) -&gt; true, otherwise a bool. The System.Text.Json replacement for the
-///     Newtonsoft
+///     -&gt; false, any string -&gt; true, otherwise a bool. Named for
 ///     <c>
-///         AfkConverter
+///         afk
 ///     </c>
-///     .
+///     , which it no longer reads: that field needs the names this one throws away, and has moved to
+///     <see cref="AfkStateConverter" />.
 /// </summary>
 public sealed class AfkConverter : JsonConverter<bool>
 {

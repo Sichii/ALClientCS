@@ -17,8 +17,8 @@ namespace AL.SocketClient.Model;
 public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDeserialized
 {
     [JsonInclude]
-    [JsonConverter(typeof(StjConverters.AfkConverter))]
-    public bool AFK { get; protected set; }
+    [JsonConverter(typeof(StjConverters.AfkStateConverter))]
+    public AfkState AFK { get; protected set; }
 
     [JsonInclude]
     public int Age { get; protected set; }
@@ -204,7 +204,12 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
         if (!IsNPC)
         {
             Range = other.Range;
-            AFK = other.AFK;
+
+            //a frame that never mentioned the field says nothing about it, and the server omits it rather than sending
+            //false. Copying the gap in is how a sighting's answer gets overwritten by no answer at all
+            if (other.AFK != AfkState.Unknown)
+                AFK = other.AFK;
+
             Age = other.Age;
             Code = other.Code;
             PDPS = other.PDPS;

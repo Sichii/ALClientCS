@@ -611,7 +611,7 @@ public class Merchant : ALClient
         if (tradeItem == null)
             throw new InvalidOperationException($"Failed to unpost trade item {tradeSlot}. (slot empty)");
 
-        if (!tradeItem.Buying && (Character.EmptySlots == 0))
+        if (!tradeItem.Buying && (Character.EmptySlots <= 0))
             throw new InvalidOperationException($"Failed to unpost trade item {tradeItem.Name}. (no space)");
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer?>>(TaskCreationOptions.RunContinuationsAsynchronously);

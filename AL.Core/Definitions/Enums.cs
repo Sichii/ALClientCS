@@ -1239,6 +1239,44 @@ public enum ExitType
     Transporter
 }
 
+/// <summary>
+///     What the server's <c>afk</c> field says about a player. It is not a boolean: it is absent, a boolean, or the name
+///     of what is driving the character, and those are not the same question.
+/// </summary>
+/// <remarks>
+///     The server's own eligibility rules are truthiness tests on the raw field (<c>!p.afk</c>), so everything but
+///     <see cref="Unknown" /> and <see cref="Active" /> reads as away to it. A headless client needs the difference all
+///     the same: a character running CODE is flagged for the whole session and is not idle in any sense a person would
+///     recognise.
+/// </remarks>
+public enum AfkState
+{
+    /// <summary>
+    ///     The frame did not carry the field. Not the same as <see cref="Active" />, which is the server saying so.
+    /// </summary>
+    Unknown,
+
+    /// <summary>
+    ///     At the keyboard: the client declared itself active.
+    /// </summary>
+    Active,
+
+    /// <summary>
+    ///     Idle. Also where a character starts, until its client says otherwise.
+    /// </summary>
+    Idle,
+
+    /// <summary>
+    ///     Signed in through the bot endpoint. Set once at login and never cleared.
+    /// </summary>
+    Bot,
+
+    /// <summary>
+    ///     Running CODE. Set once at login and never cleared.
+    /// </summary>
+    Code
+}
+
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum EntitiesUpdateType
 {

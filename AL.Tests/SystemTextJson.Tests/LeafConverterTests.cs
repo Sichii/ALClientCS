@@ -18,8 +18,57 @@ namespace AL.Tests.SystemTextJson.Tests;
 /// </summary>
 public sealed class LeafConverterTests
 {
+    //the four answers the afk field actually carries. A bool here is what let "running CODE" read as "idle", and
+    //Unknown is what tells a merge the frame said nothing rather than said no
     [Test]
-    public void Afk_NullFalse_StringTrue_BoolPassThrough()
+    public void AfkState_MapsEveryShapeTheServerSends()
+    {
+        var options = Opts(new AfkStateConverter());
+
+        JsonSerializer.Deserialize<AfkState>("null", options)
+                      .Should()
+                      .Be(AfkState.Unknown);
+
+        JsonSerializer.Deserialize<AfkState>("false", options)
+                      .Should()
+                      .Be(AfkState.Active);
+
+        JsonSerializer.Deserialize<AfkState>("true", options)
+                      .Should()
+                      .Be(AfkState.Idle);
+
+        JsonSerializer.Deserialize<AfkState>("\"bot\"", options)
+                      .Should()
+                      .Be(AfkState.Bot);
+
+        JsonSerializer.Deserialize<AfkState>("\"code\"", options)
+                      .Should()
+                      .Be(AfkState.Code);
+
+        //the server sends no other name, and one that turned up would still be a truthy afk
+        JsonSerializer.Deserialize<AfkState>("\"2026-01-01\"", options)
+                      .Should()
+                      .Be(AfkState.Idle);
+    }
+
+    //gate finding #5, carried over: a number in the slot must coerce, not throw (a throw discards the whole frame)
+    [Test]
+    public void AfkState_Number_Coerces()
+    {
+        var options = Opts(new AfkStateConverter());
+
+        JsonSerializer.Deserialize<AfkState>("1", options)
+                      .Should()
+                      .Be(AfkState.Idle);
+
+        JsonSerializer.Deserialize<AfkState>("0", options)
+                      .Should()
+                      .Be(AfkState.Active);
+    }
+
+    //AfkConverter is named for a field it no longer reads; rip is what is left on it
+    [Test]
+    public void Rip_NullFalse_StringTrue_BoolPassThrough()
     {
         var options = Opts(new AfkConverter());
 
@@ -27,7 +76,7 @@ public sealed class LeafConverterTests
                       .Should()
                       .BeFalse();
 
-        JsonSerializer.Deserialize<bool>("\"2026-01-01\"", options)
+        JsonSerializer.Deserialize<bool>("\"angelwings\"", options)
                       .Should()
                       .BeTrue();
 
@@ -36,9 +85,8 @@ public sealed class LeafConverterTests
                       .BeTrue();
     }
 
-    //gate finding #5: a number in the AFK slot must coerce, not throw (a throw discards the whole frame).
     [Test]
-    public void Afk_Number_CoercesToBool()
+    public void Rip_Number_CoercesToBool()
     {
         var options = Opts(new AfkConverter());
 

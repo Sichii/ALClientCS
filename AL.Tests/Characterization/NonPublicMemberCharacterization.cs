@@ -453,7 +453,7 @@ public sealed class NonPublicMemberCharacterization
         // Player (protected set)
         start.AFK
              .Should()
-             .BeTrue();
+             .Be(AfkState.Idle);
 
         start.Age
              .Should()

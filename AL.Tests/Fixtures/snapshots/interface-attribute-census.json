@@ -58,7 +58,7 @@
   "IInventoryItem.Volatile : String => (clr:Volatile)",
   "ISimpleItem.Name : String => (clr:Name)",
   "ISimpleItem.Quantity : Int32 => (clr:Quantity)",
-  "ISimplePlayer.AFK : Boolean => (clr:AFK)",
+  "ISimplePlayer.AFK : AfkState => (clr:AFK)",
   "ISimplePlayer.Age : Int32 => (clr:Age)",
   "ISimplePlayer.Class : ALClass => (clr:Class)",
   "ISimplePlayer.Level : Int32 => (clr:Level)",
