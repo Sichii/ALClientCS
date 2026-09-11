@@ -2876,7 +2876,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!Character.Map.EqualsI(requiredMap))
             throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (wrong bank)");
 
-        if (Bank!.ContainsKey(pack))
+        //Character.Bank is the live frame; ALClient.Bank is the sticky cache and can lag a concurrent unlock
+        if (Character.Bank.ContainsKey(pack))
             throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (already unlocked)");
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
