@@ -86,13 +86,24 @@ public sealed class PopulateConverterTests
     public void EventAndBoss_ViaSharedOptions_FillsFlagsAndBosses_NoStackOverflow()
     {
         var data = TestJson.Socket<EventAndBossData>(
-            """{"egghunt":true,"holidayseason":true,"icegolem":{"live":true,"map":"winterland","x":808.9,"y":407.6}}""")!;
+            """
+            {"egghunt":true,"holidayseason":true,"halloween":true,"lunarnewyear":true,"icegolem":{"live":true,"map":"winterland","x":808.9,"y":407.6}}
+            """)!;
 
         data.EggHunt
             .Should()
             .BeTrue("the declared-field fill ran under the recursion-safe options");
 
         data.HolidaySeason
+            .Should()
+            .BeTrue();
+
+        //every seasonal flag has to spell its wire key, since case-insensitive matching is the only thing binding them
+        data.Halloween
+            .Should()
+            .BeTrue("halloween is a bare flag, not an object, so nothing else in the snapshot carries it");
+
+        data.LunarNewYear
             .Should()
             .BeTrue();
 

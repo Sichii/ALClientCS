@@ -662,6 +662,9 @@ public enum Condition
     AetherShield,
     Anger,
 
+    [EnumMember(Value = "anniversary_kiss")]
+    AnniversaryKiss,
+
     [EnumMember(Value = "anniversary_visit")]
     AnniversaryVisit,
     Authfail,
@@ -696,6 +699,15 @@ public enum Condition
     EBurn,
     EHeal,
     Energized,
+
+    [EnumMember(Value = "encouragement_lonewolf")]
+    EncouragementLoneWolf,
+
+    [EnumMember(Value = "encouragement_new")]
+    EncouragementNew,
+
+    [EnumMember(Value = "encouragement_returning")]
+    EncouragementReturning,
     Ethereal,
     Filter,
     Fingered,
@@ -771,6 +783,7 @@ public enum Condition
 
     [EnumMember(Value = "self_healing")]
     SelfHealing,
+    Sheltered,
     Shocked,
     Sleeping,
     Slowness,

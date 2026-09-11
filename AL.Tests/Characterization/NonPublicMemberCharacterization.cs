@@ -84,10 +84,8 @@ public sealed class NonPublicMemberCharacterization
     ///     Every instance property in the six assemblies whose property is public but whose set accessor is non-public — the
     ///     true [JsonInclude] target set, independent of whether the member carries any serialization attribute at all.
     /// </summary>
-    private static int AllInstanceNonPublicSetterCount()
+    private static IEnumerable<string> AllInstanceNonPublicSetters()
     {
-        var count = 0;
-
         foreach (var assembly in LibraryAssemblies)
             foreach (var type in GetTypes(assembly))
                 foreach (var property in type.GetProperties(
@@ -98,45 +96,95 @@ public sealed class NonPublicMemberCharacterization
                     var propertyIsPublic = (getter?.IsPublic ?? false) || (setter?.IsPublic ?? false);
 
                     if (propertyIsPublic && setter is { IsPublic: false })
-                        count++;
+                        yield return $"{type.FullName}.{property.Name}";
                 }
-
-        return count;
     }
 
     [Test]
     public void T11_Census_MatchesCommittedFixture() => Fixture.ShouldMatchCommittedSnapshot(Render(BuildCensus()), CENSUS_SNAPSHOT);
 
     /// <summary>
-    ///     The per-category census counts are pinned by the committed fixture itself, member by member. These two numbers are
-    ///     not, because they count members no serialization attribute reaches — which is exactly the hazard.
+    ///     The per-category census counts are pinned by the committed fixture itself, member by member. The blind spot is not,
+    ///     because it is made of members no serialization attribute reaches — which is exactly the hazard.
     /// </summary>
+    /// <remarks>
+    ///     Pinned by name rather than by count. A bare total was maintained by hand — each new member raised it by arithmetic
+    ///     rather than by measurement — and drifted, at which point the failure said only that a number had moved and named
+    ///     nothing. Naming them costs one line per member and makes both the failure and the diff say which one it is.
+    /// </remarks>
     [Test]
     public void T11_Census_PinsAttributeAuditBlindSpot()
     {
         var census = BuildCensus();
 
-        var instanceNonPublicSetters = census.Count(entry => entry is { Category: NON_PUBLIC_SETTER, IsStatic: false });
-        var allInstanceNonPublicSetters = AllInstanceNonPublicSetterCount();
-        var auditGap = allInstanceNonPublicSetters - instanceNonPublicSetters;
+        var attributed = census.Where(entry => entry is { Category: NON_PUBLIC_SETTER, IsStatic: false })
+                               .Select(entry => $"{entry.TypeFullName}.{entry.MemberName}")
+                               .ToHashSet(StringComparer.Ordinal);
 
-        Console.WriteLine($"instance non-public setters (w/ STJ attribute) : {instanceNonPublicSetters}");
+        var all = AllInstanceNonPublicSetters()
+            .ToList();
+
+        var blindSpot = all.Where(name => !attributed.Contains(name))
+                           .OrderBy(name => name, StringComparer.Ordinal)
+                           .ToList();
+
+        Console.WriteLine($"instance non-public setters (w/ STJ attribute) : {attributed.Count}");
         Console.WriteLine($"total census entries                           : {census.Count}");
-        Console.WriteLine($"ALL instance non-public setters (any/no attr)  : {allInstanceNonPublicSetters}");
-        Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {auditGap}");
+        Console.WriteLine($"ALL instance non-public setters (any/no attr)  : {all.Count}");
+        Console.WriteLine($"STJ-attribute-gated audit BLIND SPOT           : {blindSpot.Count}");
 
-        // Finding, and the reason an attribute-gated audit is unsafe: 161 instance properties in the six assemblies
-        // have a non-public setter and only 116 carry [JsonInclude]/[JsonPropertyName], so an audit keyed on the
-        // attribute is blind to the rest. Key on "non-public accessor", never on "has an attribute"
-        auditGap.Should()
-                .Be(45);
-
-        // Attribute-independent by construction, so the Phase 6b re-point could not move it: 150 until
-        // ALClient.IsPvPServer, 151 until EntityBase.HitBox, 152 until the three drop-table enrichments, 155 until
-        // ALClient.IsRecalling, 156 until Character.Courage, 157 until GSet.Accessor and GSet.Tiers, 159 until
-        // ALClient.ExclusiveCosmetics and GClass.ExclusiveCosmetics, now 161, 162 until Player.Team.
-        allInstanceNonPublicSetters.Should()
-                                   .Be(162);
+        // Finding, and the reason an attribute-gated audit is unsafe: of the instance properties in the six
+        // assemblies that have a non-public setter, the ones below carry neither [JsonInclude] nor
+        // [JsonPropertyName], so an audit keyed on the attribute is blind to every one of them. Key on
+        // "non-public accessor", never on "has an attribute"
+        blindSpot.Should()
+                 .BeEquivalentTo(
+                     "AL.APIClient.AlApiClient.Auth",
+                     "AL.Client.ALClient.Bank",
+                     "AL.Client.ALClient.BaseGold",
+                     "AL.Client.ALClient.Disposed",
+                     "AL.Client.ALClient.Emotion",
+                     "AL.Client.ALClient.EventsAndBosses",
+                     "AL.Client.ALClient.ExclusiveCosmetics",
+                     "AL.Client.ALClient.FatalError",
+                     "AL.Client.ALClient.Friends",
+                     "AL.Client.ALClient.Identifier",
+                     "AL.Client.ALClient.IsPvPServer",
+                     "AL.Client.ALClient.IsRecalling",
+                     "AL.Client.ALClient.OwnedCosmetics",
+                     "AL.Client.ALClient.Party",
+                     "AL.Client.ALClient.Server",
+                     "AL.Client.ALClient.Socket",
+                     "AL.Client.Model.CooldownInfo.IsCompensated",
+                     "AL.Data.Drops.GDrops.Tables",
+                     "AL.Data.Geometry.GGeometry.Accessor",
+                     "AL.Data.Items.GItem.Accessor",
+                     "AL.Data.Items.GItem.ExchangeAtNPC",
+                     "AL.Data.Items.GItem.ExchangeRewards",
+                     "AL.Data.Items.GItem.ObtainType",
+                     "AL.Data.Items.GItem.ObtainableFromNPC",
+                     "AL.Data.Items.GItem.Recipe",
+                     "AL.Data.Items.GItem.ScrollStat",
+                     "AL.Data.Maps.GMap.Accessor",
+                     "AL.Data.Maps.GMap.Drops",
+                     "AL.Data.Maps.GMap.Exits",
+                     "AL.Data.Maps.GMap.Geomertry",
+                     "AL.Data.Maps.GMapMonster.Data",
+                     "AL.Data.Maps.GMapNPC.Data",
+                     "AL.Data.Monsters.GMonster.Accessor",
+                     "AL.Data.Monsters.GMonster.SpawnAreas",
+                     "AL.Data.NPCs.GNPC.Locations",
+                     "AL.Data.Recipe.NPC",
+                     "AL.Data.Sets.GSet.Accessor",
+                     "AL.Data.Sets.GSet.Tiers",
+                     "AL.SocketClient.ALSocketClient.Connected",
+                     "AL.SocketClient.ALSocketClient.LastDisconnectReason",
+                     "AL.SocketClient.Model.Condition.IsCompensated",
+                     "AL.SocketClient.Model.EntityBase.HitBox",
+                     "AL.SocketClient.Model.EntityBase.IsCompensated",
+                     "AL.SocketClient.Model.EntityBase.PresentFields",
+                     "AL.SocketClient.SocketModel.DisappearData.ToOrientation",
+                     "AL.SocketClient.SocketModel.DisappearData.ToSpawnId");
     }
 
     [Test]

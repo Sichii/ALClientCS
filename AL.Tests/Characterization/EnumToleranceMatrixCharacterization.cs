@@ -188,7 +188,9 @@ public sealed class EnumToleranceMatrixCharacterization
               .Should()
               .BeEquivalentTo(
                   ExpectedDivergenceCounts.ToList(),
-                  $"the accepted divergence classes moved:\n{string.Join("\n", counts.Select(pair => $"{pair.Key}={pair.Value}"))}");
+                  //the cells themselves, not just the tallies: a class that moved is only actionable once you can
+                  //see which enum moved it
+                  $"the accepted divergence classes moved:\n{string.Join("\n", byClass.Select(pair => $"{pair.Key}={pair.Value.Count}\n  {string.Join("\n  ", pair.Value)}"))}");
     }
 
     private const string UNEXPECTED = "9_UNEXPECTED";
@@ -198,25 +200,35 @@ public sealed class EnumToleranceMatrixCharacterization
     ///     population fail loudly.
     /// </summary>
     /// <remarks>
-    ///     All but two of the value-position cells across every tolerant enum agree with the pin exactly — including the
+    ///     All but four of the value-position cells across every tolerant enum agree with the pin exactly — including the
     ///     shapes the converter degrades rather than throws on, so no cell reaches an exception and exception-type names never
     ///     even come into it. The measured divergence is the five unknown-key cells, one per dictionary-key enum, exactly what
-    ///     the plan predicted, plus the one boolean-token cell corrected after the migration, plus the one numeric cell an
-    ///     enum grew a member for.
+    ///     the plan predicted, plus the one boolean-token cell corrected after the migration, plus the numeric cells enums
+    ///     grew members for.
     ///     <br />
-    ///     Class 4 counts one because
+    ///     Class 4 is the volatile one, and the only class that moves without any converter changing. Members are positional,
+    ///     so inserting one renumbers every member after it and hands the number the numeric probe feeds to whichever member
+    ///     now owns it. Its four cells are
     ///     <c>
-    ///         UIDataType
+    ///         UIDataType.Stomp
     ///     </c>
-    ///     is the only tolerant enum whose members reach the number the numeric probe feeds it. A second one means another
-    ///     enum grew past that number, and the same reasoning applies — raise the count rather than reaching for the fixture,
+    ///     ,
+    ///     <c>
+    ///         ALSocketEmitType.Loaded
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         Condition.DamageReceived
+    ///     </c>
+    ///     in both value and key position. The classifier only lands a cell here once both halves are proven to carry the
+    ///     same decimal, so a move is a rename rather than a regression: raise the count rather than reaching for the fixture,
     ///     which is the pre-migration baseline and stays frozen.
     /// </remarks>
     private static readonly IReadOnlyDictionary<string, int> ExpectedDivergenceCounts = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["2_dictionaryKeyDegradesInsteadOfThrowing"] = 5,
         ["3_boolTokenRoutedThroughAliases"] = 1,
-        ["4_numericCellNamedByANewMember"] = 1
+        ["4_numericCellNamedByANewMember"] = 4
     };
 
     /// <summary>

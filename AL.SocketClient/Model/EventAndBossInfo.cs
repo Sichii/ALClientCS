@@ -11,9 +11,26 @@ public record EventAndBossInfo
 {
     public bool EggHunt { get; init; }
 
+    /// <summary>
+    ///     Whether the Halloween event is running.
+    /// </summary>
+    /// <remarks>
+    ///     While it is,
+    ///     <c>
+    ///         mrpumpkin
+    ///     </c>
+    ///     and
+    ///     <c>
+    ///         mrgreen
+    ///     </c>
+    ///     are also keys on <see cref="BossInfo" /> - live, or carrying the time they next spawn. Off it, they are absent
+    ///     entirely.
+    /// </remarks>
+    public bool Halloween { get; init; }
+
     public bool HolidaySeason { get; init; }
 
-    public bool LunaryNewYear { get; init; }
+    public bool LunarNewYear { get; init; }
 
     /// <summary>
     ///     When this server runs its scheduled events. Null only before the first snapshot arrives.
