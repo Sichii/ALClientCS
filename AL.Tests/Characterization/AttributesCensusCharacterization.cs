@@ -54,8 +54,8 @@ public class AttributesCensusCharacterization
 
     /// <summary>
     ///     Real objects with rich stat blocks spanning all four <see cref="IAttributed" /> record types. Includes the four the
-    ///     plan names plus extras that carry property-less attributes (PhysicalResistance, Reflection, RPiercing) and renamed
-    ///     ones (frequencym/healm/potionsm), so the census exercises both harvest paths.
+    ///     plan names plus extras that carry property-less attributes (Attr0) and renamed ones (frequencym/healm/potionsm), so
+    ///     the census exercises both harvest paths.
     /// </summary>
     private static readonly (string Section, string Key)[] Targets =
     [
@@ -132,7 +132,7 @@ public class AttributesCensusCharacterization
 
     /// <summary>
     ///     The float stat property whose CLR name matches the attribute's member name case-insensitively (Hp -> HP, Mp -> MP,
-    ///     MpCost -> MPCost), or null for attributes with no declared property (PhysicalResistance, Attr0, ...).
+    ///     MpCost -> MPCost), or null for attributes with no declared property (Attr0, Breaks, ...).
     /// </summary>
     private static PropertyInfo? MatchingProperty(Type type, ALAttribute attribute)
     {

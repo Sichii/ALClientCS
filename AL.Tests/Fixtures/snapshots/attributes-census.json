@@ -118,11 +118,6 @@
         "propertyValue": 2400000.0
       },
       {
-        "attr": "PhysicalResistance",
-        "value": 70.0,
-        "hasProperty": false
-      },
-      {
         "attr": "Range",
         "value": 948.0,
         "hasProperty": true,
@@ -133,6 +128,12 @@
         "value": 48.0,
         "hasProperty": true,
         "propertyValue": 48.0
+      },
+      {
+        "attr": "StunResistance",
+        "value": 70.0,
+        "hasProperty": true,
+        "propertyValue": 70.0
       },
       {
         "attr": "XP",
@@ -217,11 +218,6 @@
         "propertyValue": 3200.0
       },
       {
-        "attr": "PhysicalResistance",
-        "value": 40.0,
-        "hasProperty": false
-      },
-      {
         "attr": "Range",
         "value": 120.0,
         "hasProperty": true,
@@ -238,6 +234,12 @@
         "value": 50.0,
         "hasProperty": true,
         "propertyValue": 50.0
+      },
+      {
+        "attr": "StunResistance",
+        "value": 40.0,
+        "hasProperty": true,
+        "propertyValue": 40.0
       },
       {
         "attr": "XP",

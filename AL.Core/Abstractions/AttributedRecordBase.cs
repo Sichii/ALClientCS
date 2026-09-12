@@ -111,10 +111,16 @@ public abstract record AttributedRecordBase : IAttributed
 
     public float Stat { get; init; }
 
+    [JsonPropertyName("stresistance")]
+    public float StatusResistance { get; init; }
+
     public float Str { get; init; }
 
     [JsonPropertyName("stun")]
     public float StunChance { get; init; }
+
+    [JsonPropertyName("phresistance")]
+    public float StunResistance { get; init; }
 
     public float Vit { get; init; }
 

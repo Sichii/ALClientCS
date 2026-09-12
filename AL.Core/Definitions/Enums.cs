@@ -76,18 +76,20 @@ public enum ALAttribute
     PoisonResistance,
 
     /// <summary>
-    ///     The game's own notes call this status resistance and intend it to shorten debuffs, but no live server code reads
-    ///     it. Stuns are resisted by PhysicalResistance instead, despite this member's name.
+    ///     Percent by which a debuff's duration is cut, applying to every condition flagged as a debuff rather than to stuns
+    ///     alone. The cut is taken after a re-application has already extended the duration, so landing a debuff on someone at
+    ///     100 clears whatever time was left.
     /// </summary>
     [EnumMember(Value = "stresistance")]
-    StunResistance,
+    StatusResistance,
 
     /// <summary>
-    ///     Percent chance to resist the stunned condition outright. The game's notes call it impact resistance; it does not
-    ///     reduce physical damage, which is Armor's job.
+    ///     Percent chance to shrug off stunned outright, rolled as the condition lands. Stun is the only condition that names
+    ///     it. The wire key and the game's "impact resistance" label both suggest physical damage reduction, which this is
+    ///     not - that is Armor's job.
     /// </summary>
     [EnumMember(Value = "phresistance")]
-    PhysicalResistance,
+    StunResistance,
 
     /// <summary>
     ///     Magic defense, run through the same diminishing-returns curve as Armor. The per-element resistances are unrelated:

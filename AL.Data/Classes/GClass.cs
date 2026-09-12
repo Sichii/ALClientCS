@@ -154,7 +154,7 @@ public sealed record GClass
     ///     Percent chance to shrug off a stun outright. Stun is the only condition that names it.
     /// </summary>
     [JsonPropertyName("phresistance")]
-    public int PhysicalResistance { get; init; }
+    public int StunResistance { get; init; }
 
     /// <summary>
     ///     Percent chance to shrug off poison outright, and the percent by which a poison that does land is shortened.
@@ -199,7 +199,7 @@ public sealed record GClass
     ///     Percent by which a debuff's duration is cut. It applies to every condition flagged as a debuff, not just stuns.
     /// </summary>
     [JsonPropertyName("stresistance")]
-    public int StunResistance { get; init; }
+    public int StatusResistance { get; init; }
 
     /// <summary>
     ///     Checks if this class can wield the given 2handed weapon.
