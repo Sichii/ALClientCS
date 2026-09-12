@@ -131,6 +131,20 @@ public sealed record GameResponseData : IOptionalObject
     public float Grace { get; init; }
 
     /// <summary>
+    ///     The server this character now calls home, sent on
+    ///     <c>
+    ///         home_set
+    ///     </c>
+    ///     (node/server.js:5293) as
+    ///     <c>
+    ///         region + server_name
+    ///     </c>
+    ///     . Null on every other frame.
+    /// </summary>
+    [JsonPropertyName("home")]
+    public string? Home { get; init; }
+
+    /// <summary>
     ///     How many hours a pending operation still has to run. Two frames set it: the locksmith's
     ///     <c>
     ///         locksmith_unsealing
@@ -139,11 +153,8 @@ public sealed record GameResponseData : IOptionalObject
     ///     <c>
     ///         sh_time
     ///     </c>
-    ///     (node/server.js:5101). No <see cref="GameResponseType" /> member names
-    ///     <c>
-    ///         sh_time
-    ///     </c>
-    ///     , so nothing observes that one today. It reads zero on every other frame.
+    ///     (node/server.js:5288), which is <see cref="GameResponseType.SetHomeCooldown" />.
+    ///     It reads zero on every other frame.
     /// </summary>
     [JsonPropertyName("hours")]
     public float Hours { get; init; }

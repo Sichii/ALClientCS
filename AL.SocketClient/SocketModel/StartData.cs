@@ -125,6 +125,32 @@ public class StartData : CharacterData
     public IReadOnlyList<string> Friends { get; init; } = new List<string>();
 
     /// <summary>
+    ///     The server this character calls home, as
+    ///     <c>
+    ///         region + server_name
+    ///     </c>
+    ///     (node/server.js:11161).
+    ///     Start-only: never on a later
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame. A successful
+    ///     <c>
+    ///         set_home
+    ///     </c>
+    ///     updates it through
+    ///     <c>
+    ///         game_response
+    ///     </c>
+    ///     <c>
+    ///         home_set
+    ///     </c>
+    ///     , not through this field.
+    /// </summary>
+    [JsonPropertyName("home")]
+    public string? Home { get; init; }
+
+    /// <summary>
     ///     A short-lived token used to re-authenticate to the API without the password.
     /// </summary>
     /// <remarks>
