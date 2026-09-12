@@ -148,6 +148,7 @@ public sealed class NonPublicMemberCharacterization
                      "AL.Client.ALClient.ExclusiveCosmetics",
                      "AL.Client.ALClient.FatalError",
                      "AL.Client.ALClient.Friends",
+                     "AL.Client.ALClient.Home",
                      "AL.Client.ALClient.Identifier",
                      "AL.Client.ALClient.IsPvPServer",
                      "AL.Client.ALClient.IsRecalling",
