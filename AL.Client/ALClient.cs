@@ -134,6 +134,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyList<string> Friends { get; private set; }
 
     /// <summary>
+    ///     The server this character calls home, as
+    ///     <c>
+    ///         region + server_name
+    ///     </c>
+    ///     (node/server.js:11161). Populated from
+    ///     <c>
+    ///         start
+    ///     </c>
+    ///     and rewritten on
+    ///     <c>
+    ///         home_set
+    ///     </c>
+    ///     . Never on a
+    ///     <c>
+    ///         player
+    ///     </c>
+    ///     frame.
+    /// </summary>
+    public string? Home { get; private set; }
+
+    /// <summary>
     ///     Whether the server has this character's
     ///     <c>
     ///         player.computer
@@ -376,6 +397,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Emotion = new Dictionary<Emotion, float>();
         EventsAndBosses = new EventAndBossInfo();
         Friends = new List<string>();
+        Home = null;
         ExclusiveCosmetics = new List<string>();
         OwnedCosmetics = new Dictionary<string, int>();
         Chests = new ConcurrentDictionary<string, DropData>();
@@ -5554,6 +5576,83 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Opens a CX jar in inventory (node/server.js, equip,
+    ///     <c>
+    ///         item.name == "cxjar"
+    ///     </c>
+    ///     ). Unlocks
+    ///     <c>
+    ///         item.data
+    ///     </c>
+    ///     onto the account's cosmetics and consumes one jar.
+    /// </summary>
+    /// <remarks>
+    ///     Same emit as a potion drink (
+    ///     <c>
+    ///         equip
+    ///     </c>
+    ///     with
+    ///     <c>
+    ///         num
+    ///     </c>
+    ///     ), but a jar answers
+    ///     <c>
+    ///         cx_new
+    ///     </c>
+    ///     rather than a
+    ///     <c>
+    ///         pot_timeout
+    ///     </c>
+    ///     eval, so this cannot share <see cref="UsePotAsync" />'s waiter - that path would hang until the network
+    ///     timeout.
+    ///     <br />
+    ///     A locked jar, or one that stores no cosmetic, answers
+    ///     <c>
+    ///         item_locked
+    ///     </c>
+    ///     and is not consumed. Both outcomes return rather than throw, so the caller can tell them apart the way
+    ///     <see cref="ActivateItemAsync" /> tells bank-key refusals apart.
+    /// </remarks>
+    /// <param name="inventorySlot">
+    ///     The inventory index of the jar.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to open cxjar {slot}. (no item)
+    /// </exception>
+    public async Task<GameResponseData> OpenCxJarAsync(int inventorySlot)
+    {
+        var item = Character.Inventory[inventorySlot];
+
+        if (item == null)
+            throw new InvalidOperationException($"Failed to open cxjar {inventorySlot}. (no item)");
+
+        var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.CosmeticNew => source.TrySetResult(data),
+                    GameResponseType.ItemLocked  => source.TrySetResult(data),
+                    _                            => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Equip,
+            new
+            {
+                num = inventorySlot
+            });
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
+
+    /// <summary>
     ///     Asynchronously regens a small amount of hp. Has a shared CD with potions with a 2x multiplier.
     /// </summary>
     /// <exception cref="InvalidOperationException">
@@ -6373,6 +6472,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 break;
             }
+            case GameResponseType.HomeSet when data.Home is { } home:
+            {
+                Home = home;
+
+                break;
+            }
         }
 
         return TaskCache.FALSE;
@@ -6551,6 +6656,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         EventsAndBosses = data.EventAndBossInfo;
         Emotion = data.Emotion;
         Friends = data.Friends;
+        Home = data.Home;
         ExclusiveCosmetics = data.ExclusiveCosmetics;
         OwnedCosmetics = data.OwnedCosmetics;
 

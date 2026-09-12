@@ -441,6 +441,12 @@ public enum GameResponseType
     [EnumMember(Value = "send_no_cx")]
     SendNoCosmetic,
 
+    [EnumMember(Value = "home_set")]
+    HomeSet,
+
+    [EnumMember(Value = "sh_time")]
+    SetHomeCooldown,
+
     [EnumMember(Value = "tavern_not_yet")]
     TavernNotYet,
 

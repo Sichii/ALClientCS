@@ -212,6 +212,8 @@ public class ResponseContractTests
     [Arguments("cx_sent", GameResponseType.CosmeticSent)]
     [Arguments("cx_received", GameResponseType.CosmeticReceived)]
     [Arguments("send_no_cx", GameResponseType.SendNoCosmetic)]
+    [Arguments("home_set", GameResponseType.HomeSet)]
+    [Arguments("sh_time", GameResponseType.SetHomeCooldown)]
     [Arguments("tavern_not_yet", GameResponseType.TavernNotYet)]
     [Arguments("tavern_too_late", GameResponseType.TavernTooLate)]
     [Arguments("tavern_dice_exist", GameResponseType.TavernDiceExist)]
@@ -294,6 +296,57 @@ public class ResponseContractTests
         data.InProgress
             .Should()
             .BeTrue();
+    }
+
+    [Test]
+    public void HomeSetCarriesTheHomeServer()
+    {
+        const string FRAME = @"{ ""response"":""home_set"", ""home"":""USI"", ""success"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(FRAME);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.HomeSet);
+
+        data.Home
+            .Should()
+            .Be("USI");
+    }
+
+    [Test]
+    public void SetHomeCooldownCarriesTheHoursRemaining()
+    {
+        const string FRAME = @"{ ""response"":""sh_time"", ""hours"":12.4, ""failed"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(FRAME);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.SetHomeCooldown);
+
+        data.Hours
+            .Should()
+            .BeApproximately(12.4f, 0.001f);
+    }
+
+    [Test]
+    public void StartDataBindsHomeFromTheJoinPayload()
+    {
+        var start = TestJson.Socket<StartData>(@"{ ""home"":""USI"" }");
+
+        start.Should()
+             .NotBeNull();
+
+        start.Home
+             .Should()
+             .Be("USI");
     }
 
     /// <summary>

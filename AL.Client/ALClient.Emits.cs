@@ -293,10 +293,46 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Sets the character's home point to the current server (node/server.js:5070). Rate-limited to once per 36 hours
-    ///     server-side.
+    ///     Sets this character's home to the current server (node/server.js:5282). The game refuses another change for 36
+    ///     hours.
     /// </summary>
-    public Task SetHomeAsync() => Socket.EmitAsync(ALSocketEmitType.SetHome);
+    /// <returns>
+    ///     <see langword="null" /> when <c>home_set</c> landed (and <see cref="Home" /> is already updated); otherwise the
+    ///     hours still to wait, from <c>sh_time</c>.
+    /// </returns>
+    public async Task<float?> SetHomeAsync()
+    {
+        var source = new TaskCompletionSource<Expectation<float?>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                switch (data.ResponseType)
+                {
+                    case GameResponseType.HomeSet:
+                        if (data.Home is { } home)
+                            Home = home;
+
+                        source.TrySetResult((float?)null);
+
+                        break;
+                    case GameResponseType.SetHomeCooldown:
+                        source.TrySetResult(data.Hours);
+
+                        break;
+                }
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(ALSocketEmitType.SetHome);
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+
+        return expectation.Result;
+    }
 
     /// <summary>
     ///     Triggers a seasonal map-object interaction by type (newyear_tree, redorb, ...) (node/server.js:9892).
