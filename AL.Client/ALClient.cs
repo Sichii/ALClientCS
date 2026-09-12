@@ -5554,6 +5554,83 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Opens a CX jar in inventory (node/server.js, equip,
+    ///     <c>
+    ///         item.name == "cxjar"
+    ///     </c>
+    ///     ). Unlocks
+    ///     <c>
+    ///         item.data
+    ///     </c>
+    ///     onto the account's cosmetics and consumes one jar.
+    /// </summary>
+    /// <remarks>
+    ///     Same emit as a potion drink (
+    ///     <c>
+    ///         equip
+    ///     </c>
+    ///     with
+    ///     <c>
+    ///         num
+    ///     </c>
+    ///     ), but a jar answers
+    ///     <c>
+    ///         cx_new
+    ///     </c>
+    ///     rather than a
+    ///     <c>
+    ///         pot_timeout
+    ///     </c>
+    ///     eval, so this cannot share <see cref="UsePotAsync" />'s waiter - that path would hang until the network
+    ///     timeout.
+    ///     <br />
+    ///     A locked jar, or one that stores no cosmetic, answers
+    ///     <c>
+    ///         item_locked
+    ///     </c>
+    ///     and is not consumed. Both outcomes return rather than throw, so the caller can tell them apart the way
+    ///     <see cref="ActivateItemAsync" /> tells bank-key refusals apart.
+    /// </remarks>
+    /// <param name="inventorySlot">
+    ///     The inventory index of the jar.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to open cxjar {slot}. (no item)
+    /// </exception>
+    public async Task<GameResponseData> OpenCxJarAsync(int inventorySlot)
+    {
+        var item = Character.Inventory[inventorySlot];
+
+        if (item == null)
+            throw new InvalidOperationException($"Failed to open cxjar {inventorySlot}. (no item)");
+
+        var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.CosmeticNew => source.TrySetResult(data),
+                    GameResponseType.ItemLocked  => source.TrySetResult(data),
+                    _                            => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Equip,
+            new
+            {
+                num = inventorySlot
+            });
+
+        return (await source.Task.WithNetworkTimeout()).Result;
+    }
+
+    /// <summary>
     ///     Asynchronously regens a small amount of hp. Has a shared CD with potions with a 2x multiplier.
     /// </summary>
     /// <exception cref="InvalidOperationException">
