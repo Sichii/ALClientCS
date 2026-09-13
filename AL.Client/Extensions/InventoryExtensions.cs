@@ -290,4 +290,103 @@ public static class InventoryExtensions
 
         return candidates.FirstOrDefault(indexed => !occupiedBefore.Contains(indexed.Index)) ?? candidates.FirstOrDefault();
     }
+
+    /// <summary>
+    ///     Finds the inventory slot an exchange prize landed in, and reports only the units gained.
+    /// </summary>
+    /// <param name="after">
+    ///     The inventory after the exchange finished.
+    /// </param>
+    /// <param name="before">
+    ///     The inventory as it stood when the exchange was emitted.
+    /// </param>
+    /// <param name="consumedSlot">
+    ///     The slot the exchange took items from.
+    /// </param>
+    /// <param name="consumedCount">
+    ///     How many units that slot lost to the exchange.
+    /// </param>
+    /// <returns>
+    ///     The prize slot with <see cref="Item.Quantity" /> set to the gained count, or
+    ///     <c>
+    ///         null
+    ///     </c>
+    ///     when nothing was added (gold-only / empty table).
+    /// </returns>
+    /// <remarks>
+    ///     Name/level/quantity are the durable facts: a character frame replaces every
+    ///     <see cref="Item" />
+    ///     , so set-difference on
+    ///     <see cref="InventoryIndexer" />
+    ///     identity subtracts nothing and
+    ///     <c>
+    ///         .First()
+    ///     </c>
+    ///     hands back the lowest occupied slot — the leftover input on a stack of gifts. Newly occupied slots win over a pile
+    ///     that only gained quantity; the consumed slot's expected leftover is
+    ///     <c>
+    ///         before − consumedCount
+    ///     </c>
+    ///     so a prize stacking onto that same pile still reads as a net gain.
+    /// </remarks>
+    public static InventoryIndexer? FindExchangePrize(
+        this Inventory after,
+        IReadOnlyList<Item?> before,
+        int consumedSlot,
+        int consumedCount)
+    {
+        ArgumentNullException.ThrowIfNull(after);
+        ArgumentNullException.ThrowIfNull(before);
+
+        InventoryIndexer? best = null;
+        var bestIsNewSlot = false;
+
+        for (var index = 0; index < after.Count; index++)
+        {
+            var afterItem = after[index];
+
+            if (afterItem is null)
+                continue;
+
+            var beforeItem = index < before.Count ? before[index] : null;
+            int gained;
+            var isNewSlot = beforeItem is null;
+
+            if (beforeItem is null)
+                gained = Math.Max(1, afterItem.Quantity);
+            else if (!beforeItem.Name.EqualsI(afterItem.Name) || (beforeItem.Level != afterItem.Level))
+            {
+                gained = Math.Max(1, afterItem.Quantity);
+                isNewSlot = true;
+            } else
+            {
+                var baseline = beforeItem.Quantity;
+
+                if (index == consumedSlot)
+                    baseline = Math.Max(0, baseline - consumedCount);
+
+                if (afterItem.Quantity <= baseline)
+                    continue;
+
+                gained = afterItem.Quantity - baseline;
+            }
+
+            //a free-slot landing beats a merge onto an existing pile when both somehow move
+            if (best is not null
+                && ((!isNewSlot && bestIsNewSlot) || ((isNewSlot == bestIsNewSlot) && (index >= best.Index))))
+                continue;
+
+            bestIsNewSlot = isNewSlot;
+            best = new InventoryIndexer
+            {
+                Index = index,
+                Item = afterItem with
+                {
+                    Quantity = gained
+                }
+            };
+        }
+
+        return best;
+    }
 }
