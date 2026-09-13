@@ -344,6 +344,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public ConcurrentDictionary<string, ActionData> Projectiles { get; }
 
+    //monsters a killing hit removed, kept until the death frame names them: the server sends the hit first, and the
+    //death frame carries only the id. ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
+    private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
+
     /// <summary>
     ///     <see cref="CallMeter" />'s window, taken against the server's own running total.
     /// </summary>
@@ -6336,8 +6340,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnDeathAsync(DeathData data)
     {
-        //raised before the drop, since the id is all the frame carries and the type is on the entity
-        if (Monsters.TryGetValue(data.Id, out var monster))
+        //raised before the drop, since the id is all the frame carries and the type is on the entity. A killing hit has
+        //already dropped it by now, which is what KilledByHit is for
+        if (KilledByHit.TryRemove(data.Id, out var monster) || Monsters.TryGetValue(data.Id, out monster))
             OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name, data.Points));
 
         DestroyEntity(data.Id);
@@ -6504,8 +6509,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         }
 
         if (data.Kill)
+        {
+            if (Monsters.TryGetValue(data.Id, out var killed))
+                KilledByHit[data.Id] = killed;
+
             DestroyEntity(data.Id);
-        else if (data.Damage != 0)
+        } else if (data.Damage != 0)
         {
             var entity = GetEntity(data.Id);
             entity?.Mutate(new Mutation(ALAttribute.Hp, -data.Damage));
