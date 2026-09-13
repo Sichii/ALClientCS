@@ -13,4 +13,11 @@ namespace AL.Client.Model;
 ///     For a cooperative boss, the server's final tally of points by character name, everyone included; null for any
 ///     other monster.
 /// </param>
-public sealed record MonsterDeathData(string Id, string Type, IReadOnlyDictionary<string, float>? Points = null);
+/// <param name="Level">
+///     The monster's live level on the death frame, which can differ from game data when it has been idle.
+/// </param>
+public sealed record MonsterDeathData(
+    string Id,
+    string Type,
+    IReadOnlyDictionary<string, float>? Points = null,
+    int? Level = null);
