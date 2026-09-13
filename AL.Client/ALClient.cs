@@ -3237,11 +3237,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
-    ///     The item received from the exchange.
+    ///     The prize received from the exchange, with quantity set to units gained, or
+    ///     <c>
+    ///         null
+    ///     </c>
+    ///     when the table paid only gold / nothing.
     /// </returns>
     /// <exception cref="InvalidOperationException">
     /// </exception>
-    public async Task<InventoryIndexer> ExchangeAsync(int inventorySlot)
+    public async Task<InventoryIndexer?> ExchangeAsync(int inventorySlot)
     {
         if (inventorySlot >= Character.InventorySize)
             throw new InvalidOperationException("Failed to exchange. (index out of range)");
@@ -3265,7 +3269,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (itemData.ExchangeCount > item.Quantity)
             throw new InvalidOperationException($"Failed to exchange. (you do not have {itemData.ExchangeCount})");
 
-        var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consumedCount = itemData.ExchangeCount.Value;
+
+        //name/level/qty before the emit — Item references stay readable after ShallowMerge replaces Inventory
+        var before = Character.Inventory.ToList();
+
+        var source = new TaskCompletionSource<Expectation<InventoryIndexer?>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
@@ -3288,7 +3297,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             });
 
         var exchangeStarted = false;
-        Inventory? itemsSnapshot = null;
 
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
@@ -3299,17 +3307,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     && data.QueuedActions.Exchange.CurrentMS.IsNear(data.QueuedActions.Exchange.LengthMS, CORE_CONSTANTS.EPSILON))
                     exchangeStarted = true;
 
-                if (exchangeStarted)
-                {
-                    if (data.QueuedActions?.Exchange == null)
-                        source.TrySetResult(
-                            Character.Inventory
-                                     .AsIndexed()
-                                     .Except(itemsSnapshot!.AsIndexed())
-                                     .First());
-                    else
-                        itemsSnapshot = Character.Inventory;
-                }
+                //queue cleared after start: prize is whatever rose above the pre-emit baseline (not Except→First)
+                if (exchangeStarted && (data.QueuedActions?.Exchange == null))
+                    source.TrySetResult(Character.Inventory.FindExchangePrize(before, inventorySlot, consumedCount));
 
                 return TaskCache.FALSE;
             });
