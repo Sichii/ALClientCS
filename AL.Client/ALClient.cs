@@ -6343,7 +6343,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //raised before the drop, since the id is all the frame carries and the type is on the entity. A killing hit has
         //already dropped it by now, which is what KilledByHit is for
         if (KilledByHit.TryRemove(data.Id, out var monster) || Monsters.TryGetValue(data.Id, out monster))
-            OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name, data.Points));
+            OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name, data.Points, monster.Level));
 
         DestroyEntity(data.Id);
 
