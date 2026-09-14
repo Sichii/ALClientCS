@@ -112,6 +112,7 @@ public class Program
 
         var gameData = await AlApiClient.GetGameDataAsync();
         var jObj = JsonNode.Parse(gameData)!.AsObject();
+        var version = jObj["version"]!.GetValue<int>();
 
         if (!Directory.Exists(FOLDER_NAME))
             Directory.CreateDirectory(FOLDER_NAME);
@@ -158,5 +159,23 @@ public class Program
                     builder.ToString()
                            .Trim());
             });
+
+        //the value half of a refresh: the member files say which keys moved, and only the previous fetch can say which
+        //values moved behind the keys that stayed. Kept beside the tool that fetched it, so the diff is the same
+        //wherever the refresh is run from
+        if (Snapshots.BaselineFor(version) is { } baseline)
+        {
+            var old = JsonNode.Parse(await File.ReadAllTextAsync(baseline))!.AsObject();
+
+            Console.WriteLine(
+                $"values: {old["version"]} ({Path.GetFileName(baseline)}, fetched {File.GetLastWriteTime(baseline):yyyy-MM-dd}) -> {version}");
+
+            foreach (var line in Snapshots.Diff(old, jObj))
+                Console.WriteLine(line);
+        } else
+            Console.WriteLine($"no earlier snapshot under {Snapshots.FOLDER_NAME}/; nothing to compare on a first run.");
+
+        await Snapshots.FileAwayAsync(gameData, version);
+        Console.WriteLine($"filed {Snapshots.FOLDER_NAME}/G-{version}.json; keeping the {Snapshots.KEEP} newest");
     }
 }

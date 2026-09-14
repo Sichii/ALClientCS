@@ -67,7 +67,7 @@ ALClientCS.slnx (net10.0)
 ├── AL.SocketClient    — socket.io transport and the raw socket event model (SocketIOClient)
 ├── AL.Pathfinding     — exact server movement rules, triangle mesh + funnel (Poly2Tri at build), portal graph
 ├── AL.Client          — ALClient and per-class subclasses; the public entry point
-├── AL.MemberGenerator — codegen console tool, emits a `dataMembers` folder (not shipped)
+├── AL.MemberGenerator — codegen console tool, emits a `dataMembers` folder and keeps the previous G fetch under `snapshots/` for a value diff (not shipped)
 ├── AL.Visualizer      — standalone CLI that renders navmeshes/paths to PNG via SkiaSharp (not shipped)
 └── AL.Tests           — TUnit + FluentAssertions
 ```

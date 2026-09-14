@@ -381,3 +381,6 @@ docs/
 
 # memsearch index/tool state
 .memsearch/
+
+# AL.MemberGenerator keeps the previous G fetches here, for the value diff it prints on the next run
+/snapshots/
