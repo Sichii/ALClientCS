@@ -6,8 +6,10 @@ using AL.Client;
 using AL.Client.Model;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
+using AL.Data;
 using AL.SocketClient;
 using AL.SocketClient.Model;
+using AL.Tests.Characterization;
 using Common.Logging;
 using FluentAssertions;
 #endregion
@@ -16,11 +18,55 @@ namespace AL.Tests.Client.Tests;
 
 /// <summary>
 ///     FindOptimalBankIndex is public, and the contract of its explicit-slot branch is what any bank-organize routine
-///     builds on. None of these needs a socket or game data: the explicit branch returns before it reads either.
+///     builds on. The explicit-slot tests need neither a socket nor game data: that branch returns before it reads
+///     either. The stacking tests read an item's stack size off the committed snapshot.
 /// </summary>
+[NotInParallel(ParallelKeys.GAME_DATA)]
 public class BankIndexTests
 {
     private const BankPack PACK = BankPack.Items0;
+
+    [Before(Class)]
+    public static void EnsureGameData()
+    {
+        //from the committed snapshot so no credentials are needed, the way ProjectileMitigationTests does it
+        if (GameData.Version == 0)
+            GameData.Populate(Fixture.GameDataJson);
+    }
+
+    [Test]
+    public void APileWhoseDataDiffersIsNotOfferedAsAStackTarget()
+    {
+        //the server stacks two cxjars only when their data agrees (js/old_common_functions.js:396). A name-only match
+        //handed the store sentinel to a pack whose one cxjar held another appearance, and in a full pack the server
+        //answered storage_full on every trip while the vault had room elsewhere
+        var client = ClientHolding(Item("cxjar", "makeawish"));
+
+        client.FindOptimalBankIndex(Indexed("cxjar", "ikissyou"), PACK)
+              .Should()
+              .Be((PACK, 1));
+    }
+
+    [Test]
+    public void APileWhoseDataAgreesIsOfferedAsAStackTarget()
+    {
+        var client = ClientHolding(Item("cxjar", "makeawish"));
+
+        client.FindOptimalBankIndex(Indexed("cxjar", "makeawish"), PACK)
+              .Should()
+              .Be((PACK, -1));
+    }
+
+    [Test]
+    public void ALockedPileIsNotOfferedAsAStackTarget()
+    {
+        //can_stack refuses a locked pile outright (js/old_common_functions.js:398)
+        var client = ClientHolding(Item("hpot0") with { LockType = ItemLockType.Locked });
+
+        client.FindOptimalBankIndex(Indexed("hpot0"), PACK)
+              .Should()
+              .Be((PACK, 1));
+    }
 
     [Test]
     public void ANamedOccupiedSlotIsReturnedRatherThanRefused()
@@ -91,18 +137,19 @@ public class BankIndexTests
         return client;
     }
 
-    private static InventoryIndexer Indexed(string name)
+    private static InventoryIndexer Indexed(string name, string? data = null)
         => new()
         {
             Index = 0,
-            Item = Item(name)
+            Item = Item(name, data)
         };
 
-    private static Item Item(string name)
+    private static Item Item(string name, string? data = null)
         => new()
         {
             Name = name,
-            Quantity = 1
+            Quantity = 1,
+            Data = data
         };
 
     [Test]

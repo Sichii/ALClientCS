@@ -4470,8 +4470,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="distance">
     ///     The distance from the location that it is acceptable to stop at.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4482,9 +4483,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveAsync(
         IPoint point,
         float distance = 0,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync([new Destination(new Location(Character.Map, point), distance)], useTownIfOptimal, cancellationToken);
+        => SmartMoveAsync([new Destination(new Location(Character.Map, point), distance)], options, cancellationToken);
 
     /// <summary>
     ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -4496,8 +4497,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4508,11 +4510,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveAsync(
         IEnumerable<IPoint> endPoints,
         float distance = 0,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
         => SmartMoveAsync(
             endPoints.Select(point => new Destination(new Location(Character.Map, point), distance)),
-            useTownIfOptimal,
+            options,
             cancellationToken);
 
     /// <summary>
@@ -4524,8 +4526,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="distance">
     ///     The distance from the location that it is acceptable to stop at.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4537,9 +4540,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveAsync(
         ILocation location,
         float distance = 0,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync([new Destination(location, distance)], useTownIfOptimal, cancellationToken);
+        => SmartMoveAsync([new Destination(location, distance)], options, cancellationToken);
 
     /// <summary>
     ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -4551,8 +4554,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4563,9 +4567,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveAsync(
         IEnumerable<ILocation> endLocations,
         float distance = 0,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync(endLocations.Select(l => new Destination(l, distance)), useTownIfOptimal, cancellationToken);
+        => SmartMoveAsync(endLocations.Select(l => new Destination(l, distance)), options, cancellationToken);
 
     /// <summary>
     ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding.
@@ -4573,8 +4577,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="endDestinations">
     ///     A collection of potential end locations.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4582,36 +4587,44 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentNullException">
     ///     locations
     /// </exception>
-    public Task SmartMoveAsync<T>(IEnumerable<T> endDestinations, bool useTownIfOptimal = true, CancellationToken? cancellationToken = null)
+    public Task SmartMoveAsync<T>(IEnumerable<T> endDestinations, PathOptions? options = null, CancellationToken? cancellationToken = null)
         where T: ILocation, ICircle
         => SmartMoveAsync(
             endDestinations,
-            useTownIfOptimal,
+            options ?? PathOptions.Default,
+            null,
             null,
             cancellationToken);
 
     /// <summary>
-    ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding, with town recall
-    ///     suppressed on one map.
+    ///     Asynchronously moves to any number of locations that may or may not require complex pathfinding, with town recall
+    ///     and blink each suppressed on one map.
     /// </summary>
     /// <param name="endDestinations">
     ///     A collection of potential end locations.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability. What the caller asked for, kept whole across a refusal.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. What the caller asked for, kept whole across a refusal.
+    ///     The walker fills in the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="townBlockedOn">
     ///     The map a recall was just refused on, or null. The server refuses one while more than five things are targeting the
     ///     character, which is a fact about standing here rather than about the trip - so it is the map that carries the
     ///     suppression, and leaving it brings the option back.
     /// </param>
+    /// <param name="blinkBlockedOn">
+    ///     The map a blink was just refused on, or null. The server refuses one when it finds nowhere to land the
+    ///     character, and a dampened or dead character cannot cast at all - facts about standing here rather than about
+    ///     the trip, so it is the map that carries the suppression, and leaving it brings the option back.
+    /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
     /// </param>
     private async Task SmartMoveAsync<T>(
         IEnumerable<T> endDestinations,
-        bool useTownIfOptimal,
+        PathOptions options,
         string? townBlockedOn,
+        string? blinkBlockedOn,
         CancellationToken? cancellationToken) where T: ILocation, ICircle
     {
         if (endDestinations.Equals(default))
@@ -4623,6 +4636,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 EdgeType.Walk      => MoveAsync(pathConnector.End, innerToken),
                 EdgeType.Town      => UseTownAsync(innerToken),
+                EdgeType.Blink     => BlinkLegAsync(pathConnector, options.BlinkMpReserve, innerToken),
                 EdgeType.Leave     => LeaveMapAsync(),
                 EdgeType.Door      => TransportAsync(pathConnector.End.Map, ((Exit)pathConnector.Start).ToSpawnIndex),
                 EdgeType.Transport => TransportAsync(pathConnector.End.Map, ((Exit)pathConnector.Start).ToSpawnIndex),
@@ -4638,12 +4652,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //the suppression decided here covers the whole route rather than the map being left: recall off leaves no
         //recall leg anywhere on it. Priced against this character's own speed: the channel is a fixed three seconds,
-        //so what it is worth is however far this character would have walked in them
+        //so what it is worth is however far this character would have walked in them. Blink is priced only for a
+        //mage, and not while a refusal on this map is still remembered
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
-            useTownIfOptimal && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
-            Character.Speed);
+            options with
+            {
+                WalkSpeed = Character.Speed,
+                UseTown = options.UseTown && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
+                BlinkCost = this is Mage && (blinkBlockedOn?.EqualsI(start.Map) != true) && !BlinkRecentlyFailedOn(start.Map)
+                    ? options.BlinkCost
+                    : null
+            });
 
         //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
         //the silent exits below are ordinary, and a caller only ever sees this method return
@@ -4693,7 +4714,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                     await SmartMoveAsync(
                         ends,
-                        useTownIfOptimal,
+                        options,
+                        Character.Map,
+                        blinkBlockedOn,
+                        cancellationToken);
+                }
+
+                //a refused cast is carried the same way: this map is walked or recalled across by a search that no
+                //longer prices a cast here, and later maps still blink
+                else if (edge.Type == EdgeType.Blink)
+                {
+                    BlinkFailures[Character.Map] = Stopwatch.GetTimestamp();
+
+                    await SmartMoveAsync(
+                        ends,
+                        options,
+                        townBlockedOn,
                         Character.Map,
                         cancellationToken);
                 }
@@ -4702,12 +4738,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             }
 
             //whatever was targeting the character is gone with the map, so recall is worth planning around again -
-            //and the path in hand was planned without it, so getting the option back means planning again
-            if (townBlockedOn?.EqualsI(Character.Map) == false)
+            //and the path in hand was planned without it, so getting the option back means planning again. A refused
+            //cast was a fact about the map left the same way
+            if ((townBlockedOn?.EqualsI(Character.Map) == false) || (blinkBlockedOn?.EqualsI(Character.Map) == false))
             {
                 await SmartMoveAsync(
                     ends,
-                    useTownIfOptimal,
+                    options,
+                    null,
                     null,
                     cancellationToken);
 
@@ -4731,8 +4769,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4746,7 +4785,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveToMapAsync(
         string mapName,
         float distance = 0f,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
     {
         if (string.IsNullOrEmpty(mapName))
@@ -4763,7 +4802,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return SmartMoveAsync(
             spawnLoc,
             distance,
-            useTownIfOptimal,
+            options,
             cancellationToken);
     }
 
@@ -4776,8 +4815,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="pickRandomSpawn">
     ///     Changes the behavior from closest spawn to random spawn.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4791,7 +4831,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveToMonsterAsync(
         string monsterName,
         bool pickRandomSpawn = false,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
     {
         if (string.IsNullOrEmpty(monsterName))
@@ -4809,7 +4849,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                                    .Take(1)
                                    .ToList();
 
-        return SmartMoveAsync(spawnAreas, useTownIfOptimal, cancellationToken);
+        return SmartMoveAsync(spawnAreas, options, cancellationToken);
     }
 
     /// <summary>
@@ -4821,8 +4861,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether or not to consider using town ability.
+    /// <param name="options">
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
+    ///     the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">
     ///     A token used to cancel this action.
@@ -4836,7 +4877,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public Task SmartMoveToNPCAsync(
         string npcId,
         float distance = CORE_CONSTANTS.NPC_RANGE,
-        bool useTownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
     {
         if (string.IsNullOrEmpty(npcId))
@@ -4850,18 +4891,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return SmartMoveAsync(
             nData.Locations,
             distance,
-            useTownIfOptimal,
+            options,
             cancellationToken);
     }
 
     public Task SmartMoveNearAreaAsync(
         InscribedBoundary boundary,
-        bool usetownIfOptimal = true,
+        PathOptions? options = null,
         CancellationToken? cancellationToken = null)
         => SmartMoveAsync(
             boundary,
             boundary.Radius,
-            usetownIfOptimal,
+            options,
             cancellationToken);
 
     /// <summary>
@@ -5799,6 +5840,87 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     private bool TownRecentlyFailedOn(string map)
         => TownFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
+
+    /// <summary>
+    ///     Maps this character has lately been refused a blink on, and when it last was on each.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, long> BlinkFailures = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     How often the wait at a blink leg re-reads the bar and the cooldown.
+    /// </summary>
+    private const int BLINK_WAIT_POLL_MS = 250;
+
+    /// <summary>
+    ///     How long after the cast is accepted a landing may take to arrive. The server holds a blink for 200ms before it
+    ///     moves the character, and the frame then has a round trip to make.
+    /// </summary>
+    private const int BLINK_LANDING_TIMEOUT_MS = 3000;
+
+    /// <summary>
+    ///     Whether a cast is still being kept off the table for <paramref name="map" />. The recall's window, for the
+    ///     recall's reason: a lane polling at 10Hz would otherwise re-plan straight onto the cast that was just refused.
+    /// </summary>
+    private bool BlinkRecentlyFailedOn(string map)
+        => BlinkFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
+
+    /// <summary>
+    ///     One blink leg of a route: stand still until the bar and the cooldown allow the cast, cast, and wait for the
+    ///     landing.
+    /// </summary>
+    /// <remarks>
+    ///     Dampened is a refusal rather than a wait: Lucinda's aura and Franky's fieldgens set it, and standing still never
+    ///     clears it. Death is a refusal for the same reason. Everything else is waited out without a cap - the cancellation
+    ///     token is what ends the wait early, and a cancelled walk leaves the character standing anyway. Dampened is
+    ///     re-read inside the wait, since an aura can arrive during it.
+    ///     <br />
+    ///     The server answers blink_failed before charging when it finds nowhere to put the character; the skill core turns
+    ///     that into the thrown failure the leg loop catches. A cast it accepts lands after its hold as a new_map frame whose
+    ///     effect is the blink's, on the pattern <see cref="UseTownAsync" /> uses for its own effect - the landing is that
+    ///     frame, not a position poll.
+    /// </remarks>
+    private async Task BlinkLegAsync(PathEdge edge, float mpReserve, CancellationToken? token)
+    {
+        if (this is not Mage mage)
+            throw new InvalidOperationException("Failed to blink. (not a mage)");
+
+        var cancellation = token ?? CancellationToken.None;
+        var needed = GameData.Skills.Blink.MP + mpReserve;
+
+        while (true)
+        {
+            if (Character.RIP || Character.Conditions.ContainsKey(Condition.Dampened))
+                throw new InvalidOperationException("Failed to blink. (dampened or dead)");
+
+            if ((Character.MP >= needed) && IsOffCooldown("blink"))
+                break;
+
+            await Task.Delay(BLINK_WAIT_POLL_MS, cancellation);
+        }
+
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        //registered before the cast: the frame can beat the skill's own acknowledgement back
+        using var newMapCallback = Socket.On<NewMapData>(
+            ALSocketMessageType.NewMap,
+            data =>
+            {
+                if (data.Effect == DisappearEffect.Blink)
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        await mage.BlinkAsync(edge.End.X, edge.End.Y);
+
+        var landed = await source.Task.WithTimeout(BLINK_LANDING_TIMEOUT_MS);
+        landed.ThrowIfUnsuccessful();
+
+        //a cast that lands says the map takes blinks after all, so an older refusal stops speaking for it; and it is
+        //the one line that says a teleport happened, since a mage crossing maps by cast otherwise reads like a walk
+        BlinkFailures.TryRemove(Character.Map, out _);
+        Logger.Debug($"Blinked to {edge.End}.");
+    }
 
     /// <summary>
     ///     Asynchronously uses the town ability to go to spawn index 0 on the current map.
@@ -6910,8 +7032,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     firstEmptySlot ??= (bankPackIndex, itemSlotIndex);
                 }
 
-                //check if the item can stack onto this banked item
-                else if ((stackSize > 1) && item.Name.EqualsI(bankedItem.Name) && ((item.Quantity + bankedItem.Quantity) <= stackSize))
+                //the server's own stacking rule, not a name match: -1 makes the server pick, and it picks an empty slot
+                //of this pack or a pile can_stack accepts. A pile this refuses in a pack with no empty slot is
+                //storage_full however much room the other packs have, and it was - a cxjar holding one appearance
+                //against a banked cxjar holding another
+                else if (item.CanStackWith(bankedItem))
 
                     //-1 allows the item to automatically stack
                     return (bankPackIndex, -1);

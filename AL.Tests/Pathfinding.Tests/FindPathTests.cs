@@ -300,7 +300,7 @@ public class FindPathTests : PathfindingTestBed
                   .Should()
                   .NotBeEmpty($"the premise is a recall taken mid-route: {string.Join(" ", withRecall.Select(edge => edge.Type))}");
 
-        var withoutRecall = await Pathfinder.FindPathAsync(start, [end], false)
+        var withoutRecall = await Pathfinder.FindPathAsync(start, [end], PathOptions.NoTown)
                                             .ToArrayAsync();
 
         withoutRecall.Should()

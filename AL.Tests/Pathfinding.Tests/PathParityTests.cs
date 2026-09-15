@@ -46,6 +46,7 @@ public class PathParityTests : PathfindingTestBed
         var unexpected = new List<int>();
         var longer = new List<string>();
         var crossing = new List<string>();
+        var blinks = new List<string>();
         var newMicros = 0.0;
         var newBytes = 0L;
         var oldMicros = 0.0;
@@ -79,8 +80,13 @@ public class PathParityTests : PathfindingTestBed
                 longer.Add($"#{recorded.Id} {recorded.Start.Map}->{recorded.End.Map} old {recorded.Cost:F0} new {cost:F0}");
 
             foreach (var edge in path)
+            {
                 if ((edge.Type == EdgeType.Walk) && !Pathfinder.CanMove(edge.Start, edge.End))
                     crossing.Add($"#{recorded.Id} {ILocation.ToString(edge.Start)} -> {ILocation.ToString(edge.End)}");
+
+                if (edge.Type == EdgeType.Blink)
+                    blinks.Add($"#{recorded.Id} {ILocation.ToString(edge.Start)} -> {ILocation.ToString(edge.End)}");
+            }
         }
 
         Console.WriteLine(
@@ -94,6 +100,9 @@ public class PathParityTests : PathfindingTestBed
 
         crossing.Should()
                 .BeEmpty("no walk leg may cross a wall line");
+
+        blinks.Should()
+              .BeEmpty("a route priced without blink carries no blink leg");
 
         longer.Should()
               .HaveCountLessThanOrEqualTo(

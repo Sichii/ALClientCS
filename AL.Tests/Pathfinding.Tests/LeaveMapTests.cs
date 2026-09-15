@@ -143,7 +143,7 @@ public class LeaveMapTests : PathfindingTestBed
     [Test]
     public async Task TheTripOffCyberlandStandsWithoutRecallAtAll()
     {
-        var path = await Pathfinder.FindPathAsync(INSIDE_CYBERLAND, [FAR_RIGHT_OF_MAIN], false)
+        var path = await Pathfinder.FindPathAsync(INSIDE_CYBERLAND, [FAR_RIGHT_OF_MAIN], PathOptions.NoTown)
                                    .ToArrayAsync();
 
         path.Should()

@@ -70,29 +70,18 @@ public static class Pathfinder
     /// <param name="ends">
     ///     Any of these is an acceptable destination; the cheapest to reach is chosen.
     /// </param>
-    /// <param name="useTownIfOptimal">
-    ///     Whether a recall counts as a move. True prices one from anywhere on the route, the start map and every map the
-    ///     route lands on alike; false leaves the route without a single recall leg.
+    /// <param name="options">
+    ///     How the route is priced; <see cref="PathOptions.Default" /> when null.
     /// </param>
-    /// <param name="walkSpeed">
-    ///     The character's speed, which prices a recall; nominal when null.
-    /// </param>
-    public static IReadOnlyList<PathEdge> FindPath<T>(
-        ILocation start,
-        IEnumerable<T> ends,
-        bool useTownIfOptimal = true,
-        float? walkSpeed = null) where T: ILocation, ICircle
+    public static IReadOnlyList<PathEdge> FindPath<T>(ILocation start, IEnumerable<T> ends, PathOptions? options = null)
+        where T: ILocation, ICircle
     {
         ArgumentNullException.ThrowIfNull(start);
         ArgumentNullException.ThrowIfNull(ends);
 
         var graph = Graph ?? throw new InvalidOperationException("Pathfinder.Initialize has not run.");
 
-        return graph.FindPath(
-            start,
-            ends,
-            useTownIfOptimal,
-            walkSpeed);
+        return graph.FindPath(start, ends, options ?? PathOptions.Default);
     }
 
     /// <inheritdoc cref="FindPath{T}" />
@@ -103,16 +92,9 @@ public static class Pathfinder
     ///     </c>
     ///     . The search itself runs to completion on the calling thread before the first leg is yielded.
     /// </remarks>
-    public static IAsyncEnumerable<PathEdge> FindPathAsync<T>(
-        ILocation start,
-        IEnumerable<T> ends,
-        bool useTownIfOptimal = true,
-        float? walkSpeed = null) where T: ILocation, ICircle
-        => FindPath(
-                start,
-                ends,
-                useTownIfOptimal,
-                walkSpeed)
+    public static IAsyncEnumerable<PathEdge> FindPathAsync<T>(ILocation start, IEnumerable<T> ends, PathOptions? options = null)
+        where T: ILocation, ICircle
+        => FindPath(start, ends, options)
             .ToAsyncEnumerable();
 
     /// <summary>

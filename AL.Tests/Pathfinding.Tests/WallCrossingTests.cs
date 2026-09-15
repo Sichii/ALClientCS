@@ -291,7 +291,7 @@ public class WallCrossingTests : PathfindingTestBed
     {
         try
         {
-            return await Pathfinder.FindPathAsync(start, [new Destination(end, 0f)], false)
+            return await Pathfinder.FindPathAsync(start, [new Destination(end, 0f)], PathOptions.NoTown)
                                    .ToArrayAsync();
         } catch (InvalidOperationException)
         {

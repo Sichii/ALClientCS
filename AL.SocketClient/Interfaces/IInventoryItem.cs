@@ -1,6 +1,7 @@
 #region
 using AL.APIClient.Interfaces;
 using AL.Core.Definitions;
+using AL.SocketClient.Model;
 #endregion
 
 namespace AL.SocketClient.Interfaces;
@@ -52,4 +53,14 @@ public interface IInventoryItem : ICommonItem
     ///     This item is volatile until this date, if you die to another player you may lose it.
     /// </summary>
     string? Volatile { get; init; }
+
+    /// <summary>
+    ///     Item-specific payload: on a cxjar, the appearance inside it. Two cxjars with different data never stack.
+    /// </summary>
+    string? Data { get; init; }
+
+    /// <summary>
+    ///     The title (shiny, glitched, ...) on the item, if any. Two piles with different titles never stack.
+    /// </summary>
+    Prediction? Prediction { get; init; }
 }

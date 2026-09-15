@@ -32,7 +32,7 @@ public class IceGolemCorridorTests : PathfindingTestBed
     [Test]
     public async Task TheCorridorReachesTheIslandWithoutAJailableLeg()
     {
-        var path = await Pathfinder.FindPathAsync(TOWN, [new Destination(GOLEM_SPAWN, 0f)], false)
+        var path = await Pathfinder.FindPathAsync(TOWN, [new Destination(GOLEM_SPAWN, 0f)], PathOptions.NoTown)
                                    .ToArrayAsync();
 
         path.Should()

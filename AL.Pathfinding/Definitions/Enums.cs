@@ -18,5 +18,6 @@ public enum EdgeType : byte
     Town = 1 << 1,
     Transport = 1 << 2,
     Door = 1 << 3,
-    Leave = 1 << 4
+    Leave = 1 << 4,
+    Blink = 1 << 5
 }

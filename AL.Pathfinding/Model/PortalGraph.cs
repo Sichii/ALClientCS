@@ -169,10 +169,21 @@ internal sealed class PortalGraph
                     target.Reach,
                     scratch);
 
-                //float.MaxValue is WalkCost's unreachable sentinel, so this is an identity test, not a measurement
+                //float.MaxValue is WalkCost's unreachable sentinel, so this is an identity test, not a measurement.
+                //a pair no walk joins is still one cast apart - a blink lands anywhere on the map - so it gets a
+                //blink-only edge, priced per search and ignored while blink is off
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
                 if (cost == float.MaxValue)
+                {
+                    edges.Add(
+                        new Edge(
+                            index,
+                            departure,
+                            EdgeType.Blink,
+                            float.MaxValue));
+
                     continue;
+                }
 
                 edges.Add(
                     new Edge(
@@ -223,17 +234,17 @@ internal sealed class PortalGraph
     /// <exception cref="InvalidOperationException">
     ///     No end can be reached.
     /// </exception>
-    public IReadOnlyList<PathEdge> FindPath<T>(
-        ILocation start,
-        IEnumerable<T> ends,
-        bool useTownIfOptimal,
-        float? walkSpeed) where T: ILocation, ICircle
+    public IReadOnlyList<PathEdge> FindPath<T>(ILocation start, IEnumerable<T> ends, PathOptions options) where T: ILocation, ICircle
     {
         if (!Meshes.TryGetValue(start.Map, out var startMesh))
             throw new InvalidOperationException($"No mesh for the map \"{start.Map}\".");
 
         var scratch = SearchScratch.Rent();
-        var townCost = CONSTANTS.TownCost(walkSpeed ?? CONSTANTS.NOMINAL_WALK_SPEED);
+        var townCost = CONSTANTS.TownCost(options.WalkSpeed ?? CONSTANTS.NOMINAL_WALK_SPEED);
+
+        //no cast is worth more than any walk, so a price nothing exceeds is the same as no blink at all
+        var blinkCost = options.BlinkCost ?? float.MaxValue;
+        var blinkOn = options.BlinkCost is not null;
         var result = new List<PathEdge>();
 
         //a start the server would refuse to move from steps onto the nearest accepted cell first
@@ -315,6 +326,13 @@ internal sealed class PortalGraph
                             firstEnd + j,
                             EdgeType.Walk,
                             endOffset + cost));
+                else if (blinkOn)
+                    scratch.SearchEdges.Add(
+                        new Edge(
+                            arrival,
+                            firstEnd + j,
+                            EdgeType.Blink,
+                            float.MaxValue));
             }
         }
 
@@ -342,6 +360,13 @@ internal sealed class PortalGraph
                         departure,
                         EdgeType.Walk,
                         startOffset + cost));
+            else if (blinkOn)
+                scratch.SearchEdges.Add(
+                    new Edge(
+                        startNode,
+                        departure,
+                        EdgeType.Blink,
+                        float.MaxValue));
         }
 
         for (var j = 0; j < endList.Count; j++)
@@ -363,11 +388,18 @@ internal sealed class PortalGraph
                         firstEnd + j,
                         EdgeType.Walk,
                         startOffset + cost));
+            else if (blinkOn)
+                scratch.SearchEdges.Add(
+                    new Edge(
+                        startNode,
+                        firstEnd + j,
+                        EdgeType.Blink,
+                        float.MaxValue));
         }
 
         var startMap = GameData.Maps[start.Map];
 
-        if (useTownIfOptimal && startMap is { Boundless: false } && ArrivalIndex.TryGetValue((start.Map, 0), out var startTown))
+        if (options.UseTown && startMap is { Boundless: false } && ArrivalIndex.TryGetValue((start.Map, 0), out var startTown))
             scratch.SearchEdges.Add(
                 new Edge(
                     startNode,
@@ -407,7 +439,8 @@ internal sealed class PortalGraph
                         i,
                         cost,
                         townCost,
-                        useTownIfOptimal,
+                        options.UseTown,
+                        blinkCost,
                         scratch);
 
             for (var i = 0; i < scratch.SearchEdges.Count; i++)
@@ -417,20 +450,22 @@ internal sealed class PortalGraph
                         StaticEdges.Length + i,
                         cost,
                         townCost,
-                        useTownIfOptimal,
+                        options.UseTown,
+                        blinkCost,
                         scratch);
         }
 
         if (winner < 0)
             throw new InvalidOperationException($"No path from {ILocation.ToString(start)} to any of {endList.Count} end(s).");
 
-        //the chain from the start to the winner, read back through the parents. Its own list, since TryWalk
-        //below reuses the corridor list
+        //the chain of nodes from the start to the winner, read back through the parents; each node names the edge that
+        //reached it and whether that edge was cast rather than walked. Its own list, since TryWalk below reuses the
+        //corridor list
         var chain = scratch.Chain;
         chain.Clear();
 
         for (var node = winner; node != startNode; node = scratch.NodeParent[node])
-            chain.Add(scratch.NodeParentEdge[node]);
+            chain.Add(node);
 
         chain.Reverse();
 
@@ -442,12 +477,52 @@ internal sealed class PortalGraph
         //the scratch still holds the start map's search, which the first walk is read from
         var startSearchHeld = true;
 
-        foreach (var edgeIndex in chain)
+        foreach (var node in chain)
         {
+            var edgeIndex = scratch.NodeParentEdge[node];
             var edge = edgeIndex < StaticEdges.Length ? StaticEdges[edgeIndex] : scratch.SearchEdges[edgeIndex - StaticEdges.Length];
+            var blinked = scratch.NodeBlinked[node];
 
             switch (edge.Type)
             {
+                //a walk the search charged at the cast's price, or a pair no walk joins at all: one teleport from
+                //wherever the cursor stands to the target, carrying the walked length it replaces - or, where there is
+                //no walk, the ruler between the two. no funnel, since the server resolves a landing against the point
+                //asked for rather than walking there. nothing walks out of a landing: an exit's only edges are its
+                //door or transporter, and an end is the last node
+                case EdgeType.Blink:
+                case EdgeType.Walk when blinked:
+                {
+                    if (edge.To >= firstEnd)
+                    {
+                        var target = endList[edge.To - firstEnd];
+                        var ruler = cursorPoint.Distance(new Point(target.X, target.Y));
+
+                        result.Add(
+                            new PathEdge(
+                                EdgeType.Blink,
+                                cursor,
+                                target,
+                                edge.Type == EdgeType.Blink ? ruler : edge.Cost));
+                        cursor = target;
+                    } else
+                    {
+                        var exit = Nodes[edge.To];
+
+                        result.Add(
+                            new PathEdge(
+                                EdgeType.Blink,
+                                cursor,
+                                new Location(exit.Location.Map, exit.Entry),
+                                edge.Type == EdgeType.Blink ? cursorPoint.Distance(exit.Entry) : edge.Cost));
+                        MoveCursor(exit);
+                    }
+
+                    startSearchHeld = false;
+
+                    break;
+                }
+
                 case EdgeType.Walk:
                 {
                     var isEnd = edge.To >= firstEnd;
@@ -629,6 +704,7 @@ internal sealed class PortalGraph
         float costSoFar,
         float townCost,
         bool useTown,
+        float blinkCost,
         SearchScratch scratch)
     {
         //recall off means no recall anywhere on the route: the static town edges out of every arrival node are the
@@ -636,7 +712,22 @@ internal sealed class PortalGraph
         if (!useTown && (edge.Type == EdgeType.Town))
             return;
 
-        var cost = costSoFar + (edge.Type == EdgeType.Town ? townCost : edge.Cost);
+        //a pair only a cast joins stays unjoined while blink is off
+        if ((edge.Type == EdgeType.Blink) && (blinkCost >= float.MaxValue))
+            return;
+
+        //a blink stands in for a walk on the same map, and the walk edges already join the pairs a cast can reach - so
+        //rather than edges of its own, a walk dearer than the cast is charged the cast instead. the mark rides the node,
+        //so the expansion emits a teleport rather than funnelling the walk
+        var blinked = (edge.Type == EdgeType.Blink) || ((edge.Type == EdgeType.Walk) && (edge.Cost > blinkCost));
+
+        var cost = costSoFar
+                   + edge.Type switch
+                   {
+                       EdgeType.Town  => townCost,
+                       _ when blinked => blinkCost,
+                       _              => edge.Cost
+                   };
 
         if (cost >= scratch.NodeCost[edge.To])
             return;
@@ -644,6 +735,7 @@ internal sealed class PortalGraph
         scratch.NodeCost[edge.To] = cost;
         scratch.NodeParent[edge.To] = edge.From;
         scratch.NodeParentEdge[edge.To] = edgeIndex;
+        scratch.NodeBlinked[edge.To] = blinked;
         scratch.NodeQueue.Enqueue(edge.To, cost);
     }
 

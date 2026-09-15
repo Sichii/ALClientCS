@@ -244,6 +244,12 @@ public enum GameResponseType
     [EnumMember(Value = "inventory_full")]
     InventoryFull,
 
+    /// <summary>
+    ///     A bank store into a pack with no empty slot and no pile the item stacks onto (node/server.js:8919).
+    /// </summary>
+    [EnumMember(Value = "storage_full")]
+    StorageFull,
+
     [EnumMember(Value = "no_space")]
     NoSpace,
 

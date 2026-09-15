@@ -1,8 +1,11 @@
 #region
 using AL.APIClient.Interfaces;
 using AL.Client.Definitions;
+using AL.Core.Definitions;
 using AL.Data;
 using AL.Data.Items;
+using AL.SocketClient.Interfaces;
+using Chaos.Extensions.Common;
 #endregion
 
 namespace AL.Client.Extensions;
@@ -125,6 +128,47 @@ public static class ItemExtensions
         return item.GetData()
                    ?.StackSize
                > 1;
+    }
+
+    /// <summary>
+    ///     Whether the server would merge <paramref name="item" /> onto <paramref name="other" />.
+    /// </summary>
+    /// <remarks>
+    ///     Restates
+    ///     <c>
+    ///         can_stack
+    ///     </c>
+    ///     (js/old_common_functions.js:391): a stackable name, the two quantities fitting under the stack size, the same
+    ///     title, the same data, the PvP mark on both or neither, and no lock on either. The server only reads data on a
+    ///     cxjar; it is compared on everything here, which never offers a merge the server refuses. A merge asked for
+    ///     against a pile that fails this lands as
+    ///     <c>
+    ///         storage_full
+    ///     </c>
+    ///     whenever the pack has no empty slot (node/server.js:8919), whatever the rest of the vault holds.
+    /// </remarks>
+    public static bool CanStackWith(this IInventoryItem item, IInventoryItem other)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(other);
+
+        var stackSize = item.GetData()
+                            ?.StackSize
+                        ?? 1;
+
+        if ((stackSize <= 1) || !item.Name.EqualsI(other.Name) || ((item.Quantity + other.Quantity) > stackSize))
+            return false;
+
+        if ((item.Prediction?.Title ?? "") != (other.Prediction?.Title ?? ""))
+            return false;
+
+        if (item.Data != other.Data)
+            return false;
+
+        if (string.IsNullOrEmpty(item.Volatile) != string.IsNullOrEmpty(other.Volatile))
+            return false;
+
+        return (item.LockType == ItemLockType.None) && (other.LockType == ItemLockType.None);
     }
 
     /// <summary>

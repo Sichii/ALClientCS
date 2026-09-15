@@ -31,6 +31,10 @@ internal sealed class SearchScratch
     public float[] NodeCost = [];
     public int[] NodeParent = [];
     public int[] NodeParentEdge = [];
+
+    //whether the node's parent edge was charged at the blink's price rather than walked; the expansion reads it back
+    public bool[] NodeBlinked = [];
+
     public int SearchTriangle = -1;
 
     //the vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from
@@ -62,6 +66,7 @@ internal sealed class SearchScratch
             NodeCost = new float[nodes];
             NodeParent = new int[nodes];
             NodeParentEdge = new int[nodes];
+            NodeBlinked = new bool[nodes];
         }
 
         Array.Fill(
@@ -81,6 +86,7 @@ internal sealed class SearchScratch
             -1,
             0,
             nodes);
+        Array.Clear(NodeBlinked, 0, nodes);
         NodeQueue.Clear();
         SearchEdges.Clear();
     }

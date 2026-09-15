@@ -33,7 +33,7 @@ public class KeyDoorTests : PathfindingTestBed
         var path = await Pathfinder.FindPathAsync(
                                        new Location(map, fromX, fromY),
                                        [new Destination(new Location(map, toX, toY), 0f)],
-                                       false)
+                                       PathOptions.NoTown)
                                    .ToArrayAsync();
 
         //the other way this fails: with the edge gone the entry spawn still has to be walkable
