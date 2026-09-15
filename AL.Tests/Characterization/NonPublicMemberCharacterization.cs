@@ -141,6 +141,7 @@ public sealed class NonPublicMemberCharacterization
                  .BeEquivalentTo(
                      "AL.APIClient.AlApiClient.Auth",
                      "AL.Client.ALClient.Bank",
+                     "AL.Client.ALClient.BankCrossingPending",
                      "AL.Client.ALClient.BaseGold",
                      "AL.Client.ALClient.Disposed",
                      "AL.Client.ALClient.Emotion",

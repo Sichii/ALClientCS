@@ -22,6 +22,17 @@ public static class ALClientSettings
     public static int NetworkTimeoutMS { get; set; } = 1500;
 
     /// <summary>
+    ///     How long a bank door is given to land once the server has answered it "in progress", in milliseconds. Defaults
+    ///     to 10000.
+    /// </summary>
+    /// <remarks>
+    ///     Entering or leaving the bank loads or saves it in a database transaction on the server's sync loop, and the map
+    ///     change arrives only when that has finished: two to five seconds on a live log, past
+    ///     <see cref="NetworkTimeoutMS" /> every time.
+    /// </remarks>
+    public static int BankCrossingTimeoutMS { get; set; } = 10000;
+
+    /// <summary>
     ///     The rate (per second) to update entity positions. Default 30.
     ///     <br />
     ///     If you are experiencing innaccuracies with distance or bounding calculations, set it higher.

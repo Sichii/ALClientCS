@@ -251,6 +251,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IALSocketClient Socket { get; private set; }
 
     /// <summary>
+    ///     Whether a bank door has been answered "in progress" and its map change is still to come. The server moves the
+    ///     character to the bank from wherever it stands once the bank has loaded, so while this is up a magiport is
+    ///     refused: accepted, the ride would land beside the mage and the bank would pull the character away seconds
+    ///     later.
+    /// </summary>
+    public bool BankCrossingPending { get; internal set; }
+
+    /// <summary>
     ///     The proxy this character reaches the game through, or null for the machine's own connection.
     /// </summary>
     /// <remarks>
@@ -1751,6 +1759,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         if (string.IsNullOrEmpty(from))
             throw new ArgumentNullException(nameof(from));
+
+        //the server's own check reads the map the character stands on now, and the bank it is about to be moved to is
+        //not that map - see BankCrossingPending
+        if (BankCrossingPending)
+            throw new InvalidOperationException($"Failed to accept magiport from {from}. (a bank door is still landing)");
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -5108,16 +5121,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation<NewMapData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        //a bank door's first answer: the emit is taken, and the map change follows once the bank has loaded
+        var inProgress = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.TransportFailed    => source.TrySetResult("Transport failed. (can't walk, or jailed)"),
-                    GameResponseType.CantEnter          => source.TrySetResult("Transport failed. (can't enter)"),
-                    GameResponseType.CantEscape         => source.TrySetResult("Transport failed. (can't escape)"),
-                    GameResponseType.TransportCantReach => source.TrySetResult("Transport failed. (can't reach)"),
+                    GameResponseType.TransportFailed         => source.TrySetResult("Transport failed. (can't walk, or jailed)"),
+                    GameResponseType.CantEnter               => source.TrySetResult("Transport failed. (can't enter)"),
+                    GameResponseType.CantEscape              => source.TrySetResult("Transport failed. (can't escape)"),
+                    GameResponseType.TransportCantReach      => source.TrySetResult("Transport failed. (can't reach)"),
+                    GameResponseType.BankOperationInProgress => source.TrySetResult("Transport failed. (the previous bank door is still landing)"),
+                    GameResponseType.BankOperation           => source.TrySetResult($"Transport failed. (bank {data.Reason ?? "error"})"),
+                    _ when data.InProgress && "transport".EqualsI(data.Place!) => inProgress.TrySetResult(),
                     _ when data.Failed && "transport".EqualsI(data.Place!) => source.TrySetResult(
                         $"Transport failed. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
@@ -5147,7 +5166,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 s = spawnIndex
             });
 
-        NewMapData newMap = await source.Task.WithNetworkTimeout();
+        NewMapData newMap = await DoorWait.ForLandingAsync(
+            source.Task,
+            inProgress.Task,
+            ALClientSettings.NetworkTimeoutMS,
+            ALClientSettings.BankCrossingTimeoutMS,
+            pending => BankCrossingPending = pending);
 
         //if we're entering a bank, wait for bank data to populate
         var newData = GameData.Maps[newMap.Map];

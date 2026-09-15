@@ -220,6 +220,11 @@ public enum GameResponseType
     [EnumMember(Value = "cant_in_bank")]
     CantInBank,
 
+    //a bank door while the previous one is still loading or saving the bank (node/server.js:5708). The load or save
+    //failing afterwards is BankOperation, which carries the reason and no failed flag (node/server.js:15655)
+    [EnumMember(Value = "bank_opi")]
+    BankOperationInProgress,
+
     [EnumMember(Value = "condition")]
     Condition,
 
