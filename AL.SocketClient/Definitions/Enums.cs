@@ -496,7 +496,17 @@ public enum GameResponseType
     //the only answer the signup emit gets (node/server.js:11335). No method consumes it; the member exists so the
     //frame resolves to something other than Unknown
     [EnumMember(Value = "signed_up")]
-    SignedUp
+    SignedUp,
+
+    //the mail emit's two terminal answers (node/server.js:5450-5610). The in-progress acknowledgement
+    //("mail_sending") is deliberately not a member: it only says the send started, so nothing may settle on it.
+    //Appended at the end, like every other late addition: members carry no explicit values, so inserting
+    //above would renumber every later ordinal.
+    [EnumMember(Value = "mail_sent")]
+    MailSent,
+
+    [EnumMember(Value = "mail_failed")]
+    MailFailed
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
