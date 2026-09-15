@@ -74,7 +74,9 @@ public class PathParityTests : PathfindingTestBed
             if (!found)
                 continue;
 
-            var cost = path.Sum(edge => edge.Cost);
+            //the corpus priced every door flat, and the bank door has been priced apart since; the comparison is about
+            //the walking, so a door counts at the flat price here
+            var cost = path.Sum(edge => edge.Type is EdgeType.Door or EdgeType.Transport ? AL.Pathfinding.Definitions.CONSTANTS.TRANSPORT_HEURISTIC : edge.Cost);
 
             if (recorded.Found && (cost > (recorded.Cost * 1.05f + 1f)))
                 longer.Add($"#{recorded.Id} {recorded.Start.Map}->{recorded.End.Map} old {recorded.Cost:F0} new {cost:F0}");

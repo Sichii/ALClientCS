@@ -47,6 +47,18 @@ public static class CONSTANTS
     public const float TRANSPORT_HEURISTIC = 50f;
 
     /// <summary>
+    ///     What a door into the bank costs instead of <see cref="TRANSPORT_HEURISTIC" />.
+    /// </summary>
+    /// <remarks>
+    ///     Entering the bank is the dearest map change there is: the server bills a mount beside the door, four doors'
+    ///     worth, and the client then waits for the bank data before it can move. The door also opens from up to 150 units
+    ///     along main's street, so at the flat price a round trip through it undercut walking past. 200 puts the round trip
+    ///     past anything the door's reach can save. A trip that ends inside the bank has no other way in, so it pays the
+    ///     same whatever the number.
+    /// </remarks>
+    public const float BANK_DOOR_COST = 200f;
+
+    /// <summary>
     ///     How far a search will look for standable ground around a point the flood fill never reached, before giving up on
     ///     it. Sized to clear the widest padded band - a vertical line is padded by the bounding base's half width on each
     ///     side - with room for a corner where two bands stack. Past that the point is not a character grazing a wall, it is

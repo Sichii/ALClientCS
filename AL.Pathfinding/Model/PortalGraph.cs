@@ -144,12 +144,15 @@ internal sealed class PortalGraph
                 {
                     var type = exit.Type == ExitType.Door ? EdgeType.Door : EdgeType.Transport;
 
+                    //the bank is the maps the server mounts it on; a door between two of its floors is an ordinary door
+                    var entersBank = GameData.Maps[exit.ToLocation.Map] is { Mount: true } && GameData.Maps[map] is not { Mount: true };
+
                     edges.Add(
                         new Edge(
                             index,
                             to,
                             type,
-                            CONSTANTS.TRANSPORT_HEURISTIC));
+                            entersBank ? CONSTANTS.BANK_DOOR_COST : CONSTANTS.TRANSPORT_HEURISTIC));
                 }
 
                 continue;
