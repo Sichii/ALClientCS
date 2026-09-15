@@ -144,7 +144,8 @@ public class Character : Player, IEquatable<Character>
     public int InventorySize { get; protected set; }
 
     /// <summary>
-    ///     The character's luck multiplier (1 + xluck/100).
+    ///     The character's luck multiplier (1 + xluck/100). Gear, mluck, potions and party luck
+    ///     all fold into this; the frame never carries flat luck or xluck separately.
     /// </summary>
     [JsonPropertyName("luckm")]
     [JsonInclude]
