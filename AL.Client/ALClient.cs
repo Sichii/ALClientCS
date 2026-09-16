@@ -2782,37 +2782,41 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new InvalidOperationException($"Failed to craft {itemName}. (not enough gold)");
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var previousInventory = Character.Inventory.AsIndexed();
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
+                //resolved off the server's own reply rather than by diffing inventory frames. Item's value equality
+                //never holds across two deserializations (see Item.PossiblePrefixes), so a diff read every slot as
+                //new and answered with the first copy already held - before this craft had landed, and the next
+                //craft then re-sent the slots this one had consumed. The server re-sends the inventory
+                //(node/server.js:6299) before it answers success (:6300), so the slot named here is already filled
+                if ((data.ResponseType == GameResponseType.Craft) && data.Success)
+                {
+                    if (Character.Inventory[data.SlotNum] is { } crafted)
+                        source.TrySetResult(
+                            new InventoryIndexer
+                            {
+                                Index = data.SlotNum,
+                                Item = crafted
+                            });
+                    else
+                        source.TrySetResult($"Failed to craft {itemName}. (slot {data.SlotNum} is empty)");
+
+                    return TaskCache.FALSE;
+                }
+
                 var result = data.ResponseType switch
                 {
                     GameResponseType.NoItem        => source.TrySetResult($"Failed to craft {itemName}. (missing component)"),
-                    GameResponseType.GoldNotEnough => source.TrySetResult($"Failed to craft {itemName}. (not enough gold"),
+                    GameResponseType.GoldNotEnough => source.TrySetResult($"Failed to craft {itemName}. (not enough gold)"),
                     _ when data.Failed && "craft".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to craft {itemName}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
                 return Task.FromResult(result);
-            });
-
-        using var characterCallback = Socket.On<CharacterData>(
-            ALSocketMessageType.Character,
-            data =>
-            {
-                var craftedItem = data.Inventory
-                                      .AsIndexed()
-                                      .Except(previousInventory)
-                                      .FirstOrDefault(indexed => indexed.Item.Name.EqualsI(itemName));
-
-                if (craftedItem != null)
-                    source.TrySetResult(craftedItem);
-
-                return TaskCache.FALSE;
             });
 
         //the server reads x[1] as the inventory slot and x[0] as the position in the craft grid,

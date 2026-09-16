@@ -75,6 +75,35 @@ public class ResponseContractTests
     }
 
     /// <summary>
+    ///     <c>
+    ///         success_response("craft", { num, name, cevent: true })
+    ///     </c>
+    ///     (node/server.js:6300). CraftAsync resolves off this reply and reads the output out of the slot it names, so
+    ///     the three fields it depends on are pinned here.
+    /// </summary>
+    [Test]
+    public void CraftSuccessNamesTheSlotTheOutputLandedIn()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""craft"", ""place"":""craft"", ""success"":true, ""num"":7, ""name"":""cclaw"", ""cevent"":true }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.Craft);
+
+        data.Success
+            .Should()
+            .BeTrue();
+
+        data.SlotNum
+            .Should()
+            .Be(7);
+    }
+
+    /// <summary>
     ///     With a token every sbuy refusal arrives on game_response carrying the pool it was asked of as its place - which
     ///     is what tells a buy's refusal from the listing read's, since both answer distance from the same counter.
     ///     no_space and item_gone are the two that used to arrive as a disappearing_text and a game_log instead.
@@ -228,6 +257,8 @@ public class ResponseContractTests
     [Arguments("only_in_bank", GameResponseType.OnlyInBank)]
     [Arguments("already_unlocked", GameResponseType.AlreadyUnlocked)]
     [Arguments("nothing", GameResponseType.Nothing)]
+    [Arguments("craft_cant", GameResponseType.CraftCant)]
+    [Arguments("craft_cant_quantity", GameResponseType.CraftCantQuantity)]
     [Arguments("signed_up", GameResponseType.SignedUp)]
     public void EndpointCoverageCodeParsesToItsResponseType(string wireName, GameResponseType expected)
     {

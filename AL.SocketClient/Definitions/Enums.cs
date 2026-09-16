@@ -145,6 +145,12 @@ public enum GameResponseType
     [EnumMember(Value = "craft")]
     Craft,
 
+    [EnumMember(Value = "craft_cant")]
+    CraftCant,
+
+    [EnumMember(Value = "craft_cant_quantity")]
+    CraftCantQuantity,
+
     [EnumMember(Value = "defeated_by_a_monster")]
     DefeatedByAMonster,
 
