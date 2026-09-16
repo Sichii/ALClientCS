@@ -1,4 +1,4 @@
-﻿field	instance	AL.Data	AL.Data.Conditions.GCondition	_canMove	can_move
+field	instance	AL.Data	AL.Data.Conditions.GCondition	_canMove	can_move
 field	instance	AL.Data	AL.Data.Maps.GMapNPC	_name	name
 field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_amount	amount
 field	instance	AL.Data	AL.Data.Monsters.GMonsterAbility	_damage	damage
@@ -14,6 +14,7 @@ non-public-property	instance	AL.Data	AL.Data.Skills.GSkill	ReuseCooldown	reuse_c
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	APiercing	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Armor	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Attack	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Avoidance	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Awesomeness	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Blast	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Bling	

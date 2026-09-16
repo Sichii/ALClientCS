@@ -26,6 +26,9 @@ public abstract class AttributedObjectBase : IAttributed
     public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
     [JsonInclude]
+    public float Avoidance { get; protected set; }
+
+    [JsonInclude]
     public float Awesomeness { get; protected set; }
 
     [JsonInclude]

@@ -17,6 +17,8 @@ public interface IAttributed
 
     public float Attack { get; }
 
+    public float Avoidance { get; }
+
     public float Awesomeness { get; }
 
     public float Blast { get; }

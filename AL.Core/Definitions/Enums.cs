@@ -117,7 +117,7 @@ public enum ALAttribute
 
     /// <summary>
     ///     Percent chance that your own attacks miss. A self-inflicted penalty carried by alcohol and by two-handed bows;
-    ///     nothing on a target makes an incoming attack miss.
+    ///     Avoidance is a target's side of the same roll.
     /// </summary>
     Miss,
 
@@ -361,7 +361,15 @@ public enum ALAttribute
     ///     paladins carry most of.
     /// </summary>
     [EnumMember(Value = "pcourage")]
-    PureCourage
+    PureCourage,
+
+    //appended for the same reason as the courages
+    /// <summary>
+    ///     Percent chance to shrug off any incoming attack, physical or magical, as a miss - the splash of an explosion
+    ///     included, which rolls it again on every monster it reaches. Nothing wearable carries it; a handful of monsters
+    ///     do, at 98 and up.
+    /// </summary>
+    Avoidance
 }
 
 /// <summary>

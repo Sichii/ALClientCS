@@ -23,6 +23,8 @@ public abstract record AttributedRecordBase : IAttributed
     [JsonIgnore]
     public IReadOnlyDictionary<ALAttribute, float> Attributes { get; init; } = new Dictionary<ALAttribute, float>();
 
+    public float Avoidance { get; init; }
+
     public float Awesomeness { get; init; }
 
     public float Blast { get; init; }

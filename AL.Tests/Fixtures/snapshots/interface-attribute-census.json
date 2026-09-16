@@ -3,6 +3,7 @@
   "IAttributed.Armor : Single => (clr:Armor)",
   "IAttributed.Attack : Single => (clr:Attack)",
   "IAttributed.Attributes : IReadOnlyDictionary<ALAttribute,Single> => (clr:Attributes)",
+  "IAttributed.Avoidance : Single => (clr:Avoidance)",
   "IAttributed.Awesomeness : Single => (clr:Awesomeness)",
   "IAttributed.Blast : Single => (clr:Blast)",
   "IAttributed.Bling : Single => (clr:Bling)",
