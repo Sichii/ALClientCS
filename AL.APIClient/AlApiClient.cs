@@ -171,6 +171,29 @@ public sealed class AlApiClient : IAlApiClient
         await Client.ExecutePostAsync(request);
     }
 
+
+    public async Task DeleteMailAsync(Mail mail)
+    {
+        ArgumentNullException.ThrowIfNull(mail);
+
+        Logger.Info($"Deleting mail {mail.Id}");
+
+        //unlike read_mail, the server takes this id exactly as pull_mail sent it rather than reconstructing it:
+        //delete_mail_api calls get(args.mid) directly, where read_mail_api rebuilds "ML_" + args.mail itself
+        //(api.js) - so mail.Id is passed whole here, the opposite of ReadMailAsync's strip just above
+        var request = new APIRequest(
+            Method.Post,
+            APIMethod.DeleteMail,
+            new
+            {
+                mid = mail.Id
+            },
+            Auth,
+            CookieDomain);
+
+        await Client.ExecutePostAsync(request);
+    }
+
     public async Task RenewAuth()
     {
         Logger.Info("Renewing auth");

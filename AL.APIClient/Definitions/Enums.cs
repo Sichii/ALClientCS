@@ -44,6 +44,9 @@ internal enum APIMethod
     [EnumMember(Value = "read_mail")]
     ReadMail,
 
+    [EnumMember(Value = "delete_mail")]
+    DeleteMail,
+
     [EnumMember(Value = "pull_merchants")]
     PullMerchants,
 
