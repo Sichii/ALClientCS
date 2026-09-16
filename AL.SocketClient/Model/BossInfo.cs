@@ -35,6 +35,13 @@ public record BossInfo : ILocation, IMutable<Mutation>
     public bool Live { get; init; }
 
     /// <summary>
+    ///     For the anniversary event, whether the featured player can be reached right now. The server keeps the round on
+    ///     them and waits when they cannot be, so false means hold rather than look for somebody else. Absent for a boss.
+    /// </summary>
+    [JsonPropertyName("available")]
+    public bool? Available { get; init; }
+
+    /// <summary>
     ///     If populated, the name of the map this boss is on.
     /// </summary>
     #pragma warning disable 8766

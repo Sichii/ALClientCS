@@ -26,6 +26,14 @@ public class Character : Player, IEquatable<Character>
     public int AggroTargets { get; protected set; }
 
     /// <summary>
+    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. Read it
+    ///     rather than guessing at the featured player's state: the game's own kiss button is enabled on nothing else.
+    /// </summary>
+    [JsonPropertyName("anniversary")]
+    [JsonInclude]
+    public AnniversaryStatus? Anniversary { get; protected set; }
+
+    /// <summary>
     ///     If populated, this character is inside of a bank.
     ///     <br />
     ///     This property only populates while you are inside of a bank, and hold information about gold and items this

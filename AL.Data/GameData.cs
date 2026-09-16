@@ -12,6 +12,7 @@ using AL.Core.Helpers;
 using AL.Core.Json;
 using AL.Data.Achievements;
 using AL.Data.Classes;
+using AL.Data.Compounds;
 using AL.Data.Conditions;
 using AL.Data.Craft;
 using AL.Data.Dimensions;
@@ -23,6 +24,7 @@ using AL.Data.Geometry;
 using AL.Data.Images;
 using AL.Data.Items;
 using AL.Data.Maps;
+using AL.Data.MonsterGold;
 using AL.Data.Monsters;
 using AL.Data.Multipliers;
 using AL.Data.NPCs;
@@ -31,6 +33,7 @@ using AL.Data.Sets;
 using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.Data.Tokens;
+using AL.Data.Upgrades;
 using Chaos.Extensions.Common;
 using Common.Logging;
 using JetBrains.Annotations;
@@ -135,6 +138,9 @@ public record GameData
     [GameDataRoot]
     public static ConditionsDatum Conditions { get; private set; }
 
+    [GameDataRoot]
+    public static CompoundsDatum Compounds { get; private set; }
+
     //defaulted for the reason Multipliers is: a payload missing "cosmetics" degrades to empty tables rather than
     //throwing, and a character nothing can be dressed in is a better failure than a load that never finishes
     [GameDataRoot]
@@ -179,6 +185,10 @@ public record GameData
     public static MonstersDatum Monsters { get; private set; }
 
     [GameDataRoot]
+    [JsonPropertyName("monster_gold")]
+    public static MonsterGoldDatum MonsterGold { get; private set; }
+
+    [GameDataRoot]
     public static NPCsDatum NPCs { get; private set; }
 
     /// <summary>
@@ -210,6 +220,9 @@ public record GameData
 
     [GameDataRoot]
     public static TokensDatum Tokens { get; private set; }
+
+    [GameDataRoot]
+    public static UpgradesDatum Upgrades { get; private set; }
 
     [GameDataRoot]
     public static int Version { get; private set; }
@@ -1070,8 +1083,16 @@ public record GameData
         }
 
         Log.Info("Constructing data lookups");
+
+        //the payload only began carrying these three tables at version 16846, and the frozen fixture carries the two
+        //odds tables and not the gold one: a section the payload lacks reads as an empty table rather than a null root
+        Compounds ??= new();
+        MonsterGold ??= new();
+        Upgrades ??= new();
+
         Achievements.BuildLookupTable();
         Classes.BuildLookupTable();
+        Compounds.BuildLookupTable();
         Conditions.BuildLookupTable();
         Craft.BuildLookupTable();
         Dimensions.BuildLookupTable();
@@ -1080,6 +1101,7 @@ public record GameData
         Geometry.BuildLookupTable();
         Items.BuildLookupTable();
         Maps.BuildLookupTable();
+        MonsterGold.BuildLookupTable();
         Monsters.BuildLookupTable();
         NPCs.BuildLookupTable();
         Projectiles.BuildLookupTable();
@@ -1087,6 +1109,7 @@ public record GameData
         Skills.BuildLookupTable();
         Titles.BuildLookupTable();
         Tokens.BuildLookupTable();
+        Upgrades.BuildLookupTable();
 
         //fix line data (merge lines, set isX for x lines)
         AddBorderWalls();

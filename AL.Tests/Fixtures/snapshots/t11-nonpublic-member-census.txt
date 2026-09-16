@@ -74,6 +74,7 @@ non-public-setter	instance	AL.Data	AL.Data.Skills.GSkill	MultiTargeted	multi
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.BossInfo	HP	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.BossInfo	MaxHP	max_hp
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	AggroTargets	targets
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Anniversary	anniversary
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Bank	user
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Cache	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Cash	cash
@@ -129,3 +130,4 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Slots
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Stand	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Team	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Teleporting	tp
+non-public-setter	static	AL.Data	AL.Data.GameData	MonsterGold	monster_gold

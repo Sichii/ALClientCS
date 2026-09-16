@@ -40,6 +40,9 @@ public class Program
         {
             "conditions", nameof(GCondition)
         },
+        {
+            "compounds", $"{nameof(IReadOnlyDictionary<int, double>)}<int, double>"
+        },
 
         //cosmetics
         {
@@ -79,6 +82,9 @@ public class Program
             "monsters", nameof(GMonster)
         },
         {
+            "monster_gold", "int?"
+        },
+        {
             "npcs", nameof(GNPC)
         },
 
@@ -103,6 +109,9 @@ public class Program
         },
         {
             "tokens", $"{nameof(IReadOnlyDictionary<string, float>)}<string, float>"
+        },
+        {
+            "upgrades", $"{nameof(IReadOnlyDictionary<int, double>)}<int, double>"
         }
     };
 
@@ -151,7 +160,9 @@ public class Program
                     builder.Append(!string.IsNullOrEmpty(typeString) ? typeString : "object");
                     builder.Append(' ');
                     builder.Append(name);
-                    builder.AppendLine(GLOBAL_SUFFIX);
+
+                    //a nullable value type has nothing for null! to suppress: an absent key reads as null on its own
+                    builder.AppendLine(typeString.EndsWith('?') ? " { get; init; }" : GLOBAL_SUFFIX);
                 }
 
                 await File.WriteAllTextAsync(

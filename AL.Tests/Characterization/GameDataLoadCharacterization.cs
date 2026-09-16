@@ -778,4 +778,28 @@ public class GameDataLoadCharacterization
                 .Should()
                 .Be(baseline + 1);
     }
+
+    /// <summary>
+    ///     The two odds tables were added to the snapshot when the payload gained them at version 16846; the gold table
+    ///     was not. A section the payload lacks is an empty table, not a null root, so a reader on an old payload sees no
+    ///     entries rather than a crash.
+    /// </summary>
+    [Test]
+    public void T1_OddsTables_BindAndMonsterGoldStaysEmpty()
+    {
+        GameData.Compounds
+                .ChanceOf(0, 3)
+                .Should()
+                .Be(0.4);
+
+        GameData.Upgrades
+                .ChanceOf(2, 12)
+                .Should()
+                .Be(0.09);
+
+        GameData.MonsterGold
+                .Entries
+                .Should()
+                .BeEmpty();
+    }
 }

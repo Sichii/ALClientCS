@@ -53,7 +53,8 @@ public abstract class DatumBase<T>
 
             var value = (T?)propertyInfo.GetValue(this);
 
-            //every T is a reference type, and a datum property is null when its key is absent from the payload
+            //every T is a reference type or a nullable value type, and a datum property is null when its key is absent from
+            //the payload
             // ReSharper disable once CompareNonConstrainedGenericWithNull
             if (value == null)
                 continue;

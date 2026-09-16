@@ -573,7 +573,27 @@ public enum Projectile
     Arrow,
     Wandy,
     FireBall,
-    WMomentum
+    WMomentum,
+
+    [EnumMember(Value = "arcane_needle")]
+    ArcaneNeedle,
+    DartGun,
+    FanOfKnives,
+    GBurst,
+    MentalBurst,
+    PartyHeal,
+    Purify,
+    QuickPunch,
+    QuickStab,
+    ReunionArrow,
+    RimeHelix,
+    RimeShatter,
+    SBurst,
+
+    [EnumMember(Value = "shield_slam")]
+    ShieldSlam,
+    Smash,
+    WorldRoot
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -598,7 +618,9 @@ public enum ArmorSet
     Swift,
     Tiger,
     MPX,
-    Legends
+    Legends,
+    Homecoming,
+    Oathkeeper
 }
 
 //the server keys bank packs as "items0", "items1", ... - the PascalCase name matches nothing
@@ -788,6 +810,8 @@ public enum Condition
     Purifier,
     RealmFatigue,
     Reflection,
+    RimeExposed,
+    RimeShell,
     RSpeed,
     Sanguine,
 

@@ -60,6 +60,31 @@ public class JsonConverterTests
     }
 
     [Test]
+    public void DeserializeAnniversaryStatusTest()
+    {
+        //the frame the game's kiss button reads: a status for one realm and round, with the reason the kiss will not pay
+        const string CHARACTER_WITH_STATUS = @"{
+   ""id"":""sichi"",
+   ""anniversary"":{
+      ""realm"":""US I"",
+      ""round"":993919,
+      ""reason"":""claimed""
+   }
+}";
+
+        var obj = TestJson.Socket<CharacterData>(CHARACTER_WITH_STATUS);
+
+        obj!.Anniversary.Should()
+            .BeEquivalentTo(
+                new AnniversaryStatus
+                {
+                    Realm = "US I",
+                    Round = 993919L,
+                    Reason = "claimed"
+                });
+    }
+
+    [Test]
     public void DeserializeChestOpenedDataTest()
     {
         const string CHEST_OPENED_DATA = @"{
@@ -267,6 +292,19 @@ public class JsonConverterTests
       ""max_hp"":120000000,
       ""x"":-278.0075274742135,
       ""y"":187.81118535586882
+   },
+   ""anniversary"":{
+      ""active"":true,
+      ""live"":true,
+      ""next"":1789000000000,
+      ""round"":993919,
+      ""expires"":1788999000000,
+      ""target"":""T1l40Mercha"",
+      ""id"":""T1l40Mercha"",
+      ""map"":""main"",
+      ""x"":-140,
+      ""y"":-50,
+      ""available"":false
    }
 }";
 
@@ -274,6 +312,25 @@ public class JsonConverterTests
 
         obj.Should()
            .NotBeNull();
+
+        var round = obj!.BossInfo["anniversary"];
+
+        round.Live.Should()
+             .BeTrue();
+
+        round.Target.Should()
+             .Be("T1l40Mercha");
+
+        round.Round.Should()
+             .Be(993919L);
+
+        round.Available.Should()
+             .BeFalse();
+
+        //a boss carries no such flag, and absent has to read as nothing said rather than as unreachable
+        obj.BossInfo["franky"]
+           .Available.Should()
+           .BeNull();
     }
 
     [Test]
