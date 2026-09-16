@@ -5615,184 +5615,68 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously uses an HP or MP potion from the inventory.
-    ///     <br />
-    ///     To check the cooldown of potions/regen, check the cooldown of the skill "use_hp" or "use_mp".
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The inventory index of the potion to be used.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use pot {slotOrName}. ({reason})
-    /// </exception>
-    public async Task UsePotAsync(int inventorySlot)
-    {
-        var item = Character.Inventory[inventorySlot];
-
-        if (item == null)
-            throw new InvalidOperationException($"Failed to use pot {inventorySlot}. (no item)");
-
-        await ConsumeAsync(
-            ALSocketEmitType.Equip,
-            new
-            {
-                num = inventorySlot
-            },
-            $"pot {item.Name}");
-
-        //a potion resends with nc where an equip does not (node/server.js:7306), one unit under the equip row
-        CallMeter.Charge(ALSocketEmitType.Equip, -1d);
-    }
-
-    /// <summary>
-    ///     Opens a CX jar in inventory (node/server.js, equip,
-    ///     <c>
-    ///         item.name == "cxjar"
-    ///     </c>
-    ///     ). Unlocks
-    ///     <c>
-    ///         item.data
-    ///     </c>
-    ///     onto the account's cosmetics and consumes one jar.
+    ///     Asynchronously uses a consumable from the inventory: a potion, an elixir, a cosmetic jar, a licence or a
+    ///     field generator.
     /// </summary>
     /// <remarks>
-    ///     Same emit as a potion drink (
-    ///     <c>
-    ///         equip
-    ///     </c>
-    ///     with
-    ///     <c>
-    ///         num
-    ///     </c>
-    ///     ), but a jar answers
-    ///     <c>
-    ///         cx_new
-    ///     </c>
-    ///     rather than a
-    ///     <c>
-    ///         pot_timeout
-    ///     </c>
-    ///     eval, so this cannot share <see cref="UsePotAsync" />'s waiter - that path would hang until the network
-    ///     timeout.
+    ///     The same emit as <see cref="EquipAsync" />, <c>equip</c> with <c>num</c> and no slot; the server picks the
+    ///     branch from the item's type (node/server.js:7321-7536). Every branch ends on the same
+    ///     <c>{response:"data", place:"equip", success:true, num}</c> frame and every refusal is a <c>fail_response</c>
+    ///     carrying <c>place:"equip"</c>, so one waiter serves them all. <c>num</c> ties the success to this call rather
+    ///     than to another equip in flight on the same socket. A refusal carries no <c>num</c>, so one from a concurrent
+    ///     equip can end this call early - the exposure <see cref="EquipAsync" /> already has.
     ///     <br />
-    ///     A locked jar, or one that stores no cosmetic, answers
-    ///     <c>
-    ///         item_locked
-    ///     </c>
-    ///     and is not consumed. Both outcomes return rather than throw, so the caller can tell them apart the way
-    ///     <see cref="ActivateItemAsync" /> tells bank-key refusals apart.
+    ///     Whatever a branch sends beside the success - a jar's <c>cx_new</c>, a potion's <c>pot_timeout</c> - lands on
+    ///     the client's own handlers. An equippable item handed to this goes to its default slot, which is what the
+    ///     handler does with no slot; <see cref="EquipAsync" /> is the call for that.
+    ///     <br />
+    ///     Call cost is the equip row, billed by the emit hook, less one unit for a potion: that branch alone resends
+    ///     with <c>nc</c>.
     /// </remarks>
     /// <param name="inventorySlot">
-    ///     The inventory index of the jar.
+    ///     The inventory index of the item to use.
     /// </param>
     /// <exception cref="InvalidOperationException">
-    ///     Failed to open cxjar {slot}. (no item)
+    ///     Failed to use item {slotOrName}. ({reason})
     /// </exception>
-    public async Task<GameResponseData> OpenCxJarAsync(int inventorySlot)
+    public async Task UseItemAsync(int inventorySlot)
     {
         var item = Character.Inventory[inventorySlot];
 
         if (item == null)
-            throw new InvalidOperationException($"Failed to open cxjar {inventorySlot}. (no item)");
-
-        var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var gameResponseCallback = Socket.On<GameResponseData>(
-            ALSocketMessageType.GameResponse,
-            data =>
-            {
-                var result = data.ResponseType switch
-                {
-                    GameResponseType.CosmeticNew => source.TrySetResult(data),
-                    GameResponseType.ItemLocked  => source.TrySetResult(data),
-                    _                            => false
-                };
-
-                return Task.FromResult(result);
-            });
-
-        await Socket.EmitAsync(
-            ALSocketEmitType.Equip,
-            new
-            {
-                num = inventorySlot
-            });
-
-        return (await source.Task.WithNetworkTimeout()).Result;
-    }
-
-
-    /// <summary>
-    ///     Asynchronously uses a "spawner"-type item - currently just <c>fieldgen0</c>, the Dampening Field Generator -
-    ///     dropping it at the character's own current position.
-    /// </summary>
-    /// <remarks>
-    ///     Same emit as <see cref="EquipAsync" /> and <see cref="UsePotAsync" />: <c>equip</c> with <c>num</c> and no
-    ///     slot. The server ignores any location and always spawns the generator at <c>player.x, player.y</c>
-    ///     (node/server.js:7450-7452), so getting it near a target is entirely on the caller having walked there first.
-    ///     <br />
-    ///     The success signal is the generic action-success frame every equip branch ends on -
-    ///     <c>
-    ///         {response:"data", place:"equip", success:true, num:&lt;slot&gt;}
-    ///     </c>
-    ///     (node/server.js:7533-7536, server_functions.js:3148-3172) - the same idiom already read elsewhere in this
-    ///     client as "the generic skill success". <c>num</c> is what correlates the frame to this call rather than to
-    ///     some other equip in flight on the same socket.
-    ///     <br />
-    ///     A spawner item skips the lock check the neighbouring elixir, cxjar and licence branches make
-    ///     (node/server.js:7450-7452 carries no <c>item.l</c> guard), so <see cref="GameResponseType.ItemLocked" /> is
-    ///     not a reachable refusal here and is not one of the cases below.
-    /// </remarks>
-    /// <param name="inventorySlot">
-    ///     The inventory index of the spawner item.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use spawner item {inventorySlot}. ({reason})
-    /// </exception>
-    public async Task UseFieldGeneratorAsync(int inventorySlot)
-    {
-        var item = Character.Inventory[inventorySlot];
-
-        if (item == null)
-            throw new InvalidOperationException($"Failed to use spawner item {inventorySlot}. (no item)");
+            throw new InvalidOperationException($"Failed to use item {inventorySlot}. (no item)");
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //the shared equip preamble's own refusals (node/server.js:7330-7349), which every item type answers alike
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
+                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
+                //tolerating a null argument
                 if (!"equip".EqualsI(data.Place!))
                     return TaskCache.FALSE;
 
                 if (!data.Failed)
                 {
-                    if ((data.ResponseType == GameResponseType.Data) && data.Success && (data.SlotNum == inventorySlot))
+                    if (data.Success && (data.SlotNum == inventorySlot))
                         source.TrySetResult(Expectation.Success);
 
                     return TaskCache.FALSE;
                 }
 
-                switch (data.ResponseType)
+                var reason = data.ResponseType switch
                 {
-                    case GameResponseType.Invalid:
-                        source.TrySetResult($"Failed to use spawner item {item.Name}. (invalid inventory index)");
+                    GameResponseType.Invalid         => "invalid inventory index",
+                    GameResponseType.NoItem          => "no item at index",
+                    GameResponseType.ItemBlocked     => "item is blocked",
+                    GameResponseType.ItemPlaceholder => "item is an upgrade placeholder",
+                    GameResponseType.ItemLocked      => "item is locked",
+                    GameResponseType.NotReady        => $"not ready for another {data.CooldownMS ?? 0:N0}ms",
+                    _                                => data.ResponseType.ToString()
+                };
 
-                        break;
-                    case GameResponseType.NoItem:
-                        source.TrySetResult($"Failed to use spawner item {item.Name}. (no item at index)");
-
-                        break;
-                    case GameResponseType.ItemBlocked:
-                        source.TrySetResult($"Failed to use spawner item {item.Name}. (item is blocked)");
-
-                        break;
-                    case GameResponseType.ItemPlaceholder:
-                        source.TrySetResult($"Failed to use spawner item {item.Name}. (item is an upgrade placeholder)");
-
-                        break;
-                }
+                source.TrySetResult($"Failed to use item {item.Name}. ({reason})");
 
                 return TaskCache.FALSE;
             });
@@ -5806,6 +5690,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
+
+        //a potion resends with nc where every other branch does not (node/server.js:7506), one unit under the equip
+        //row the emit hook billed. The server's rule is gives-and-not-xp; among shipped items that is the pot type
+        if (item.GetData() is { Type: ItemType.Pot })
+            CallMeter.Charge(ALSocketEmitType.Equip, -1d);
     }
 
     /// <summary>
