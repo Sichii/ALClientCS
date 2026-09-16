@@ -26,6 +26,16 @@ public sealed record GSprite
     public string File { get; init; } = string.Empty;
 
     /// <summary>
+    ///     How many animation frames sit across one cell, for an animated hat or makeup sheet. Zero for a sheet that states
+    ///     none, which the client cuts three across (js/game.js load_game:
+    ///     <c>
+    ///         s_def.frames || 3
+    ///     </c>
+    ///     ). Every other kind of sheet has a fixed frame grid and ignores this.
+    /// </summary>
+    public int Frames { get; init; }
+
+    /// <summary>
     ///     Row-major, one skin name per cell. A null cell is grid the sheet does not use.
     /// </summary>
     public IReadOnlyList<IReadOnlyList<string?>> Matrix { get; init; } = [];
