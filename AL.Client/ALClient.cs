@@ -5721,6 +5721,93 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return (await source.Task.WithNetworkTimeout()).Result;
     }
 
+
+    /// <summary>
+    ///     Asynchronously uses a "spawner"-type item - currently just <c>fieldgen0</c>, the Dampening Field Generator -
+    ///     dropping it at the character's own current position.
+    /// </summary>
+    /// <remarks>
+    ///     Same emit as <see cref="EquipAsync" /> and <see cref="UsePotAsync" />: <c>equip</c> with <c>num</c> and no
+    ///     slot. The server ignores any location and always spawns the generator at <c>player.x, player.y</c>
+    ///     (node/server.js:7450-7452), so getting it near a target is entirely on the caller having walked there first.
+    ///     <br />
+    ///     The success signal is the generic action-success frame every equip branch ends on -
+    ///     <c>
+    ///         {response:"data", place:"equip", success:true, num:&lt;slot&gt;}
+    ///     </c>
+    ///     (node/server.js:7533-7536, server_functions.js:3148-3172) - the same idiom already read elsewhere in this
+    ///     client as "the generic skill success". <c>num</c> is what correlates the frame to this call rather than to
+    ///     some other equip in flight on the same socket.
+    ///     <br />
+    ///     A spawner item skips the lock check the neighbouring elixir, cxjar and licence branches make
+    ///     (node/server.js:7450-7452 carries no <c>item.l</c> guard), so <see cref="GameResponseType.ItemLocked" /> is
+    ///     not a reachable refusal here and is not one of the cases below.
+    /// </remarks>
+    /// <param name="inventorySlot">
+    ///     The inventory index of the spawner item.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to use spawner item {inventorySlot}. ({reason})
+    /// </exception>
+    public async Task UseFieldGeneratorAsync(int inventorySlot)
+    {
+        var item = Character.Inventory[inventorySlot];
+
+        if (item == null)
+            throw new InvalidOperationException($"Failed to use spawner item {inventorySlot}. (no item)");
+
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        //the shared equip preamble's own refusals (node/server.js:7330-7349), which every item type answers alike
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (!"equip".EqualsI(data.Place!))
+                    return TaskCache.FALSE;
+
+                if (!data.Failed)
+                {
+                    if ((data.ResponseType == GameResponseType.Data) && data.Success && (data.SlotNum == inventorySlot))
+                        source.TrySetResult(Expectation.Success);
+
+                    return TaskCache.FALSE;
+                }
+
+                switch (data.ResponseType)
+                {
+                    case GameResponseType.Invalid:
+                        source.TrySetResult($"Failed to use spawner item {item.Name}. (invalid inventory index)");
+
+                        break;
+                    case GameResponseType.NoItem:
+                        source.TrySetResult($"Failed to use spawner item {item.Name}. (no item at index)");
+
+                        break;
+                    case GameResponseType.ItemBlocked:
+                        source.TrySetResult($"Failed to use spawner item {item.Name}. (item is blocked)");
+
+                        break;
+                    case GameResponseType.ItemPlaceholder:
+                        source.TrySetResult($"Failed to use spawner item {item.Name}. (item is an upgrade placeholder)");
+
+                        break;
+                }
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Equip,
+            new
+            {
+                num = inventorySlot
+            });
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+    }
+
     /// <summary>
     ///     Asynchronously regens a small amount of hp. Has a shared CD with potions with a 2x multiplier.
     /// </summary>
