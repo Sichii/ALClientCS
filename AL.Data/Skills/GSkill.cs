@@ -90,6 +90,13 @@ public sealed record GSkill : AttributedRecordBase
     /// <summary>
     ///     The damage multiplier of the ability, applied against basic attack damage.
     /// </summary>
+    /// <summary>
+    ///     A flat hit the skill lands for in place of the caster's attack, when it carries one. A monster's fireball and
+    ///     frostball are the two that do; the launch swaps the attack for this figure whole (node/server.js:3024), so the
+    ///     monster's own attack is never in it.
+    /// </summary>
+    public float Damage { get; init; }
+
     [JsonPropertyName("damage_multiplier")]
     public float DamageMultiplier { get; set; } = 1.0f;
 
