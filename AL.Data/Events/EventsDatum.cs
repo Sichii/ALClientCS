@@ -19,6 +19,9 @@ public class EventsDatum : DatumBase<GEvent>
     [JsonPropertyName("crabxx")]
     public GEvent Crabxx { get; init; } = null!;
 
+    [JsonPropertyName("dreams")]
+    public GEvent Dreams { get; init; } = null!;
+
     [JsonPropertyName("egghunt")]
     public GEvent Egghunt { get; init; } = null!;
 

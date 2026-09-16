@@ -67,6 +67,51 @@ public class MonstersDatum : DatumBase<GMonster>
     [JsonPropertyName("bscorpion")]
     public GMonster Bscorpion { get; init; } = null!;
 
+    [JsonPropertyName("cave_bat")]
+    public GMonster CaveBat { get; init; } = null!;
+
+    [JsonPropertyName("cave_broodmother")]
+    public GMonster CaveBroodmother { get; init; } = null!;
+
+    [JsonPropertyName("cave_crab")]
+    public GMonster CaveCrab { get; init; } = null!;
+
+    [JsonPropertyName("cave_darkmage")]
+    public GMonster CaveDarkmage { get; init; } = null!;
+
+    [JsonPropertyName("cave_guard")]
+    public GMonster CaveGuard { get; init; } = null!;
+
+    [JsonPropertyName("cave_lockbreaker")]
+    public GMonster CaveLockbreaker { get; init; } = null!;
+
+    [JsonPropertyName("cave_mothkeeper")]
+    public GMonster CaveMothkeeper { get; init; } = null!;
+
+    [JsonPropertyName("cave_npc")]
+    public GMonster CaveNpc { get; init; } = null!;
+
+    [JsonPropertyName("cave_rat")]
+    public GMonster CaveRat { get; init; } = null!;
+
+    [JsonPropertyName("cave_rogue")]
+    public GMonster CaveRogue { get; init; } = null!;
+
+    [JsonPropertyName("cave_scorpion")]
+    public GMonster CaveScorpion { get; init; } = null!;
+
+    [JsonPropertyName("cave_sentinel")]
+    public GMonster CaveSentinel { get; init; } = null!;
+
+    [JsonPropertyName("cave_snake")]
+    public GMonster CaveSnake { get; init; } = null!;
+
+    [JsonPropertyName("cave_spider")]
+    public GMonster CaveSpider { get; init; } = null!;
+
+    [JsonPropertyName("cave_wolf")]
+    public GMonster CaveWolf { get; init; } = null!;
+
     [JsonPropertyName("cgoo")]
     public GMonster Cgoo { get; init; } = null!;
 
@@ -282,6 +327,9 @@ public class MonstersDatum : DatumBase<GMonster>
 
     [JsonPropertyName("rharpy")]
     public GMonster Rharpy { get; init; } = null!;
+
+    [JsonPropertyName("rimedjinn")]
+    public GMonster Rimedjinn { get; init; } = null!;
 
     [JsonPropertyName("rooster")]
     public GMonster Rooster { get; init; } = null!;

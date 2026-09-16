@@ -13,6 +13,9 @@ public class TitlesDatum : DatumBase<GTitle>
     [JsonPropertyName("abtesting")]
     public GTitle Abtesting { get; init; } = null!;
 
+    [JsonPropertyName("cavefound")]
+    public GTitle Cavefound { get; init; } = null!;
+
     [JsonPropertyName("critmonger")]
     public GTitle Critmonger { get; init; } = null!;
 

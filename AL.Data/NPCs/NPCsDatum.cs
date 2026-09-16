@@ -31,6 +31,18 @@ public class NPCsDatum : DatumBase<GNPC>
     [JsonPropertyName("bouncer")]
     public GNPC Bouncer { get; init; } = null!;
 
+    [JsonPropertyName("cavalry_mage")]
+    public GNPC CavalryMage { get; init; } = null!;
+
+    [JsonPropertyName("cavalry_paladin")]
+    public GNPC CavalryPaladin { get; init; } = null!;
+
+    [JsonPropertyName("cavalry_priest")]
+    public GNPC CavalryPriest { get; init; } = null!;
+
+    [JsonPropertyName("cavalry_warrior")]
+    public GNPC CavalryWarrior { get; init; } = null!;
+
     [JsonPropertyName("citizen0")]
     public GNPC Citizen0 { get; init; } = null!;
 
@@ -105,6 +117,9 @@ public class NPCsDatum : DatumBase<GNPC>
 
     [JsonPropertyName("craftsman")]
     public GNPC Craftsman { get; init; } = null!;
+
+    [JsonPropertyName("dreamkeeper")]
+    public GNPC Dreamkeeper { get; init; } = null!;
 
     [JsonPropertyName("exchange")]
     public GNPC Exchange { get; init; } = null!;

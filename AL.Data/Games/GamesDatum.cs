@@ -11,6 +11,9 @@ public sealed class GamesDatum
     [JsonPropertyName("dice")]
     public object Dice { get; init; } = null!;
 
+    [JsonPropertyName("poker")]
+    public object Poker { get; init; } = null!;
+
     [JsonPropertyName("slots")]
     public object Slots { get; init; } = null!;
 

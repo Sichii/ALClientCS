@@ -271,6 +271,12 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("revive")]
     public GSkill Revive { get; init; } = null!;
 
+    [JsonPropertyName("rimeshatter")]
+    public GSkill Rimeshatter { get; init; } = null!;
+
+    [JsonPropertyName("rimeshell")]
+    public GSkill Rimeshell { get; init; } = null!;
+
     [JsonPropertyName("rspeed")]
     public GSkill Rspeed { get; init; } = null!;
 

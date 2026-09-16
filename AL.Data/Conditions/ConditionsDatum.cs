@@ -205,6 +205,12 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("reflection")]
     public GCondition Reflection { get; init; } = null!;
 
+    [JsonPropertyName("rimeexposed")]
+    public GCondition Rimeexposed { get; init; } = null!;
+
+    [JsonPropertyName("rimeshell")]
+    public GCondition Rimeshell { get; init; } = null!;
+
     [JsonPropertyName("rspeed")]
     public GCondition Rspeed { get; init; } = null!;
 

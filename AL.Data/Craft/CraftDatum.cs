@@ -54,6 +54,30 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("carrotsword")]
     public Recipe Carrotsword { get; init; } = null!;
 
+    [JsonPropertyName("cave_ambercoat")]
+    public Recipe CaveAmbercoat { get; init; } = null!;
+
+    [JsonPropertyName("cave_counterweight")]
+    public Recipe CaveCounterweight { get; init; } = null!;
+
+    [JsonPropertyName("cave_deepaxe")]
+    public Recipe CaveDeepaxe { get; init; } = null!;
+
+    [JsonPropertyName("cave_loaded_die")]
+    public Recipe CaveLoadedDie { get; init; } = null!;
+
+    [JsonPropertyName("cave_locktooth")]
+    public Recipe CaveLocktooth { get; init; } = null!;
+
+    [JsonPropertyName("cave_mothsteps")]
+    public Recipe CaveMothsteps { get; init; } = null!;
+
+    [JsonPropertyName("cave_reedscythe")]
+    public Recipe CaveReedscythe { get; init; } = null!;
+
+    [JsonPropertyName("cave_tunnelaxe")]
+    public Recipe CaveTunnelaxe { get; init; } = null!;
+
     [JsonPropertyName("cclaw")]
     public Recipe Cclaw { get; init; } = null!;
 
@@ -75,6 +99,9 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("computer")]
     public Recipe Computer { get; init; } = null!;
 
+    [JsonPropertyName("covemantle")]
+    public Recipe Covemantle { get; init; } = null!;
+
     [JsonPropertyName("ctristone")]
     public Recipe Ctristone { get; init; } = null!;
 
@@ -83,6 +110,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("dartgun")]
     public Recipe Dartgun { get; init; } = null!;
+
+    [JsonPropertyName("djinncrown")]
+    public Recipe Djinncrown { get; init; } = null!;
 
     [JsonPropertyName("elixirdex1")]
     public Recipe Elixirdex1 { get; init; } = null!;
@@ -314,6 +344,9 @@ public class CraftDatum : DatumBase<Recipe>
 
     [JsonPropertyName("stealthcape")]
     public Recipe Stealthcape { get; init; } = null!;
+
+    [JsonPropertyName("stillwaterlens")]
+    public Recipe Stillwaterlens { get; init; } = null!;
 
     [JsonPropertyName("stinger")]
     public Recipe Stinger { get; init; } = null!;

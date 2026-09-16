@@ -34,6 +34,18 @@ public class DimensionsDatum : DatumBase<IReadOnlyList<float>>
     [JsonPropertyName("bscorpion")]
     public IReadOnlyList<float> Bscorpion { get; init; } = null!;
 
+    [JsonPropertyName("cave_bat")]
+    public IReadOnlyList<float> CaveBat { get; init; } = null!;
+
+    [JsonPropertyName("cave_rat")]
+    public IReadOnlyList<float> CaveRat { get; init; } = null!;
+
+    [JsonPropertyName("cave_sentinel")]
+    public IReadOnlyList<float> CaveSentinel { get; init; } = null!;
+
+    [JsonPropertyName("cave_wolf")]
+    public IReadOnlyList<float> CaveWolf { get; init; } = null!;
+
     [JsonPropertyName("cgoo")]
     public IReadOnlyList<float> Cgoo { get; init; } = null!;
 
@@ -186,6 +198,9 @@ public class DimensionsDatum : DatumBase<IReadOnlyList<float>>
 
     [JsonPropertyName("rharpy_fly")]
     public IReadOnlyList<float> RharpyFly { get; init; } = null!;
+
+    [JsonPropertyName("rimedjinn")]
+    public IReadOnlyList<float> Rimedjinn { get; init; } = null!;
 
     [JsonPropertyName("rooster")]
     public IReadOnlyList<float> Rooster { get; init; } = null!;
