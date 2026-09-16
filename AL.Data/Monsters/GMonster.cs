@@ -18,7 +18,14 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     The abilities this monster has, indexed by the name of the ability.
     /// </summary>
-    public IReadOnlyDictionary<string, GMonsterAbility> Abilities { get; init; } = new Dictionary<string, GMonsterAbility>();
+    /// <remarks>
+    ///     Never null. The cave monsters carry the key set to null, and every reader indexes this without a check.
+    /// </remarks>
+    public IReadOnlyDictionary<string, GMonsterAbility> Abilities
+    {
+        get;
+        init => field = value ?? new Dictionary<string, GMonsterAbility>();
+    } = new Dictionary<string, GMonsterAbility>();
 
     /// <summary>
     ///     The key this monster is filed under in <see cref="GameData.Monsters" />.
