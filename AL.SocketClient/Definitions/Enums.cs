@@ -517,7 +517,16 @@ public enum GameResponseType
     MailSent,
 
     [EnumMember(Value = "mail_failed")]
-    MailFailed
+    MailFailed,
+
+    //mail_take_item's two failure answers (node/server.js:5358-5450). The success answer, mail_item_taken, was
+    //already here for the item-sent-elsewhere case; these two complete the take-item trio the same way MailSent
+    //and MailFailed complete the send trio above
+    [EnumMember(Value = "mail_item_already_taken")]
+    MailItemAlreadyTaken,
+
+    [EnumMember(Value = "mail_take_item_failed")]
+    MailTakeItemFailed
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

@@ -179,6 +179,9 @@ public class BankIndexTests
 
         public Task ReadMailAsync(Mail mail) => throw new NotSupportedException();
 
+
+        public Task DeleteMailAsync(Mail mail) => throw new NotSupportedException();
+
         public Task RenewAuth() => throw new NotSupportedException();
     }
 }

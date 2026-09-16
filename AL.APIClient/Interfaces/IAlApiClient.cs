@@ -57,6 +57,16 @@ public interface IAlApiClient
     /// </param>
     Task ReadMailAsync(Mail mail);
 
+
+    /// <summary>
+    ///     Asynchronously deletes a mail. The server does not refuse this for a mail whose attached item has never
+    ///     been taken - deleting one destroys the item, not just the message.
+    /// </summary>
+    /// <param name="mail">
+    ///     The mail to delete.
+    /// </param>
+    Task DeleteMailAsync(Mail mail);
+
     /// <summary>
     ///     Asynchronously re-logs in and replaces the <see cref="Auth" />.
     /// </summary>
