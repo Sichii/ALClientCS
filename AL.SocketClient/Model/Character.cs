@@ -1,5 +1,6 @@
 #region
 using System.Text.Json.Serialization;
+using AL.Core.Attributes;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
@@ -55,6 +56,14 @@ public class Character : Player, IEquatable<Character>
     [JsonPropertyName("cash")]
     [JsonInclude]
     public int Cash { get; protected set; }
+
+    /// <summary>
+    ///     The daily dungeon's run state while this character is inside one, or null. Set from the cave event, never from
+    ///     a character frame, which is why the frame merge leaves it alone.
+    /// </summary>
+    [JsonIgnore]
+    [ShallowMergeIgnore]
+    public CaveState? Cave { get; set; }
 
     /// <summary>
     ///     If populated, this contains all of the code executing for this character.

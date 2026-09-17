@@ -255,39 +255,42 @@ public record GameData
     private static void AddBorderWalls()
     {
         foreach (var mapGeometry in Geometry.Values.DistinctBy(mapGeometry => mapGeometry.Accessor))
-        {
-            var top = new StraightLine(
-                Convert.ToInt32(mapGeometry.Top),
-                Convert.ToInt32(mapGeometry.Left),
-                Convert.ToInt32(mapGeometry.Right),
-                false);
+            AddBorderWalls(mapGeometry);
+    }
 
-            var right = new StraightLine(
-                Convert.ToInt32(mapGeometry.Right),
-                Convert.ToInt32(mapGeometry.Top),
-                Convert.ToInt32(mapGeometry.Bottom),
-                true);
+    private static void AddBorderWalls(GGeometry mapGeometry)
+    {
+        var top = new StraightLine(
+            Convert.ToInt32(mapGeometry.Top),
+            Convert.ToInt32(mapGeometry.Left),
+            Convert.ToInt32(mapGeometry.Right),
+            false);
 
-            var bottom = new StraightLine(
-                Convert.ToInt32(mapGeometry.Bottom),
-                Convert.ToInt32(mapGeometry.Left),
-                Convert.ToInt32(mapGeometry.Right),
-                false);
+        var right = new StraightLine(
+            Convert.ToInt32(mapGeometry.Right),
+            Convert.ToInt32(mapGeometry.Top),
+            Convert.ToInt32(mapGeometry.Bottom),
+            true);
 
-            var left = new StraightLine(
-                Convert.ToInt32(mapGeometry.Left),
-                Convert.ToInt32(mapGeometry.Top),
-                Convert.ToInt32(mapGeometry.Bottom),
-                true);
+        var bottom = new StraightLine(
+            Convert.ToInt32(mapGeometry.Bottom),
+            Convert.ToInt32(mapGeometry.Left),
+            Convert.ToInt32(mapGeometry.Right),
+            false);
 
-            var horizontalLines = (List<StraightLine>)mapGeometry.HorizontalLines;
-            var verticalLines = (List<StraightLine>)mapGeometry.VerticalLines;
+        var left = new StraightLine(
+            Convert.ToInt32(mapGeometry.Left),
+            Convert.ToInt32(mapGeometry.Top),
+            Convert.ToInt32(mapGeometry.Bottom),
+            true);
 
-            horizontalLines.Add(top);
-            horizontalLines.Add(bottom);
-            verticalLines.Add(left);
-            verticalLines.Add(right);
-        }
+        var horizontalLines = (List<StraightLine>)mapGeometry.HorizontalLines;
+        var verticalLines = (List<StraightLine>)mapGeometry.VerticalLines;
+
+        horizontalLines.Add(top);
+        horizontalLines.Add(bottom);
+        verticalLines.Add(left);
+        verticalLines.Add(right);
     }
 
     //System.Text.Json cannot bind static members, so drive the G-data statics from the wire by reflection:
@@ -752,120 +755,127 @@ public record GameData
             if (map.Ignore)
                 continue;
 
-            //empty rather than absent for a map with no table, so nothing downstream distinguishes two kinds of nothing
-            map.Drops = Drops.Maps.GetValueOrDefault(map.Accessor) ?? [];
+            EnrichMap(map);
+        }
+    }
 
-            var geometry = Geometry[map.Accessor];
-            var exits = (List<Exit>)map.Exits;
+    //one map's share of EnrichMaps, so a floor filed at runtime gets the same exits, npc and monster links G's own
+    //maps got on load
+    private static void EnrichMap(GMap map)
+    {
+        //empty rather than absent for a map with no table, so nothing downstream distinguishes two kinds of nothing
+        map.Drops = Drops.Maps.GetValueOrDefault(map.Accessor) ?? [];
 
-            //connect npc data
-            foreach (var npc in map.NPCs)
+        var geometry = Geometry[map.Accessor];
+        var exits = (List<Exit>)map.Exits;
+
+        //connect npc data
+        foreach (var npc in map.NPCs)
+        {
+            var nData = NPCs[npc.Id];
+            npc.Data = NPCs[npc.Id]!;
+
+            if (nData == null)
             {
-                var nData = NPCs[npc.Id];
-                npc.Data = NPCs[npc.Id]!;
+                Log.Warn($"NPC {npc.Id} is missing metadata.");
 
-                if (nData == null)
-                {
-                    Log.Warn($"NPC {npc.Id} is missing metadata.");
-
-                    continue;
-                }
-
-                //locations for this map
-                var locations = (List<Location>)npc.Locations;
-
-                if (npc._position != null)
-                {
-                    var position = npc._position;
-
-                    locations.Add(new Location(map.Accessor, position));
-                }
-
-                if (npc._positions != null)
-                    foreach (var position in npc._positions)
-                        locations.Add(new Location(map.Accessor, position));
-
-                //populate exits with transport npc data
-                if (nData is { Role: NPCRole.Transport, Places: not null })
-                    foreach ((var mapAccessor, var spawnId) in nData.Places)
-                        foreach (var location in locations)
-                        {
-                            var toMapData = Maps[mapAccessor];
-
-                            if ((toMapData == null) || toMapData.Accessor.EqualsI(map.Accessor))
-                                continue;
-
-                            var spawn = toMapData.Spawns[spawnId];
-
-                            exits.Add(
-                                new Exit(
-                                    map.Accessor,
-                                    location,
-                                    new Location(mapAccessor, spawn),
-                                    spawnId,
-                                    ExitType.Transporter,
-                                    new Rectangle(
-                                        location.X,
-                                        location.Y,
-                                        0f,
-                                        0f),
-                                    CONSTANTS.TRANSPORTER_RANGE));
-                        }
+                continue;
             }
 
-            //connect monster data
-            foreach (var monster in map.Monsters)
-            {
-                monster.Data = Monsters[monster.Name]!;
-                var boundaries = (List<InscribedBoundary>)monster.Boundaries;
+            //locations for this map
+            var locations = (List<Location>)npc.Locations;
 
-                //boundaries for this map
-                if (monster._boundary != null)
+            if (npc._position != null)
+            {
+                var position = npc._position;
+
+                locations.Add(new Location(map.Accessor, position));
+            }
+
+            if (npc._positions != null)
+                foreach (var position in npc._positions)
+                    locations.Add(new Location(map.Accessor, position));
+
+            //populate exits with transport npc data
+            if (nData is { Role: NPCRole.Transport, Places: not null })
+                foreach ((var mapAccessor, var spawnId) in nData.Places)
+                    foreach (var location in locations)
+                    {
+                        var toMapData = Maps[mapAccessor];
+
+                        if ((toMapData == null) || toMapData.Accessor.EqualsI(map.Accessor))
+                            continue;
+
+                        var spawn = toMapData.Spawns[spawnId];
+
+                        exits.Add(
+                            new Exit(
+                                map.Accessor,
+                                location,
+                                new Location(mapAccessor, spawn),
+                                spawnId,
+                                ExitType.Transporter,
+                                new Rectangle(
+                                    location.X,
+                                    location.Y,
+                                    0f,
+                                    0f),
+                                CONSTANTS.TRANSPORTER_RANGE));
+                    }
+        }
+
+        //connect monster data
+        foreach (var monster in map.Monsters)
+        {
+            monster.Data = Monsters[monster.Name]!;
+            var boundaries = (List<InscribedBoundary>)monster.Boundaries;
+
+            //boundaries for this map
+            if (monster._boundary != null)
+            {
+                var boundary = monster._boundary;
+                var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
+
+                boundaries.Add(new InscribedBoundary(boundary, boundaryMap));
+            }
+
+            if (monster._boundaries != null)
+            {
+                var mBoundaries = monster._boundaries;
+
+                foreach (var boundary in mBoundaries)
                 {
-                    var boundary = monster._boundary;
                     var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
 
                     boundaries.Add(new InscribedBoundary(boundary, boundaryMap));
                 }
-
-                if (monster._boundaries != null)
-                {
-                    var mBoundaries = monster._boundaries;
-
-                    foreach (var boundary in mBoundaries)
-                    {
-                        var boundaryMap = boundary.Map == string.Empty ? map.Accessor : boundary.Map;
-
-                        boundaries.Add(new InscribedBoundary(boundary, boundaryMap));
-                    }
-                }
             }
+        }
 
-            //connect map to it's geometry
-            if (geometry != null)
-                map.Geomertry = geometry;
+        //connect map to it's geometry
+        if (geometry != null)
+            map.Geomertry = geometry;
 
-            //populate exits with door data
-            foreach (var door in map.Doors)
-            {
-                var toMapData = Maps[door.DestinationMap];
+        //populate exits with door data
+        foreach (var door in map.Doors)
+        {
+            var toMapData = Maps[door.DestinationMap];
 
-                if (toMapData == null)
-                    continue;
+            if (toMapData == null)
+                continue;
 
-                var spawn = toMapData.Spawns[door.DestinationSpawnId];
-                (var band, var range) = DoorReachBand(map, door);
+            var spawn = toMapData.Spawns[door.DestinationSpawnId];
+            (var band, var range) = DoorReachBand(map, door);
 
-                exits.Add(
-                    new Exit(
-                        map.Accessor,
-                        door,
-                        new Location(door.DestinationMap, spawn),
-                        door.DestinationSpawnId,
-                        ExitType.Door,
-                        band,
-                        range));
-            }
+            exits.Add(
+                new Exit(
+                    map.Accessor,
+                    door,
+                    new Location(door.DestinationMap, spawn),
+                    door.DestinationSpawnId,
+                    ExitType.Door,
+                    band,
+                    range));
         }
     }
 
@@ -1057,10 +1067,13 @@ public record GameData
         Log.Debug("Merging overlapped lines");
 
         foreach (var mapGeometry in Geometry.Values.DistinctBy(mapGeometry => mapGeometry.Accessor))
-        {
-            mapGeometry.VerticalLines = LineHelper.FixLines(mapGeometry.VerticalLines, true);
-            mapGeometry.HorizontalLines = LineHelper.FixLines(mapGeometry.HorizontalLines, false);
-        }
+            FixLines(mapGeometry);
+    }
+
+    private static void FixLines(GGeometry mapGeometry)
+    {
+        mapGeometry.VerticalLines = LineHelper.FixLines(mapGeometry.VerticalLines, true);
+        mapGeometry.HorizontalLines = LineHelper.FixLines(mapGeometry.HorizontalLines, false);
     }
 
     public static void Populate(string json)
@@ -1141,5 +1154,85 @@ public record GameData
 
         stopwatch.Stop();
         Log.Info($"Serialized data in {stopwatch.ElapsedMilliseconds}ms");
+    }
+
+    //serializes the runtime edits to the map and geometry tables against each other; reads need nothing, because
+    //each edit swaps in a fresh copy of the table rather than mutating the one a reader holds
+    private static readonly Lock GeneratedLock = new();
+
+    /// <summary>
+    ///     Files a dungeon run's floors under their keys, enriched like the maps G carries. A manifest entry files the
+    ///     floor's record alone, so a stair leading to it resolves before its geometry arrives; the floor's own delivery
+    ///     then replaces the record and adds the geometry. Delivering a floor twice changes nothing.
+    /// </summary>
+    public static void RegisterGeneratedFloors(GeneratedMapBundle bundle)
+    {
+        ArgumentNullException.ThrowIfNull(bundle);
+
+        lock (GeneratedLock)
+        {
+            var filed = new List<GMap>();
+
+            foreach (var entry in bundle.Manifest)
+            {
+                if (Maps[entry.Key] is not null)
+                    continue;
+
+                filed.Add(FileGeneratedFloor(entry));
+            }
+
+            foreach (var floor in bundle.Floors)
+            {
+                if (Geometry[floor.Key] is not null)
+                    continue;
+
+                var geometry = floor.Geometry!;
+                geometry.Accessor = floor.Key;
+                AddBorderWalls(geometry);
+                FixLines(geometry);
+                Geometry.Add(floor.Key, geometry);
+
+                filed.Add(FileGeneratedFloor(floor));
+            }
+
+            //after every record is filed, so a stair between two floors of one bundle resolves either way round
+            foreach (var map in filed)
+                EnrichMap(map);
+        }
+    }
+
+    /// <summary>
+    ///     Takes a run's floors back out of the map and geometry tables.
+    /// </summary>
+    public static void UnregisterGeneratedRun(string run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+
+        lock (GeneratedLock)
+        {
+            var keys = Maps.Entries
+                           .Where(kvp => kvp.Value.Generated is { } generated && run.EqualsI(generated.Run))
+                           .Select(kvp => kvp.Key)
+                           .ToList();
+
+            foreach (var key in keys)
+            {
+                Maps.Remove(key);
+                Geometry.Remove(key);
+            }
+        }
+    }
+
+    private static GMap FileGeneratedFloor(GeneratedFloor floor)
+    {
+        var map = floor.Definition;
+        map.Accessor = floor.Key;
+
+        if (string.IsNullOrEmpty(map.Key))
+            map.Key = floor.Key;
+
+        Maps.Add(floor.Key, map);
+
+        return map;
     }
 }

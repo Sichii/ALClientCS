@@ -3475,6 +3475,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
     public async Task MoveAsync(IPoint point, CancellationToken? token = null)
     {
+        //the game's own client refuses the move outright while the dungeon is paused for a vote
+        if (Character.Cave is { Paused: true })
+            throw new InvalidOperationException($"Failed to move to {point}. (the dungeon is paused for a vote)");
+
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var currentMap = Character.Map;
@@ -6338,6 +6342,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Socket.On<KillCreditData>(ALSocketMessageType.KillCredit, OnKillCredited);
         Socket.On<DiceData>(ALSocketMessageType.Dice, OnDiceReceived);
         Socket.On<TavernData>(ALSocketMessageType.Tavern, OnTavernReceived);
+        Socket.On<MapChunkData>(ALSocketMessageType.MapChunk, OnMapChunkAsync);
+        Socket.On<CaveData>(ALSocketMessageType.Cave, OnCaveAsync);
 
         EntityManager.AttachListener();
     }
@@ -6857,6 +6863,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 scale = 2,
                 success = 1
             });
+
+        //a reconnect lands outside any run this character was in, and the state the last cave frame left must not
+        //survive it: the bot counts a character as inside only while it carries one
+        Character.Cave = null;
 
         if (data.Character != null)
             await OnCharacterAsync(data.Character);

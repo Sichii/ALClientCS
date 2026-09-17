@@ -69,6 +69,7 @@ non-public-setter	instance	AL.Data	AL.Data.Classes.GClass	ExclusiveCosmetics	xcx
 non-public-setter	instance	AL.Data	AL.Data.Geometry.GGeometry	HorizontalLines	y_lines
 non-public-setter	instance	AL.Data	AL.Data.Geometry.GGeometry	VerticalLines	x_lines
 non-public-setter	instance	AL.Data	AL.Data.Maps.GDoor	LockType	
+non-public-setter	instance	AL.Data	AL.Data.Maps.GMap	Key	
 non-public-setter	instance	AL.Data	AL.Data.Skills.GSkill	CooldownMS	cooldown
 non-public-setter	instance	AL.Data	AL.Data.Skills.GSkill	MultiTargeted	multi
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.BossInfo	HP	

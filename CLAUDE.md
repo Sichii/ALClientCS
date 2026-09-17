@@ -142,6 +142,8 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
 
 `PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the `Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
 
+**A daily-dungeon floor is not in G and never in the world graph.** The server generates a run's floors and streams them over `map_chunk`; `Pathfinder.RegisterGeneratedRun` files them into `GameData.Maps`/`Geometry` (copy-on-write, so readers need no lock), builds their meshes, and gives the run a portal graph of its own that a route starting on a floor uses. Nothing routes from the world into a run - the keeper pulls the party in over an `interaction` - so a `FindPath` from `main` to a floor finds nothing, by design. `GMap.Generated` is how to tell a floor from a map; a run's floors leave the tables two hours after a later run replaces them.
+
 ## Entity Persistence Rules
 
 Getting these wrong produces stale reads and NREs, because "the object I'm holding" and "the object the server knows about" diverge silently.

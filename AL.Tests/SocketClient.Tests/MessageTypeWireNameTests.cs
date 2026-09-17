@@ -41,6 +41,8 @@ public class MessageTypeWireNameTests
     [Arguments("pm", ALSocketMessageType.Pm)]
     [Arguments("tavern", ALSocketMessageType.Tavern)]
     [Arguments("dice", ALSocketMessageType.Dice)]
+    [Arguments("map_chunk", ALSocketMessageType.MapChunk)]
+    [Arguments("cave", ALSocketMessageType.Cave)]
     public void WireNameParsesToMessageType(string wireName, ALSocketMessageType expected)
     {
         var parsed = EnumHelper.TryParse(wireName, out ALSocketMessageType actual);

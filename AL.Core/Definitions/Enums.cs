@@ -1410,7 +1410,13 @@ public enum UIDataType
     ///     </c>
     ///     everything it stunned.
     /// </summary>
-    Stomp
+    Stomp,
+
+    /// <summary>
+    ///     The daily dungeon's entry animation on the party being pulled through the gate. Presentation only.
+    /// </summary>
+    [EnumMember(Value = "cave_enter")]
+    CaveEnter
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -1437,7 +1443,11 @@ public enum ChestType
     Chest8,
 
     [EnumMember(Value = "chestp")]
-    ChestP
+    ChestP,
+
+    //a daily dungeon chest: its gold and amber go to the party's shared purse, not to the opener
+    [EnumMember(Value = "cavechest")]
+    CaveChest
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

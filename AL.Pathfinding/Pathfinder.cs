@@ -31,6 +31,18 @@ public static class Pathfinder
     private static IReadOnlyDictionary<string, NavMesh> Meshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
     private static PortalGraph? Graph;
 
+    //a dungeon run's floors join the mesh table while the run lasts and route over a graph of their own: nothing walks
+    //into a run, the keeper pulls the party in, so the world graph never needs to know one exists. Both tables are
+    //copy-on-write like the datums, so every query stays lock-free
+    private static readonly Lock GeneratedLock = new();
+
+    private static IReadOnlyDictionary<string, (PortalGraph Graph, DateTime RegisteredAt)> RunGraphs
+        = new Dictionary<string, (PortalGraph, DateTime)>(StringComparer.OrdinalIgnoreCase);
+
+    //ponytail: a run is dropped when a later run arrives this long after it. Nothing here knows when the last
+    //character in the process has left a run, so a run outlives its 24 minutes by this margin at most
+    private static readonly TimeSpan RUN_LIFETIME = TimeSpan.FromHours(2);
+
     /// <summary>
     ///     Whether a character can move in a straight line from start to end on a map: the server's own test.
     /// </summary>
@@ -79,9 +91,8 @@ public static class Pathfinder
         ArgumentNullException.ThrowIfNull(start);
         ArgumentNullException.ThrowIfNull(ends);
 
-        var graph = Graph ?? throw new InvalidOperationException("Pathfinder.Initialize has not run.");
-
-        return graph.FindPath(start, ends, options ?? PathOptions.Default);
+        return GraphFor(start.Map)
+            .FindPath(start, ends, options ?? PathOptions.Default);
     }
 
     /// <inheritdoc cref="FindPath{T}" />
@@ -137,6 +148,92 @@ public static class Pathfinder
 
         timer.Stop();
         Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
+    }
+
+    /// <summary>
+    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own portal graph. A floor
+    ///     the bundle only lists in its manifest gets its mesh when its own delivery arrives; every delivery rebuilds the
+    ///     run's graph over the floors it has so far.
+    /// </summary>
+    public static void RegisterGeneratedRun(GeneratedMapBundle bundle)
+    {
+        ArgumentNullException.ThrowIfNull(bundle);
+
+        GameData.RegisterGeneratedFloors(bundle);
+
+        lock (GeneratedLock)
+        {
+            foreach ((var run, var entry) in RunGraphs.ToList())
+                if (!run.EqualsI(bundle.Run) && ((DateTime.UtcNow - entry.RegisteredAt) > RUN_LIFETIME))
+                    UnregisterGeneratedRun(run);
+
+            var meshes = new Dictionary<string, NavMesh>(Meshes, StringComparer.OrdinalIgnoreCase);
+            var runMeshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var map in FloorsOf(bundle.Run))
+            {
+                if (!meshes.TryGetValue(map.Accessor, out var mesh))
+                {
+                    //null for a manifest entry, whose geometry has not arrived yet
+                    mesh = TryBuildNavMesh(map.Accessor, map);
+
+                    if (mesh is null)
+                        continue;
+
+                    meshes[map.Accessor] = mesh;
+                }
+
+                runMeshes[map.Accessor] = mesh;
+            }
+
+            var registeredAt = RunGraphs.TryGetValue(bundle.Run, out var existing) ? existing.RegisteredAt : DateTime.UtcNow;
+
+            Meshes = meshes;
+
+            RunGraphs = new Dictionary<string, (PortalGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase)
+            {
+                [bundle.Run] = (new PortalGraph(runMeshes), registeredAt)
+            };
+        }
+    }
+
+    /// <summary>
+    ///     Drops a run's meshes and graph, and takes its floors back out of the game data.
+    /// </summary>
+    public static void UnregisterGeneratedRun(string run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+
+        lock (GeneratedLock)
+        {
+            var meshes = new Dictionary<string, NavMesh>(Meshes, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var map in FloorsOf(run))
+                meshes.Remove(map.Accessor);
+
+            var graphs = new Dictionary<string, (PortalGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase);
+            graphs.Remove(run);
+
+            Meshes = meshes;
+            RunGraphs = graphs;
+        }
+
+        GameData.UnregisterGeneratedRun(run);
+    }
+
+    private static IEnumerable<GMap> FloorsOf(string run)
+        => GameData.Maps
+                   .Values
+                   .DistinctBy(map => map.Accessor)
+                   .Where(map => map.Generated is { } generated && run.EqualsI(generated.Run));
+
+    //a search starting on a run's floor routes over that run's graph; everywhere else is the world
+    private static PortalGraph GraphFor(string map)
+    {
+        if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))
+            return run.Graph;
+
+        return Graph ?? throw new InvalidOperationException("Pathfinder.Initialize has not run.");
     }
 
     /// <summary>

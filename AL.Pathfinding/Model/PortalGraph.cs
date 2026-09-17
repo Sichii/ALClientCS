@@ -196,10 +196,12 @@ internal sealed class PortalGraph
                         node.Entry.Distance(node.Location) + cost));
             }
 
-            //a recall from anywhere the character lands, to the map's town spawn; priced per search
+            //a recall from anywhere the character lands, to the map's town spawn; priced per search. Not on a dungeon
+            //floor: whether the server honours a recall there is not public, and a route promising a cast the server
+            //refuses fails where a longer walk does not
             var gMap = GameData.Maps[map];
 
-            if ((node.SpawnIndex != 0) && gMap is { Boundless: false } && ArrivalIndex.TryGetValue((map, 0), out var town))
+            if ((node.SpawnIndex != 0) && gMap is { Boundless: false, Generated: null } && ArrivalIndex.TryGetValue((map, 0), out var town))
                 edges.Add(
                     new Edge(
                         index,

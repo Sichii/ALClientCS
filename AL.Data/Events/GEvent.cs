@@ -12,6 +12,11 @@ public record GEvent
     public int Duration { get; init; }
 
     /// <summary>
+    ///     The daily dungeon's encounter table. Null on every other event.
+    /// </summary>
+    public IReadOnlyList<GEncounter>? Encounters { get; init; }
+
+    /// <summary>
     ///     Whether the event can be joined from wherever the character is standing, rather than only by walking to where it is
     ///     happening. Carried by the daily and nightly bosses; absent, and so false, on every seasonal one.
     /// </summary>

@@ -85,6 +85,12 @@ public sealed record GMap
     public float FreezeMultiplier { get; init; }
 
     /// <summary>
+    ///     Set on a floor the server generated for one dungeon run and delivered over map_chunk rather than in G. Null on
+    ///     every map G carries.
+    /// </summary>
+    public GGenerated? Generated { get; init; }
+
+    /// <summary>
     ///     If populated, an object containing information about the geometry for this map.
     /// </summary>
     public GGeometry? Geomertry { get; internal set; }
@@ -110,7 +116,8 @@ public sealed record GMap
     ///     Names the map's geometry document in the server's database, as "MP_" plus this value (node/server.js:392). Not the
     ///     string used to access this map object.
     /// </summary>
-    public string Key { get; init; } = null!;
+    [JsonInclude]
+    public string Key { get; internal set; } = null!;
 
     /// <summary>
     ///     Dead. Nothing in the server or the official client reads it, and the one map that declares it declares it false, so

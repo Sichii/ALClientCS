@@ -13,7 +13,7 @@ namespace AL.Data;
 /// </typeparam>
 public abstract class DatumBase<T>
 {
-    private IReadOnlyDictionary<string, T> LookupCache { get; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyDictionary<string, T> LookupCache { get; set; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Gets the backing lookup as a read-only dictionary for enumeration.
@@ -71,6 +71,21 @@ public abstract class DatumBase<T>
             if (!cache.ContainsKey(propertyInfo.Name))
                 cache[propertyInfo.Name] = value;
         }
+    }
+
+    //copy-on-write, both of these: a datum is read from every thread without a lock, so a runtime entry lands in a
+    //fresh table and the reference is swapped, leaving whatever table a reader already holds intact and in order
+    internal void Add(string key, T value)
+        => LookupCache = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase)
+        {
+            [key] = value
+        };
+
+    internal void Remove(string key)
+    {
+        var copy = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase);
+        copy.Remove(key);
+        LookupCache = copy;
     }
 
     /// <summary>

@@ -68,6 +68,12 @@ public sealed record GameResponseData : IOptionalObject
     public float Chance { get; init; }
 
     /// <summary>
+    ///     A traveler's reply to a cave talk request.
+    /// </summary>
+    [JsonPropertyName("chat")]
+    public CaveChat? Chat { get; init; }
+
+    /// <summary>
     ///     Whether the monster hunt was turned in.
     /// </summary>
     [JsonPropertyName("completed")]
@@ -321,6 +327,12 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     [JsonPropertyName("targets")]
     public string[]? Targets { get; init; }
+
+    /// <summary>
+    ///     The account's standing with the daily dungeon, on the reply to a cave info request.
+    /// </summary>
+    [JsonPropertyName("visit")]
+    public CaveVisit? Visit { get; init; }
 
     /// <summary>
     ///     The amount of XP lost from being defeated by a monster.

@@ -11,6 +11,13 @@ namespace AL.SocketClient.Model;
 public class Monster : EntityBase, IEquatable<Monster>
 {
     /// <summary>
+    ///     This monster's part in the daily dungeon, when it is a traveler or an encounter's actor rather than something
+    ///     to fight. Null everywhere else.
+    /// </summary>
+    [JsonPropertyName("cave")]
+    public MonsterCave? Cave { get; init; }
+
+    /// <summary>
     ///     Whether kills on this monster count for every attacker, not just the tag holder. Null when the frame did not
     ///     carry it, which is the usual case: the server sends a soft property only when the instance differs from its
     ///     definition, so read this through the extension that falls back to G rather than directly.

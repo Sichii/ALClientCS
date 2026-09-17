@@ -205,6 +205,10 @@ public enum GameResponseType
     [EnumMember(Value = "transport_failed")]
     TransportFailed,
 
+    //a daily dungeon stair whose floor is not yet cleared refuses the transport with this
+    [EnumMember(Value = "seal_closed")]
+    SealClosed,
+
     //explicit, so attaching a naming strategy to this converter could never silently unbind it
     [EnumMember(Value = "invalid")]
     Invalid,
@@ -633,7 +637,16 @@ public enum ALSocketMessageType
     Tavern,
 
     //one transition of the tavern's dice round. Appended for the same ordinal reason as Pm
-    Dice
+    Dice,
+
+    //one piece of a generated map bundle: a daily dungeon's floors reach the client this way, not through G.
+    //Appended for the same ordinal reason as Pm
+    [EnumMember(Value = "map_chunk")]
+    MapChunk,
+
+    //the daily dungeon's run state: timer, purse, doors, objectives and the vote in progress. Appended for the same
+    //ordinal reason as Pm
+    Cave
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
