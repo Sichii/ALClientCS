@@ -6,6 +6,11 @@ namespace AL.Data.Events;
 public record GEvent
 {
     /// <summary>
+    ///     The daily dungeon's camp table, one list per floor in floor order. Null on every other event.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<GCamp>>? Camps { get; init; }
+
+    /// <summary>
     ///     How long the event runs once it starts, in seconds - minutes for the daily and nightly bosses, weeks for a seasonal
     ///     one (node/server_functions.js:2011).
     /// </summary>

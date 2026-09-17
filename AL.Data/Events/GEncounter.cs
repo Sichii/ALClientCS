@@ -40,4 +40,26 @@ public record GEncounterOption
     public string? Needs { get; init; }
 
     public bool Offer { get; init; }
+
+    /// <summary>
+    ///     What the reply can lead to, each weighted against the others. Empty on a reply whose result is fixed.
+    /// </summary>
+    public IReadOnlyList<GEncounterOutcome> Outcomes { get; init; } = [];
+}
+
+/// <summary>
+///     One thing a reply can lead to. <see cref="Fight" /> is the monster and count it starts, when it starts a fight; the
+///     rest is what the party is told or handed.
+/// </summary>
+public record GEncounterOutcome
+{
+    public GMonsterCount? Fight { get; init; }
+
+    public long Gold { get; init; }
+
+    public string? Reward { get; init; }
+
+    public string? Text { get; init; }
+
+    public float Weight { get; init; } = 1f;
 }
