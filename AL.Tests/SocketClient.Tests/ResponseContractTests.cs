@@ -676,4 +676,89 @@ public class ResponseContractTests
             .Should()
             .Be(ALAttribute.Int);
     }
+
+    /// <summary>
+    ///     A correlated slots settlement carries the whole result: whether it won, what the pull cost, what it paid and the
+    ///     difference. <c>success</c> says only that the machine took the pull, so it is true on a loss as well - reading it
+    ///     as the outcome counts every loss as a win.
+    /// </summary>
+    [Test]
+    public void ASlotsWinCarriesItsCostPayoutAndNet()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""slots_success"", ""place"":""slots"", ""request_id"":""abc"", ""success"":true, ""won"":true, ""cost"":1000000, ""payout"":20000000, ""net"":19000000 }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.SlotsSuccess);
+
+        data.Won
+            .Should()
+            .BeTrue();
+
+        data.Cost
+            .Should()
+            .Be(1_000_000);
+
+        data.Payout
+            .Should()
+            .Be(20_000_000);
+
+        //restated rather than read off the frame: the difference is what a caller acts on, and it is the one field a
+        //swapped payout or cost would quietly contradict
+        data.Net
+            .Should()
+            .Be(data.Payout - data.Cost);
+    }
+
+    /// <summary>
+    ///     A losing pull is still a successful emit. The payout is zero and the net is the stake back out, so a caller that
+    ///     sums net over a session gets the real result without differencing the character's gold.
+    /// </summary>
+    [Test]
+    public void ASlotsLossIsStillASuccessfulEmit()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""slots_fail"", ""place"":""slots"", ""request_id"":""abc"", ""success"":true, ""won"":false, ""cost"":1000000, ""payout"":0, ""net"":-1000000 }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.Success
+            .Should()
+            .BeTrue();
+
+        data.Won
+            .Should()
+            .BeFalse();
+
+        data.Payout
+            .Should()
+            .Be(0);
+
+        data.Net
+            .Should()
+            .Be(-1_000_000);
+    }
+
+    /// <summary>
+    ///     The two refusals the bet handler answers before it reaches any one game's branch. Both arrive under the token, so
+    ///     an awaiting wager resolves as a refusal rather than spending its whole timeout.
+    /// </summary>
+    [Test]
+    public void AWagerRefusedOutsideTheTavernNamesWhy()
+    {
+        TestJson.Socket<GameResponseData>(@"{ ""response"":""not_in_tavern"", ""place"":""slots"", ""request_id"":""abc"", ""failed"":true }")!
+                .ResponseType
+                .Should()
+                .Be(GameResponseType.NotInTavern);
+
+        TestJson.Socket<GameResponseData>(@"{ ""response"":""tavern_unavailable"", ""place"":""slots"", ""request_id"":""abc"", ""failed"":true }")!
+                .Failed
+                .Should()
+                .BeTrue();
+    }
 }

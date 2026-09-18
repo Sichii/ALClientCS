@@ -62,6 +62,96 @@ public abstract partial class ALClient
             });
 
     /// <summary>
+    ///     Stakes <paramref name="gold" /> on one side of the tavern's wheel and resolves once it settles.
+    ///     <paramref name="side" /> is one of <c>GameData.Games.Wheel.Sides</c> - <c>sun</c> or <c>moon</c> - and the stake
+    ///     has to reach <c>GameData.Games.Wheel.Min</c>. The wheel spins for <c>GameData.Games.Wheel.Spin</c> before it
+    ///     answers, so the wait outlasts the ordinary network timeout.
+    /// </summary>
+    /// <remarks>
+    ///     <b>The payload is inferred, not read off a handler.</b> The wheel is new enough that no published source carries
+    ///     its handler, so only part of this is settled. The <c>bet</c> event and the <c>type</c> discriminator are how both
+    ///     live siblings reach the same handler, and <c>gold</c> is what both name a stake; the field carrying the side is
+    ///     the guess, taken from the game data's own <c>sides</c> key. If the wheel answers
+    ///     <c>
+    ///         invalid
+    ///     </c>
+    ///     or settles against a side that was not asked for, that field name is the thing to correct, and it is written once
+    ///     here.
+    /// </remarks>
+    public Task<GameResponseData> BetWheelAsync(long gold, string side)
+        => WagerAsync(
+            "wheel",
+            new Dictionary<string, object?>
+            {
+                ["gold"] = gold,
+                ["side"] = side
+            });
+
+    /// <summary>
+    ///     Pulls the tavern's slots machine and resolves once the reels settle. The price is fixed at
+    ///     <c>GameData.Games.Slots.Gold</c> and taken whatever the outcome, so there is no stake to pass. The reels spin for
+    ///     <c>GameData.Games.Slots.Spin</c> before the machine answers, which is why the wait outlasts the ordinary network
+    ///     timeout.
+    /// </summary>
+    /// <remarks>
+    ///     The settlement rides <see cref="GameResponseData.Won" />, <see cref="GameResponseData.Cost" />,
+    ///     <see cref="GameResponseData.Payout" /> and <see cref="GameResponseData.Net" />, and the response code is
+    ///     <c>
+    ///         slots_success
+    ///     </c>
+    ///     or
+    ///     <c>
+    ///         slots_fail
+    ///     </c>
+    ///     . Those are the fields the last published handler sent; the machine's prize table has been rewritten since, so it
+    ///     may now name which prize landed as well. The whole reply is handed back rather than a model of it, so a field
+    ///     grown since reaches a caller without a change here.
+    ///     <br />
+    ///     A second pull while one is still spinning is refused with
+    ///     <c>
+    ///         in_progress
+    ///     </c>
+    ///     rather than queued.
+    /// </remarks>
+    public Task<GameResponseData> PlaySlotsAsync() => WagerAsync("slots");
+
+    //both machines settle on a timer rather than on the emit, so the wait has to outlast the spin. Ten seconds is what
+    //the game's own script functions allow, against a slots spin of 3.6 and a wheel spin of 4
+    private const int WAGER_TIMEOUT_MS = 10_000;
+
+    //correlated on the token alone: the published bet handler labels a slots reply place "slots" and everything else
+    //"dice", so a wheel reply's place cannot be predicted and gating on it would hang the await for the full timeout
+    private async Task<GameResponseData> WagerAsync(string game, Dictionary<string, object?>? fields = null)
+    {
+        var requestId = RequestId.New();
+        var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (!requestId.EqualsI(data.RequestId!))
+                    return TaskCache.FALSE;
+
+                var result = data.Failed
+                    ? source.TrySetResult($"The {game} wager was refused. ({data.Reason ?? data.ResponseType.ToString()})")
+                    : source.TrySetResult(data);
+
+                return Task.FromResult(result);
+            });
+
+        var payload = new Dictionary<string, object?>(fields ?? [])
+        {
+            ["type"] = game,
+            ["request_id"] = requestId
+        };
+
+        await Socket.EmitAsync(ALSocketEmitType.Bet, payload);
+
+        return await source.Task.WithTimeout(WAGER_TIMEOUT_MS);
+    }
+
+    /// <summary>
     ///     Asks the tavern for its current house rules (node/server.js:11589) and returns them.
     /// </summary>
     /// <remarks>

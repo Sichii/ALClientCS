@@ -12,14 +12,14 @@ public sealed class GamesDatum
     public object Dice { get; init; } = null!;
 
     [JsonPropertyName("poker")]
-    public object Poker { get; init; } = null!;
+    public GPoker Poker { get; init; } = null!;
 
     [JsonPropertyName("slots")]
-    public object Slots { get; init; } = null!;
+    public GSlots Slots { get; init; } = null!;
 
     [JsonPropertyName("tarot")]
     public object Tarot { get; init; } = null!;
 
     [JsonPropertyName("wheel")]
-    public object Wheel { get; init; } = null!;
+    public GWheel Wheel { get; init; } = null!;
 }

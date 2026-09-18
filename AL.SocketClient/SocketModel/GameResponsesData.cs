@@ -89,7 +89,8 @@ public sealed record GameResponseData : IOptionalObject
     public float? CooldownMS { get; init; }
 
     /// <summary>
-    ///     The cost of the item bought.
+    ///     The cost of the item bought, and on a correlated slots settlement the gold that pull cost - the machine's fixed
+    ///     price, echoed back so a caller need not have read it off the game data.
     /// </summary>
     public int Cost { get; init; }
 
@@ -233,6 +234,17 @@ public sealed record GameResponseData : IOptionalObject
     public string? Name { get; init; }
 
     /// <summary>
+    ///     What a settled wager changed the character's gold by, on a correlated slots settlement: <see cref="Payout" />
+    ///     less <see cref="Cost" />, so it is negative on a loss and equals minus the stake when nothing was won.
+    /// </summary>
+    /// <remarks>
+    ///     Read this rather than differencing the character's gold. The server applies the payout before it sends the
+    ///     settlement, so anything that both reads this and watches the balance counts the same win twice.
+    /// </remarks>
+    [JsonPropertyName("net")]
+    public long Net { get; init; }
+
+    /// <summary>
     ///     The projectile ids of a multi-target skill, one per target, in the same order as <see cref="Targets" />.
     /// </summary>
     [JsonPropertyName("pids")]
@@ -243,6 +255,12 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     [JsonPropertyName("pack")]
     public string? Pack { get; init; }
+
+    /// <summary>
+    ///     What a settled wager paid, in gold, on a correlated slots settlement. Zero on a loss.
+    /// </summary>
+    [JsonPropertyName("payout")]
+    public long Payout { get; init; }
 
     /// <summary>
     ///     Extra information about the response. Often the name of a skill or action.
@@ -333,6 +351,13 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     [JsonPropertyName("visit")]
     public CaveVisit? Visit { get; init; }
+
+    /// <summary>
+    ///     Whether a settled wager won, on a correlated slots settlement. Distinct from <see cref="Success" />, which says
+    ///     only that the pull was accepted and is true on a loss as well.
+    /// </summary>
+    [JsonPropertyName("won")]
+    public bool Won { get; init; }
 
     /// <summary>
     ///     The amount of XP lost from being defeated by a monster.

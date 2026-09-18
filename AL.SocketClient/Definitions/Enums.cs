@@ -536,7 +536,16 @@ public enum GameResponseType
     MailItemAlreadyTaken,
 
     [EnumMember(Value = "mail_take_item_failed")]
-    MailTakeItemFailed
+    MailTakeItemFailed,
+
+    //the two refusals the bet handler answers before it reaches any game's own branch: the tavern has no running
+    //instance, and the character is not standing in it. Appended rather than filed beside the other tavern codes,
+    //because inserting above would renumber every later ordinal
+    [EnumMember(Value = "tavern_unavailable")]
+    TavernUnavailable,
+
+    [EnumMember(Value = "not_in_tavern")]
+    NotInTavern
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
