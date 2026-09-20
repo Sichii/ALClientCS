@@ -23,9 +23,11 @@ public class MessageHandlerTests : SocketTestBed
     private const string ANCHORLESS_DISAPPEARING_TEXT_FRAME
         = @"[""disappearing_text"",{""message"":""+1234"",""x"":595.7,""y"":1091.1,""args"":{""color"":""+gold"",""size"":""large""}}]";
 
-    //the frame that used to kill the potion/regen callback: the server anchors its gold and xp texts to a point
-    //rather than an entity, so "id" is simply absent (node/server.js:2825, :2847, :10147). Id must read as null -
-    //declared non-nullable it silently became a null receiver, and EqualsI throws on one
+    /// <summary>
+    ///     The frame that used to kill the potion/regen callback: the server anchors its gold and xp texts to a point rather
+    ///     than an entity, so <c>id</c> is simply absent (node/server.js:2825, :2847, :10147). Id must read as null - declared
+    ///     non-nullable it silently became a null receiver, and EqualsI throws on one.
+    /// </summary>
     [Test]
     public async Task AnchorlessDisappearingTextBindsNullId()
     {
@@ -54,10 +56,12 @@ public class MessageHandlerTests : SocketTestBed
             .Be("+1234");
     }
 
-    //the library dispatches every received frame on a thread-pool task of its own, so a burst reaches a handler in
-    //whichever order the pool schedules it - a buy receipt used to overtake the inventory frame sent before it. The
-    //parse is the one call still made inline in arrival order, and the queue is fed from there: two frames parsed
-    //in sequence must reach their subscribers in that sequence
+    /// <summary>
+    ///     The library dispatches every received frame on a thread-pool task of its own, so a burst reaches a handler in
+    ///     whichever order the pool schedules it - a buy receipt used to overtake the inventory frame sent before it. The
+    ///     parse is the one call still made inline in arrival order, and the queue is fed from there: two frames parsed in
+    ///     sequence must reach their subscribers in that sequence.
+    /// </summary>
     [Test]
     public async Task FramesParsedInSequenceAreHandledInSequence()
     {
@@ -117,9 +121,11 @@ public class MessageHandlerTests : SocketTestBed
                            .BeTrue();
     }
 
-    //the wire assumption SendPartyInviteAsync's game_response arm rests on: three of the four server party paths
-    //answer with one of these and never emit the "Invited X to party" game_log the success arm waits for
-    //(node/server.js:10914-10929), so an invite to someone offline used to cost a full network timeout
+    /// <summary>
+    ///     The wire assumption SendPartyInviteAsync's <c>game_response</c> arm rests on: three of the four server party paths
+    ///     answer with one of these and never emit the "Invited X to party" <c>game_log</c> the success arm waits for
+    ///     (node/server.js:10914-10929), so an invite to someone offline used to cost a full network timeout.
+    /// </summary>
     [Test]
     public async Task PartyInviteRefusalsBindWithTheirPlace()
     {

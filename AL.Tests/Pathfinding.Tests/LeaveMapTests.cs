@@ -21,12 +21,16 @@ namespace AL.Tests.Pathfinding.Tests;
 /// </remarks>
 public class LeaveMapTests : PathfindingTestBed
 {
-    //the far right of main, where a farm spot sits - far enough that a free recall would be worth planning around
+    /// <summary>
+    ///     The far right of main, where a farm spot sits - far enough that a free recall would be worth planning around.
+    /// </summary>
     private static readonly Destination FAR_RIGHT_OF_MAIN = new(new Location("main", 1937f, -12f), 0f);
 
     private static readonly Location INSIDE_CYBERLAND = new("cyberland", 0f, 0f);
 
-    //main's ninth spawn, where cyberland's door lands, and the transporter that goes back in stands beside it
+    /// <summary>
+    ///     Main's ninth spawn, where cyberland's door lands, and the transporter that goes back in stands beside it.
+    /// </summary>
     private static readonly Destination TRANSPORTER_ON_MAIN = new(new Location("main", -85f, -389f), 0f);
 
     private static readonly Location INSIDE_DUELLAND = new("duelland", 0f, 0f);

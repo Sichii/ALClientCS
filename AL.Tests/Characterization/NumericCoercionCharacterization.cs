@@ -258,10 +258,14 @@ public class NumericCoercionCharacterization
            .Throw<StjJsonException>("the shared options bind a tuple's int element with the strict Int32 reader");
     }
 
-    // no [JsonPropertyName]: the shared options match case-insensitively, so "value" binds to Value on its own.
+    /// <summary>
+    ///     No [JsonPropertyName]: the shared options match case-insensitively, so <c>value</c> binds to Value on its own.
+    /// </summary>
     private sealed class NullableIntHolder
     {
-        // the binding target under test; only ever written by the serializer, and only when it does not throw
+        /// <summary>
+        ///     The binding target under test; only ever written by the serializer, and only when it does not throw.
+        /// </summary>
         // ReSharper disable once UnusedMember.Global
         public int? Value { get; set; }
     }

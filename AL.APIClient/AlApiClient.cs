@@ -1,15 +1,15 @@
 #region
+using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
-using AL.APIClient.Model;
 using AL.APIClient.Json.SystemTextJson;
+using AL.APIClient.Model;
 using AL.APIClient.Request;
 using AL.APIClient.Response;
 using Chaos.Extensions.Common;
 using Common.Logging;
-using System.Collections.Concurrent;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using RestSharp;
 #endregion
 
@@ -27,12 +27,16 @@ public sealed class AlApiClient : IAlApiClient
 
     private static readonly ILog Logger = LogManager.GetLogger<AlApiClient>();
 
-    //keyed by host so a caller pointed at a different server is not served the public one's tables
+    /// <summary>
+    ///     Keyed by host, so a caller pointed at a different server is not served the public one's tables.
+    /// </summary>
     private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> GameDataCache = new();
 
     private readonly string BaseUrl;
 
-    //each client owns its cookie jar so several accounts can be logged in side by side
+    /// <summary>
+    ///     Each client owns its cookie jar, so several accounts can be logged in side by side.
+    /// </summary>
     private readonly IRestClient Client;
     private readonly string CookieDomain;
     private readonly SemaphoreSlim Sync;
@@ -202,7 +206,10 @@ public sealed class AlApiClient : IAlApiClient
         Auth = apiClient.Auth;
     }
 
-    // data.js is ~2.6MB and the server often trickles it well past the 100s default.
+    /// <summary>
+    ///     Creates a REST client with a raised timeout: <c>data.js</c> is ~2.6MB and the server often trickles it well past
+    ///     the 100s default.
+    /// </summary>
     private static IRestClient CreateRestClient(string baseUrl)
         => new RestClient(
             new RestClientOptions(baseUrl)

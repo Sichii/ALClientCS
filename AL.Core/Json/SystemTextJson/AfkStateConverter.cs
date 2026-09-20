@@ -13,7 +13,9 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class AfkStateConverter : JsonConverter<AfkState>
 {
-    //a JSON null must reach Read so it maps to Unknown instead of throwing (value type)
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null maps to <see cref="AfkState.Unknown" />.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override AfkState Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

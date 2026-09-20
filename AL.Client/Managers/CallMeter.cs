@@ -5,6 +5,9 @@ using AL.SocketClient.Definitions;
 
 namespace AL.Client.Managers;
 
+/// <summary>
+///     Represents one row of a call-budget breakdown.
+/// </summary>
 /// <param name="Name">
 ///     A source label, or an emit type, depending on which grouping the row came from.
 /// </param>
@@ -24,6 +27,9 @@ public sealed record CallBudgetRow(string Name, double Cost, int Emits)
     public IReadOnlyList<CallBudgetRow> Children { get; init; } = [];
 }
 
+/// <summary>
+///     Represents the call meter's window: what it cost, and how that cost breaks down.
+/// </summary>
 /// <param name="ServerCost">
 ///     The server's own accrued cost for this window, from the last
 ///     <c>
@@ -131,6 +137,9 @@ public sealed class CallMeter
         }
     }
 
+    /// <summary>
+    ///     Groups a window of entries into rows, one per key, each summing its group's cost.
+    /// </summary>
     /// <param name="window">
     ///     The entries to group into rows.
     /// </param>
@@ -157,8 +166,10 @@ public sealed class CallMeter
                  .OrderByDescending(row => row.Cost)
                  .ToList();
 
-    //a free emit is dated when it happened while the run it sits inside is dated earlier, so what has expired is
-    //not always a prefix
+    /// <summary>
+    ///     Drops every entry that has fallen outside the window. A free emit is dated when it happened while the run it sits
+    ///     inside is dated earlier, so what has expired is not always a prefix.
+    /// </summary>
     private void Prune(long now) => Entries.RemoveAll(entry => Stopwatch.GetElapsedTime(entry.Stamp, now) > CallCost.WINDOW);
 
     internal void Record(ALSocketEmitType emitType)
@@ -186,6 +197,9 @@ public sealed class CallMeter
         }
     }
 
+    /// <summary>
+    ///     Takes a snapshot of the window as it stands, against the server's own cost.
+    /// </summary>
     /// <param name="serverCost">
     ///     The character's live
     ///     <c>

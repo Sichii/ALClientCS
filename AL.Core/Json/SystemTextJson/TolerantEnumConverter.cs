@@ -23,25 +23,37 @@ namespace AL.Core.Json.SystemTextJson;
 /// </typeparam>
 public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum: struct, Enum
 {
-    //the name, not the type: a closed generic's logger name is its assembly-qualified name, which the layout's
-    //shortName truncates at the last dot - "0, Culture=neutral, PublicKeyToken=null]]". The message below already
-    //carries the enum's name
+    /// <summary>
+    ///     Named from a string, not the type: a closed generic's logger name is its assembly-qualified name, which the
+    ///     layout's shortName truncates at the last dot, to "0, Culture=neutral, PublicKeyToken=null]]".
+    /// </summary>
+    /// <remarks>
+    ///     The warning below already carries the enum's name.
+    /// </remarks>
     private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumConverter<TEnum>));
 
-    //tolerance that hides schema drift is worse than the drift, so each unknown value is reported once.
-    //Per-TEnum is equivalent to a global table here - the key is already prefixed with the enum's name.
+    /// <summary>
+    ///     Tolerance that hides schema drift is worse than the drift, so each unknown value is reported once.
+    /// </summary>
+    /// <remarks>
+    ///     Per-TEnum is equivalent to a global table here; the key is already prefixed with the enum's name.
+    /// </remarks>
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<string, byte> Reported = new();
 
     private readonly bool LowerCase;
 
-    //a JSON null must reach Read so it degrades to the zero member instead of throwing (value type)
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null degrades to the zero member.
+    /// </summary>
     public override bool HandleNull => true;
 
     public TolerantEnumConverter(bool lowerCase) => LowerCase = lowerCase;
 
-    //shared by Read's string branch and the dictionary-key path: tolerant parse, then Newtonsoft's numeric
-    //fallback (quoted "17" -> underlying value), then degrade to the zero member
+    /// <summary>
+    ///     Tolerant parse shared by <see cref="Read" />'s string branch and the dictionary-key path: Newtonsoft's numeric
+    ///     fallback (a quoted "17" becomes the underlying value), then degrade to the zero member.
+    /// </summary>
     private static TEnum ParseTolerant(string? raw)
     {
         if (EnumHelper.TryParse<TEnum>(raw, out var parsed))
@@ -94,9 +106,14 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
         }
     }
 
-    //enum-keyed dictionaries route the KEY through the key type's converter; without these a tolerant enum used as a
-    //dictionary key (WeaponType in GClass.mainhand, TradeSlot/Slot in Character.slots) throws NotSupportedException.
-    //Parse a key with the same tolerance as a value; unknown keys degrade, where Newtonsoft threw
+    /// <summary>
+    ///     Parses a dictionary key with the same tolerance as a value; unknown keys degrade, where Newtonsoft threw.
+    /// </summary>
+    /// <remarks>
+    ///     Enum-keyed dictionaries route the key through the key type's converter, so without this a tolerant enum used as a
+    ///     dictionary key (WeaponType in GClass.mainhand, TradeSlot and Slot in Character.slots) throws
+    ///     <see cref="NotSupportedException" />.
+    /// </remarks>
     public override TEnum ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => ParseTolerant(reader.GetString());
 

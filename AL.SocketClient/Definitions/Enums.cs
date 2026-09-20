@@ -23,7 +23,10 @@ public enum GameResponseType
     [EnumMember(Value = "cant_escape")]
     CantEscape,
 
-    //explicit, so attaching a naming strategy to this converter could never silently unbind it
+    /// <summary>
+    ///     The generic <c>data</c> response. Its wire name is written out so that attaching a naming strategy to this
+    ///     converter could never silently unbind it.
+    /// </summary>
     [EnumMember(Value = "data")]
     Data,
 
@@ -57,7 +60,9 @@ public enum GameResponseType
     [EnumMember(Value = "upgrade_invalid_offering")]
     UpgradeInvalidOffering,
 
-    //The compound equivalent to this is exception (omegalul)
+    /// <summary>
+    ///     An upgrade attempted with no scroll. The compound equivalent to this is <c>exception</c> (omegalul).
+    /// </summary>
     [EnumMember(Value = "upgrade_no_scroll")]
     UpgradeNoScroll,
 
@@ -205,11 +210,16 @@ public enum GameResponseType
     [EnumMember(Value = "transport_failed")]
     TransportFailed,
 
-    //a daily dungeon stair whose floor is not yet cleared refuses the transport with this
+    /// <summary>
+    ///     A daily dungeon stair whose floor is not yet cleared refuses the transport with this.
+    /// </summary>
     [EnumMember(Value = "seal_closed")]
     SealClosed,
 
-    //explicit, so attaching a naming strategy to this converter could never silently unbind it
+    /// <summary>
+    ///     The generic <c>invalid</c> refusal. Its wire name is written out so that attaching a naming strategy to this
+    ///     converter could never silently unbind it.
+    /// </summary>
     [EnumMember(Value = "invalid")]
     Invalid,
 
@@ -222,16 +232,20 @@ public enum GameResponseType
     [EnumMember(Value = "slot_occuppied")]
     SlotOccupied,
 
-    //the single code that replaced every *_get_closer. Nine of its emit sites send a bare string rather
-    //than an object, so it must be matched without requiring Failed, and Place must stay optional.
+    /// <summary>
+    ///     The single code that replaced every <c>*_get_closer</c>. Nine of its emit sites send a bare string rather than an
+    ///     object, so it must be matched without requiring Failed, and Place must stay optional.
+    /// </summary>
     [EnumMember(Value = "distance")]
     Distance,
 
     [EnumMember(Value = "cant_in_bank")]
     CantInBank,
 
-    //a bank door while the previous one is still loading or saving the bank (node/server.js:5708). The load or save
-    //failing afterwards is BankOperation, which carries the reason and no failed flag (node/server.js:15655)
+    /// <summary>
+    ///     A bank door opened while the previous one is still loading or saving the bank (node/server.js:5708). The load or
+    ///     save failing afterwards is BankOperation, which carries the reason and no failed flag (node/server.js:15655).
+    /// </summary>
     [EnumMember(Value = "bank_opi")]
     BankOperationInProgress,
 
@@ -301,8 +315,10 @@ public enum GameResponseType
     [EnumMember(Value = "target_alive")]
     TargetAlive,
 
-    //revive's rejection for a gravestone below full hp. Built by hand rather than by fail_response, so it carries
-    //neither place nor failed - the response code is the only discriminator it has.
+    /// <summary>
+    ///     Revive's rejection for a gravestone below full hp. Built by hand rather than by <c>fail_response</c>, so it carries
+    ///     neither place nor failed - the response code is the only discriminator it has.
+    /// </summary>
     [EnumMember(Value = "revive_failed")]
     ReviveFailed,
 
@@ -351,7 +367,9 @@ public enum GameResponseType
     [EnumMember(Value = "player_gone")]
     PlayerGone,
 
-    //sent by success_response, so this arrives with Success set even though nothing happened
+    /// <summary>
+    ///     Sent by <c>success_response</c>, so this arrives with Success set even though nothing happened.
+    /// </summary>
     [EnumMember(Value = "already_in_party")]
     AlreadyInParty,
 
@@ -385,28 +403,38 @@ public enum GameResponseType
     [EnumMember(Value = "inviter_gone")]
     InviterGone,
 
-    //the code, distinct from the GameResponseData.InProgress flag - blessing is already running
+    /// <summary>
+    ///     The response code, distinct from the GameResponseData.InProgress flag: blessing is already running.
+    /// </summary>
     [EnumMember(Value = "in_progress")]
     InProgressResponse,
 
-    //the lost-and-found gold reserve read (node/server.js:7334); needs no prior donation and no distance check
+    /// <summary>
+    ///     The lost-and-found gold reserve read (node/server.js:7334). Needs no prior donation and no distance check.
+    /// </summary>
     [EnumMember(Value = "lostandfound_info")]
     LostAndFoundInfo,
 
-    //the lost-and-found listing's refusal for an account that has not donated on this connection
-    //(node/server.js:6891). The uncorrelated branch is built by hand and carries neither place nor failed; the
-    //correlated one goes through fail_response and carries both, plus reason "donation_required"
+    /// <summary>
+    ///     The lost-and-found listing's refusal for an account that has not donated on this connection (node/server.js:6891).
+    ///     The uncorrelated branch is built by hand and carries neither place nor failed; the correlated one goes through
+    ///     <c>fail_response</c> and carries both, plus reason <c>donation_required</c>.
+    /// </summary>
     [EnumMember(Value = "lostandfound_donate")]
     LostAndFoundDonate,
 
-    //hopsickness refusing a lost-and-found buy (node/server.js:7134). Ponty is served the same handler and is
-    //deliberately not refused, so this arrives only from the lost-and-found branch
+    /// <summary>
+    ///     Hopsickness refusing a lost-and-found buy (node/server.js:7134). Ponty is served the same handler and is
+    ///     deliberately not refused, so this arrives only from the lost-and-found branch.
+    /// </summary>
     [EnumMember(Value = "cant_when_sick")]
     CantWhenSick,
 
-    //Endpoint coverage. Five of the locksmith's nine arrive as a BARE STRING rather than an object
-    //(node/server.js:6309, :6314, :6325, :6337, :6344), the shape Distance above already warns about, so nothing
-    //here may require Place or Failed to be present
+    /// <summary>
+    ///     The locksmith's generic refusal. Five of its nine codes arrive as a bare string rather than an object
+    ///     (node/server.js:6309, :6314, :6325, :6337, :6344), the shape Distance above already warns about, so nothing here
+    ///     may require Place or Failed to be present.
+    /// </summary>
     [EnumMember(Value = "locksmith_cant")]
     LocksmithCant,
 
@@ -425,31 +453,41 @@ public enum GameResponseType
     [EnumMember(Value = "locksmith_unseal_complete")]
     LocksmithUnsealComplete,
 
-    //sent through success_response with Success FALSE and InProgress true (node/server.js:6317), so it is a
-    //"nothing happened yet" rather than a completion - Hours is how long is left
+    /// <summary>
+    ///     Sent through <c>success_response</c> with Success false and InProgress true (node/server.js:6317), so it is a
+    ///     "nothing happened yet" rather than a completion. Hours is how long is left.
+    /// </summary>
     [EnumMember(Value = "locksmith_unsealing")]
     LocksmithUnsealing,
 
-    //fail_response with reason "already_unlocked" (node/server.js:6300)
+    /// <summary>
+    ///     <c>fail_response</c> with reason <c>already_unlocked</c> (node/server.js:6300).
+    /// </summary>
     [EnumMember(Value = "locksmith_aunlocked")]
     LocksmithAlreadyUnlocked,
 
-    //fail_response with reason "already_locked" (node/server.js:6330)
+    /// <summary>
+    ///     <c>fail_response</c> with reason <c>already_locked</c> (node/server.js:6330).
+    /// </summary>
     [EnumMember(Value = "locksmith_alocked")]
     LocksmithAlreadyLocked,
 
     [EnumMember(Value = "scrollsmith_cant")]
     ScrollsmithCant,
 
-    //carries Gold: the amount actually spent, and the only place the destat cost is reported (node/server.js:6274)
+    /// <summary>
+    ///     Carries Gold: the amount actually spent, and the only place the destat cost is reported (node/server.js:6274).
+    /// </summary>
     [EnumMember(Value = "scrollsmith_success")]
     ScrollsmithSuccess,
 
     [EnumMember(Value = "cx_not_found")]
     CosmeticNotFound,
 
-    //each of these three carries a whole replacement acx dictionary rather than a delta
-    //(node/server.js:7243, :7981, :7988)
+    /// <summary>
+    ///     This, <c>cx_sent</c> and <c>cx_received</c> each carry a whole replacement <c>acx</c> dictionary rather than a
+    ///     delta (node/server.js:7243, :7981, :7988).
+    /// </summary>
     [EnumMember(Value = "cx_new")]
     CosmeticNew,
 
@@ -504,43 +542,58 @@ public enum GameResponseType
     [EnumMember(Value = "only_in_bank")]
     OnlyInBank,
 
-    //activate's own already-unlocked refusal, distinct from locksmith_aunlocked's reason string of the same
-    //text (node/server.js:8871, :8884)
+    /// <summary>
+    ///     Activate's own already-unlocked refusal, distinct from <c>locksmith_aunlocked</c>'s reason string of the same text
+    ///     (node/server.js:8871, :8884).
+    /// </summary>
     [EnumMember(Value = "already_unlocked")]
     AlreadyUnlocked,
 
-    //activate's refusal when the class or level requirement for a cosmetic toggle is not met
-    //(node/server.js:8820)
+    /// <summary>
+    ///     Activate's refusal when the class or level requirement for a cosmetic toggle is not met (node/server.js:8820).
+    /// </summary>
     [EnumMember(Value = "nothing")]
     Nothing,
 
-    //the only answer the signup emit gets (node/server.js:11335). No method consumes it; the member exists so the
-    //frame resolves to something other than Unknown
+    /// <summary>
+    ///     The only answer the signup emit gets (node/server.js:11335). No method consumes it; the member exists so the frame
+    ///     resolves to something other than Unknown.
+    /// </summary>
     [EnumMember(Value = "signed_up")]
     SignedUp,
 
-    //the mail emit's two terminal answers (node/server.js:5450-5610). The in-progress acknowledgement
-    //("mail_sending") is deliberately not a member: it only says the send started, so nothing may settle on it.
-    //Appended at the end, like every other late addition: members carry no explicit values, so inserting
-    //above would renumber every later ordinal.
+    /// <summary>
+    ///     This and MailFailed are the mail emit's two terminal answers (node/server.js:5450-5610). The in-progress
+    ///     acknowledgement <c>mail_sending</c> is deliberately not a member: it only says the send started, so nothing may
+    ///     settle on it.
+    /// </summary>
+
+    //appended at the end, like every other late addition: members carry no explicit values, so inserting
+    //above would renumber every later ordinal
     [EnumMember(Value = "mail_sent")]
     MailSent,
 
     [EnumMember(Value = "mail_failed")]
     MailFailed,
 
-    //mail_take_item's two failure answers (node/server.js:5358-5450). The success answer, mail_item_taken, was
-    //already here for the item-sent-elsewhere case; these two complete the take-item trio the same way MailSent
-    //and MailFailed complete the send trio above
+    /// <summary>
+    ///     This and MailTakeItemFailed are <c>mail_take_item</c>'s two failure answers (node/server.js:5358-5450). The success
+    ///     answer <c>mail_item_taken</c> was already here for the item-sent-elsewhere case, so these two complete the
+    ///     take-item trio.
+    /// </summary>
     [EnumMember(Value = "mail_item_already_taken")]
     MailItemAlreadyTaken,
 
     [EnumMember(Value = "mail_take_item_failed")]
     MailTakeItemFailed,
 
-    //the two refusals the bet handler answers before it reaches any game's own branch: the tavern has no running
-    //instance, and the character is not standing in it. Appended rather than filed beside the other tavern codes,
-    //because inserting above would renumber every later ordinal
+    /// <summary>
+    ///     This and NotInTavern are the two refusals the bet handler answers before it reaches any game's own branch: the
+    ///     tavern has no running instance, and the character is not standing in it.
+    /// </summary>
+
+    //appended rather than filed beside the other tavern codes, because inserting above would renumber every
+    //later ordinal
     [EnumMember(Value = "tavern_unavailable")]
     TavernUnavailable,
 
@@ -636,25 +689,39 @@ public enum ALSocketMessageType
     [EnumMember(Value = "game_event")]
     GameEvent,
 
-    //private chat. Appended rather than filed beside ChatLog because this enum has its own row in
-    //enum-tolerance-matrix.json pinning what raw ordinal 17 resolves to, and no member here carries an explicit
-    //value - so inserting above renumbers every later ordinal and fails that snapshot
+    /// <summary>Private chat.</summary>
+
+    //appended rather than filed beside ChatLog because this enum has its own row in
+    //enum-tolerance-matrix.json pinning what raw ordinal 17 resolves to, and no member here carries an
+    //explicit value - so inserting above renumbers every later ordinal and fails that snapshot
     Pm,
 
-    //the tavern's info reply and its bet/won/lost broadcasts all share this one event name, so the frame's own
-    //"event" field is what tells them apart. Appended for the same ordinal reason as Pm
+    /// <summary>
+    ///     The tavern's info reply and its bet, won and lost broadcasts all share this one event name, so the frame's own
+    ///     <c>event</c> field is what tells them apart.
+    /// </summary>
+
+    //appended for the same ordinal reason as Pm
     Tavern,
 
-    //one transition of the tavern's dice round. Appended for the same ordinal reason as Pm
+    /// <summary>One transition of the tavern's dice round.</summary>
+
+    //appended for the same ordinal reason as Pm
     Dice,
 
-    //one piece of a generated map bundle: a daily dungeon's floors reach the client this way, not through G.
-    //Appended for the same ordinal reason as Pm
+    /// <summary>
+    ///     One piece of a generated map bundle. A daily dungeon's floors reach the client this way, not through G.
+    /// </summary>
+
+    //appended for the same ordinal reason as Pm
     [EnumMember(Value = "map_chunk")]
     MapChunk,
 
-    //the daily dungeon's run state: timer, purse, doors, objectives and the vote in progress. Appended for the same
-    //ordinal reason as Pm
+    /// <summary>
+    ///     The daily dungeon's run state: timer, purse, doors, objectives and the vote in progress.
+    /// </summary>
+
+    //appended for the same ordinal reason as Pm
     Cave
 }
 

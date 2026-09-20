@@ -21,9 +21,10 @@ namespace AL.Tests.Characterization;
 /// </remarks>
 public sealed class ScalarCoercionCharacterization
 {
-    // FINDING: the plan lists true -> int as a coercion to preserve (Convert.ToInt32(true) == 1). That was
-    // only ever the DOM path; binding a bool literal straight into an int member always threw. There is no
-    // int-coercion of a JSON bool to preserve here.
+    /// <summary>
+    ///     Binding a JSON bool straight into an int member always threw. The Convert.ToInt32(true) == 1 coercion was only ever
+    ///     the DOM path, so there is no bool-to-int coercion to preserve here.
+    /// </summary>
     [Test]
     public void T10_Bool_Into_Int_Throws()
     {
@@ -132,9 +133,11 @@ public sealed class ScalarCoercionCharacterization
                     .Should()
                     .Be(25);
 
-    // FINDING: the plan (T10 row, S16) lists 100.0 -> int as a coercion to preserve. It never was one on the
-    // path that matters: a frame binds straight into a typed member, and both engines reject a fractional
-    // literal there. Only the exception type was re-baselined, and either way the frame is lost.
+    /// <summary>
+    ///     A frame binds straight into a typed member, and both engines reject a fractional literal there, so 100.0 into an
+    ///     int was never a coercion on the path that matters. Only the exception type was re-baselined, and either way the
+    ///     frame is lost.
+    /// </summary>
     [Test]
     public void T10_WholeFloat_Into_Int_Throws()
     {
@@ -144,8 +147,10 @@ public sealed class ScalarCoercionCharacterization
            .Throw<StjJsonException>();
     }
 
-    // Each coercion is exercised as an object-member bind, matching how the socket path receives frames, so
-    // every setter below is written by the serializer rather than by the test.
+    /// <summary>
+    ///     Each coercion is exercised as an object-member bind, matching how the socket path receives frames, so every setter
+    ///     below is written by the serializer rather than by the test.
+    /// </summary>
     private sealed record BoolBox
     {
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
@@ -166,7 +171,9 @@ public sealed class ScalarCoercionCharacterization
 
     private sealed record LongBox
     {
-        //never read - the long case only ever pins a throw, but the member must exist for 1e3 to have a target
+        /// <summary>
+        ///     Never read - the long case only ever pins a throw, but the member must exist for 1e3 to have a target.
+        /// </summary>
         // ReSharper disable once UnusedMember.Global
         public long V { get; set; }
     }
@@ -178,7 +185,9 @@ public sealed class ScalarCoercionCharacterization
     }
 
     #region Real production DTOs receiving these shapes
-    // AchievementProgressData.Count is an int; the server sends the string form (JsonConverterTests.cs:21).
+    /// <summary>
+    ///     AchievementProgressData.Count is an int; the server sends the string form (JsonConverterTests.cs:21).
+    /// </summary>
     [Test]
     public void T10_AchievementProgressData_StringCount_Into_Int_Coerces()
     {
@@ -201,7 +210,9 @@ public sealed class ScalarCoercionCharacterization
             .Be(19975);
     }
 
-    // CharacterInfo.Online is the raw ms-since-last-seen number (0 == offline); IsOnline derives the boolean.
+    /// <summary>
+    ///     CharacterInfo.Online is the raw ms-since-last-seen number (0 == offline); IsOnline derives the boolean.
+    /// </summary>
     [Test]
     public void T10_CharacterInfo_NumberOnline_PreservedAsMilliseconds()
     {

@@ -10,6 +10,7 @@ using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Model;
 using FluentAssertions;
+using CONSTANTS = AL.Pathfinding.Definitions.CONSTANTS;
 #endregion
 
 namespace AL.Tests.Pathfinding.Tests;
@@ -76,7 +77,7 @@ public class PathParityTests : PathfindingTestBed
 
             //the corpus priced every door flat, and the bank door has been priced apart since; the comparison is about
             //the walking, so a door counts at the flat price here
-            var cost = path.Sum(edge => edge.Type is EdgeType.Door or EdgeType.Transport ? AL.Pathfinding.Definitions.CONSTANTS.TRANSPORT_HEURISTIC : edge.Cost);
+            var cost = path.Sum(edge => edge.Type is EdgeType.Door or EdgeType.Transport ? CONSTANTS.TRANSPORT_HEURISTIC : edge.Cost);
 
             if (recorded.Found && (cost > (recorded.Cost * 1.05f + 1f)))
                 longer.Add($"#{recorded.Id} {recorded.Start.Map}->{recorded.End.Map} old {recorded.Cost:F0} new {cost:F0}");
@@ -161,8 +162,11 @@ public class PathParityTests : PathfindingTestBed
         return (last.Map == recorded.End.Map) && (last.Distance(end) <= (recorded.Radius + 0.01f));
     }
 
-    //these mirror the recorded corpus file, so every member stays whether the assertions read it or not: dropping one
-    //would make the record stop describing what old-paths.json holds
+    /// <summary>
+    ///     These mirror the recorded corpus file, so every member stays whether the assertions read it or not: dropping one
+    ///     would make the record stop describing what <c>old-paths.json</c> holds.
+    /// </summary>
+
     // ReSharper disable NotAccessedPositionalProperty.Local
     private sealed record Case(
         int Id,

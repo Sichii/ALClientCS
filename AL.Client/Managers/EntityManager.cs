@@ -15,9 +15,11 @@ public sealed class EntityManager : AsyncDeltaLoop
 {
     private readonly IntervalTimer ForceCharacterUpdateTimer = new(TimeSpan.FromSeconds(15), false);
 
-    //the server names no id when it drops an entity you can still see - a missed death or disappear leaves the entry
-    //frozen at its last hp forever, and consumers that sort by hp then pick the corpse every time. Only a type:"all"
-    //frame rebuilds the set, and nothing else asks for one
+    /// <summary>
+    ///     The server names no id when it drops an entity you can still see - a missed death or disappear leaves the entry
+    ///     frozen at its last hp forever, and consumers that sort by hp then pick the corpse every time. Only a
+    ///     <c>type:"all"</c> frame rebuilds the set, and nothing else asks for one.
+    /// </summary>
     private readonly IntervalTimer ForceEntitiesUpdateTimer = new(TimeSpan.FromSeconds(60), false);
     private IDisposable? OnCharacterSubscription;
     private IDisposable? OnEntitiesSubscription;
@@ -71,9 +73,11 @@ public sealed class EntityManager : AsyncDeltaLoop
             await Client.RequestEntitiesAsync();
     }
 
-    //eviction rides the update pass rather than a pass of its own: both walk every entity, and an entity that has justose
-    //been dead-reckoned out of view is exactly the one to drop. Collected first, since the removal mutates what is
-    //being enumerated
+    /// <summary>
+    ///     Eviction rides the update pass rather than a pass of its own: both walk every entity, and an entity that has just
+    ///     been dead-reckoned out of view is exactly the one to drop. Collected first, since the removal mutates what is being
+    ///     enumerated.
+    /// </summary>
     private void UpdateMonsters(TimeSpan deltaTime)
     {
         List<string>? outOfSight = null;

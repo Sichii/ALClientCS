@@ -147,8 +147,10 @@ public sealed class AttributedObjectConverterTests
         return options;
     }
 
-    // Minimal IAttributed surface: every stat is a public init auto-prop so STJ binds any that appear on the
-    // wire, and Attributes is a concrete mutable dictionary the harvest writes into.
+    /// <summary>
+    ///     Minimal <see cref="IAttributed" /> surface: every stat is a public init auto-prop so STJ binds any that appear on
+    ///     the wire, and Attributes is a concrete mutable dictionary the harvest writes into.
+    /// </summary>
     private abstract class TestAttributedBase : IAttributed
     {
         public float APiercing { get; init; }

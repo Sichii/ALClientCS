@@ -22,7 +22,9 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class FalsyListConverter<T> : JsonConverter<IReadOnlyList<T>>
 {
-    //a JSON null must reach Read so it maps to an empty list instead of a null reference
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null maps to an empty list.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override IReadOnlyList<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

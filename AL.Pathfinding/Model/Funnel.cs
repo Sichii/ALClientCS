@@ -13,7 +13,9 @@ namespace AL.Pathfinding.Model;
 /// </summary>
 public static class Funnel
 {
-    //appends only if it would not duplicate the last point already in path
+    /// <summary>
+    ///     Appends <paramref name="point" /> unless it would duplicate the last point already in <paramref name="path" />.
+    /// </summary>
     private static void Append(List<Point> path, Point point)
     {
         if ((path.Count == 0) || !Same(path[^1], point))
@@ -164,7 +166,9 @@ public static class Funnel
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool Same(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
 
-    //which slot of 'from' faces 'to'
+    /// <summary>
+    ///     The slot of <paramref name="from" /> that faces <paramref name="to" />.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int SlotOf(TriangleMesh mesh, int from, int to)
     {

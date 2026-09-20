@@ -115,12 +115,17 @@ public abstract partial class ALClient
     /// </remarks>
     public Task<GameResponseData> PlaySlotsAsync() => WagerAsync("slots");
 
-    //both machines settle on a timer rather than on the emit, so the wait has to outlast the spin. Ten seconds is what
-    //the game's own script functions allow, against a slots spin of 3.6 and a wheel spin of 4
+    /// <summary>
+    ///     Both machines settle on a timer rather than on the emit, so the wait has to outlast the spin. Ten seconds is what
+    ///     the game's own script functions allow, against a slots spin of 3.6 and a wheel spin of 4.
+    /// </summary>
     private const int WAGER_TIMEOUT_MS = 10_000;
 
-    //correlated on the token alone: the published bet handler labels a slots reply place "slots" and everything else
-    //"dice", so a wheel reply's place cannot be predicted and gating on it would hang the await for the full timeout
+    /// <summary>
+    ///     Asynchronously places a wager, correlated on the token alone: the published bet handler labels a slots reply's
+    ///     place <c>slots</c> and everything else <c>dice</c> , so a wheel reply's place cannot be predicted and gating on it
+    ///     would hang the await for the full timeout.
+    /// </summary>
     private async Task<GameResponseData> WagerAsync(string game, Dictionary<string, object?>? fields = null)
     {
         var requestId = RequestId.New();
@@ -531,8 +536,10 @@ public abstract partial class ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    //the wrapper prices the batch by its length before the handler runs, so a refused batch is billed the same. The
-    //emit hook saw only the type and charged a batch of one
+    /// <summary>
+    ///     Tops up an equip batch's charge to its real length. The emit hook saw only the type and charged a batch of one; the
+    ///     wrapper prices by length before the handler runs, so a refused batch is billed the same.
+    /// </summary>
     private void ChargeBatch(int count)
         => CallMeter.Charge(ALSocketEmitType.EquipBatch, CallCost.OfEquipBatch(count) - CallCost.Of(ALSocketEmitType.EquipBatch));
 

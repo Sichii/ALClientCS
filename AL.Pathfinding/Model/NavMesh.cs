@@ -181,7 +181,11 @@ public sealed class NavMesh
             end.Y,
             CONSTANTS.DEFAULT_BOUNDING_BASE);
 
-    //the struct overload, so the search never boxes a point to ask
+    /// <summary>
+    ///     <inheritdoc cref="CanMove(IPoint, IPoint)" />
+    ///     <br />
+    ///     The struct overload, so the search never boxes a point to ask.
+    /// </summary>
     internal bool CanMove(Point start, Point end)
         => Walls.CanMove(
             start.X,
@@ -190,7 +194,9 @@ public sealed class NavMesh
             end.Y,
             CONSTANTS.DEFAULT_BOUNDING_BASE);
 
-    //keep vertices 0..i, then end on the stop point
+    /// <summary>
+    ///     Keeps vertices 0..<paramref name="i" />, then ends <paramref name="polyline" /> on <paramref name="stop" />.
+    /// </summary>
     private static void Cut(List<Point> polyline, int i, Point stop)
     {
         if (polyline.Count > (i + 1))
@@ -200,8 +206,10 @@ public sealed class NavMesh
             polyline.Add(stop);
     }
 
-    //a pulled polyline into the walk that is emitted: turned round for a search run from the far end, collapsed
-    //onto the legs the move test accepts unless it is only a price, then cut where it first gets inside the reach
+    /// <summary>
+    ///     Turns a pulled polyline into the walk that is emitted: turned round for a search run from the far end, collapsed
+    ///     onto the legs the move test accepts unless it is only a price, then cut where it first gets inside the reach.
+    /// </summary>
     private void Finish(
         List<Point> polyline,
         in Reach reach,

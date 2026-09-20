@@ -14,13 +14,15 @@ namespace AL.Client;
 
 /// <summary>
 ///     The Cave of Many Dreams, the daily dungeon. Its floors are generated per run and streamed over map_chunk rather
-///     than carried in G; its state rides the cave event onto <see cref="Character.Cave" />; and every request is an
+///     than carried in G; its state rides the cave event onto <see cref="SocketClient.Model.Character.Cave" />; and every request is an
 ///     interaction of type "cave" with an action, answered on game_response under the request id.
 /// </summary>
 public abstract partial class ALClient
 {
-    //the game's client waits this long for the party to be pulled through the gate, and a tenth of it for anything
-    //else - both far longer than a network round trip, because the server settles a whole party's entry or vote first
+    /// <summary>
+    ///     How long to wait for the party to be pulled through the cave gate. The game's own client waits this long, because
+    ///     the server settles a whole party's entry or vote before it answers.
+    /// </summary>
     private const int CAVE_ENTER_TIMEOUT_MS = 150_000;
     private const int CAVE_REQUEST_TIMEOUT_MS = 10_000;
 
@@ -119,8 +121,11 @@ public abstract partial class ALClient
         return await source.Task.WithTimeout(timeoutMs);
     }
 
-    //a floor arrives in pieces; the last one files the run's floors into the game data and the pathfinder. Every
-    //character in the party receives the same stream, so filing a floor a second time changes nothing
+    /// <summary>
+    ///     Handles a <c>map_chunk</c> frame: a floor arrives in pieces, and the last one files the run's floors into the game
+    ///     data and the pathfinder. Every character in the party receives the same stream, so filing a floor a second time
+    ///     changes nothing.
+    /// </summary>
     protected Task<bool> OnMapChunkAsync(MapChunkData data)
     {
         var text = MapChunks.Add(data);

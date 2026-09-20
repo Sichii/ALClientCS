@@ -352,8 +352,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public ConcurrentDictionary<string, ActionData> Projectiles { get; }
 
-    //monsters a killing hit removed, kept until the death frame names them: the server sends the hit first, and the
-    //death frame carries only the id. ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
+    /// <summary>
+    ///     Monsters a killing hit removed, kept until the death frame names them: the server sends the hit first, and the
+    ///     death frame carries only the id.
+    /// </summary>
+
+    //ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
     private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
 
     /// <summary>
@@ -3830,8 +3834,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return expectation;
     }
 
-    //the emit hook priced a solo open of an empty chest; in a party the server resends every member and bills the
-    //opener for all of it, and the response says who received what
+    /// <summary>
+    ///     Charges the opener for the whole party's share of the chest. The emit hook priced a solo open of an empty chest;
+    ///     the server resends every member and bills the opener for all of it, and the response says who received what.
+    /// </summary>
     private void ChargeChestOpen(ChestOpenedData opened)
     {
         var looters = opened.Items
@@ -6408,8 +6414,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return TaskCache.FALSE;
     }
 
-    //false like every other permanent handler: true would consume the frame, and RequestTavernInfoAsync's own scoped
-    //handler is waiting on this same message type
+    /// <summary>
+    ///     Handles a tavern frame. Returns false like every other permanent handler: true would consume the frame, and
+    ///     <see cref="RequestTavernInfoAsync" />'s own scoped handler is waiting on this same message type.
+    /// </summary>
     protected Task<bool> OnTavernReceived(TavernData data)
     {
         OnTavern?.Invoke(this, data);
@@ -6730,6 +6738,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return TaskCache.FALSE;
     }
 
+    /// <summary>
+    ///     Handles a skill timeout frame, filing the cooldown it carries against the named skill.
+    /// </summary>
     /// <remarks>
     ///     <b>
     ///         The cooldown

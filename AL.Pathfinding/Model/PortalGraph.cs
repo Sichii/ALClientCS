@@ -28,7 +28,9 @@ internal sealed class PortalGraph
     private readonly IReadOnlyDictionary<string, NavMesh> Meshes;
     private readonly List<Node> Nodes = [];
 
-    //static edges in CSR form by From
+    /// <summary>
+    ///     The static edges in CSR form by <see cref="Edge.From" />.
+    /// </summary>
     private readonly Edge[] StaticEdges;
 
     public PortalGraph(IReadOnlyDictionary<string, NavMesh> meshes)
@@ -681,7 +683,10 @@ internal sealed class PortalGraph
         }
     }
 
-    //build time only: grows the per-map lists. the search reads them through NodesOn and never touches the dictionaries
+    /// <summary>
+    ///     Build time only: grows the per-map lists. The search reads them through <see cref="NodesOn" /> and never touches
+    ///     the dictionaries.
+    /// </summary>
     private (List<int> Arrivals, List<int> Departures) Lists(string map)
     {
         if (!ArrivalsOnMap.TryGetValue(map, out var arrivals))
@@ -699,7 +704,9 @@ internal sealed class PortalGraph
         return (arrivals, departures);
     }
 
-    //a map that got no nodes has an empty list; searches on several threads read these at once
+    /// <summary>
+    ///     A map that got no nodes has an empty list; searches on several threads read these at once.
+    /// </summary>
     private static List<int> NodesOn(Dictionary<string, List<int>> byMap, string map)
         => byMap.TryGetValue(map, out var nodes) ? nodes : EmptyNodes;
 

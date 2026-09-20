@@ -28,7 +28,9 @@ namespace AL.Tests.Pathfinding.Tests;
 /// </summary>
 public class WallCrossingTests : PathfindingTestBed
 {
-    //the player collision base the server measures a move with, as four corner offsets
+    /// <summary>
+    ///     The player collision base the server measures a move with, as four corner offsets.
+    /// </summary>
     private static readonly (float MX, float MY)[] CORNERS =
     [
         (-8f, 2f),
@@ -37,7 +39,9 @@ public class WallCrossingTests : PathfindingTestBed
         (8f, -7f)
     ];
 
-    //a spread of geometry rather than a sample of it - open maps, dungeons, and the two densest interiors
+    /// <summary>
+    ///     A spread of geometry rather than a sample of it - open maps, dungeons, and the two densest interiors.
+    /// </summary>
     private static readonly string[] MAPS =
     [
         "main",
@@ -54,7 +58,9 @@ public class WallCrossingTests : PathfindingTestBed
 
     private const int TRIALS_PER_MAP = 120;
 
-    //the server's constants, restated rather than read from CONSTANTS so the oracle cannot inherit a port mistake
+    /// <summary>
+    ///     The server's constants, restated rather than read from CONSTANTS so the oracle cannot inherit a port mistake.
+    /// </summary>
     private const double SERVER_EPS = 1e-8;
     private const double SERVER_REPS = 2.220446049250313e-16;
     private const double SERVER_H = 8;
@@ -215,7 +221,9 @@ public class WallCrossingTests : PathfindingTestBed
         return failures;
     }
 
-    //names the first line one of the four corner tracks crosses, so a failure reads as geometry rather than numbers
+    /// <summary>
+    ///     Names the first line one of the four corner tracks crosses, so a failure reads as geometry rather than numbers.
+    /// </summary>
     private static string Describe(
         GGeometry geo,
         string map,
@@ -286,7 +294,9 @@ public class WallCrossingTests : PathfindingTestBed
         return detail;
     }
 
-    //an unreachable destination is an ordinary answer here - instance maps are not connected to the walkable graph
+    /// <summary>
+    ///     An unreachable destination is an ordinary answer here - instance maps are not connected to the walkable graph.
+    /// </summary>
     private static async Task<PathEdge[]> FindPathOrEmptyAsync(ILocation start, ILocation end)
     {
         try
@@ -511,7 +521,9 @@ public class WallCrossingTests : PathfindingTestBed
                 .BeEmpty();
     }
 
-    //the last walkable point before the fill runs out, which is where a character parked against a wall stands
+    /// <summary>
+    ///     The last walkable point before the fill runs out, which is where a character parked against a wall stands.
+    /// </summary>
     private static ILocation? RandomAgainstAWall(Random rng, string map, GGeometry geo)
     {
         for (var attempt = 0; attempt < 200; attempt++)
@@ -531,7 +543,9 @@ public class WallCrossingTests : PathfindingTestBed
         return null;
     }
 
-    //one to three units past the boundary, which is the scale of a server correction rather than a teleport
+    /// <summary>
+    ///     One to three units past the boundary, which is the scale of a server correction rather than a teleport.
+    /// </summary>
     private static ILocation? RandomOffTheFill(Random rng, string map, GGeometry geo)
     {
         for (var attempt = 0; attempt < 200; attempt++)

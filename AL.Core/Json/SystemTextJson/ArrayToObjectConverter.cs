@@ -21,7 +21,10 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
 {
-    // members carrying [JsonArrayIndex], ordered by index — drives both the array->object read and object->array write
+    /// <summary>
+    ///     The members carrying <see cref="JsonArrayIndexAttribute" />, ordered by index. Drives both the array-to-object read
+    ///     and the object-to-array write.
+    /// </summary>
     private static readonly (int Index, MemberInfo Member)[] Indexed = typeof(T)
                                                                        .GetProperties(
                                                                            BindingFlags.Public
@@ -40,26 +43,41 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
                                                                        .OrderBy(set => set.Index)
                                                                        .ToArray();
 
-    // the deserialization constructor: the public instance ctor with the most parameters (a record's non-public
-    // copy ctor is excluded). Non-IEnumerable positional types are built through it, not System.Text.Json's
-    // stricter parameterized-object binding (which requires every ctor parameter to map to an included member).
+    /// <summary>
+    ///     The deserialization constructor: the public instance constructor with the most parameters, so a record's non-public
+    ///     copy constructor is excluded.
+    /// </summary>
+    /// <remarks>
+    ///     Non-<see cref="IEnumerable" /> positional types are built through it rather than System.Text.Json's stricter
+    ///     parameterized-object binding, which requires every constructor parameter to map to an included member.
+    /// </remarks>
     private static readonly ConstructorInfo Constructor = typeof(T).GetConstructors(BindingFlags.Public | BindingFlags.Instance)
                                                                    .OrderByDescending(ctor => ctor.GetParameters()
-                                                                       .Length)
+                                                                                                  .Length)
                                                                    .First();
 
-    // [JsonArrayIndex] member name (case-insensitive, matched against a ctor parameter name) -> array index
+    /// <summary>
+    ///     <see cref="JsonArrayIndexAttribute" /> member name to array index, matched case-insensitively against a constructor
+    ///     parameter name.
+    /// </summary>
+
     // ReSharper disable once StaticMemberInGenericType
     private static readonly Dictionary<string, int> IndexByParameterName = Indexed.ToDictionary(
         set => set.Member.Name,
         set => set.Index,
         StringComparer.OrdinalIgnoreCase);
 
-    //a JSON null (or any non-array token) yields default, matching Newtonsoft; HandleNull routes null here too
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null, like any non-array token, yields default,
+    ///     matching Newtonsoft.
+    /// </summary>
     public override bool HandleNull => true;
 
-    //object binding for the IEnumerable case: create T and set each [JsonArrayIndex] member from its array slot,
-    //deserializing through the options so nested converters (tolerant enums for lock/key types) still apply
+    /// <summary>
+    ///     Binds the <see cref="IEnumerable" /> case: creates T and sets each <see cref="JsonArrayIndexAttribute" /> member
+    ///     from its array slot, deserializing through the options so nested converters (tolerant enums for lock and key types)
+    ///     still apply.
+    /// </summary>
     private static T BindIndexedMembers(JsonArray array, JsonSerializerOptions options)
     {
         var instance = Activator.CreateInstance<T>();
@@ -85,9 +103,14 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
         return instance;
     }
 
-    //A non-IEnumerable positional type is built through its constructor, as Newtonsoft's JToken.ToObject did. Each
-    //parameter is sourced from the [JsonArrayIndex] member of the same name; one with no indexed member gets its
-    //default. This sidesteps the rule that every ctor parameter must bind to an included property
+    /// <summary>
+    ///     Builds a non-<see cref="IEnumerable" /> positional type through its constructor, as Newtonsoft's JToken.ToObject
+    ///     did. Each parameter is sourced from the <see cref="JsonArrayIndexAttribute" /> member of the same name; one with no
+    ///     indexed member gets its default.
+    /// </summary>
+    /// <remarks>
+    ///     Sidesteps the rule that every constructor parameter must bind to an included property.
+    /// </remarks>
     private static T ConstructFromArray(JsonArray array, JsonSerializerOptions options)
     {
         var parameters = Constructor.GetParameters();
@@ -164,9 +187,14 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
 {
     private const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
-    //shared across every Excluding() copy: the exclusion is a reference compare on the way in, and everything after
-    //it is a property of the type alone. The question is asked again for every JsonSerializerOptions instance the
-    //nesting converters mint, and each miss walks every member reading attributes
+    /// <summary>
+    ///     Shared across every <see cref="Excluding" /> copy: the exclusion is a reference compare on the way in, and
+    ///     everything after it is a property of the type alone.
+    /// </summary>
+    /// <remarks>
+    ///     The question is asked again for every <see cref="JsonSerializerOptions" /> instance the nesting converters mint,
+    ///     and each miss walks every member reading attributes.
+    /// </remarks>
     private static readonly ConcurrentDictionary<Type, bool> Positional = new();
 
     private readonly Type? Excluded;
@@ -175,8 +203,10 @@ public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExclu
 
     private ArrayToObjectConverterFactory(Type excluded) => Excluded = excluded;
 
-    // the inner declared-member fill runs under a copy of the options where this factory declines T, so T resolves
-    // the default object converter and cannot re-enter its own converter, while nested positional types still match.
+    /// <summary>
+    ///     Returns a copy that declines <paramref name="type" />, so the inner declared-member fill resolves it with the
+    ///     default object converter and cannot re-enter its own converter, while nested positional types still match.
+    /// </summary>
     public JsonConverterFactory Excluding(Type type) => new ArrayToObjectConverterFactory(type);
 
     public override bool CanConvert(Type typeToConvert) => (typeToConvert != Excluded) && Positional.GetOrAdd(typeToConvert, IsPositional);

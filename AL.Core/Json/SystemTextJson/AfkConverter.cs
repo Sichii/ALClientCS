@@ -23,7 +23,9 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class AfkConverter : JsonConverter<bool>
 {
-    //a JSON null must reach Read so it maps to false instead of throwing (value type)
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null maps to false.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

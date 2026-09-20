@@ -103,7 +103,9 @@ public class PingPercentileTests
                    .Be(TimeSpan.FromMilliseconds(42));
     }
 
-    //the manager's buffer hands out every slot it owns, so the ones no ping has written yet arrive as nulls
+    /// <summary>
+    ///     The manager's buffer hands out every slot it owns, so the ones no ping has written yet arrive as nulls.
+    /// </summary>
     private static TimeSpan?[] Window(IEnumerable<double> measuredMs, int size = 50)
     {
         var window = new TimeSpan?[size];

@@ -22,7 +22,9 @@ internal static class TupleElement
 
 public sealed class ArrayToTupleConverter<T1, T2> : JsonConverter<ValueTuple<T1?, T2?>>
 {
-    //a JSON null must reach Read so it maps to the default tuple instead of throwing (value type)
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null maps to the default tuple.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override (T1?, T2?) Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

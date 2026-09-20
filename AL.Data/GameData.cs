@@ -141,8 +141,11 @@ public record GameData
     [GameDataRoot]
     public static CompoundsDatum Compounds { get; private set; }
 
-    //defaulted for the reason Multipliers is: a payload missing "cosmetics" degrades to empty tables rather than
-    //throwing, and a character nothing can be dressed in is a better failure than a load that never finishes
+    /// <summary>
+    ///     Defaulted for the reason <see cref="Multipliers" /> is: a payload missing <c>cosmetics</c> degrades to empty tables
+    ///     rather than throwing, and a character nothing can be dressed in is a better failure than a load that never
+    ///     finishes.
+    /// </summary>
     [GameDataRoot]
     public static GCosmetics Cosmetics { get; private set; } = new();
 
@@ -167,8 +170,11 @@ public record GameData
     [GameDataRoot]
     public static IReadOnlyDictionary<string, GImageSet> ImageSets { get; private set; } = new Dictionary<string, GImageSet>();
 
-    //the three art roots below plus Positions are defaulted for the reason Multipliers is: a payload missing any of
-    //them degrades to an empty table rather than throwing, and nothing that reads them can do more than draw nothing
+    /// <summary>
+    ///     Defaulted like the other art roots and <see cref="Positions" />, for the reason <see cref="Multipliers" /> is: a
+    ///     missing key degrades to an empty table rather than throwing, and nothing that reads them can do more than draw
+    ///     nothing.
+    /// </summary>
     [GameDataRoot]
     public static IReadOnlyDictionary<string, GImage> Images { get; private set; } = new Dictionary<string, GImage>();
 
@@ -227,8 +233,10 @@ public record GameData
     [GameDataRoot]
     public static int Version { get; private set; }
 
-    //defaulted for the same reason Multipliers is: a payload missing "drops" degrades to an empty table rather
-    //than throwing, and every consumer already has to handle a monster that drops nothing
+    /// <summary>
+    ///     Defaulted for the same reason <see cref="Multipliers" /> is: a payload missing <c>drops</c> degrades to an empty
+    ///     table rather than throwing, and every consumer already has to handle a monster that drops nothing.
+    /// </summary>
     [GameDataRoot]
     public static GDrops Drops
     {
@@ -238,8 +246,13 @@ public record GameData
         private set;
     } = new();
 
-    //defaulted so a payload missing "multipliers" degrades to zeroed ratios instead of throwing. The setter is
-    //what Bind needs to reach it at all - get-only, it was skipped by the setter filter and every ratio stayed 0
+    /// <summary>
+    ///     Defaulted so a payload missing <c>multipliers</c> degrades to zeroed ratios instead of throwing.
+    /// </summary>
+    /// <remarks>
+    ///     The setter is what <see cref="Bind" /> needs to reach it at all: get-only, it was skipped by the setter filter and
+    ///     every ratio stayed 0.
+    /// </remarks>
     [GameDataRoot]
     public static GMultipliers Multipliers
     {
@@ -293,9 +306,11 @@ public record GameData
         verticalLines.Add(right);
     }
 
-    //System.Text.Json cannot bind static members, so drive the G-data statics from the wire by reflection:
-    //for each [JsonProperty] static, deserialize the matching (case-insensitively, as Newtonsoft matched) wire
-    //key through the shared options. An absent key leaves the member's initializer (Levels/Multipliers) intact.
+    /// <summary>
+    ///     Drives the G-data statics from the wire by reflection, since a serializer cannot bind static members. Wire keys are
+    ///     matched case-insensitively for parity with the binder this replaced; an absent key leaves the member's own
+    ///     initializer intact.
+    /// </summary>
     private static JsonObject Bind(string json)
     {
         var root = JsonNode.Parse(json)
@@ -376,8 +391,10 @@ public record GameData
         }
     }
 
-    //removes wall geometry inside the rect and walls off its long sides, leaving a walkable vertical corridor
-    //connecting whatever the rect's two short ends overlap
+    /// <summary>
+    ///     Removes wall geometry inside the rect and walls off its long sides, leaving a walkable vertical corridor connecting
+    ///     whatever the rect's two short ends overlap.
+    /// </summary>
     private static void CarveCorridor(
         string mapAccessor,
         int left,
@@ -428,9 +445,14 @@ public record GameData
             .ToList();
     }
 
-    //corridors that exist only in local data. the server never traces the segment between a move's endpoints -
-    //it checks the endpoints against its walkable lattice (jail) and prices the cells crossed (movement penalty) -
-    //so a carved channel lets the pathfinder route a crossing the game's own geometry forbids
+    /// <summary>
+    ///     Carves the corridors that exist only in local data.
+    /// </summary>
+    /// <remarks>
+    ///     The server never traces the segment between a move's endpoints: it checks them against its walkable lattice (jail)
+    ///     and prices the cells crossed (movement penalty), so a carved channel lets the pathfinder route a crossing the
+    ///     game's own geometry forbids.
+    /// </remarks>
     private static void CarveCorridors()
 
         //winterland ice golem island: the island is legal ground to the server (spawns 6 and 7 sit on it), and this
@@ -443,8 +465,10 @@ public record GameData
             272,
             352);
 
-    //drops the portion of each line inside the window: a line strictly between the on-axis bounds is clipped
-    //to the span bounds, splitting into up to two pieces. lines on the window edge merge with the seals instead
+    /// <summary>
+    ///     Drops the portion of each line inside the window: a line strictly between the on-axis bounds is clipped to the span
+    ///     bounds, splitting into up to two pieces. Lines on the window edge merge with the seals instead.
+    /// </summary>
     private static IEnumerable<StraightLine> ClipLines(
         IEnumerable<StraightLine> lines,
         int onMin,
@@ -759,8 +783,10 @@ public record GameData
         }
     }
 
-    //one map's share of EnrichMaps, so a floor filed at runtime gets the same exits, npc and monster links G's own
-    //maps got on load
+    /// <summary>
+    ///     Applies one map's share of <see cref="EnrichMaps" />, so a floor filed at runtime gets the same exits, npc and
+    ///     monster links G's own maps got on load.
+    /// </summary>
     private static void EnrichMap(GMap map)
     {
         //empty rather than absent for a map with no table, so nothing downstream distinguishes two kinds of nothing
@@ -1156,8 +1182,10 @@ public record GameData
         Log.Info($"Serialized data in {stopwatch.ElapsedMilliseconds}ms");
     }
 
-    //serializes the runtime edits to the map and geometry tables against each other; reads need nothing, because
-    //each edit swaps in a fresh copy of the table rather than mutating the one a reader holds
+    /// <summary>
+    ///     Serializes the runtime edits to the map and geometry tables against each other. Reads need nothing, because each
+    ///     edit swaps in a fresh copy of the table rather than mutating the one a reader holds.
+    /// </summary>
     private static readonly Lock GeneratedLock = new();
 
     /// <summary>

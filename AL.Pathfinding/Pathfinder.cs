@@ -18,8 +18,11 @@ namespace AL.Pathfinding;
 /// </summary>
 public static class Pathfinder
 {
-    //compared against datum keys at Initialize, so these are accessors, not display names - the three
-    //staging maps carry neither Ignore nor Unlist, so the flag filter below does not catch them
+    /// <summary>
+    ///     Compared against datum keys at <see cref="Initialize" />, so these are accessors, not display names. The three
+    ///     staging maps carry neither <see cref="GMap.Ignore" /> nor <see cref="GMap.Unlist" />, so the flag filter below does
+    ///     not catch them.
+    /// </summary>
     private static readonly string[] IGNORED_MAPS =
     [
         "abtesting",
@@ -31,9 +34,11 @@ public static class Pathfinder
     private static IReadOnlyDictionary<string, NavMesh> Meshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
     private static PortalGraph? Graph;
 
-    //a dungeon run's floors join the mesh table while the run lasts and route over a graph of their own: nothing walks
-    //into a run, the keeper pulls the party in, so the world graph never needs to know one exists. Both tables are
-    //copy-on-write like the datums, so every query stays lock-free
+    /// <summary>
+    ///     A dungeon run's floors join the mesh table while the run lasts and route over a graph of their own: nothing walks
+    ///     into a run, the keeper pulls the party in, so the world graph never needs to know one exists. Both tables are
+    ///     copy-on-write like the datums, so every query stays lock-free.
+    /// </summary>
     private static readonly Lock GeneratedLock = new();
 
     private static IReadOnlyDictionary<string, (PortalGraph Graph, DateTime RegisteredAt)> RunGraphs
@@ -227,7 +232,9 @@ public static class Pathfinder
                    .DistinctBy(map => map.Accessor)
                    .Where(map => map.Generated is { } generated && run.EqualsI(generated.Run));
 
-    //a search starting on a run's floor routes over that run's graph; everywhere else is the world
+    /// <summary>
+    ///     A search starting on a run's floor routes over that run's graph; everywhere else is the world.
+    /// </summary>
     private static PortalGraph GraphFor(string map)
     {
         if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))

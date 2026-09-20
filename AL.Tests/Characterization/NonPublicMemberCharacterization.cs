@@ -56,7 +56,7 @@ public sealed class NonPublicMemberCharacterization
 
     private const string ENTITIES_FRAME = "t11-entities-frame.json";
 
-    // Category tags used in the committed census.
+    /// <summary>Category tags used in the committed census.</summary>
     private const string FIELD = "field";
 
     private const string NON_PUBLIC_PROPERTY = "non-public-property";

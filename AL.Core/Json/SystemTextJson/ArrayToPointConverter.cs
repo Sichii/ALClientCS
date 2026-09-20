@@ -59,7 +59,10 @@ public sealed class ArrayToPointConverter : JsonConverter<Point>
 /// </summary>
 public sealed class PolygonConverter : JsonConverter<Polygon>
 {
-    //a JSON null (or any non-array token) yields null, matching Newtonsoft's item-converter short-circuit
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null, like any non-array token, yields null,
+    ///     matching Newtonsoft's item-converter short-circuit.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override Polygon? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -73,8 +73,11 @@ public abstract class DatumBase<T>
         }
     }
 
-    //copy-on-write, both of these: a datum is read from every thread without a lock, so a runtime entry lands in a
-    //fresh table and the reference is swapped, leaving whatever table a reader already holds intact and in order
+    /// <summary>
+    ///     Adds an entry, copy-on-write like <see cref="Remove" />: a datum is read from every thread without a lock, so the
+    ///     entry lands in a fresh table and the reference is swapped, leaving whatever table a reader already holds intact and
+    ///     in order.
+    /// </summary>
     internal void Add(string key, T value)
         => LookupCache = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase)
         {

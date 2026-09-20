@@ -66,8 +66,10 @@ public class BurnTests : GameDataTestBed
             .BeFalse();
     }
 
-    //1100ms of a 1000 intensity burn. Written as literals rather than through the production formula - a probe
-    //that computes its own expectation agrees with itself whatever it does
+    /// <summary>
+    ///     1100ms of a 1000 intensity burn. Written as literals rather than through the production formula - a probe that
+    ///     computes its own expectation agrees with itself whatever it does.
+    /// </summary>
     private static Player Burning(int hp)
         => TestJson.Socket<Player>(@"{""id"":""m1"",""hp"":" + hp + @",""s"":{""burned"":{""ms"":1100,""intensity"":1000}}}")!;
 }

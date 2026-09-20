@@ -9,7 +9,9 @@ internal static class TaskExtensions
     internal static Task<T> WithNetworkTimeout<T>(this Task<T> task, [CallerMemberName] string? caller = null)
         => task.WithTimeout(ALClientSettings.NetworkTimeoutMS, caller);
 
-    //for the few operations the server is allowed longer on than a network round trip
+    /// <summary>
+    ///     For the few operations the server is allowed longer on than a network round trip.
+    /// </summary>
     internal static async Task<T> WithTimeout<T>(this Task<T> task, int timeoutMS, [CallerMemberName] string? caller = null)
     {
         if (task == await Task.WhenAny(task, Task.Delay(timeoutMS)))

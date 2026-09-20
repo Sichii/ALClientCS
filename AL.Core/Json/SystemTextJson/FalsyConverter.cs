@@ -43,7 +43,10 @@ public class FalsyConverter<T> : JsonConverter<T>
 {
     private readonly T Default;
 
-    //null/true/false are all "falsy" and map to Default, so null must reach Read (STJ would otherwise throw)
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, because null, true and false are all falsy and map to
+    ///     <see cref="Default" />.
+    /// </summary>
     public override bool HandleNull => true;
 
     public FalsyConverter(T @default) => Default = @default;

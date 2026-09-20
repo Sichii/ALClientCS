@@ -14,16 +14,19 @@ namespace AL.Pathfinding.Model;
 /// </summary>
 public sealed class TriangleMesh
 {
+    /// <summary>
+    ///     The uniform grid in CSR form: CellStart[c]..CellStart[c+1] index into <see cref="CellTriangles" />.
+    /// </summary>
     private readonly int[] CellStart;
     private readonly int[] CellTriangles;
     private readonly int GridColumns;
-
-    //uniform grid in CSR form: CellStart[c]..CellStart[c+1] index into CellTriangles
     private readonly int GridMinX;
     private readonly int GridMinY;
     private readonly int GridRows;
 
-    //vertex adjacency in CSR form: VertexEdgeStart[v]..VertexEdgeStart[v+1] index into VertexEdgeTo
+    /// <summary>
+    ///     The vertex adjacency in CSR form: VertexEdgeStart[v]..VertexEdgeStart[v+1] index into <see cref="VertexEdgeTo" />.
+    /// </summary>
     private readonly int[] VertexEdgeStart;
     private readonly int[] VertexEdgeTo;
 
@@ -164,10 +167,14 @@ public sealed class TriangleMesh
             out row1);
     }
 
-    //every triangle edge once, in both directions, each vertex's targets ascending. a vertex whose triangles do not
-    //form one fan (a pinch: two sectors touching only at the point) gets no edges either way, so no chain passes
-    //through it and the corridor can rotate round every chain vertex in one sweep; the search may still seed it as
-    //a corner of the start triangle
+    /// <summary>
+    ///     Builds every triangle edge once, in both directions, each vertex's targets ascending.
+    /// </summary>
+    /// <remarks>
+    ///     A vertex whose triangles do not form one fan (a pinch: two sectors touching only at the point) gets no edges either
+    ///     way, so no chain passes through it and the corridor can rotate round every chain vertex in one sweep. The search
+    ///     may still seed it as a corner of the start triangle.
+    /// </remarks>
     private (int[] Start, int[] To) BuildVertexEdges()
     {
         var incident = new int[Vertices.Length];
@@ -284,8 +291,10 @@ public sealed class TriangleMesh
     internal ReadOnlySpan<int> EdgesFrom(int vertex)
         => VertexEdgeTo.AsSpan(VertexEdgeStart[vertex], VertexEdgeStart[vertex + 1] - VertexEdgeStart[vertex]);
 
-    //how many of the triangles at the vertex are reached from its first one by stepping across the edges that meet
-    //there, both ways round; equal to the incident count exactly when they form one sector
+    /// <summary>
+    ///     How many of the triangles at <paramref name="vertex" /> are reached from its first one by stepping across the edges
+    ///     that meet there, both ways round; equal to the incident count exactly when they form one sector.
+    /// </summary>
     private int FanSize(int vertex)
     {
         var first = VertexTriangle[vertex];

@@ -8,9 +8,11 @@ using FluentAssertions;
 
 namespace AL.Tests.Integration;
 
-//these drive a real character against the live server and IdleTest alone sleeps a minute, so they are
-//run by hand, never in the suite. Under MSTest that was done by commenting out [TestClass]; TUnit
-//discovers by [Test] alone, so the exclusion has to be explicit or they silently start running.
+/// <summary>
+///     These drive a real character against the live server and IdleTest alone sleeps a minute, so they are run by hand,
+///     never in the suite. TUnit discovers by [Test] alone, so the exclusion has to be explicit or they silently start
+///     running.
+/// </summary>
 [Skip("manual integration test - logs in to the live server")]
 public class IntegrationTests : PathfindingTestBed
 {

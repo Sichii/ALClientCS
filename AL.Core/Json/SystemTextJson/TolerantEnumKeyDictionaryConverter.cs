@@ -26,16 +26,26 @@ public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConve
     where TKey: struct, Enum
     where TValue: notnull
 {
-    //the name, not the type: a closed generic's logger name is its assembly-qualified name, which the layout's
-    //shortName truncates to the tail of the last type argument. The message below already carries TKey's name
+    /// <summary>
+    ///     Named from a string, not the type: a closed generic's logger name is its assembly-qualified name, which the
+    ///     layout's shortName truncates to the tail of the last type argument.
+    /// </summary>
+    /// <remarks>The warning below already carries TKey's name.</remarks>
     private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumKeyDictionaryConverter<TKey, TValue>));
 
-    //tolerance that hides schema drift is worse than the drift, so each unknown key is reported once per closed
-    //generic - a TKey shared by two TValues can warn twice, which is cheaper than a global table to dedupe it
+    /// <summary>
+    ///     Tolerance that hides schema drift is worse than the drift, so each unknown key is reported once per closed generic.
+    /// </summary>
+    /// <remarks>
+    ///     A TKey shared by two TValues can warn twice, which is cheaper than a global table to dedupe it.
+    /// </remarks>
+
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<string, byte> Reported = new();
 
-    //a JSON null must reach Read so it maps to an empty dictionary instead of a null reference
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null maps to an empty dictionary.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override ConcurrentDictionary<TKey, TValue> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

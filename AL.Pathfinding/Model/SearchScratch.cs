@@ -23,7 +23,9 @@ internal sealed class SearchScratch
     public readonly PriorityQueue<int, float> VertexQueue = new();
     public Point[] EndEntry = [];
 
-    //the current search's ends, resolved onto their meshes; a null mesh is an end that resolved nowhere
+    /// <summary>
+    ///     The current search's ends, resolved onto their meshes; a null mesh is an end that resolved nowhere.
+    /// </summary>
     public NavMesh?[] EndMesh = [];
     public Reach[] EndReach = [];
     public int[] EndTriangle = [];
@@ -32,12 +34,16 @@ internal sealed class SearchScratch
     public int[] NodeParent = [];
     public int[] NodeParentEdge = [];
 
-    //whether the node's parent edge was charged at the blink's price rather than walked; the expansion reads it back
+    /// <summary>
+    ///     Whether the node's parent edge was charged at the blink's price rather than walked; the expansion reads it back.
+    /// </summary>
     public bool[] NodeBlinked = [];
 
     public int SearchTriangle = -1;
 
-    //the vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from
+    /// <summary>
+    ///     The vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from.
+    /// </summary>
     public float[] VertexCost = [];
     public int[] VertexParent = [];
 

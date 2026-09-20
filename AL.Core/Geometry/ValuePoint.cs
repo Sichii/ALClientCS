@@ -42,7 +42,10 @@ public readonly ref struct ValuePoint : IPoint, IEquatable<ValuePoint>
         y = Y;
     }
 
-    //the same tolerance PointEqualityComparer applies, inlined because a ref struct cannot be handed to it
+    /// <summary>
+    ///     Compares with the same tolerance <see cref="AL.Core.Comparers.PointEqualityComparer" /> applies, inlined because a
+    ///     ref struct cannot be handed to it.
+    /// </summary>
     public bool Equals(IPoint? other) => other is not null && X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 
     public bool Equals(ValuePoint other) => X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);

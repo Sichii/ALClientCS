@@ -19,11 +19,15 @@ public static class Snapshots
     public const string FOLDER_NAME = "snapshots";
     public const int KEEP = 2;
 
-    //detail lines printed per section before the rest is folded into a count
+    /// <summary>
+    ///     Detail lines printed per section before the rest is folded into a count.
+    /// </summary>
     private const int DETAIL_CAP = 60;
     private const int VALUE_WIDTH = 72;
 
-    //presentation data: a count per section is all the report wants
+    /// <summary>
+    ///     Presentation data: a count per section is all the report wants.
+    /// </summary>
     private static readonly HashSet<string> Quiet = new(StringComparer.OrdinalIgnoreCase)
     {
         "sprites",

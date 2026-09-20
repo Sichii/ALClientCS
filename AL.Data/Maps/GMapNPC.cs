@@ -54,9 +54,13 @@ public sealed record GMapNPC
     /// <summary>
     ///     The name of this NPC as displayed on the GUI. Sometimes different than the Id.
     /// </summary>
-
-    //the annotated backing field owns the "name" wire key; without this the accessor claims it too and the
-    //type throws on resolution. Newtonsoft keeps binding it as before - it reads its own attributes.
+    /// <remarks>
+    ///     The private backing field carries the
+    ///     <c>
+    ///         name
+    ///     </c>
+    ///     wire key, so this accessor must not claim it too.
+    /// </remarks>
     [JsonIgnore]
     public string Name => _name ?? Id;
 

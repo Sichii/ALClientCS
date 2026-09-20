@@ -11,7 +11,10 @@ namespace AL.Pathfinding.Model;
 /// </summary>
 public sealed class WallLines
 {
-    //the server's own epsilons. EPS widens the range check, REPS keeps the divisor off zero for a vertical track
+    /// <summary>
+    ///     The server's own epsilon: widens the range check. <see cref="REPS" /> keeps the divisor off zero for a vertical
+    ///     track.
+    /// </summary>
     private const double EPS = 1e-8;
     private const double REPS = 2.220446049250313e-16;
     private readonly int[] HorizontalEnd;
@@ -19,7 +22,10 @@ public sealed class WallLines
     private readonly int[] HorizontalStart;
     private readonly int[] VerticalEnd;
 
-    //sorted by On. Start <= End after LineHelper.FixLines, which every geometry goes through before this is built
+    /// <summary>
+    ///     Sorted by On. Start &lt;= End after <see cref="AL.Core.Helpers.LineHelper.FixLines" />, which every geometry goes
+    ///     through before this is built.
+    /// </summary>
     private readonly int[] VerticalOn;
     private readonly int[] VerticalStart;
 
@@ -179,7 +185,9 @@ public sealed class WallLines
                y1,
                x1);
 
-    //first index whose On is >= value; the server's own bsearch start
+    /// <summary>
+    ///     The first index whose On is &gt;= <paramref name="value" />; the server's own bsearch start.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int LowerBound(int[] on, double value)
     {
@@ -251,8 +259,10 @@ public sealed class WallLines
         return false;
     }
 
-    //the server's loop with the axes named generically: 'a' is the coordinate the lines sit on, 'b' the one they
-    //span. For vertical lines a is x and b is y; for horizontal lines the caller swaps them
+    /// <summary>
+    ///     The server's loop with the axes named generically: 'a' is the coordinate the lines sit on, 'b' the one they span.
+    ///     For vertical lines a is x and b is y; for horizontal lines the caller swaps them.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TrackClear(
         int[] on,

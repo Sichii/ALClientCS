@@ -15,15 +15,19 @@ namespace AL.Tests.Pathfinding.Tests;
 /// </summary>
 public class IceGolemCorridorTests : PathfindingTestBed
 {
-    //the ice golem spawn on the island (winterland spawn 6)
+    /// <summary>
+    ///     The ice golem spawn on the island (winterland spawn 6).
+    /// </summary>
     private static readonly Location GOLEM_SPAWN = new("winterland", 864.5f, 429.5f);
 
-    //winterland's town spawn - guaranteed walkable
+    /// <summary>Winterland's town spawn - guaranteed walkable.</summary>
     private static readonly Location TOWN = new("winterland", 0f, 0f);
 
-    //lake cells the server rejects as move endpoints (lattice value >= 2) span y 290..330 on the corridor
-    //columns, and the server rounds an endpoint to its nearest lattice point - so anything within 5 units of
-    //those cells jails. bounds are those cells plus that rounding reach
+    /// <summary>
+    ///     Lake cells the server rejects as move endpoints (lattice value >= 2) span y 290..330 on the corridor columns, and
+    ///     the server rounds an endpoint to its nearest lattice point - so anything within 5 units of those cells jails.
+    ///     Bounds are those cells plus that rounding reach.
+    /// </summary>
     private const float JAIL_MIN_X = 735f;
     private const float JAIL_MAX_X = 755f;
     private const float JAIL_MIN_Y = 285f;

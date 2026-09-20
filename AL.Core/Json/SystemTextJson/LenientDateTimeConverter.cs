@@ -29,7 +29,10 @@ namespace AL.Core.Json.SystemTextJson;
 /// </remarks>
 public sealed class LenientDateTimeConverter : JsonConverter<DateTime?>
 {
-    //an absent expiry arrives as "" or null rather than being omitted, so null must reach Read
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, because an absent expiry arrives as an empty string or
+    ///     null rather than being omitted.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override DateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -131,7 +131,10 @@ public static class RectangleExtensions
         return (rect.Left <= point.X) && (rect.Right > point.X) && (rect.Top <= point.Y) && (rect.Bottom > point.Y);
     }
 
-    //an extension member with a ref struct receiver cannot be an iterator, so the lazy one hands its numbers to this
+    /// <summary>
+    ///     An extension member with a ref struct receiver cannot be an iterator, so the lazy overload hands its numbers to
+    ///     this.
+    /// </summary>
     private static IEnumerable<Point> InnerPoints(
         float left,
         float top,

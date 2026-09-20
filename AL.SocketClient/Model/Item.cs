@@ -60,6 +60,9 @@ public sealed record Item : IInventoryItem
 
     public string Name { get; init; } = null!;
 
+    /// <summary>
+    ///     A list of possible prefixes for this item.
+    /// </summary>
     /// <remarks>
     ///     <b>
     ///         This property breaks <see cref="Item" />'s value equality, so do not compare two items with

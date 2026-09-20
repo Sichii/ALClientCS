@@ -14,11 +14,15 @@ namespace AL.Tests;
 /// </remarks>
 internal static class ParallelKeys
 {
-    //GameDataTestBed populates the GameData statics from the live API, and GameDataLoadCharacterization nulls
-    //them, reloads from the committed snapshot and restores them, so every reader serializes against both
+    /// <summary>
+    ///     GameDataTestBed populates the GameData statics from the live API, and GameDataLoadCharacterization nulls them,
+    ///     reloads from the committed snapshot and restores them, so every reader serializes against both.
+    /// </summary>
     internal const string GAME_DATA = "GameData";
 
-    //SocketTestBed hands each test its own ALSocketClient, so these only ever serialize a class against itself
+    /// <summary>
+    ///     SocketTestBed hands each test its own ALSocketClient, so these only ever serialize a class against itself.
+    /// </summary>
     internal const string SOCKET_DISPATCH = "SocketDispatch";
 
     internal const string SOCKET_MESSAGE_HANDLER = "SocketMessageHandler";

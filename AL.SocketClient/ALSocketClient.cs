@@ -49,7 +49,9 @@ public sealed class ALSocketClient : IALSocketClient
     /// <summary>
     ///     The single consumer of <see cref="Frames" />. One per client, which is what makes the order one.
     /// </summary>
-    //held only to keep the consumer loop rooted for the client's lifetime; nothing awaits it
+    /// <remarks>
+    ///     Held only to keep the consumer loop rooted for the client's lifetime; nothing awaits it.
+    /// </remarks>
     // ReSharper disable once NotAccessedField.Local
     private readonly Task Pump;
 

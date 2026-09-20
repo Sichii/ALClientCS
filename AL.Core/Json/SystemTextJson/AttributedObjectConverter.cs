@@ -28,7 +28,10 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 {
-    //shared across every Excluding() copy - see ArrayToObjectConverterFactory for why the type test is cached
+    /// <summary>
+    ///     Shared across every <see cref="Excluding" /> copy; see <see cref="ArrayToObjectConverterFactory" /> for why the
+    ///     type test is cached.
+    /// </summary>
     private static readonly ConcurrentDictionary<Type, bool> Harvestable = new();
     private readonly Type? Excluded;
 
@@ -65,8 +68,11 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 /// </summary>
 public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: class, IAttributed, new()
 {
-    //per-T by necessity: the cached inner options exclude typeof(T) from the attributed factory, so one shared
-    //table would hand a converter for the wrong T's exclusion and let a type re-enter its own converter
+    /// <summary>
+    ///     Per-T by necessity: the cached inner options exclude typeof(T) from the attributed factory, so one shared table
+    ///     would hand a converter for the wrong T's exclusion and let a type re-enter its own converter.
+    /// </summary>
+
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConditionalWeakTable<JsonSerializerOptions, JsonSerializerOptions> InnerCache = new();
 

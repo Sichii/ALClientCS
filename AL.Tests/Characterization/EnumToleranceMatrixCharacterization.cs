@@ -45,14 +45,18 @@ public sealed class EnumToleranceMatrixCharacterization
 {
     private const string FIXTURE_NAME = "enum-tolerance-matrix.json";
 
-    //the fixture holds the matrix POCO under its exact CLR property names with a two-space indent, which is
-    //what these options reproduce - so a regenerated sidecar stays diffable against the committed file
+    /// <summary>
+    ///     The fixture holds the matrix POCO under its exact CLR property names with a two-space indent, which is what these
+    ///     options reproduce - so a regenerated sidecar stays diffable against the committed file.
+    /// </summary>
     private static readonly JsonSerializerOptions SnapshotOptions = new()
     {
         WriteIndented = true
     };
 
-    // grep across the solution finds the tolerant converter declared only in these three Enums.cs files
+    /// <summary>
+    ///     The tolerant converter is declared only in these three Enums.cs files.
+    /// </summary>
     private static readonly Assembly[] TolerantEnumAssemblies =
     [
         typeof(Slot).Assembly,
@@ -60,8 +64,10 @@ public sealed class EnumToleranceMatrixCharacterization
         typeof(ServerId).Assembly
     ];
 
-    // decision 5 calls out these five for key position; Condition is fully qualified because
-    // AL.SocketClient.Model also declares a Condition entity type
+    /// <summary>
+    ///     The five enums that occur in dictionary-key position. Condition is fully qualified because AL.SocketClient.Model
+    ///     also declares a Condition entity type.
+    /// </summary>
     private static readonly Type[] DictionaryKeyEnums =
     [
         typeof(Condition),
@@ -312,9 +318,12 @@ public sealed class EnumToleranceMatrixCharacterization
     #endregion
 
     #region Spot checks — the dictionary-key cells the matrix cannot state
-    // Dictionary-key position is the separate path, and the only accepted divergence in the entire matrix - the five
-    // 5_unknownString key cells counted by 2_dictionaryKeyDegradesInsteadOfThrowing. The pinned baseline throws for
-    // the whole payload; ReadAsPropertyName runs the key through the same tolerant parse, so the frame survives
+    /// <summary>
+    ///     Dictionary-key position is the separate path, and the only accepted divergence in the entire matrix - the five
+    ///     <c>5_unknownString</c> key cells counted by <c>2_dictionaryKeyDegradesInsteadOfThrowing</c> . The pinned baseline
+    ///     throws for the whole payload; ReadAsPropertyName runs the key through the same tolerant parse, so the frame
+    ///     survives.
+    /// </summary>
     [Test]
     public void T8_TradeSlot_Unknown_DictionaryKey_StjDegradesToZeroMember()
     {
@@ -327,9 +336,11 @@ public sealed class EnumToleranceMatrixCharacterization
             .HaveCount(1);
     }
 
-    // What that degrade costs: unknown keys do not merely survive, they COLLIDE - N unknown keys collapse into one
-    // entry, last write wins, and the caller is told nothing. The two dictionary-key paths now have opposite
-    // semantics: TolerantEnumKeyDictionaryConverter SKIPS the unknown key, a bare Dictionary DEGRADES and merges
+    /// <summary>
+    ///     What that degrade costs: unknown keys do not merely survive, they COLLIDE - N unknown keys collapse into one entry,
+    ///     last write wins, and the caller is told nothing. The two dictionary-key paths have opposite semantics:
+    ///     TolerantEnumKeyDictionaryConverter SKIPS the unknown key, a bare Dictionary DEGRADES and merges.
+    /// </summary>
     [Test]
     public void T8_Unknown_DictionaryKeys_StjDegradeAndMerge_LastWriteWins()
     {
@@ -358,7 +369,9 @@ public sealed class EnumToleranceMatrixCharacterization
             .Be(2);
     }
 
-    // A known lowercase key still binds in the naked-dictionary path (case-insensitive, EnumMember honoured).
+    /// <summary>
+    ///     A known lowercase key still binds in the naked-dictionary path (case-insensitive, EnumMember honoured).
+    /// </summary>
     [Test]
     public void T8_Slot_LowercaseWireName_DictionaryKey_Binds()
     {
@@ -467,8 +480,10 @@ public sealed class EnumToleranceMatrixCharacterization
         };
     }
 
-    //escaping choices do not survive the round-trip back through the parser, so the cell outcome is unaffected
-    //by which encoder writes the literal
+    /// <summary>
+    ///     Escaping choices do not survive the round-trip back through the parser, so the cell outcome is unaffected by which
+    ///     encoder writes the literal.
+    /// </summary>
     private static string Quote(string value) => JsonSerializer.Serialize(value);
 
     private static string ValueOutcome(Type type, string json)
@@ -505,9 +520,11 @@ public sealed class EnumToleranceMatrixCharacterization
         }
     }
 
-    // zero = the member with underlying value 0; sample = first non-zero member so "unknown -> zero" is
-    // visibly distinct from "sample -> sample". Enum.Format("D") reads the decimal regardless of the
-    // underlying type, so this is safe for the ulong [Flags] WeaponType.
+    /// <summary>
+    ///     Zero is the member with underlying value 0; sample is the first non-zero member, so "unknown -> zero" is visibly
+    ///     distinct from "sample -> sample". Enum.Format("D") reads the decimal regardless of the underlying type, so this is
+    ///     safe for the ulong [Flags] WeaponType.
+    /// </summary>
     private static (string Zero, string Sample) ZeroAndSample(Type type)
     {
         var names = Enum.GetNames(type);

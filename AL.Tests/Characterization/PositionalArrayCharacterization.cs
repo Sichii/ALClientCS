@@ -34,16 +34,22 @@ public class PositionalArrayCharacterization
 {
     private const string CANONICAL_FIXTURE = "positional-arrays.canonical.json";
 
-    //written beside the binary on every run for diffing; never read back, so it can never satisfy the
-    //committed-fixture guard the way writing CANONICAL_FIXTURE itself would
+    /// <summary>
+    ///     Written beside the binary on every run for diffing; never read back, so it can never satisfy the committed-fixture
+    ///     guard the way writing <see cref="CANONICAL_FIXTURE" /> itself would.
+    /// </summary>
     private const string STJ_GENERATED_SIDECAR = "positional-arrays.canonical.stj-generated.json";
 
-    //parsed once through the production System.Text.Json options; lazy so a 20k-line parse only happens if a
-    //test in this class actually runs
+    /// <summary>
+    ///     Parsed once through the production System.Text.Json options; lazy so a 20k-line parse only happens if a test in
+    ///     this class actually runs.
+    /// </summary>
     private static readonly Lazy<Population> Data = new(Collect);
 
-    //renders the sidecar close to the frozen fixture so the two stay diffable: 2-space indent, and < > & +
-    //left unescaped rather than \uXXXX. Newlines are LF here and CRLF in the fixture, so diff -w it.
+    /// <summary>
+    ///     Renders the sidecar close to the frozen fixture so the two stay diffable: 2-space indent, and &lt; &gt; &amp; +
+    ///     left unescaped rather than \uXXXX. Newlines are LF here and CRLF in the fixture, so diff -w it.
+    /// </summary>
     private static readonly JsonSerializerOptions SidecarOptions = new()
     {
         WriteIndented = true,
@@ -140,7 +146,9 @@ public class PositionalArrayCharacterization
             killAchievements);
     }
 
-    //the elements of obj[key], each of which is itself a positional array
+    /// <summary>
+    ///     The elements of obj[key], each of which is itself a positional array.
+    /// </summary>
     private static IEnumerable<JsonArray> InnerArrays(JsonObject obj, string key)
     {
         if (obj[key] is not JsonArray outer)
@@ -238,13 +246,17 @@ public class PositionalArrayCharacterization
 
     private static string F(float value) => value.ToString("R", CultureInfo.InvariantCulture);
 
-    //nullable counterpart of F; the casing pairs it with F/S/E rather than following the method rule
+    /// <summary>
+    ///     Nullable counterpart of <see cref="F" />; the casing pairs it with F/S/E rather than following the method rule.
+    /// </summary>
     // ReSharper disable once InconsistentNaming
     private static string NF(float? value) => value.HasValue ? F(value.Value) : "null";
 
     private static string S(string? value) => value ?? "null";
 
-    //name plus underlying integer, so an unmapped/degraded value is still unambiguous
+    /// <summary>
+    ///     Name plus underlying integer, so an unmapped/degraded value is still unambiguous.
+    /// </summary>
     private static string E<TEnum>(TEnum value) where TEnum: struct, Enum
         => $"{value}(#{Convert.ToInt64(value, CultureInfo.InvariantCulture)})";
 
@@ -360,7 +372,9 @@ public class PositionalArrayCharacterization
     #endregion
 
     #region Ragged arrays
-    //pinned raw-length distributions of the committed snapshot (rawLength -> count)
+    /// <summary>
+    ///     Pinned raw-length distributions of the committed snapshot (rawLength -> count).
+    /// </summary>
     private static readonly IReadOnlyDictionary<int, int> TileLengths = new Dictionary<int, int>
     {
         [4] = 6390,

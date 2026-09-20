@@ -36,9 +36,11 @@ public sealed class PopulateConverterTests
              .Be(2.5f);
     }
 
-    //the SHARED options register these as FACTORIES, not concrete instances. RecursionSafeOptions removes a
-    //converter by exact type, which misses a factory — so the inner fill re-resolved the factory and the object
-    //bound to null (array-to-object) / recursed to a StackOverflow (string-or-object). These pin the factory path.
+    /// <summary>
+    ///     The SHARED options register these as FACTORIES, not concrete instances. RecursionSafeOptions removes a converter by
+    ///     exact type, which misses a factory — so the inner fill re-resolved the factory and the object bound to null
+    ///     (array-to-object) / recursed to a StackOverflow (string-or-object). These pin the factory path.
+    /// </summary>
     [Test]
     public void ArrayToObject_ViaFactory_MapsPositionalArray_NoNull()
     {
@@ -79,9 +81,11 @@ public sealed class PopulateConverterTests
             .BeNull("an array 's' is an orientation, never a spawn id");
     }
 
-    //EventAndBoss and Disappear are the only Populate-style converters the shared options register as concrete
-    //INSTANCES, so they are the only exercise of RecursionSafeOptions' remove-by-exact-type branch. Driven through
-    //the real SocketJson.Options: if that branch stops dropping the instance, Read StackOverflows and kills the host
+    /// <summary>
+    ///     EventAndBoss and Disappear are the only Populate-style converters the shared options register as concrete
+    ///     INSTANCES, so they are the only exercise of RecursionSafeOptions' remove-by-exact-type branch. Driven through the
+    ///     real SocketJson.Options: if that branch stops dropping the instance, Read StackOverflows and kills the host.
+    /// </summary>
     [Test]
     public void EventAndBoss_ViaSharedOptions_FillsFlagsAndBosses_NoStackOverflow()
     {

@@ -125,9 +125,13 @@ public static class CallCost
     /// </summary>
     public const double TRANSPORT = 8d;
 
-    //random_look and ccreport are in the server's table too and are not on this client's emit surface. A method
-    //absent here bills nothing: no CC row, and either no resend or one carrying nc without u (reopen+nc+inv, which
-    //is what every bench, shop and inventory handler sends)
+    /// <summary>
+    ///     <c>random_look</c> and <c>ccreport</c> are in the server's table too and are not on this client's emit surface.
+    /// </summary>
+    /// <remarks>
+    ///     A method absent here bills nothing: no CC row, and either no resend or one carrying <c>nc</c> without <c>u</c> (
+    ///     <c>reopen+nc+inv</c> , which is what every bench, shop and inventory handler sends).
+    /// </remarks>
     private static readonly IReadOnlyDictionary<ALSocketEmitType, double> COSTS = new Dictionary<ALSocketEmitType, double>
     {
         //commence_attack sets u+cid on every swing that lands (node/server.js:3180). attack and heal keep

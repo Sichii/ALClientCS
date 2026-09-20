@@ -21,7 +21,10 @@ public class SkillTimeoutData
     [JsonPropertyName("name")]
     public string SkillName { get; set; } = null!;
 
-    //the attack_ms correction sends attack_ms minus mssince, which is routinely negative and fractional
+    /// <summary>
+    ///     The <c>attack_ms</c> correction sends <c>attack_ms</c> minus <c>mssince</c> , which is routinely negative and
+    ///     fractional.
+    /// </summary>
     [JsonPropertyName("ms")]
     public float TimeoutMs { get; set; }
 }

@@ -197,9 +197,11 @@ public class CaveDataTests
               .Be("r3");
     }
 
-    //a character frame lands on the persistent Character by shallow merge, which assigns every writable property off
-    //a freshly deserialized frame - so a property the frame never carries would be nulled on every tick unless the
-    //merge is told to leave it
+    /// <summary>
+    ///     A character frame lands on the persistent Character by shallow merge, which assigns every writable property off a
+    ///     freshly deserialized frame - so a property the frame never carries would be nulled on every tick unless the merge
+    ///     is told to leave it.
+    /// </summary>
     [Test]
     public void ACharacterFrameMergeLeavesTheCaveStateInPlace()
     {

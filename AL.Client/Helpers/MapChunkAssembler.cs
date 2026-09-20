@@ -12,7 +12,9 @@ namespace AL.Client.Helpers;
 /// </summary>
 internal sealed partial class MapChunkAssembler
 {
-    //the game client's own caps, so a malformed stream cannot grow the buffer without bound
+    /// <summary>
+    ///     The game client's own caps, so a malformed stream cannot grow the buffer without bound.
+    /// </summary>
     private const int MAX_COUNT = 1400;
     private const int MAX_TEXT_LENGTH = 12_000;
     private const int MAX_BUNDLE_LENGTH = 16 * 1024 * 1024;

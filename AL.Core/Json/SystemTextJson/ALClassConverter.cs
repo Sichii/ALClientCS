@@ -21,7 +21,9 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class ALClassConverter : JsonConverter<ALClass>
 {
-    //a JSON null must reach Read so it maps to None instead of throwing (value type)
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null maps to <see cref="ALClass.None" />.
+    /// </summary>
     public override bool HandleNull => true;
 
     public override ALClass Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -34,8 +34,10 @@ public class MapBoundaryCharacterization
     /// </summary>
     private const string COMMITTED_NAME = "map-boundaries.json";
 
-    //matches JsonConvert.ToString's escaping - quotes, backslash and control characters only, with < > & +
-    //left alone - so the rendered strings stay byte-identical to the frozen fixture
+    /// <summary>
+    ///     Matches JsonConvert.ToString's escaping - quotes, backslash and control characters only, with &lt; &gt; &amp; +
+    ///     left alone - so the rendered strings stay byte-identical to the frozen fixture.
+    /// </summary>
     private static readonly JsonSerializerOptions StringOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping

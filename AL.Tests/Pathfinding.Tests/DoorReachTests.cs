@@ -19,7 +19,10 @@ namespace AL.Tests.Pathfinding.Tests;
 /// </summary>
 public class DoorReachTests : PathfindingTestBed
 {
-    //the server's own limit, spelled out rather than read from CONSTANTS.DOOR_RANGE, which carries a safety shave
+    /// <summary>
+    ///     The server's own limit, spelled out rather than read from <c>CONSTANTS.DOOR_RANGE</c> , which carries a safety
+    ///     shave.
+    /// </summary>
     private const float SERVER_DOOR_DIST = 112f;
 
     /// <summary>
@@ -37,8 +40,10 @@ public class DoorReachTests : PathfindingTestBed
     /// </remarks>
     private const float REQUIRED_MARGIN = 5f;
 
-    //a character's sprite box on the server. restated here for the same reason as the limit above - a test that
-    //reads CONSTANTS would agree with it whatever it said
+    /// <summary>
+    ///     A character's sprite box on the server. Restated here for the same reason as the limit above - a test that reads
+    ///     CONSTANTS would agree with it whatever it said.
+    /// </summary>
     private const float SERVER_CHARACTER_WIDTH = 26f;
     private const float SERVER_CHARACTER_HEIGHT = 36f;
 

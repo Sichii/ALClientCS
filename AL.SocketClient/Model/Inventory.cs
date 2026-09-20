@@ -12,7 +12,10 @@ public sealed class Inventory : IReadOnlyList<Item?>
     public IReadOnlyList<Item?> Items { get; }
     public int Count => Items.Count;
 
-    // Backing stays List<Item?> so SetCapacity's downcast holds; the deserializer supplies a List.
+    /// <summary>
+    ///     Backing stays <c>List&lt;Item?&gt;</c> so <see cref="SetCapacity" />'s downcast holds; the deserializer supplies a
+    ///     list.
+    /// </summary>
     internal Inventory(IReadOnlyList<Item?>? items) => Items = items ?? new List<Item?>();
 
     /// <summary>

@@ -623,7 +623,9 @@ public enum ArmorSet
     Oathkeeper
 }
 
-//the server keys bank packs as "items0", "items1", ... - the PascalCase name matches nothing
+/// <summary>
+///     The server keys bank packs as <c>items0</c> , <c>items1</c> and so on; the PascalCase name matches nothing.
+/// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.LowerCaseTolerantStringEnumConverterFactory))]
 public enum BankPack
 {
@@ -1000,7 +1002,9 @@ public enum EquipmentSlot
     Shoes
 }
 
-//the server keys trade slots as "trade1".."trade30"
+/// <summary>
+///     The server keys trade slots as <c>trade1</c> through <c>trade30</c> .
+/// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.LowerCaseTolerantStringEnumConverterFactory))]
 public enum TradeSlot
 {
@@ -1037,7 +1041,9 @@ public enum TradeSlot
     Trade30
 }
 
-//the server keys equipment slots as "mainhand", "offhand", "ring1", ...
+/// <summary>
+///     The server keys equipment slots as <c>mainhand</c> , <c>offhand</c> , <c>ring1</c> and so on.
+/// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.LowerCaseTolerantStringEnumConverterFactory))]
 public enum Slot
 {
@@ -1387,7 +1393,9 @@ public enum UIDataType
     [EnumMember(Value = "restore_mp")]
     RestoreMP,
 
-    //the two "draw a line between the two players" texts; sender/receiver rather than a single anchor
+    /// <summary>
+    ///     A "gold sent" text. It draws a line between the two players, from sender to receiver, rather than anchoring on one.
+    /// </summary>
     [EnumMember(Value = "gold_sent")]
     GoldSent,
 
@@ -1445,7 +1453,9 @@ public enum ChestType
     [EnumMember(Value = "chestp")]
     ChestP,
 
-    //a daily dungeon chest: its gold and amber go to the party's shared purse, not to the opener
+    /// <summary>
+    ///     A daily dungeon chest. Its gold and amber go to the party's shared purse, not to the opener.
+    /// </summary>
     [EnumMember(Value = "cavechest")]
     CaveChest
 }

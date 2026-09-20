@@ -77,9 +77,13 @@ public sealed record GMonsterAbility : AttributedRecordBase
     ///     The magnitude of this ability, whichever of the three wire spellings carried it: "heal", "damage" or "amount". Zero
     ///     when the ability takes none of them.
     /// </summary>
-
-    //the annotated backing field owns the "amount" wire key; without this the accessor claims it too and the
-    //type throws on resolution. Newtonsoft keeps binding it as before - it reads its own attributes.
+    /// <remarks>
+    ///     The private backing field carries the
+    ///     <c>
+    ///         amount
+    ///     </c>
+    ///     wire key, so this accessor must not claim it too.
+    /// </remarks>
     [JsonIgnore]
     public float Amount => _amount ?? _damage ?? _heal ?? 0f;
     #pragma warning disable 0649

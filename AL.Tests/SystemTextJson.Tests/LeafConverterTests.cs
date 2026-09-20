@@ -18,8 +18,10 @@ namespace AL.Tests.SystemTextJson.Tests;
 /// </summary>
 public sealed class LeafConverterTests
 {
-    //the four answers the afk field actually carries. A bool here is what let "running CODE" read as "idle", and
-    //Unknown is what tells a merge the frame said nothing rather than said no
+    /// <summary>
+    ///     The four answers the <c>afk</c> field actually carries. A bool here is what let "running CODE" read as "idle", and
+    ///     Unknown is what tells a merge the frame said nothing rather than said no.
+    /// </summary>
     [Test]
     public void AfkState_MapsEveryShapeTheServerSends()
     {
@@ -51,7 +53,9 @@ public sealed class LeafConverterTests
                       .Be(AfkState.Idle);
     }
 
-    //gate finding #5, carried over: a number in the slot must coerce, not throw (a throw discards the whole frame)
+    /// <summary>
+    ///     A number in the slot must coerce, not throw - a throw discards the whole frame.
+    /// </summary>
     [Test]
     public void AfkState_Number_Coerces()
     {
@@ -66,7 +70,9 @@ public sealed class LeafConverterTests
                       .Be(AfkState.Active);
     }
 
-    //AfkConverter is named for a field it no longer reads; rip is what is left on it
+    /// <summary>
+    ///     <see cref="AfkConverter" /> is named for a field it no longer reads; <c>rip</c> is what is left on it.
+    /// </summary>
     [Test]
     public void Rip_NullFalse_StringTrue_BoolPassThrough()
     {
@@ -171,9 +177,11 @@ public sealed class LeafConverterTests
              .Be(4);
     }
 
-    //the game data writes GSkill.target as a real boolean, not the string the enum aliases. Before the True/False
-    //arms every such value degraded to the zero member - so "target":true read as "not single target" - and warned
-    //once per load. TargetType rather than a local fixture, because it is the enum that actually receives one.
+    /// <summary>
+    ///     The game data writes <c>GSkill.target</c> as a real boolean, not the string the enum aliases. Before the True/False
+    ///     arms every such value degraded to the zero member - so "target":true read as "not single target" - and warned once
+    ///     per load. TargetType rather than a local fixture, because it is the enum that actually receives one.
+    /// </summary>
     [Test]
     public void TolerantEnum_BooleanToken_RoutesThroughAliases()
         => JsonSerializer.Deserialize<TargetType>("true", Opts())
@@ -204,8 +212,10 @@ public sealed class LeafConverterTests
                          .Should()
                          .Be(TColor.None);
 
-    //gate finding #1: a quoted numeric string must bind to the underlying value, as the pre-migration string-enum
-    //converter did, or every tolerant enum silently drops "17"-style wire values to zero.
+    /// <summary>
+    ///     A quoted numeric string must bind to the underlying value, as the pre-migration string-enum converter did, or every
+    ///     tolerant enum silently drops "17"-style wire values to zero.
+    /// </summary>
     [Test]
     public void TolerantEnum_QuotedNumericString_BindsToUnderlying()
         => JsonSerializer.Deserialize<TColor>("\"2\"", Opts())
@@ -242,8 +252,10 @@ public sealed class LeafConverterTests
          .Be(0);
     }
 
-    //the converter's T1?,T2? are unconstrained, so at runtime it handles ValueTuple<string,int> (the ? on an
-    //unconstrained value-type arg erases to the non-nullable type) — deserialize the same closed type it declares.
+    /// <summary>
+    ///     The converter's T1?,T2? are unconstrained, so at runtime it handles ValueTuple&lt;string,int&gt; - deserialize the
+    ///     same closed type it declares.
+    /// </summary>
     [Test]
     public void Tuple_ShortArray_FillsPrefix_RestDefault()
     {

@@ -14,10 +14,7 @@ namespace AL.APIClient.Json.SystemTextJson;
 ///     The API converters are inserted at the front so they win the first-CanConvert-wins resolution over the base
 ///     factories. <see cref="LoginResponseConverter" /> and <see cref="StringOrObjectMailItemConverter" /> each target a
 ///     single type used only in this shape, so global registration matches the Newtonsoft per-property
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     they replace.
+///     <c>[JsonConverter]</c> they replace.
 /// </remarks>
 public static class ApiJson
 {

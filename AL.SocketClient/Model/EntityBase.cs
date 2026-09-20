@@ -39,7 +39,9 @@ public abstract class EntityBase : AttributedObjectBase,
                                    IKeyPresenceCapturable,
                                    IEquatable<EntityBase>
 {
-    //every member of the movement block, so the wholesale path runs the same merge the gated one does
+    /// <summary>
+    ///     Every member of the movement block, so the wholesale path runs the same merge the gated one does.
+    /// </summary>
     private const EntityUpdateField MOVEMENT_FIELDS = EntityUpdateField.X
                                                       | EntityUpdateField.Y
                                                       | EntityUpdateField.GoingX
@@ -529,9 +531,14 @@ public abstract class EntityBase : AttributedObjectBase,
 
     public override bool Equals(object? obj) => Equals(obj as EntityBase);
 
-    //the one place a server frame becomes movement, for both paths that apply one. Whichever fields the mask lets
-    //through land together; the rest keep what they had. When an arbitration rule arrives - ignore a frame whose
-    //move_num is behind, snap past a distance threshold - this is where it goes, and it is written once
+    /// <summary>
+    ///     The one place a server frame becomes movement, for both paths that apply one. Whichever fields the mask lets
+    ///     through land together; the rest keep what they had.
+    /// </summary>
+    /// <remarks>
+    ///     When an arbitration rule arrives - ignore a frame whose <c>move_num</c> is behind, snap past a distance threshold -
+    ///     this is where it goes, and it is written once.
+    /// </remarks>
     protected private static MovementBlock MergeMovement(MovementBlock current, MovementBlock incoming, EntityUpdateField present)
     {
         if ((present & EntityUpdateField.Angle) != 0)
@@ -591,8 +598,13 @@ public abstract class EntityBase : AttributedObjectBase,
         return current;
     }
 
-    //the one place the block is read as a group, and the one place any member of it is assigned. Both assume the
-    //caller already holds MovementLock - nothing else in this class or Character may touch the members directly
+    /// <summary>
+    ///     The one place the block is read as a group, and the one place any member of it is assigned.
+    /// </summary>
+    /// <remarks>
+    ///     Both assume the caller already holds <see cref="MovementLock" /> - nothing else in this class or
+    ///     <see cref="Character" /> may touch the members directly.
+    /// </remarks>
     protected private MovementBlock ReadMovement()
         => new(
             X,

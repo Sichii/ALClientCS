@@ -9,8 +9,10 @@ public abstract class APITestBed
     protected static readonly SemaphoreSlim Sync = new(1, 1);
     protected static AlApiClient APIClient { get; private set; } = null!;
 
-    //each level of the test-bed chain declares its own hook rather than overriding: TUnit collects them
-    //base-first through the hierarchy, and an override carrying the same attribute is error TUnit0074
+    /// <summary>
+    ///     Each level of the test-bed chain declares its own hook rather than overriding: TUnit collects them base-first
+    ///     through the hierarchy, and an override carrying the same attribute is error TUnit0074.
+    /// </summary>
     [Before(Test)]
     public async Task LogInToApiAsync()
     {

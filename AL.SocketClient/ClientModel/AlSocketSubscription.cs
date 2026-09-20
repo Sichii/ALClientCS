@@ -5,7 +5,10 @@ public abstract class ALSocketSubscription : IDisposable
     internal abstract Delegate Callback { get; }
     protected ALSocketSubscriptionList InvocationList { get; }
 
-    //diverges from the list's Type when a later On<T> declared a different T, which is what makes the cast below throw
+    /// <summary>
+    ///     Diverges from <see cref="ALSocketSubscriptionList.Type" /> when a later <c>On&lt;T&gt;</c> declared a different T,
+    ///     which is what makes the cast in <see cref="InvokeAsync" /> throw.
+    /// </summary>
     internal abstract Type SubscriptionType { get; }
 
     protected ALSocketSubscription(ALSocketSubscriptionList invocationList) => InvocationList = invocationList;

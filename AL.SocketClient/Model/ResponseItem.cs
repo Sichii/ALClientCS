@@ -10,10 +10,13 @@ namespace AL.SocketClient.Model;
 /// <summary>
 ///     Represents an item received via <see cref="AL.SocketClient.SocketModel.GameResponseData" />.
 /// </summary>
-
-//Newtonsoft applies string-or-object at the one member that holds a ResponseItem
-//(GameResponseData.Item); System.Text.Json's factory reads a type-level marker, and without this a bare-string
-//"item" would throw on the System.Text.Json path while Newtonsoft bound it to Name.
+/// <remarks>
+///     The server may send
+///     <c>
+///         item
+///     </c>
+///     as a bare name rather than an object.
+/// </remarks>
 [JsonStringOrObject(nameof(Name))]
 public sealed record ResponseItem : ISimpleItem, IOptionalObject
 {

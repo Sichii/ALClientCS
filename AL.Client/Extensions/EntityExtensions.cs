@@ -15,8 +15,10 @@ namespace AL.Client.Extensions;
 /// </summary>
 public static class EntityExtensions
 {
-    //the floor on how often an instance updates - the server caps both the loop's own reschedule and its
-    //per-instance gate there - and every timed condition ticks on that grid rather than on its own interval
+    /// <summary>
+    ///     The floor on how often an instance updates - the server caps both the loop's own reschedule and its per-instance
+    ///     gate there - and every timed condition ticks on that grid rather than on its own interval.
+    /// </summary>
     private const double INSTANCE_UPDATE_MS = 75;
 
     /// <summary>
@@ -114,9 +116,11 @@ public static class EntityExtensions
         return entity.Attack * damageMultiplier;
     }
 
-    //the fraction of a projectile's damage that gets through the target's defenses. pierce counts twice because
-    //the server subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
-    //(node/server.js:3179, :3611)
+    /// <summary>
+    ///     The fraction of a projectile's damage that gets through the target's defenses. Pierce counts twice because the
+    ///     server subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
+    ///     (node/server.js:3179, :3611).
+    /// </summary>
     private static float MitigationAgainst(EntityBase target, ActionData projectile, Func<string, EntityBase?>? findAttacker)
     {
         var attacker = string.IsNullOrEmpty(projectile.AttackerId) ? null : findAttacker?.Invoke(projectile.AttackerId);
@@ -139,8 +143,10 @@ public static class EntityExtensions
         };
     }
 
-    //restates the server's damage-type selection: monster data or class, then mainhand weapon override, then
-    //skill override for anything but a basic attack (node/server.js:2966-2978). unset falls back to physical
+    /// <summary>
+    ///     Restates the server's damage-type selection: monster data or class, then mainhand weapon override, then skill
+    ///     override for anything but a basic attack (node/server.js:2966-2978). Unset falls back to physical.
+    /// </summary>
     private static DamageType ResolveDamageType(EntityBase attacker, string? source)
     {
         var damageType = attacker switch

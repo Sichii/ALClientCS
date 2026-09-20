@@ -50,7 +50,10 @@ public static class CircleExtensions
                 numberOfSteps);
     }
 
-    //an extension member with a ref struct receiver cannot be an iterator, so the lazy ones hand their numbers to these
+    /// <summary>
+    ///     An extension member with a ref struct receiver cannot be an iterator, so the lazy overloads hand their numbers to
+    ///     this.
+    /// </summary>
     private static IEnumerable<Point> Circumference(
         float x,
         float y,

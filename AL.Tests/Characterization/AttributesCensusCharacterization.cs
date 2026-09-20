@@ -44,8 +44,10 @@ public class AttributesCensusCharacterization
 {
     private const string SNAPSHOT_FILE = "attributes-census.json";
 
-    //reproduces Newtonsoft's Formatting.Indented for the census: 2-space indent, and no \uXXXX escaping of
-    //< > & + so the rendered text stays byte-comparable against the frozen fixture
+    /// <summary>
+    ///     Reproduces Newtonsoft's Formatting.Indented for the census: 2-space indent, and no \uXXXX escaping of &lt; &gt;
+    ///     &amp; + so the rendered text stays byte-comparable against the frozen fixture.
+    /// </summary>
     private static readonly JsonSerializerOptions CensusOptions = new()
     {
         WriteIndented = true,

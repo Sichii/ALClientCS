@@ -461,9 +461,11 @@ public class ClientTests
               .Be(7826f);
     }
 
-    //the filter RangerCombat picks its multishot targets through - a monster an in-flight arrow has already
-    //killed is not worth a shot, because every shot spends the whole shared attack cooldown. Pinned on a plain
-    //EntityBase so it needs no game data: the Monster arm adds only the _1hp bail-out on top of this arithmetic.
+    /// <summary>
+    ///     The filter RangerCombat picks its multishot targets through - a monster an in-flight arrow has already killed is
+    ///     not worth a shot, because every shot spends the whole shared attack cooldown. Pinned on a plain EntityBase so it
+    ///     needs no game data: the Monster arm adds only the <c>_1hp</c> bail-out on top of this arithmetic.
+    /// </summary>
     [Test]
     public void WillDieToProjectilesCountsOnlyTheProjectilesAimedAtThatEntity()
     {

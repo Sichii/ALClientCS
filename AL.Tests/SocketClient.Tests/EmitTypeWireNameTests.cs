@@ -62,6 +62,7 @@ public class EmitTypeWireNameTests
     [Arguments(ALSocketEmitType.Locksmith, "locksmith")]
     [Arguments(ALSocketEmitType.Signup, "signup")]
     [Arguments(ALSocketEmitType.Tavern, "tavern")]
+
     public void EmitTypeSerializesToServerHandlerName(ALSocketEmitType emitType, string wireName)
         => EnumHelper.ToString(emitType)
                      .ToLowerInvariant()

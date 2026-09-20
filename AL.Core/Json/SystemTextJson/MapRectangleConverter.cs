@@ -25,8 +25,10 @@ namespace AL.Core.Json.SystemTextJson;
 /// </summary>
 public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
 {
-    //a JSON null must reach Read: Newtonsoft's inner tuple short-circuited null to default, yielding a
-    //zeroed, unnamed rectangle rather than a null reference
+    /// <summary>
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, because Newtonsoft's inner tuple short-circuited a null
+    ///     to default, yielding a zeroed, unnamed rectangle rather than a null reference.
+    /// </summary>
     public override bool HandleNull => true;
 
     private static float Coord(JsonArray arr, int index, JsonSerializerOptions options)
