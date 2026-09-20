@@ -10,10 +10,7 @@ namespace AL.APIClient.Json.SystemTextJson;
 
 /// <summary>
 ///     Binds a mail item the server sends either as a JSON object or as a JSON-stringified object (simplify_item) to a
-///     <see cref="MailItem" />. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         StringOrObjectMailItemConverter
-///     </c>
+///     <see cref="MailItem" />. The System.Text.Json replacement for the Newtonsoft <c>StringOrObjectMailItemConverter</c>
 ///     .
 /// </summary>
 public sealed class StringOrObjectMailItemConverter : JsonConverter<MailItem?>

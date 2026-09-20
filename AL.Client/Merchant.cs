@@ -27,30 +27,16 @@ public class Merchant : ALClient
     /// <summary>
     ///     Initializes a new instance of the <see cref="Merchant" /> class.
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the merchant.
-    /// </param>
-    /// <param name="apiClient">
-    ///     An API client implementation.
-    /// </param>
-    /// <param name="socketClient">
-    ///     A socket client implementation.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     characterName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     socketClient
-    /// </exception>
+    /// <param name="characterName">The name of the merchant.</param>
+    /// <param name="apiClient">An API client implementation.</param>
+    /// <param name="socketClient">A socket client implementation.</param>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
+    /// <exception cref="ArgumentNullException">socketClient</exception>
     public Merchant(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
         : base(characterName, apiClient, socketClient) { }
 
-    /// <summary>
-    ///     Asynchronously closes the merchant stand.
-    /// </summary>
+    /// <summary>Asynchronously closes the merchant stand.</summary>
     public async Task CloseStandAsync()
     {
         if (Character.Stand == Stand.None)
@@ -79,32 +65,21 @@ public class Merchant : ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously starts Fishing.
-    /// </summary>
+    /// <summary>Asynchronously starts Fishing.</summary>
     /// <remarks>
     ///     This returns once the server accepts the cast, which starts the channel rather than landing a fish. Fishing runs
     ///     for its duration and catches something one time in ten; the cooldown is taken then, not now.
     ///     <br />
     ///     That acknowledgement is the only frame this await can settle on, and the skill handler builds it without a
-    ///     <c>
-    ///         request_id
-    ///     </c>
-    ///     even when the cast carried one (node/server.js:9578), so no token can correlate it. The completion does echo the
-    ///     token, but it arrives 5 to 15 seconds after the emit, far past
+    ///     <c>request_id</c> even when the cast carried one (node/server.js:9578), so no token can correlate it. The
+    ///     completion does echo the token, but it arrives 5 to 15 seconds after the emit, far past
     ///     <see cref="ALClientSettings.NetworkTimeoutMS" /> - the channel has to be watched rather than awaited.
     ///     <br />
-    ///     Fishing is
-    ///     <c>
-    ///         persistent
-    ///     </c>
-    ///     , and the server restores its cooldown on a frame that does not ride login — so between connecting and your first
-    ///     state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready when it is not.
-    ///     Casting anyway costs one call and fails with "(on cooldown)".
+    ///     Fishing is <c>persistent</c> , and the server restores its cooldown on a frame that does not ride login — so
+    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and
+    ///     it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'fishing'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'fishing'. ({reason})</exception>
     public Task FishingAsync()
         => UseSkillCoreAsync(
             "fishing",
@@ -121,31 +96,21 @@ public class Merchant : ALClient
     /// <summary>
     ///     Asynchronously uses MCourage, raising your defenses.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mcourage'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mcourage'. ({reason})</exception>
     public Task MCourageAsync() => UseSkillCoreAsync("mcourage");
 
     /// <summary>
     ///     Asynchronously uses MFrenzy, raising your attack speed sharply for a short time.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mfrenzy'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mfrenzy'. ({reason})</exception>
     public Task MFrenzyAsync() => UseSkillCoreAsync("mfrenzy");
 
     /// <summary>
     ///     Asynchronously uses MLuck on a target, luck-buffing them for a long duration.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mluck' on {targetId}. ({reason})
-    /// </exception>
+    /// <param name="targetId">The id of the target.</param>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mluck' on {targetId}. ({reason})</exception>
     public Task MLuckAsync(string targetId)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -160,31 +125,11 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way.
     ///     <br />
-    ///     No test covers this or <see cref="MassExchangePPAsync" />. The committed
-    ///     <c>
-    ///         data.json
-    ///     </c>
-    ///     once predated the pair and kept them unreachable from the suite; it now carries both in
-    ///     <c>
-    ///         G.skills
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         G.conditions
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         design/skills.js:375-396
-    ///     </c>
-    ///     ), so
-    ///     <c>
-    ///         CanUseSkill
-    ///     </c>
-    ///     no longer blocks them.
+    ///     No test covers this or <see cref="MassExchangePPAsync" />. The committed <c>data.json</c> once predated the pair
+    ///     and kept them unreachable from the suite; it now carries both in <c>G.skills</c> and <c>G.conditions</c> (
+    ///     <c>design/skills.js:375-396</c> ), so <c>CanUseSkill</c> no longer blocks them.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massexchange'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massexchange'. ({reason})</exception>
     public Task MassExchangeAsync() => UseSkillCoreAsync("massexchange");
 
     /// <summary>
@@ -195,9 +140,7 @@ public class Merchant : ALClient
     ///     <see cref="MassExchangeAsync" /> rather than instead of it (node/server.js:6085-6093), so with both up an exchange
     ///     runs in a twentieth of its time.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massexchangepp'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massexchangepp'. ({reason})</exception>
     public Task MassExchangePPAsync() => UseSkillCoreAsync("massexchangepp");
 
     /// <summary>
@@ -206,9 +149,7 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next upgrade or compound and expiring 10 seconds after the cast either way.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massproduction'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massproduction'. ({reason})</exception>
     public Task MassProductionAsync() => UseSkillCoreAsync("massproduction");
 
     /// <summary>
@@ -217,14 +158,10 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next upgrade or compound and expiring 10 seconds after the cast either way.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massproductionpp'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massproductionpp'. ({reason})</exception>
     public Task MassProductionPPAsync() => UseSkillCoreAsync("massproductionpp");
 
-    /// <summary>
-    ///     Asynchronously starts Mining.
-    /// </summary>
+    /// <summary>Asynchronously starts Mining.</summary>
     /// <remarks>
     ///     This returns once the server accepts the cast, which starts the channel rather than landing a strike. Mining runs
     ///     for its duration and yields something one time in five; the cooldown is taken then, not now.
@@ -232,17 +169,11 @@ public class Merchant : ALClient
     ///     No token can correlate this cast either, for the reasons on <see cref="FishingAsync" />; the two share a handler
     ///     branch and a 5 to 15 second duration.
     ///     <br />
-    ///     Mining is
-    ///     <c>
-    ///         persistent
-    ///     </c>
-    ///     , and the server restores its cooldown on a frame that does not ride login — so between connecting and your first
-    ///     state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready when it is not.
-    ///     Casting anyway costs one call and fails with "(on cooldown)".
+    ///     Mining is <c>persistent</c> , and the server restores its cooldown on a frame that does not ride login — so between
+    ///     connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads
+    ///     as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mining'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mining'. ({reason})</exception>
     public Task MiningAsync()
         => UseSkillCoreAsync(
             "mining",
@@ -261,31 +192,13 @@ public class Merchant : ALClient
     /// </summary>
     /// <remarks>
     ///     Both halves match on the item's type rather than on its name. A computer is preferred because it opens a
-    ///     <c>
-    ///         cstand
-    ///     </c>
-    ///     , which grants 24 trade slots below level 70 where a plain stand grants 16 (
-    ///     <c>
-    ///         node/server_functions.js:3572
-    ///     </c>
-    ///     ) - and matching by type is what makes a
-    ///     <c>
-    ///         supercomputer
-    ///     </c>
-    ///     count, it being typed
-    ///     <c>
-    ///         computer
-    ///     </c>
-    ///     and carrying the same
-    ///     <c>
-    ///         cstand
-    ///     </c>
-    ///     . Named, it matched neither arm, so a merchant carrying one and no plain stand could not open a stand at all. Every
-    ///     item of either type carries a stand, so neither arm can pick one the server then refuses.
+    ///     <c>cstand</c> , which grants 24 trade slots below level 70 where a plain stand grants 16 (
+    ///     <c>node/server_functions.js:3572</c> ) - and matching by type is what makes a <c>supercomputer</c> count, it being
+    ///     typed <c>computer</c> and carrying the same <c>cstand</c> . Named, it matched neither arm, so a merchant carrying
+    ///     one and no plain stand could not open a stand at all. Every item of either type carries a stand, so neither arm can
+    ///     pick one the server then refuses.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to open stand. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to open stand. ({reason})</exception>
     public async Task OpenStandAsync()
     {
         if (Character.Stand != Stand.None)
@@ -324,27 +237,13 @@ public class Merchant : ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously posts a buy order for an item.
-    /// </summary>
-    /// <param name="itemName">
-    ///     The name of the item to post a buy order for.
-    /// </param>
-    /// <param name="itemLevel">
-    ///     The level of the item to buy.
-    /// </param>
-    /// <param name="tradeSlot">
-    ///     The slot to post the buy order.
-    /// </param>
-    /// <param name="price">
-    ///     The price per item the buy order is for.
-    /// </param>
-    /// <param name="quantity">
-    ///     The number of items to buy.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
+    /// <summary>Asynchronously posts a buy order for an item.</summary>
+    /// <param name="itemName">The name of the item to post a buy order for.</param>
+    /// <param name="itemLevel">The level of the item to buy.</param>
+    /// <param name="tradeSlot">The slot to post the buy order.</param>
+    /// <param name="price">The price per item the buy order is for.</param>
+    /// <param name="quantity">The number of items to buy.</param>
+    /// <exception cref="ArgumentNullException">itemName</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to post item {itemName} to buy. ({reason})
     /// </exception>
@@ -415,21 +314,11 @@ public class Merchant : ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously lists an item for sale.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot in the inventory of the item to list.
-    /// </param>
-    /// <param name="tradeSlot">
-    ///     The trade slot to list the item to.
-    /// </param>
-    /// <param name="price">
-    ///     The list price of the item.
-    /// </param>
-    /// <param name="quantity">
-    ///     The quantity of the item to sell.
-    /// </param>
+    /// <summary>Asynchronously lists an item for sale.</summary>
+    /// <param name="inventorySlot">The slot in the inventory of the item to list.</param>
+    /// <param name="tradeSlot">The trade slot to list the item to.</param>
+    /// <param name="price">The list price of the item.</param>
+    /// <param name="quantity">The quantity of the item to sell.</param>
     /// <exception cref="InvalidOperationException">
     ///     Failed to list item {itemNameOrSlot} for sale. ({reason})
     /// </exception>
@@ -515,15 +404,9 @@ public class Merchant : ALClient
     ///     Asynchronously creates a Merchant client and connects.
     ///     <br />
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the character to log in as.
-    /// </param>
-    /// <param name="region">
-    ///     The region to log into.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier suffic for the region.
-    /// </param>
+    /// <param name="characterName">The name of the character to log in as.</param>
+    /// <param name="region">The region to log into.</param>
+    /// <param name="identifier">The identifier suffic for the region.</param>
     /// <param name="apiClient">
     ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
@@ -533,12 +416,8 @@ public class Merchant : ALClient
     /// <returns>
     ///     <see cref="Merchant" />
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     characterName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
     public static Task<Merchant> StartAsync(
         string characterName,
         ServerRegion region,
@@ -556,21 +435,13 @@ public class Merchant : ALClient
     /// <summary>
     ///     Asynchronously throws an item from your inventory at a target.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <param name="inventorySlot">
-    ///     The inventory slot holding the item to throw.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
+    /// <param name="inventorySlot">The inventory slot holding the item to throw.</param>
     /// <remarks>
     ///     The item is consumed. Throwing an item the server considers harmful at another player fails outside of pvp.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'throw' on {targetId}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'throw' on {targetId}. ({reason})</exception>
     public Task ThrowAsync(string targetId, int inventorySlot)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -587,12 +458,8 @@ public class Merchant : ALClient
             });
     }
 
-    /// <summary>
-    ///     Asynchronously unposts a trade item.
-    /// </summary>
-    /// <param name="tradeSlot">
-    ///     The trade slot of the item to unpost.
-    /// </param>
+    /// <summary>Asynchronously unposts a trade item.</summary>
+    /// <param name="tradeSlot">The trade slot of the item to unpost.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />

@@ -8,14 +8,10 @@ using Chaos.Extensions.Common;
 
 namespace AL.Data.Maps;
 
-/// <summary>
-///     Represents the static info of a map.
-/// </summary>
+/// <summary>Represents the static info of a map.</summary>
 public sealed record GMap
 {
-    /// <summary>
-    ///     The unique accessor for this map.
-    /// </summary>
+    /// <summary>The unique accessor for this map.</summary>
     [JsonIgnore]
     public string Accessor { get; internal set; } = null!;
 
@@ -33,15 +29,11 @@ public sealed record GMap
     [JsonPropertyName("burn_multiplier")]
     public float BurnMultiplier { get; init; }
 
-    /// <summary>
-    ///     A list of doors on this map,
-    /// </summary>
+    /// <summary>A list of doors on this map,</summary>
     public IReadOnlyList<GDoor> Doors { get; init; } = new List<GDoor>();
 
     /// <summary>
-    ///     <b>
-    ///         Currently not used.
-    ///     </b>
+    ///     <b>Currently not used.</b>
     ///     <br />
     ///     A value used to determine how often items drop. The server hardcoded it to 1000 for every map and left a note
     ///     saying so (node/server.js:2106).
@@ -53,9 +45,7 @@ public sealed record GMap
     ///     The map's own drop table, rolled on kills anywhere on it in addition to the monster's own. Empty for a map the game
     ///     gives none.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public IReadOnlyList<GDrop> Drops { get; internal set; } = [];
 
     /// <summary>
@@ -66,9 +56,7 @@ public sealed record GMap
     /// <summary>
     ///     A list of exits on this map. Exits can be either doors, or npcs that transport you.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyList<Exit> Exits { get; internal set; } = new List<Exit>();
 
@@ -100,9 +88,7 @@ public sealed record GMap
     /// </summary>
     public bool Ignore { get; init; }
 
-    /// <summary>
-    ///     Whether or not this map is an instance.
-    /// </summary>
+    /// <summary>Whether or not this map is an instance.</summary>
     public bool Instance { get; init; }
 
     /// <summary>
@@ -161,9 +147,7 @@ public sealed record GMap
     [JsonPropertyName("on_exit")]
     public (string Map, float Spawn) OnExit { get; init; }
 
-    /// <summary>
-    ///     Whether or not PvP is allowed on this map.
-    /// </summary>
+    /// <summary>Whether or not PvP is allowed on this map.</summary>
     public bool PvP { get; init; }
 
     /// <summary>
@@ -184,9 +168,7 @@ public sealed record GMap
     [JsonPropertyName("safe_pvp")]
     public bool SafePvP { get; init; }
 
-    /// <summary>
-    ///     A list of spawns on this map.
-    /// </summary>
+    /// <summary>A list of spawns on this map.</summary>
     public IReadOnlyList<GSpawn> Spawns { get; init; } = new List<GSpawn>();
 
     /// <summary>

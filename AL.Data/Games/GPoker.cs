@@ -10,10 +10,10 @@ namespace AL.Data.Games;
 ///     tavern map.
 /// </summary>
 /// <remarks>
-///     None of the six script functions this game exposes - <c>get_poker_table</c>, <c>poker_join</c>,
-///     <c>poker_leave</c>, <c>poker_act</c>, <c>poker_sit_in</c> and <c>poker_sit_out</c> - are modelled, and neither is
-///     the event that carries table state. The published server source has only an empty <c>tavern.poker</c> placeholder,
-///     so every payload and reply shape is unknown. This record covers the static half only.
+///     None of the six script functions this game exposes - <c>get_poker_table</c>, <c>poker_join</c>, <c>poker_leave</c>,
+///     <c>poker_act</c>, <c>poker_sit_in</c> and <c>poker_sit_out</c> - are modelled, and neither is the event that
+///     carries table state. The published server source has only an empty <c>tavern.poker</c> placeholder, so every
+///     payload and reply shape is unknown. This record covers the static half only.
 /// </remarks>
 public record GPoker
 {
@@ -50,8 +50,8 @@ public record GPoker
     public IReadOnlyDictionary<string, GBlindLevel> Blinds { get; init; } = new Dictionary<string, GBlindLevel>();
 
     /// <summary>
-    ///     The table's own footprint, as a rectangle offset from where the table stands. Carries no map name, because the
-    ///     wire form is the four-coordinate one.
+    ///     The table's own footprint, as a rectangle offset from where the table stands. Carries no map name, because the wire
+    ///     form is the four-coordinate one.
     /// </summary>
     public MapRectangle Block { get; init; } = null!;
 
@@ -96,9 +96,7 @@ public record GPoker
     /// </summary>
     public float Reach { get; init; }
 
-    /// <summary>
-    ///     How many players the table holds.
-    /// </summary>
+    /// <summary>How many players the table holds.</summary>
     public int Seats { get; init; }
 
     /// <summary>

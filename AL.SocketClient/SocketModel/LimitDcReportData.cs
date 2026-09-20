@@ -7,32 +7,17 @@ namespace AL.SocketClient.SocketModel;
 
 /// <summary>
 ///     The server's rate-limit telemetry, emitted immediately before it drops the connection with a
-///     <c>
-///         disconnect_reason
-///     </c>
-///     of
-///     <c>
-///         "limitdc"
-///     </c>
-///     (node/server.js:4366, 4379). Informational only - logged, never acted on.
+///     <c>disconnect_reason</c> of <c>"limitdc"</c> (node/server.js:4366, 4379). Informational only - logged, never acted
+///     on.
 /// </summary>
 public sealed record LimitDcReportData
 {
-    /// <summary>
-    ///     The call-cost ceiling that was exceeded.
-    /// </summary>
+    /// <summary>The call-cost ceiling that was exceeded.</summary>
     [JsonPropertyName("climit")]
     public double CallLimit { get; init; }
 
     /// <summary>
-    ///     The accrued call-cost breakdown for the 4-second window: an
-    ///     <b>
-    ///         array
-    ///     </b>
-    ///     of
-    ///     <c>
-    ///         [timestamp, method, cost]
-    ///     </c>
+    ///     The accrued call-cost breakdown for the 4-second window: an <b>array</b> of <c>[timestamp, method, cost]</c>
     ///     triples, one per run of consecutive same-method calls (add_call_cost, node/server_functions.js:4621, folds a repeat
     ///     into the previous entry rather than appending). Mixed element types, so kept raw.
     /// </summary>

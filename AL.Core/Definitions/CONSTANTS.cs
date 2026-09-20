@@ -1,8 +1,6 @@
 namespace AL.Core.Definitions;
 
-/// <summary>
-///     Provides assembly level compile time values
-/// </summary>
+/// <summary>Provides assembly level compile time values</summary>
 public static class CONSTANTS
 {
     /// <summary>
@@ -16,21 +14,15 @@ public static class CONSTANTS
     ///     point of a reach circle. So the shave is the whole of the margin, not a tidy-up on top of one.
     ///     <br />
     ///     The 2.5% this replaced left 2.8 units on a door and was not enough: every door and transporter refused with
-    ///     <c>
-    ///         transport_cant_reach
-    ///     </c>
-    ///     , from stop points the server measured three to four units past its limit. Doubling it leaves 5.6 units on a door
-    ///     and 8 on a transporter, which is the smaller side of what that measurement supports - an exit that still refuses is
-    ///     this number to raise.
+    ///     <c>transport_cant_reach</c> , from stop points the server measured three to four units past its limit. Doubling it
+    ///     leaves 5.6 units on a door and 8 on a transporter, which is the smaller side of what that measurement supports - an
+    ///     exit that still refuses is this number to raise.
     /// </remarks>
     public const float RANGE_SHAVE = 0.95f;
 
     /// <summary>
     ///     How close a door lets you through. Not a centre-to-centre radius - the server measures boxes, and an exit's
-    ///     <c>
-    ///         ReachBand
-    ///     </c>
-    ///     inflated by this is the region it accepts.
+    ///     <c>ReachBand</c> inflated by this is the region it accepts.
     /// </summary>
     public const float DOOR_RANGE = 112f * RANGE_SHAVE;
 
@@ -58,26 +50,18 @@ public static class CONSTANTS
     /// </summary>
     public const float MAX_VISION = 800;
 
-    /// <summary>
-    ///     Center to center
-    /// </summary>
+    /// <summary>Center to center</summary>
     public const float NPC_RANGE = 400f * RANGE_SHAVE;
 
     /// <summary>
     ///     Center to center, and plainly euclidean - the transporter is the one exit the server measures with
-    ///     <c>
-    ///         simple_distance
-    ///     </c>
-    ///     rather than the box test it uses on doors.
+    ///     <c>simple_distance</c> rather than the box test it uses on doors.
     /// </summary>
     public const float TRANSPORTER_RANGE = 160f * RANGE_SHAVE;
 
     /// <summary>
-    ///     The edge-to-edge range for trading. The base is well under the server's own
-    ///     <c>
-    ///         B.dist
-    ///     </c>
-    ///     of 400 already, and goes through the shave for the reason every other range here does.
+    ///     The edge-to-edge range for trading. The base is well under the server's own <c>B.dist</c> of 400 already, and goes
+    ///     through the shave for the reason every other range here does.
     /// </summary>
     public const float TRADE_RANGE = 300f * RANGE_SHAVE;
 }

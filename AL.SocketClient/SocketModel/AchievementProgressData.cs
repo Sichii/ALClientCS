@@ -10,13 +10,9 @@ public sealed record AchievementProgressData
     /// </summary>
     public int Count { get; set; }
 
-    /// <summary>
-    ///     The name of the achievement.
-    /// </summary>
+    /// <summary>The name of the achievement.</summary>
     public string Name { get; set; } = null!;
 
-    /// <summary>
-    ///     The amount of kills needed for this achievement.
-    /// </summary>
+    /// <summary>The amount of kills needed for this achievement.</summary>
     public int Needed { get; set; }
 }

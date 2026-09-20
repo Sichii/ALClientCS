@@ -17,21 +17,13 @@ public record MapRectangle : Rectangle, ILocation
     /// <summary>
     ///     Initializes a new instance of the <see cref="MapRectangle" /> class.
     /// </summary>
-    /// <param name="vertex1">
-    ///     A vertex of the rectangle.
-    /// </param>
+    /// <param name="vertex1">A vertex of the rectangle.</param>
     /// <param name="vertex2">
     ///     Another vertex of the rectangle. (must be an opposing vertex to #1)
     /// </param>
-    /// <param name="map">
-    ///     The map.
-    /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     pt1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     pt2
-    /// </exception>
+    /// <param name="map">The map.</param>
+    /// <exception cref="System.ArgumentNullException">pt1</exception>
+    /// <exception cref="System.ArgumentNullException">pt2</exception>
     public MapRectangle(IPoint vertex1, IPoint vertex2, string? map = null)
         : base(vertex1, vertex2)
     {

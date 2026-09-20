@@ -16,9 +16,7 @@ public sealed record DisappearData
     /// </summary>
     public DisappearEffect Effect { get; init; }
 
-    /// <summary>
-    ///     The ID of the entity disappearing.
-    /// </summary>
+    /// <summary>The ID of the entity disappearing.</summary>
     public string Id { get; init; } = null!;
 
     /// <summary>
@@ -27,9 +25,7 @@ public sealed record DisappearData
     [JsonPropertyName("invis")]
     public bool Invisible { get; init; }
 
-    /// <summary>
-    ///     The reason the entity disappeared.
-    /// </summary>
+    /// <summary>The reason the entity disappeared.</summary>
     public string Reason { get; init; } = string.Empty;
 
     /// <summary>

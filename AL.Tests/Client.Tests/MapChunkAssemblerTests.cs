@@ -21,7 +21,12 @@ public class MapChunkAssemblerTests
         var assembler = new MapChunkAssembler();
         assembler.Add(Chunk(0, 2, "{\"run\":"));
 
-        var act = () => assembler.Add(Chunk(1, 2, "\"x\"}", "0000000000000000000000ab"));
+        var act = () => assembler.Add(
+            Chunk(
+                1,
+                2,
+                "\"x\"}",
+                "0000000000000000000000ab"));
 
         act.Should()
            .Throw<InvalidOperationException>();
@@ -65,6 +70,19 @@ public class MapChunkAssemblerTests
            .Throw<InvalidOperationException>();
     }
 
+    private static MapChunkData Chunk(
+        int index,
+        int count,
+        string text,
+        string run = RUN)
+        => new()
+        {
+            Run = run,
+            Index = index,
+            Count = count,
+            Text = text
+        };
+
     [Test]
     public void ChunksInOrderYieldTheBundleTextOnTheLastOne()
     {
@@ -82,17 +100,4 @@ public class MapChunkAssemblerTests
                  .Should()
                  .Be($"{{\"run\":\"{RUN}\"}}");
     }
-
-    private static MapChunkData Chunk(
-        int index,
-        int count,
-        string text,
-        string run = RUN)
-        => new()
-        {
-            Run = run,
-            Index = index,
-            Count = count,
-            Text = text
-        };
 }

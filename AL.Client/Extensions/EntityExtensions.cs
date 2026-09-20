@@ -21,18 +21,10 @@ public static class EntityExtensions
     /// </summary>
     private const double INSTANCE_UPDATE_MS = 75;
 
-    /// <summary>
-    ///     Calculates the final damage value
-    /// </summary>
-    /// <param name="entity">
-    ///     The entity that is attacking.
-    /// </param>
-    /// <param name="target">
-    ///     The entity being attacked.
-    /// </param>
-    /// <param name="damageType">
-    ///     The type of damage being dealt.
-    /// </param>
+    /// <summary>Calculates the final damage value</summary>
+    /// <param name="entity">The entity that is attacking.</param>
+    /// <param name="target">The entity being attacked.</param>
+    /// <param name="damageType">The type of damage being dealt.</param>
     /// <param name="ignoreTempDefBuffs">
     ///     Whether or not to ignore defenses gained from temp buffs like
     ///     <see cref="AL.Core.Definitions.Condition.HardShell" />, <see cref="AL.Core.Definitions.Condition.WarCry" />, and
@@ -188,20 +180,11 @@ public static class EntityExtensions
     /// <summary>
     ///     Calculates whether or not the entity will die to burning damage.
     /// </summary>
-    /// <param name="entity">
-    ///     The eneity to check.
-    /// </param>
+    /// <param name="entity">The eneity to check.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the entity will die to burning damage, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the entity will die to burning damage, otherwise <c>false</c> .
     /// </returns>
     public static bool WillBurnToDeath(this EntityBase entity)
     {
@@ -241,12 +224,8 @@ public static class EntityExtensions
     /// <summary>
     ///     Calculates whether or not the entity will die to existing projectiles.
     /// </summary>
-    /// <param name="entity">
-    ///     The entity to check.
-    /// </param>
-    /// <param name="projectiles">
-    ///     The projectiles to use in the check.
-    /// </param>
+    /// <param name="entity">The entity to check.</param>
+    /// <param name="projectiles">The projectiles to use in the check.</param>
     /// <param name="findAttacker">
     ///     Resolves a projectile's attacker id to a live entity. When provided, each projectile's damage is reduced by the
     ///     target's armor or resistance less twice the attacker's pierce, matching the server's math. A projectile whose
@@ -255,14 +234,7 @@ public static class EntityExtensions
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the entity will die to existing projectiles, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the entity will die to existing projectiles, otherwise <c>false</c> .
     /// </returns>
     public static bool WillDieToProjectiles(
         this EntityBase entity,

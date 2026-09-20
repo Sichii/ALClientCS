@@ -26,9 +26,7 @@ public sealed record Recipe
     ///     The NPC a craft recipe is run at - its quest NPC when it has a quest tag, the craftsman otherwise. Null on a
     ///     dismantle recipe, which the server still requires the craftsman for.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public GNPC NPC { get; internal set; } = null!;
 
     /// <summary>

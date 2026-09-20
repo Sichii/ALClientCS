@@ -12,10 +12,7 @@ namespace AL.Core.Json.SystemTextJson;
 /// <summary>
 ///     A per-enum converter that degrades an unrecognized wire value to the enum's zero member rather than throwing, so
 ///     one unknown value never discards the whole socket frame. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         TolerantStringEnumConverter
-///     </c>
-///     ; produced by <see cref="TolerantStringEnumConverterFactory" />.
+///     <c>TolerantStringEnumConverter</c> ; produced by <see cref="TolerantStringEnumConverterFactory" />.
 /// </summary>
 /// <typeparam name="TEnum">
 ///     An enum type. Parsed with <see cref="EnumHelper" /> so
@@ -38,6 +35,7 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
     /// <remarks>
     ///     Per-TEnum is equivalent to a global table here; the key is already prefixed with the enum's name.
     /// </remarks>
+
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<string, byte> Reported = new();
 
@@ -133,11 +131,9 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
 }
 
 /// <summary>
-///     Applies <see cref="TolerantEnumConverter{TEnum}" /> to any enum. Use as
-///     <c>
+///     Applies <see cref="TolerantEnumConverter{TEnum}" /> to any enum. Use as <c>
 ///         [JsonConverter(typeof(TolerantStringEnumConverterFactory))]
-///     </c>
-///     on an enum type. Nullable enum members are handled by System.Text.Json's built-in nullable wrapper over the
+///     </c> on an enum type. Nullable enum members are handled by System.Text.Json's built-in nullable wrapper over the
 ///     produced converter.
 /// </summary>
 public class TolerantStringEnumConverterFactory : JsonConverterFactory
@@ -163,27 +159,12 @@ public class TolerantStringEnumConverterFactory : JsonConverterFactory
 }
 
 /// <summary>
-///     The lowercase-emitting variant, for enums whose wire form is the bare lowercase member name (
-///     <c>
-///         Slot
-///     </c>
-///     -&gt; "mainhand",
-///     <c>
-///         TradeSlot
-///     </c>
-///     -&gt; "trade1",
-///     <c>
-///         BankPack
-///     </c>
-///     -&gt; "items0"). Applied as
-///     <c>
+///     The lowercase-emitting variant, for enums whose wire form is the bare lowercase member name ( <c>Slot</c> -&gt;
+///     "mainhand", <c>TradeSlot</c> -&gt; "trade1", <c>BankPack</c> -&gt; "items0"). Applied as <c>
 ///         [JsonConverter(typeof(LowerCaseTolerantStringEnumConverterFactory))]
-///     </c>
-///     on the enum, replacing the Newtonsoft two-arg
-///     <c>
+///     </c> on the enum, replacing the Newtonsoft two-arg <c>
 ///         [JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
-///     </c>
-///     .
+///     </c> .
 /// </summary>
 public sealed class LowerCaseTolerantStringEnumConverterFactory : TolerantStringEnumConverterFactory
 {

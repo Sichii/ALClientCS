@@ -16,31 +16,13 @@ namespace AL.Tests.Characterization;
 
 /// <summary>
 ///     T11 — Non-public member census. Pins every member System.Text.Json would silently bind to its default if its
-///     <c>
-///         [JsonInclude]
-///     </c>
-///     /
-///     <c>
-///         [JsonPropertyName]
-///     </c>
-///     decoration were removed.
+///     <c>[JsonInclude]</c> / <c>[JsonPropertyName]</c> decoration were removed.
 /// </summary>
 /// <remarks>
 ///     The census is built by reflection so it cannot drift out of sync with the code: any newly added non-public JSON
 ///     member changes the committed fixture and fails <see cref="T11_Census_MatchesCommittedFixture" />. The value
-///     assertions then prove that a real
-///     <c>
-///         start
-///     </c>
-///     /
-///     <c>
-///         player
-///     </c>
-///     /
-///     <c>
-///         entities
-///     </c>
-///     frame actually drives those members away from their defaults under the current serializer.
+///     assertions then prove that a real <c>start</c> / <c>player</c> / <c>entities</c> frame actually drives those
+///     members away from their defaults under the current serializer.
 ///     <br />
 ///     Phase 6b re-pointed the predicate from the old serializer's property attribute onto the two STJ attributes, so the
 ///     committed fixture was re-derived member by member rather than carried over.
@@ -301,28 +283,15 @@ public sealed class NonPublicMemberCharacterization
     }
 
     /// <summary>
-    ///     An item's
-    ///     <c>
-    ///         expires
-    ///     </c>
-    ///     must bind in the shapes the server actually sends.
+    ///     An item's <c>expires</c> must bind in the shapes the server actually sends.
     /// </summary>
     /// <remarks>
-    ///     The server writes it with JavaScript's
-    ///     <c>
-    ///         Date.prototype.toUTCString()
-    ///     </c>
-    ///     — RFC 1123, not ISO 8601 — and substitutes an empty string when the item has no expiry (
-    ///     <c>
-    ///         js/common_functions.js
-    ///     </c>
-    ///     :
-    ///     <c>
+    ///     The server writes it with JavaScript's <c>Date.prototype.toUTCString()</c> — RFC 1123, not ISO 8601 — and
+    ///     substitutes an empty string when the item has no expiry ( <c>js/common_functions.js</c> : <c>
     ///         attributes.expires = attributes.expires ? attributes.expires.toUTCString() : ''
-    ///     </c>
-    ///     ). The old serializer's ISO date converter absorbed both shapes; System.Text.Json's built-in reader accepts only
-    ///     ISO 8601 and throws on either, which inside a socket frame discards the entire frame rather than one field — hence
-    ///     the custom converter these assertions pin.
+    ///     </c> ). The old serializer's ISO date converter absorbed both shapes; System.Text.Json's built-in reader accepts
+    ///     only ISO 8601 and throws on either, which inside a socket frame discards the entire frame rather than one field —
+    ///     hence the custom converter these assertions pin.
     /// </remarks>
     [Test]
     public void T11_ItemExpires_BindsEveryShapeTheServerSends()
@@ -610,41 +579,14 @@ public sealed class NonPublicMemberCharacterization
     }
 
     /// <summary>
-    ///     The login frame's
-    ///     <c>
-    ///         s_info
-    ///     </c>
-    ///     must arrive with its bosses, not just its event flags.
+    ///     The login frame's <c>s_info</c> must arrive with its bosses, not just its event flags.
     /// </summary>
     /// <remarks>
-    ///     <c>
-    ///         BossInfo
-    ///     </c>
-    ///     is
-    ///     <c>
-    ///         [JsonIgnore]
-    ///     </c>
-    ///     with a get-only initializer, so only
-    ///     <c>
-    ///         EventAndBossDataConverter
-    ///     </c>
-    ///     ever fills it — and that converter is a
-    ///     <c>
-    ///         JsonConverter&lt;EventAndBossData&gt;
-    ///     </c>
-    ///     , which does not claim a member declared as the base
-    ///     <c>
-    ///         EventAndBossInfo
-    ///     </c>
-    ///     . Declared as the base, this frame bound the four event flags and silently dropped all three live bosses, leaving
-    ///     <c>
-    ///         ALClient.EventsAndBosses
-    ///     </c>
-    ///     empty from login until the first periodic
-    ///     <c>
-    ///         server_info
-    ///     </c>
-    ///     push happened to refill it.
+    ///     <c>BossInfo</c> is <c>[JsonIgnore]</c> with a get-only initializer, so only <c>EventAndBossDataConverter</c> ever
+    ///     fills it — and that converter is a <c>JsonConverter&lt;EventAndBossData&gt;</c> , which does not claim a member
+    ///     declared as the base <c>EventAndBossInfo</c> . Declared as the base, this frame bound the four event flags and
+    ///     silently dropped all three live bosses, leaving <c>ALClient.EventsAndBosses</c> empty from login until the first
+    ///     periodic <c>server_info</c> push happened to refill it.
     /// </remarks>
     [Test]
     public void T11_StartFrame_SInfo_CarriesBossesNotJustEventFlags()
@@ -725,15 +667,8 @@ public sealed class NonPublicMemberCharacterization
     }
 
     /// <summary>
-    ///     Classifies an attributed member into the three categories STJ needs
-    ///     <c>
-    ///         [JsonInclude]
-    ///     </c>
-    ///     for. Returns false for members STJ binds on its own (public setter, public
-    ///     <c>
-    ///         init
-    ///     </c>
-    ///     , or get-only).
+    ///     Classifies an attributed member into the three categories STJ needs <c>[JsonInclude]</c> for. Returns false for
+    ///     members STJ binds on its own (public setter, public <c>init</c> , or get-only).
     /// </summary>
     private static bool TryClassify(MemberInfo member, out string category, out bool isStatic)
     {

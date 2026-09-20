@@ -9,8 +9,8 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     Holds the four key-locked dungeon doors out of the portal graph. A dungeon is entered with the <c>enter</c> emit and
-///     a key; a transport through one of these doors answers <c>cant_enter</c> (node/server.js:5642).
+///     Holds the four key-locked dungeon doors out of the portal graph. A dungeon is entered with the <c>enter</c> emit
+///     and a key; a transport through one of these doors answers <c>cant_enter</c> (node/server.js:5642).
 /// </summary>
 public class KeyDoorTests : PathfindingTestBed
 {
@@ -19,10 +19,30 @@ public class KeyDoorTests : PathfindingTestBed
     ///     entry spawn - which is also where the dungeon's own exit door lands, hence the round trip the graph preferred.
     /// </summary>
     [Test]
-    [Arguments("cave", 0f, 0f, -193.41f, -1295.83f)]
-    [Arguments("winterland", 0f, 0f, 1063f, -2007f)]
-    [Arguments("gateway", 0f, 0f, -320f, -202f)]
-    [Arguments("mansion", 0f, -21f, -0.18f, -481.98f)]
+    [Arguments(
+        "cave",
+        0f,
+        0f,
+        -193.41f,
+        -1295.83f)]
+    [Arguments(
+        "winterland",
+        0f,
+        0f,
+        1063f,
+        -2007f)]
+    [Arguments(
+        "gateway",
+        0f,
+        0f,
+        -320f,
+        -202f)]
+    [Arguments(
+        "mansion",
+        0f,
+        -21f,
+        -0.18f,
+        -481.98f)]
     public async Task WalkingToADungeonEntranceNeverCrossesItsDoor(
         string map,
         float fromX,

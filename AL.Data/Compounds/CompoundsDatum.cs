@@ -5,9 +5,9 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Compounds;
 
 /// <summary>
-///     The base chance of a compound succeeding: one row per item grade, keyed inside the row by the level being
-///     reached. The server reads it as compounds[grade][level] and applies its own modifiers on top. The payload only
-///     began carrying it at game data version 16846.
+///     The base chance of a compound succeeding: one row per item grade, keyed inside the row by the level being reached.
+///     The server reads it as compounds[grade][level] and applies its own modifiers on top. The payload only began
+///     carrying it at game data version 16846.
 /// </summary>
 /// <remarks>
 ///     Rows are named by the grade they price rather than by their wire key, so reaching +3 on a normal item reads as
@@ -26,8 +26,8 @@ public class CompoundsDatum : DatumBase<IReadOnlyDictionary<int, double>>
     public IReadOnlyDictionary<int, double> Grade2 { get; init; } = null!;
 
     /// <summary>
-    ///     The base chance of reaching <paramref name="level" /> on an item of <paramref name="grade" />, or null where
-    ///     the table has no entry.
+    ///     The base chance of reaching <paramref name="level" /> on an item of <paramref name="grade" />, or null where the
+    ///     table has no entry.
     /// </summary>
     public double? ChanceOf(int grade, int level)
         => grade switch

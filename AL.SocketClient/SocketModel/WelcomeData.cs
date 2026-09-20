@@ -17,9 +17,7 @@ public record WelcomeData : IInstancedLocation
     /// </summary>
     public CharacterData? Character { get; init; }
 
-    /// <summary>
-    ///     The type of server.
-    /// </summary>
+    /// <summary>The type of server.</summary>
     public GamePlayMode GamePlay { get; init; }
 
     [JsonPropertyName("name")]
@@ -29,9 +27,7 @@ public record WelcomeData : IInstancedLocation
 
     public string Map { get; init; } = null!;
 
-    /// <summary>
-    ///     Whether or not this is a PvP server.
-    /// </summary>
+    /// <summary>Whether or not this is a PvP server.</summary>
     public bool PvP { get; init; }
 
     public ServerRegion Region { get; init; }

@@ -14,17 +14,10 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Produces the System.Text.Json converter for every <see cref="IAttributed" /> type. Registered in the shared options
-///     (NOT applied as a
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     attribute) so the inner declared-member fill can run under a copy of the options whose factory excludes only the
-///     type being filled — that type cannot re-enter its own converter, yet a NESTED <see cref="IAttributed" /> member is
-///     still routed through the factory and gets its attribute harvest (matching Newtonsoft's per-element
-///     <c>
-///         ItemConverterType
-///     </c>
-///     ).
+///     (NOT applied as a <c>[JsonConverter]</c> attribute) so the inner declared-member fill can run under a copy of the
+///     options whose factory excludes only the type being filled — that type cannot re-enter its own converter, yet a
+///     NESTED <see cref="IAttributed" /> member is still routed through the factory and gets its attribute harvest
+///     (matching Newtonsoft's per-element <c>ItemConverterType</c> ).
 /// </summary>
 public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 {
@@ -33,6 +26,7 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
     ///     type test is cached.
     /// </summary>
     private static readonly ConcurrentDictionary<Type, bool> Harvestable = new();
+
     private readonly Type? Excluded;
 
     public AttributedObjectConverterFactory() { }
@@ -58,13 +52,10 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 }
 
 /// <summary>
-///     The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         AttributedObjectConverter
-///     </c>
-///     . Fills T's declared members via a recursion-safe inner deserialize, then walks every top-level wire key to (1)
-///     mark it present (<see cref="IKeyPresenceCapturable" />) and (2) harvest numeric <see cref="ALAttribute" /> keys
-///     into the <see cref="IAttributed.Attributes" /> dictionary. Read-only.
+///     The System.Text.Json replacement for the Newtonsoft <c>AttributedObjectConverter</c> . Fills T's declared members
+///     via a recursion-safe inner deserialize, then walks every top-level wire key to (1) mark it present (
+///     <see cref="IKeyPresenceCapturable" />) and (2) harvest numeric <see cref="ALAttribute" /> keys into the
+///     <see cref="IAttributed.Attributes" /> dictionary. Read-only.
 /// </summary>
 public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: class, IAttributed, new()
 {

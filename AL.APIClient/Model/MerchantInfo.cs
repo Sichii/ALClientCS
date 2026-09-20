@@ -12,16 +12,12 @@ namespace AL.APIClient.Model;
 /// <seealso cref="ILocation" />
 public record MerchantInfo : ILocation
 {
-    /// <summary>
-    ///     The level of the merchant.
-    /// </summary>
+    /// <summary>The level of the merchant.</summary>
     public int Level { get; init; }
 
     public string Map { get; init; } = null!;
 
-    /// <summary>
-    ///     The name of the merchant.
-    /// </summary>
+    /// <summary>The name of the merchant.</summary>
     public string Name { get; init; } = null!;
 
     /// <summary>
@@ -36,9 +32,7 @@ public record MerchantInfo : ILocation
     /// </summary>
     public IReadOnlyDictionary<TradeSlot, TradeItem> Slots { get; init; } = new Dictionary<TradeSlot, TradeItem>();
 
-    /// <summary>
-    ///     The type of stand this merchant is using.
-    /// </summary>
+    /// <summary>The type of stand this merchant is using.</summary>
     public Stand Stand { get; init; }
 
     public float X { get; init; }

@@ -6,26 +6,16 @@ using FluentAssertions;
 namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
-///     The tavern frames. Four different payloads share the one
-///     <c>
-///         tavern
-///     </c>
-///     event name, so the message type cannot tell them apart and <see cref="TavernData.Event" /> is the only
-///     discriminator there is. A correlation that resolves on the next frame instead hands the caller a bet broadcast
-///     dressed as the house numbers - plausible values, wrong meaning, nothing to notice.
+///     The tavern frames. Four different payloads share the one <c>tavern</c> event name, so the message type cannot tell
+///     them apart and <see cref="TavernData.Event" /> is the only discriminator there is. A correlation that resolves on
+///     the next frame instead hands the caller a bet broadcast dressed as the house numbers - plausible values, wrong
+///     meaning, nothing to notice.
 /// </summary>
 public class TavernDataTests
 {
     /// <summary>
-    ///     The bet broadcast every player in the tavern receives (node/server.js:11566). Its
-    ///     <c>
-    ///         gold
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         num
-    ///     </c>
-    ///     read fine, which is exactly why it has to be rejected on the event name rather than on shape.
+    ///     The bet broadcast every player in the tavern receives (node/server.js:11566). Its <c>gold</c> and <c>num</c> read
+    ///     fine, which is exactly why it has to be rejected on the event name rather than on shape.
     /// </summary>
     [Test]
     public void BetFrameIsNotAnInfoFrame()
@@ -82,19 +72,8 @@ public class TavernDataTests
     }
 
     /// <summary>
-    ///     The reply to
-    ///     <c>
-    ///         tavern {event:"info"}
-    ///     </c>
-    ///     (node/server.js:11591). Both numbers come from
-    ///     <c>
-    ///         S.gold - house_debt()
-    ///     </c>
-    ///     , so
-    ///     <c>
-    ///         max
-    ///     </c>
-    ///     is a reading taken at that instant rather than a constant.
+    ///     The reply to <c>tavern {event:"info"}</c> (node/server.js:11591). Both numbers come from
+    ///     <c>S.gold - house_debt()</c> , so <c>max</c> is a reading taken at that instant rather than a constant.
     /// </summary>
     [Test]
     public void InfoFrameCarriesEdgeAndMax()
@@ -120,12 +99,9 @@ public class TavernDataTests
     }
 
     /// <summary>
-    ///     The frame that reveals the roll (node/server_functions.js:1314-1319). The server builds
-    ///     <c>
-    ///         num
-    ///     </c>
-    ///     by concatenating digits around a decimal point, so it goes out as a string and only reads as a number because the
-    ///     shared options coerce it.
+    ///     The frame that reveals the roll (node/server_functions.js:1314-1319). The server builds <c>num</c> by concatenating
+    ///     digits around a decimal point, so it goes out as a string and only reads as a number because the shared options
+    ///     coerce it.
     /// </summary>
     [Test]
     public void LockFrameCarriesTheRollAndTheReveal()
@@ -153,14 +129,8 @@ public class TavernDataTests
 
     /// <summary>
     ///     The roulette handler echoes the raw bet record straight back (node/server.js:11511), and that record has no
-    ///     <c>
-    ///         event
-    ///     </c>
-    ///     at all. So the discriminator has to survive a null, which is why the comparison puts the literal on the left -
-    ///     <c>
-    ///         EqualsI
-    ///     </c>
-    ///     throws on a null receiver.
+    ///     <c>event</c> at all. So the discriminator has to survive a null, which is why the comparison puts the literal on
+    ///     the left - <c>EqualsI</c> throws on a null receiver.
     /// </summary>
     [Test]
     public void RouletteEchoLeavesTheEventUnset()
@@ -178,15 +148,8 @@ public class TavernDataTests
     }
 
     /// <summary>
-    ///     The win broadcast (node/server_functions.js:1340-1348).
-    ///     <c>
-    ///         gold
-    ///     </c>
-    ///     is the gross win here rather than a stake, and
-    ///     <c>
-    ///         net
-    ///     </c>
-    ///     is what the player actually gained.
+    ///     The win broadcast (node/server_functions.js:1340-1348). <c>gold</c> is the gross win here rather than a stake, and
+    ///     <c>net</c> is what the player actually gained.
     /// </summary>
     [Test]
     public void WonFrameCarriesNet()

@@ -58,24 +58,15 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     mid-computation was silently clobbered by a step derived from the position before it. Readers are deliberately left
     ///     lock-free; only writers serialize.
     ///     <br />
-    ///     Deserialization is the one writer that does not take it:
-    ///     <c>
-    ///         [JsonInclude]
-    ///     </c>
-    ///     drives the narrowed setters straight through. That is safe only because a freshly-deserialized entity is
-    ///     thread-local until it is published, and it would stop being safe the day a frame is deserialized
-    ///     <i>
-    ///         into
-    ///     </i>
-    ///     a live entity.
+    ///     Deserialization is the one writer that does not take it: <c>[JsonInclude]</c> drives the narrowed setters straight
+    ///     through. That is safe only because a freshly-deserialized entity is thread-local until it is published, and it
+    ///     would stop being safe the day a frame is deserialized <i>into</i> a live entity.
     /// </summary>
     protected private readonly Lock MovementLock = new();
 
     protected BoundingBase BoundingBase = null!;
 
-    /// <summary>
-    ///     TODO: what's this?
-    /// </summary>
+    /// <summary>TODO: what's this?</summary>
     [JsonInclude]
     public bool ABS { get; protected set; }
 
@@ -130,12 +121,9 @@ public abstract class EntityBase : AttributedObjectBase,
     public float GoingY { get; private set; }
 
     /// <summary>
-    ///     The box this entity's
-    ///     <i>
-    ///         range
-    ///     </i>
-    ///     is measured against, as opposed to the collision foot-print the rest of this class presents as its rectangle. It
-    ///     tracks the entity, since it is built over this instance rather than over a snapshot of where it was standing.
+    ///     The box this entity's <i>range</i> is measured against, as opposed to the collision foot-print the rest of this
+    ///     class presents as its rectangle. It tracks the entity, since it is built over this instance rather than over a
+    ///     snapshot of where it was standing.
     /// </summary>
     public IRectangle HitBox { get; private set; } = null!;
 
@@ -144,9 +132,7 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     public string Id { get; init; } = null!;
 
-    /// <summary>
-    ///     The map or instance this entity is in.
-    /// </summary>
+    /// <summary>The map or instance this entity is in.</summary>
     /// <remarks>
     ///     Only a self 'player' frame carries this - player_to_client (node/server.js:732) lists 'in' in the !stranger block
     ///     alongside 'map'. An entities frame carries it once for the whole frame instead, which is why every entity in one is
@@ -366,51 +352,10 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <remarks>
     ///     Wholesale rather than gated on <see cref="PresentFields" /> on purpose, and the difference is real: a character
     ///     frame omits every movement key until the character's first move of the session, so a committed capture carries
-    ///     <c>
-    ///         x
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         y
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         map
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         in
-    ///     </c>
-    ///     and none of
-    ///     <c>
-    ///         moving
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         going_x
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         going_y
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         angle
-    ///     </c>
-    ///     or
-    ///     <c>
-    ///         move_num
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         player_to_client
-    ///     </c>
-    ///     sends a key only when the server's player object has one,
-    ///     <c>
-    ///         node/server.js:778
-    ///     </c>
-    ///     ). Gating would let a reconnect's start frame leave a persistent character walking to the destination of a leg on
-    ///     the server it just left.
+    ///     <c>x</c> , <c>y</c> , <c>map</c> and <c>in</c> and none of <c>moving</c> , <c>going_x</c> , <c>going_y</c> ,
+    ///     <c>angle</c> or <c>move_num</c> ( <c>player_to_client</c> sends a key only when the server's player object has one,
+    ///     <c>node/server.js:778</c> ). Gating would let a reconnect's start frame leave a persistent character walking to the
+    ///     destination of a leg on the server it just left.
     /// </remarks>
     /// <param name="frame">
     ///     The freshly-deserialized frame to take movement from.
@@ -444,15 +389,8 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     Seeds a soft property from its G default, but only if the frame this entity was deserialized from did not already
     ///     carry it. The server omits a soft property that equals the G default, so a freshly-sighted monster reports 0 for
-    ///     those until they are backfilled - mirrors the browser's
-    ///     <c>
-    ///         adopt_soft_properties
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         js/game.js:766-771
-    ///     </c>
-    ///     ). Only the numeric soft properties the encoder can omit are handled.
+    ///     those until they are backfilled - mirrors the browser's <c>adopt_soft_properties</c> ( <c>js/game.js:766-771</c> ).
+    ///     Only the numeric soft properties the encoder can omit are handled.
     /// </summary>
     public void BackfillSoftDefault(EntityUpdateField field, float value)
     {
@@ -617,27 +555,16 @@ public abstract class EntityBase : AttributedObjectBase,
             Map,
             In);
 
-    /// <summary>
-    ///     Sets the bounding base of the entity.
-    /// </summary>
-    /// <param name="boundingBase">
-    ///     The entitie's bounding base.
-    /// </param>
+    /// <summary>Sets the bounding base of the entity.</summary>
+    /// <param name="boundingBase">The entitie's bounding base.</param>
     public void SetBoundingBase(BoundingBase boundingBase) => BoundingBase = boundingBase;
 
     public void SetHitBox(BoundingBase hitBox) => HitBox = new BoundingRectangle(this, hitBox);
 
     /// <summary>
     ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame actually carried.
-    ///     Mirrors the browser's received-key merge (
-    ///     <c>
-    ///         js/game.js:786
-    ///     </c>
-    ///     ) - a bare
-    ///     <c>
-    ///         {id,x,y}
-    ///     </c>
-    ///     delta leaves hp/speed/etc. untouched instead of zeroing them.
+    ///     Mirrors the browser's received-key merge ( <c>js/game.js:786</c> ) - a bare <c>{id,x,y}</c> delta leaves
+    ///     hp/speed/etc. untouched instead of zeroing them.
     /// </summary>
     public void Update(EntityBase @new)
     {
@@ -704,12 +631,8 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     Updates the instanced location of this entity. The instance, the map and the position land together, so no reader
     ///     ever sees the new map at the old position.
     /// </summary>
-    /// <param name="location">
-    ///     An instanced location.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     location
-    /// </exception>
+    /// <param name="location">An instanced location.</param>
+    /// <exception cref="ArgumentNullException">location</exception>
     public void UpdateLocation(IInstancedLocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
@@ -735,12 +658,8 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     Updates the map and position of this entity, as one write.
     /// </summary>
-    /// <param name="location">
-    ///     A location.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     location
-    /// </exception>
+    /// <param name="location">A location.</param>
+    /// <exception cref="ArgumentNullException">location</exception>
     public void UpdateLocation(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
@@ -759,15 +678,9 @@ public abstract class EntityBase : AttributedObjectBase,
                 });
     }
 
-    /// <summary>
-    ///     Updates the point of this entity.
-    /// </summary>
-    /// <param name="point">
-    ///     A coordinate point.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     point
-    /// </exception>
+    /// <summary>Updates the point of this entity.</summary>
+    /// <param name="point">A coordinate point.</param>
+    /// <exception cref="ArgumentNullException">point</exception>
     public void UpdateLocation(IPoint point)
     {
         ArgumentNullException.ThrowIfNull(point);
@@ -784,21 +697,11 @@ public abstract class EntityBase : AttributedObjectBase,
                 });
     }
 
-    /// <summary>
-    ///     Updates this entity's instance and map.
-    /// </summary>
-    /// <param name="in">
-    ///     The map or instance this entity is in.
-    /// </param>
-    /// <param name="map">
-    ///     The map this entity is in.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     in
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     map
-    /// </exception>
+    /// <summary>Updates this entity's instance and map.</summary>
+    /// <param name="in">The map or instance this entity is in.</param>
+    /// <param name="map">The map this entity is in.</param>
+    /// <exception cref="ArgumentNullException">in</exception>
+    /// <exception cref="ArgumentNullException">map</exception>
     public void UpdateMap(string @in, string map)
     {
         if (string.IsNullOrEmpty(@in))

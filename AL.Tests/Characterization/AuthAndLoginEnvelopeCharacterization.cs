@@ -16,31 +16,13 @@ namespace AL.Tests.Characterization;
 
 /// <summary>
 ///     Pins the behaviour of the auth-cookie parser (<see cref="AuthUser" />) and the login/notification envelope handling
-///     (
-///     <c>
-///         LoginResponseConverter
-///     </c>
-///     ,
-///     <c>
-///         ALAPIClient.ReadNotifications
-///     </c>
-///     ) across the System.Text.Json migration. Offline: every payload is a synthesized literal.
+///     ( <c>LoginResponseConverter</c> , <c>ALAPIClient.ReadNotifications</c> ) across the System.Text.Json migration.
+///     Offline: every payload is a synthesized literal.
 /// </summary>
 /// <remarks>
-///     <see cref="AuthUser" />'s constructor is
-///     <c>
-///         internal
-///     </c>
-///     and AL.APIClient does not grant AL.Tests access to its internals, and
-///     <c>
-///         ReadNotifications
-///     </c>
-///     is
-///     <c>
-///         private static
-///     </c>
-///     , so both are exercised through reflection. That is deliberate: the point is to pin the real production code, not a
-///     copy of it.
+///     <see cref="AuthUser" />'s constructor is <c>internal</c> and AL.APIClient does not grant AL.Tests access to its
+///     internals, and <c>ReadNotifications</c> is <c>private static</c> , so both are exercised through reflection. That
+///     is deliberate: the point is to pin the real production code, not a copy of it.
 /// </remarks>
 public sealed class AuthAndLoginEnvelopeCharacterization
 {
@@ -65,7 +47,6 @@ public sealed class AuthAndLoginEnvelopeCharacterization
 
     //the token stops at the first ';', so trailing cookie attributes never bleed into AuthKey
     [Arguments("auth=attr_id-attr_tok; Max-Age=157680000; Domain=.adventure.land; Path=/; Secure", "attr_id", "attr_tok")]
-
     public void T15_AuthCookie_ParsesIdAndToken(string cookie, string expectedUserId, string expectedAuthKey)
     {
         var auth = CreateAuthUser(cookie);
@@ -157,16 +138,9 @@ public sealed class AuthAndLoginEnvelopeCharacterization
 
     #region LoginResponseConverter envelope shapes
     /// <summary>
-    ///     The envelope
-    ///     <c>
-    ///         LoginResponseConverter
-    ///     </c>
-    ///     binds <paramref name="body" /> to, through the production
-    ///     <c>
-    ///         ApiJson.Options
-    ///     </c>
-    ///     the REST client deserializes with. <see cref="LoginResponse" /> is a record of five scalars and every test below
-    ///     asserts all five, so the shape is pinned member by member.
+    ///     The envelope <c>LoginResponseConverter</c> binds <paramref name="body" /> to, through the production
+    ///     <c>ApiJson.Options</c> the REST client deserializes with. <see cref="LoginResponse" /> is a record of five scalars
+    ///     and every test below asserts all five, so the shape is pinned member by member.
     /// </summary>
     private static LoginResponse Parsed(string body) => TestJson.Api<LoginResponse>(body)!;
 

@@ -6,11 +6,8 @@ namespace AL.Tests;
 /// </summary>
 /// <remarks>
 ///     Applied at class level, a key also serializes that class's own test methods against each other, which is what the
-///     shared statics below need. Do not add a method-level
-///     <c>
-///         [NotInParallel]
-///     </c>
-///     inside a keyed class - method scope replaces the inherited class key rather than merging with it.
+///     shared statics below need. Do not add a method-level <c>[NotInParallel]</c> inside a keyed class - method scope
+///     replaces the inherited class key rather than merging with it.
 /// </remarks>
 internal static class ParallelKeys
 {

@@ -4,36 +4,28 @@ using System.Text.Json.Serialization;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a monster entity.
-/// </summary>
+/// <summary>Represents a monster entity.</summary>
 /// <seealso cref="EntityBase" />
 public class Monster : EntityBase, IEquatable<Monster>
 {
     /// <summary>
-    ///     This monster's part in the daily dungeon, when it is a traveler or an encounter's actor rather than something
-    ///     to fight. Null everywhere else.
+    ///     This monster's part in the daily dungeon, when it is a traveler or an encounter's actor rather than something to
+    ///     fight. Null everywhere else.
     /// </summary>
     [JsonPropertyName("cave")]
     public MonsterCave? Cave { get; init; }
 
     /// <summary>
-    ///     Whether kills on this monster count for every attacker, not just the tag holder. Null when the frame did not
-    ///     carry it, which is the usual case: the server sends a soft property only when the instance differs from its
-    ///     definition, so read this through the extension that falls back to G rather than directly.
+    ///     Whether kills on this monster count for every attacker, not just the tag holder. Null when the frame did not carry
+    ///     it, which is the usual case: the server sends a soft property only when the instance differs from its definition,
+    ///     so read this through the extension that falls back to G rather than directly.
     /// </summary>
     [JsonPropertyName("cooperative")]
     public bool? Cooperative { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE.
-    ///     </b>
-    ///     If populated, a per-monster drop table as raw
-    ///     <c>
-    ///         [chance, item]
-    ///     </c>
-    ///     tuples, overriding the type's defaults. Not interpreted by this client.
+    ///     <b>NULLABLE.</b> If populated, a per-monster drop table as raw <c>[chance, item]</c> tuples, overriding the type's
+    ///     defaults. Not interpreted by this client.
     /// </summary>
     [JsonPropertyName("drops")]
     public IReadOnlyList<object>? Drops { get; init; }
@@ -51,46 +43,29 @@ public class Monster : EntityBase, IEquatable<Monster>
     public bool OneHP { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE.
-    ///     </b>
-    ///     For a pet or trap, the id of the character that owns it.
+    ///     <b>NULLABLE.</b> For a pet or trap, the id of the character that owns it.
     /// </summary>
     [JsonPropertyName("owner")]
     public string? Owner { get; init; }
 
-    /// <summary>
-    ///     Whether this monster is a summoned pet.
-    /// </summary>
+    /// <summary>Whether this monster is a summoned pet.</summary>
     [JsonPropertyName("pet")]
     public bool Pet { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE.
-    ///     </b>
-    ///     If this monster is a summoned pet, its given display name. Distinct from <see cref="Name" />, which carries the
-    ///     monster
-    ///     <c>
-    ///         type
-    ///     </c>
-    ///     .
+    ///     <b>NULLABLE.</b> If this monster is a summoned pet, its given display name. Distinct from <see cref="Name" />,
+    ///     which carries the monster <c>type</c> .
     /// </summary>
     [JsonPropertyName("name")]
     public string? PetName { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE.
-    ///     </b>
-    ///     If populated, the appearance skin overriding this monster's default sprite.
+    ///     <b>NULLABLE.</b> If populated, the appearance skin overriding this monster's default sprite.
     /// </summary>
     [JsonPropertyName("skin")]
     public string? Skin { get; init; }
 
-    /// <summary>
-    ///     Whether this monster is a placed trap.
-    /// </summary>
+    /// <summary>Whether this monster is a placed trap.</summary>
     [JsonPropertyName("trap")]
     public bool Trap { get; init; }
 

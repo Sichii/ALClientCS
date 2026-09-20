@@ -12,10 +12,7 @@ namespace AL.Core.Json.SystemTextJson;
 /// <summary>
 ///     Reads an object into a dictionary keyed by <typeparamref name="TKey" />, skipping any key that does not map to a
 ///     known member instead of failing the whole payload. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         TolerantEnumKeyDictionaryConverter
-///     </c>
-///     .
+///     <c>TolerantEnumKeyDictionaryConverter</c> .
 /// </summary>
 /// <remarks>
 ///     System.Text.Json resolves dictionary keys with a key converter that throws on an unparseable key, so a

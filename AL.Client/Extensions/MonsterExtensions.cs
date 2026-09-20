@@ -16,27 +16,8 @@ public static class MonsterExtensions
     ///     Seeds a freshly-sighted monster's soft properties from its G data. The server omits a soft property equal to the
     ///     monster's def, so without this a new monster reports 0 for hp/speed/attack/etc. until it takes damage. Only fills
     ///     fields the frame did not carry. Covers the numeric stats named in the phase goal plus level; the non-numeric soft
-    ///     flags the browser also seeds (
-    ///     <c>
-    ///         1hp
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         cooperative
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         drops
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         skin
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         js/game.js:762-771
-    ///     </c>
-    ///     ) are not backfilled - no bot decision reads them.
+    ///     flags the browser also seeds ( <c>1hp</c> , <c>cooperative</c> , <c>drops</c> , <c>skin</c> ,
+    ///     <c>js/game.js:762-771</c> ) are not backfilled - no bot decision reads them.
     /// </summary>
     public static void BackfillSoftDefaults(this Monster monster)
     {
@@ -66,20 +47,14 @@ public static class MonsterExtensions
         monster.BackfillSoftDefault(EntityUpdateField.Level, 1);
     }
 
-    /// <summary>
-    ///     Gets the "G" data for this monster.
-    /// </summary>
-    /// <param name="monster">
-    ///     The monster to get the data for.
-    /// </param>
+    /// <summary>Gets the "G" data for this monster.</summary>
+    /// <param name="monster">The monster to get the data for.</param>
     /// <returns>
     ///     <see cref="GMonster" />
     ///     <br />
     ///     The "G" data for this monster from <see cref="GameData" />.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     monster
-    /// </exception>
+    /// <exception cref="ArgumentNullException">monster</exception>
     public static GMonster GetData(this Monster monster)
     {
         ArgumentNullException.ThrowIfNull(monster);
@@ -95,6 +70,8 @@ public static class MonsterExtensions
     {
         ArgumentNullException.ThrowIfNull(monster);
 
-        return monster.Cooperative ?? monster.GetData().Cooperative;
+        return monster.Cooperative
+               ?? monster.GetData()
+                         .Cooperative;
     }
 }

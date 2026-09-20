@@ -9,11 +9,7 @@ public class SkillTimeoutData
     public float Penalty { get; set; }
 
     /// <summary>
-    ///     If populated, why the timeout was sent. Only
-    ///     <c>
-    ///         calculate_player_stats
-    ///     </c>
-    ///     sets it, as "attack_ms".
+    ///     If populated, why the timeout was sent. Only <c>calculate_player_stats</c> sets it, as "attack_ms".
     /// </summary>
     [JsonPropertyName("reason")]
     public string? Reason { get; set; }

@@ -20,11 +20,7 @@ public sealed record GTitle : AttributedRecordBase
     public string? Achievement { get; init; }
 
     /// <summary>
-    ///     What this title can land on - an item type, an equipment slot, or
-    ///     <c>
-    ///         all_items
-    ///     </c>
-    ///     for anything.
+    ///     What this title can land on - an item type, an equipment slot, or <c>all_items</c> for anything.
     /// </summary>
     [JsonPropertyName("type")]
     public string? AffectsItemType { get; init; }

@@ -23,11 +23,7 @@ public record GDoor : IRectangle
     ///     faults reading the spawn, and the door opens from nowhere.
     ///     <br />
     ///     An absent id deserializes to the same nought a real spawn 0 does, so the two are not distinguishable here. Nothing
-    ///     downstream needs them to be: see
-    ///     <c>
-    ///         GameData.DoorReachableRegion
-    ///     </c>
-    ///     .
+    ///     downstream needs them to be: see <c>GameData.DoorReachableRegion</c> .
     /// </summary>
     [JsonArrayIndex(6)]
     public float CurrentMapSpawnId { get; init; }
@@ -44,9 +40,7 @@ public record GDoor : IRectangle
     [JsonArrayIndex(5)]
     public int DestinationSpawnId { get; init; }
 
-    /// <summary>
-    ///     The height of this door.
-    /// </summary>
+    /// <summary>The height of this door.</summary>
     [JsonArrayIndex(3)]
     public float Height { get; init; }
 
@@ -64,21 +58,15 @@ public record GDoor : IRectangle
     [JsonInclude]
     public DoorLockType LockType { get; private set; }
 
-    /// <summary>
-    ///     The width of this door.
-    /// </summary>
+    /// <summary>The width of this door.</summary>
     [JsonArrayIndex(2)]
     public float Width { get; init; }
 
-    /// <summary>
-    ///     The X coordinate of the center point.
-    /// </summary>
+    /// <summary>The X coordinate of the center point.</summary>
     [JsonArrayIndex(0)]
     public float X { get; init; }
 
-    /// <summary>
-    ///     The Y coordinate of the center point.
-    /// </summary>
+    /// <summary>The Y coordinate of the center point.</summary>
     [JsonArrayIndex(1)]
     public float Y { get; init; }
 

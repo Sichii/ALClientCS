@@ -14,11 +14,7 @@ namespace AL.Data.Classes;
 ///     What the look puts in each cosmetic slot, keyed by the slot's name.
 /// </param>
 /// <remarks>
-///     Positional on the wire -
-///     <c>
-///         [name, { slot: piece }]
-///     </c>
-///     - so it is read by index rather than by key.
+///     Positional on the wire - <c>[name, { slot: piece }]</c> - so it is read by index rather than by key.
 /// </remarks>
 public sealed record GClassLook(
     [property: JsonArrayIndex(0)]

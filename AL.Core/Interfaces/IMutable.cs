@@ -5,8 +5,7 @@ namespace AL.Core.Interfaces;
 ///     <br />
 ///     <b>
 ///         Anything that inherits from this should implement <see cref="IEquatable{T}" />
-///     </b>
-///     .
+///     </b> .
 /// </summary>
 public interface IMutable
 {
@@ -23,11 +22,9 @@ public interface IMutable
 ///     <br />
 ///     <b>
 ///         Anything that inherits from this should implement <see cref="IEquatable{T}" />
-///     </b>
-///     .
+///     </b> .
 /// </summary>
-/// <typeparam name="TMutator">
-/// </typeparam>
+/// <typeparam name="TMutator"></typeparam>
 public interface IMutable<in TMutator> : IMutable
 {
     /// <summary>

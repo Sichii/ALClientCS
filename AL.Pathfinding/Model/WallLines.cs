@@ -16,6 +16,7 @@ public sealed class WallLines
     ///     track.
     /// </summary>
     private const double EPS = 1e-8;
+
     private const double REPS = 2.220446049250313e-16;
     private readonly int[] HorizontalEnd;
     private readonly int[] HorizontalOn;
@@ -27,27 +28,20 @@ public sealed class WallLines
     ///     through before this is built.
     /// </summary>
     private readonly int[] VerticalOn;
+
     private readonly int[] VerticalStart;
 
-    /// <summary>
-    ///     How many horizontal lines this map has.
-    /// </summary>
+    /// <summary>How many horizontal lines this map has.</summary>
     public int HorizontalCount => HorizontalOn.Length;
 
-    /// <summary>
-    ///     How many vertical lines this map has.
-    /// </summary>
+    /// <summary>How many vertical lines this map has.</summary>
     public int VerticalCount => VerticalOn.Length;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="WallLines" /> class.
     /// </summary>
-    /// <param name="verticalLines">
-    ///     The map's x_lines.
-    /// </param>
-    /// <param name="horizontalLines">
-    ///     The map's y_lines.
-    /// </param>
+    /// <param name="verticalLines">The map's x_lines.</param>
+    /// <param name="horizontalLines">The map's y_lines.</param>
     public WallLines(IReadOnlyList<StraightLine> verticalLines, IReadOnlyList<StraightLine> horizontalLines)
     {
         (VerticalOn, VerticalStart, VerticalEnd) = Sorted(verticalLines);

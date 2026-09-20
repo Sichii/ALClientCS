@@ -9,11 +9,8 @@ namespace AL.Tests.Characterization;
 
 /// <summary>
 ///     Pins cross-scalar coercion (T10): which mismatched wire scalars still bind to a CLR member and which throw. A throw
-///     matters beyond the test — under
-///     <c>
-///         ALSocketClient.OnAny
-///     </c>
-///     it is swallowed, silently discarding the entire socket frame.
+///     matters beyond the test — under <c>ALSocketClient.OnAny</c> it is swallowed, silently discarding the entire socket
+///     frame.
 /// </summary>
 /// <remarks>
 ///     Deserialization goes through <see cref="TestJson" />, so every result here is produced by the same production
@@ -45,34 +42,16 @@ public sealed class ScalarCoercionCharacterization
 
     /// <summary>
     ///     DIVERGENCE, and one the plan's re-baseline list does not name: exponent notation used to coerce into an integer
-    ///     member (
-    ///     <c>
-    ///         1e3
-    ///     </c>
-    ///     ->
-    ///     <c>
-    ///         1000
-    ///     </c>
-    ///     ); System.Text.Json rejects it outright, for every integer type, with or without
-    ///     <c>
-    ///         AllowReadingFromString
-    ///     </c>
-    ///     . The System.Text.Json side is what is asserted here, and the test is named for it rather than for the behaviour it
-    ///     replaced.
+    ///     member ( <c>1e3</c> -> <c>1000</c> ); System.Text.Json rejects it outright, for every integer type, with or without
+    ///     <c>AllowReadingFromString</c> . The System.Text.Json side is what is asserted here, and the test is named for it
+    ///     rather than for the behaviour it replaced.
     /// </summary>
     /// <remarks>
     ///     Accepted rather than papered over, because the server cannot reach it: the wire is produced by
-    ///     <c>
-    ///         JSON.stringify
-    ///     </c>
-    ///     , which only emits exponent notation at magnitudes of 1e21 and above — already far outside <see cref="long" /> —
-    ///     and never for a value an integer member could have held. Floating point members are unaffected: System.Text.Json
-    ///     parses exponent notation into <see cref="float" />/<see cref="double" /> normally, which is the only place
-    ///     small-magnitude exponent forms (
-    ///     <c>
-    ///         1e-7
-    ///     </c>
-    ///     ) actually arrive.
+    ///     <c>JSON.stringify</c> , which only emits exponent notation at magnitudes of 1e21 and above — already far outside
+    ///     <see cref="long" /> — and never for a value an integer member could have held. Floating point members are
+    ///     unaffected: System.Text.Json parses exponent notation into <see cref="float" />/<see cref="double" /> normally,
+    ///     which is the only place small-magnitude exponent forms ( <c>1e-7</c> ) actually arrive.
     /// </remarks>
     [Test]
     public void T10_ExponentNotation_Into_Long_Throws()
@@ -174,6 +153,7 @@ public sealed class ScalarCoercionCharacterization
         /// <summary>
         ///     Never read - the long case only ever pins a throw, but the member must exist for 1e3 to have a target.
         /// </summary>
+
         // ReSharper disable once UnusedMember.Global
         public long V { get; set; }
     }
@@ -181,7 +161,7 @@ public sealed class ScalarCoercionCharacterization
     private sealed record StringBox
     {
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public string V { get; set; } = null!;
+        public string V { get; } = null!;
     }
 
     #region Real production DTOs receiving these shapes

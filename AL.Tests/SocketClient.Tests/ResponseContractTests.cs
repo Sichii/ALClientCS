@@ -14,6 +14,91 @@ namespace AL.Tests.SocketClient.Tests;
 /// </summary>
 public class ResponseContractTests
 {
+    /// <summary>
+    ///     A losing pull is still a successful emit. The payout is zero and the net is the stake back out, so a caller that
+    ///     sums net over a session gets the real result without differencing the character's gold.
+    /// </summary>
+    [Test]
+    public void ASlotsLossIsStillASuccessfulEmit()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""slots_fail"", ""place"":""slots"", ""request_id"":""abc"", ""success"":true, ""won"":false, ""cost"":1000000, ""payout"":0, ""net"":-1000000 }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.Success
+            .Should()
+            .BeTrue();
+
+        data.Won
+            .Should()
+            .BeFalse();
+
+        data.Payout
+            .Should()
+            .Be(0);
+
+        data.Net
+            .Should()
+            .Be(-1_000_000);
+    }
+
+    /// <summary>
+    ///     A correlated slots settlement carries the whole result: whether it won, what the pull cost, what it paid and the
+    ///     difference. <c>success</c> says only that the machine took the pull, so it is true on a loss as well - reading it
+    ///     as the outcome counts every loss as a win.
+    /// </summary>
+    [Test]
+    public void ASlotsWinCarriesItsCostPayoutAndNet()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""slots_success"", ""place"":""slots"", ""request_id"":""abc"", ""success"":true, ""won"":true, ""cost"":1000000, ""payout"":20000000, ""net"":19000000 }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.SlotsSuccess);
+
+        data.Won
+            .Should()
+            .BeTrue();
+
+        data.Cost
+            .Should()
+            .Be(1_000_000);
+
+        data.Payout
+            .Should()
+            .Be(20_000_000);
+
+        //restated rather than read off the frame: the difference is what a caller acts on, and it is the one field a
+        //swapped payout or cost would quietly contradict
+        data.Net
+            .Should()
+            .Be(data.Payout - data.Cost);
+    }
+
+    /// <summary>
+    ///     The two refusals the bet handler answers before it reaches any one game's branch. Both arrive under the token, so
+    ///     an awaiting wager resolves as a refusal rather than spending its whole timeout.
+    /// </summary>
+    [Test]
+    public void AWagerRefusedOutsideTheTavernNamesWhy()
+    {
+        TestJson.Socket<GameResponseData>(
+                    @"{ ""response"":""not_in_tavern"", ""place"":""slots"", ""request_id"":""abc"", ""failed"":true }")!.ResponseType
+                .Should()
+                .Be(GameResponseType.NotInTavern);
+
+        TestJson.Socket<GameResponseData>(
+                    @"{ ""response"":""tavern_unavailable"", ""place"":""slots"", ""request_id"":""abc"", ""failed"":true }")!.Failed
+                .Should()
+                .BeTrue();
+    }
+
     [Test]
     public void AlchemyGoldIsFractional()
     {
@@ -75,53 +160,58 @@ public class ResponseContractTests
     }
 
     /// <summary>
-    ///     <c>
-    ///         success_response("craft", { num, name, cevent: true })
-    ///     </c>
-    ///     (node/server.js:6300). CraftAsync resolves off this reply and reads the output out of the slot it names, so
-    ///     the three fields it depends on are pinned here.
+    ///     The reason field is what separates the buy's donation refusal from the listing read's, which carries the same code
+    ///     and no reason at all.
     /// </summary>
     [Test]
-    public void CraftSuccessNamesTheSlotTheOutputLandedIn()
+    public void CorrelatedSecondHandBuyNamesDonationRequiredAsItsReason()
     {
         var data = TestJson.Socket<GameResponseData>(
-            @"{ ""response"":""craft"", ""place"":""craft"", ""success"":true, ""num"":7, ""name"":""cclaw"", ""cevent"":true }");
+            @"{ ""response"":""lostandfound_donate"", ""place"":""lostandfound"", ""failed"":true,
+                ""reason"":""donation_required"", ""request_id"":""a1b2c3"" }");
 
         data.Should()
             .NotBeNull();
 
-        data.ResponseType
+        data.Reason
             .Should()
-            .Be(GameResponseType.Craft);
-
-        data.Success
-            .Should()
-            .BeTrue();
-
-        data.SlotNum
-            .Should()
-            .Be(7);
+            .Be("donation_required");
     }
 
     /// <summary>
-    ///     With a token every sbuy refusal arrives on game_response carrying the pool it was asked of as its place - which
-    ///     is what tells a buy's refusal from the listing read's, since both answer distance from the same counter.
-    ///     no_space and item_gone are the two that used to arrive as a disappearing_text and a game_log instead.
+    ///     With a token every sbuy refusal arrives on game_response carrying the pool it was asked of as its place - which is
+    ///     what tells a buy's refusal from the listing read's, since both answer distance from the same counter. no_space and
+    ///     item_gone are the two that used to arrive as a disappearing_text and a game_log instead.
     /// </summary>
     [Test]
-    [Arguments(@"{ ""response"":""lostandfound_donate"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
-                  ""reason"":""donation_required"", ""request_id"":""a1b2c3"" }", GameResponseType.LostAndFoundDonate, "lostandfound")]
-    [Arguments(@"{ ""response"":""no_space"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
-                  ""request_id"":""a1b2c3"" }", GameResponseType.NoSpace, "lostandfound")]
-    [Arguments(@"{ ""response"":""item_gone"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
-                  ""request_id"":""a1b2c3"" }", GameResponseType.ItemGone, "lostandfound")]
-    [Arguments(@"{ ""response"":""cant_when_sick"", ""goblin"":true, ""place"":""lostandfound"", ""failed"":true,
-                  ""rid"":""r1"", ""request_id"":""a1b2c3"" }", GameResponseType.CantWhenSick, "lostandfound")]
+    [Arguments(
+        @"{ ""response"":""lostandfound_donate"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
+                  ""reason"":""donation_required"", ""request_id"":""a1b2c3"" }",
+        GameResponseType.LostAndFoundDonate,
+        "lostandfound")]
+    [Arguments(
+        @"{ ""response"":""no_space"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
+                  ""request_id"":""a1b2c3"" }",
+        GameResponseType.NoSpace,
+        "lostandfound")]
+    [Arguments(
+        @"{ ""response"":""item_gone"", ""place"":""lostandfound"", ""failed"":true, ""rid"":""r1"",
+                  ""request_id"":""a1b2c3"" }",
+        GameResponseType.ItemGone,
+        "lostandfound")]
+    [Arguments(
+        @"{ ""response"":""cant_when_sick"", ""goblin"":true, ""place"":""lostandfound"", ""failed"":true,
+                  ""rid"":""r1"", ""request_id"":""a1b2c3"" }",
+        GameResponseType.CantWhenSick,
+        "lostandfound")]
 
     //Ponty's counter answers distance through the same handler, and the buy's arm no longer asks which pool it was -
     //place is the only thing left telling this frame from the listing read's identical refusal
-    [Arguments(@"{ ""response"":""distance"", ""place"":""secondhands"", ""failed"":true, ""rid"":""r1"",
-                  ""request_id"":""a1b2c3"" }", GameResponseType.Distance, "secondhands")]
+    [Arguments(
+        @"{ ""response"":""distance"", ""place"":""secondhands"", ""failed"":true, ""rid"":""r1"",
+                  ""request_id"":""a1b2c3"" }",
+        GameResponseType.Distance,
+        "secondhands")]
     public void CorrelatedSecondHandBuyRefusalsCarryThePoolAsTheirPlace(string response, GameResponseType expected, string expectedPlace)
     {
         var data = TestJson.Socket<GameResponseData>(response);
@@ -148,27 +238,8 @@ public class ResponseContractTests
     }
 
     /// <summary>
-    ///     The reason field is what separates the buy's donation refusal from the listing read's, which carries the same
-    ///     code and no reason at all.
-    /// </summary>
-    [Test]
-    public void CorrelatedSecondHandBuyNamesDonationRequiredAsItsReason()
-    {
-        var data = TestJson.Socket<GameResponseData>(
-            @"{ ""response"":""lostandfound_donate"", ""place"":""lostandfound"", ""failed"":true,
-                ""reason"":""donation_required"", ""request_id"":""a1b2c3"" }");
-
-        data.Should()
-            .NotBeNull();
-
-        data.Reason
-            .Should()
-            .Be("donation_required");
-    }
-
-    /// <summary>
-    ///     With a token, the Ponty listing arrives inside the game_response rather than on the secondhands event, and
-    ///     the server reverses it on the way out (csold.slice().reverse()) - newest first, the opposite of the event.
+    ///     With a token, the Ponty listing arrives inside the game_response rather than on the secondhands event, and the
+    ///     server reverses it on the way out (csold.slice().reverse()) - newest first, the opposite of the event.
     /// </summary>
     [Test]
     public void CorrelatedSecondHandsFrameCarriesTheListing()
@@ -192,6 +263,34 @@ public class ResponseContractTests
             .Name
             .Should()
             .Be("firebow");
+    }
+
+    /// <summary>
+    ///     <c>
+    ///         success_response("craft", { num, name, cevent: true })
+    ///     </c> (node/server.js:6300). CraftAsync resolves off this reply and reads the output out of the slot it names, so
+    ///     the three fields it depends on are pinned here.
+    /// </summary>
+    [Test]
+    public void CraftSuccessNamesTheSlotTheOutputLandedIn()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""craft"", ""place"":""craft"", ""success"":true, ""num"":7, ""name"":""cclaw"", ""cevent"":true }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.Craft);
+
+        data.Success
+            .Should()
+            .BeTrue();
+
+        data.SlotNum
+            .Should()
+            .Be(7);
     }
 
     /// <summary>
@@ -297,6 +396,25 @@ public class ResponseContractTests
             .BeTrue();
     }
 
+    [Test]
+    public void HomeSetCarriesTheHomeServer()
+    {
+        const string FRAME = @"{ ""response"":""home_set"", ""home"":""USI"", ""success"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(FRAME);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.HomeSet);
+
+        data.Home
+            .Should()
+            .Be("USI");
+    }
+
     /// <summary>
     ///     The locksmith's in-progress reply goes through success_response with success explicitly false, so nothing on it
     ///     reads as a completion and Hours is the only thing saying how long the unseal still has to run
@@ -327,57 +445,6 @@ public class ResponseContractTests
         data.InProgress
             .Should()
             .BeTrue();
-    }
-
-    [Test]
-    public void HomeSetCarriesTheHomeServer()
-    {
-        const string FRAME = @"{ ""response"":""home_set"", ""home"":""USI"", ""success"":true }";
-
-        var data = TestJson.Socket<GameResponseData>(FRAME);
-
-        data.Should()
-            .NotBeNull();
-
-        data.ResponseType
-            .Should()
-            .Be(GameResponseType.HomeSet);
-
-        data.Home
-            .Should()
-            .Be("USI");
-    }
-
-    [Test]
-    public void SetHomeCooldownCarriesTheHoursRemaining()
-    {
-        const string FRAME = @"{ ""response"":""sh_time"", ""hours"":12.4, ""failed"":true }";
-
-        var data = TestJson.Socket<GameResponseData>(FRAME);
-
-        data.Should()
-            .NotBeNull();
-
-        data.ResponseType
-            .Should()
-            .Be(GameResponseType.SetHomeCooldown);
-
-        data.Hours
-            .Should()
-            .BeApproximately(12.4f, 0.001f);
-    }
-
-    [Test]
-    public void StartDataBindsHomeFromTheJoinPayload()
-    {
-        var start = TestJson.Socket<StartData>(@"{ ""home"":""USI"" }");
-
-        start.Should()
-             .NotBeNull();
-
-        start.Home
-             .Should()
-             .Be("USI");
     }
 
     /// <summary>
@@ -416,8 +483,8 @@ public class ResponseContractTests
     }
 
     /// <summary>
-    ///     Two calls that were in flight at once must not share a token, or each would answer the other's frames. The
-    ///     server neither parses nor bounds the value, so distinctness is the whole of the contract.
+    ///     Two calls that were in flight at once must not share a token, or each would answer the other's frames. The server
+    ///     neither parses nor bounds the value, so distinctness is the whole of the contract.
     /// </summary>
     [Test]
     public void MintedRequestIdsAreDistinct()
@@ -519,8 +586,8 @@ public class ResponseContractTests
     }
 
     /// <summary>
-    ///     The correlation token an emit supplied, echoed back verbatim. fail_response and success_response copy the
-    ///     whole data object into the frame (node/server_functions.js fail_response), so it arrives as a plain field.
+    ///     The correlation token an emit supplied, echoed back verbatim. fail_response and success_response copy the whole
+    ///     data object into the frame (node/server_functions.js fail_response), so it arrives as a plain field.
     /// </summary>
     [Test]
     public void RequestIdBindsFromTheEchoedField()
@@ -537,9 +604,9 @@ public class ResponseContractTests
     }
 
     /// <summary>
-    ///     Nothing supplies a token but an emit that sent one, so every frame the server raises by itself arrives
-    ///     without one - including the bare strings, which have no room for a field at all. That is what the gates key
-    ///     on: a null token means the frame cannot be attributed, not that it belongs to the call that is waiting.
+    ///     Nothing supplies a token but an emit that sent one, so every frame the server raises by itself arrives without one
+    ///     - including the bare strings, which have no room for a field at all. That is what the gates key on: a null token
+    ///     means the frame cannot be attributed, not that it belongs to the call that is waiting.
     /// </summary>
     [Test]
     public void RequestIdIsNullOnAFrameTheServerProducedOnItsOwn()
@@ -598,6 +665,25 @@ public class ResponseContractTests
         scrollQ.Failed
                .Should()
                .BeFalse();
+    }
+
+    [Test]
+    public void SetHomeCooldownCarriesTheHoursRemaining()
+    {
+        const string FRAME = @"{ ""response"":""sh_time"", ""hours"":12.4, ""failed"":true }";
+
+        var data = TestJson.Socket<GameResponseData>(FRAME);
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.SetHomeCooldown);
+
+        data.Hours
+            .Should()
+            .BeApproximately(12.4f, 0.001f);
     }
 
     [Test]
@@ -677,88 +763,16 @@ public class ResponseContractTests
             .Be(ALAttribute.Int);
     }
 
-    /// <summary>
-    ///     A correlated slots settlement carries the whole result: whether it won, what the pull cost, what it paid and the
-    ///     difference. <c>success</c> says only that the machine took the pull, so it is true on a loss as well - reading it
-    ///     as the outcome counts every loss as a win.
-    /// </summary>
     [Test]
-    public void ASlotsWinCarriesItsCostPayoutAndNet()
+    public void StartDataBindsHomeFromTheJoinPayload()
     {
-        var data = TestJson.Socket<GameResponseData>(
-            @"{ ""response"":""slots_success"", ""place"":""slots"", ""request_id"":""abc"", ""success"":true, ""won"":true, ""cost"":1000000, ""payout"":20000000, ""net"":19000000 }");
+        var start = TestJson.Socket<StartData>(@"{ ""home"":""USI"" }");
 
-        data.Should()
-            .NotBeNull();
+        start.Should()
+             .NotBeNull();
 
-        data.ResponseType
-            .Should()
-            .Be(GameResponseType.SlotsSuccess);
-
-        data.Won
-            .Should()
-            .BeTrue();
-
-        data.Cost
-            .Should()
-            .Be(1_000_000);
-
-        data.Payout
-            .Should()
-            .Be(20_000_000);
-
-        //restated rather than read off the frame: the difference is what a caller acts on, and it is the one field a
-        //swapped payout or cost would quietly contradict
-        data.Net
-            .Should()
-            .Be(data.Payout - data.Cost);
-    }
-
-    /// <summary>
-    ///     A losing pull is still a successful emit. The payout is zero and the net is the stake back out, so a caller that
-    ///     sums net over a session gets the real result without differencing the character's gold.
-    /// </summary>
-    [Test]
-    public void ASlotsLossIsStillASuccessfulEmit()
-    {
-        var data = TestJson.Socket<GameResponseData>(
-            @"{ ""response"":""slots_fail"", ""place"":""slots"", ""request_id"":""abc"", ""success"":true, ""won"":false, ""cost"":1000000, ""payout"":0, ""net"":-1000000 }");
-
-        data.Should()
-            .NotBeNull();
-
-        data.Success
-            .Should()
-            .BeTrue();
-
-        data.Won
-            .Should()
-            .BeFalse();
-
-        data.Payout
-            .Should()
-            .Be(0);
-
-        data.Net
-            .Should()
-            .Be(-1_000_000);
-    }
-
-    /// <summary>
-    ///     The two refusals the bet handler answers before it reaches any one game's branch. Both arrive under the token, so
-    ///     an awaiting wager resolves as a refusal rather than spending its whole timeout.
-    /// </summary>
-    [Test]
-    public void AWagerRefusedOutsideTheTavernNamesWhy()
-    {
-        TestJson.Socket<GameResponseData>(@"{ ""response"":""not_in_tavern"", ""place"":""slots"", ""request_id"":""abc"", ""failed"":true }")!
-                .ResponseType
-                .Should()
-                .Be(GameResponseType.NotInTavern);
-
-        TestJson.Socket<GameResponseData>(@"{ ""response"":""tavern_unavailable"", ""place"":""slots"", ""request_id"":""abc"", ""failed"":true }")!
-                .Failed
-                .Should()
-                .BeTrue();
+        start.Home
+             .Should()
+             .Be("USI");
     }
 }

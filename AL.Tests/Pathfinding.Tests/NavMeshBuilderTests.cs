@@ -67,11 +67,8 @@ public class NavMeshBuilderTests : GameDataTestBed
     /// <summary>
     ///     Both halves of the builder's rule on a live mesh: a vertex whose incident triangles form one fan carries adjacency,
     ///     a vertex whose fan is only part of them carries none. Main has no pinch, so the first half is what this holds here
-    ///     and
-    ///     <c>
-    ///         TriangleMeshTests.PinchVertexGetsNoEdges
-    ///     </c>
-    ///     covers the second; a mesh whose adjacency was dropped wholesale used to pass this and now does not.
+    ///     and <c>TriangleMeshTests.PinchVertexGetsNoEdges</c> covers the second; a mesh whose adjacency was dropped wholesale
+    ///     used to pass this and now does not.
     /// </summary>
     [Test]
     public void MainVerticesCarryEdgesExactlyWhenTheyAreNotAPinch()

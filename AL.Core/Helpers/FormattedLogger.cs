@@ -17,12 +17,8 @@ public sealed class FormattedLogger : IFormattedLogger
     /// <summary>
     ///     Initializes a new instance of the <see cref="FormattedLogger" /> class.
     /// </summary>
-    /// <param name="prefix">
-    ///     The name to use for logging.
-    /// </param>
-    /// <param name="logger">
-    ///     A Common.Logging logger
-    /// </param>
+    /// <param name="prefix">The name to use for logging.</param>
+    /// <param name="logger">A Common.Logging logger</param>
     public FormattedLogger(string prefix, ILog logger)
     {
         Logger = logger;

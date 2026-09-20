@@ -12,21 +12,15 @@ public static class LineHelper
 {
     private static readonly ILog Logger = LogManager.GetLogger(typeof(LineHelper).FullName);
 
-    /// <summary>
-    ///     A helper method for fixing overlapping lines.
-    /// </summary>
-    /// <param name="lines">
-    ///     The lines to fix.
-    /// </param>
+    /// <summary>A helper method for fixing overlapping lines.</summary>
+    /// <param name="lines">The lines to fix.</param>
     /// <param name="isVertical">
     ///     Whether or not the lines are X lines or not. (X lines are vertical lines)
     /// </param>
     /// <returns>
     ///     <see cref="Array" /> of <see cref="StraightLine" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     lines
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">lines</exception>
     public static StraightLine[] FixLines(IReadOnlyList<StraightLine> lines, bool isVertical)
     {
         ArgumentNullException.ThrowIfNull(lines);

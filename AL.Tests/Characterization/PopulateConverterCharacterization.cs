@@ -9,19 +9,12 @@ using FluentAssertions;
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins the five paths that replaced the pre-migration
-///     <c>
-///         serializer.Populate
-///     </c>
-///     converters, driven through the production socket options:
-///     <see cref="AL.SocketClient.Json.SystemTextJson.DisappearDataConverter" />,
+///     Pins the five paths that replaced the pre-migration <c>serializer.Populate</c> converters, driven through the
+///     production socket options: <see cref="AL.SocketClient.Json.SystemTextJson.DisappearDataConverter" />,
 ///     <see cref="AL.SocketClient.Json.SystemTextJson.EventAndBossDataConverter" />, <see cref="Player.OnDeserialized" />,
-///     <see cref="Character.OnDeserialized" /> and the
-///     <c>
-///         StringOrObjectConverter
-///     </c>
-///     path that drives <see cref="Prediction" />. Every value here was pinned pre-migration first and reproduces
-///     unchanged, with one deliberate exception: a bare <see cref="Player" /> now back-fills its slots too (see
+///     <see cref="Character.OnDeserialized" /> and the <c>StringOrObjectConverter</c> path that drives
+///     <see cref="Prediction" />. Every value here was pinned pre-migration first and reproduces unchanged, with one
+///     deliberate exception: a bare <see cref="Player" /> now back-fills its slots too (see
 ///     <see cref="T14_BarePlayer_Slots_ArePrePopulated" />).
 /// </summary>
 public class PopulateConverterCharacterization

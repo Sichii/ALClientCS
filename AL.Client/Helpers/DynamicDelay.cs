@@ -24,16 +24,13 @@ public sealed class DynamicDelay
         Ctx = new CancellationTokenSource();
     }
 
-    /// <summary>
-    ///     Another way of cancelling the delay.
-    /// </summary>
+    /// <summary>Another way of cancelling the delay.</summary>
     internal void RequestCancellation() => Ctx.Cancel();
 
     /// <summary>
     ///     Asynchronously sets a new delay by cancelling the previous delay and setting a new one.
     /// </summary>
-    /// <param name="delay">
-    /// </param>
+    /// <param name="delay"></param>
     internal async Task SetDelayAsync(TimeSpan delay)
     {
         await using var @lock = await Sync.WaitAsync();
@@ -46,12 +43,8 @@ public sealed class DynamicDelay
     /// <summary>
     ///     Asynchronously waits for the specified amount of time. Change that amount by calling <see cref="SetDelayAsync" />.
     /// </summary>
-    /// <param name="delay">
-    ///     The initial delay to wait for.
-    /// </param>
-    /// <param name="token">
-    ///     A token to cancel the delay.
-    /// </param>
+    /// <param name="delay">The initial delay to wait for.</param>
+    /// <param name="token">A token to cancel the delay.</param>
     internal async Task WaitAsync(TimeSpan delay, CancellationToken? token = null)
     {
         var currentDelay = delay;

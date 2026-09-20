@@ -38,9 +38,7 @@ public static class RectangleExtensions
         }
 
         //top is the smaller y and bottom the larger, y growing downward, so the vertical terms pair top against bottom
-        /// <summary>
-        ///     Whether two rectangles touch or overlap.
-        /// </summary>
+        /// <summary>Whether two rectangles touch or overlap.</summary>
         public bool Intersects<T2>(T2 other) where T2: IRectangle, allows ref struct
             => (rect.Left <= other.Right) && (rect.Right >= other.Left) && (rect.Top <= other.Bottom) && (rect.Bottom >= other.Top);
 
@@ -62,30 +60,15 @@ public static class RectangleExtensions
     /// <summary>
     ///     Determines whether a rectangle fully encompasses another rectangle.
     /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="other">
-    ///     Another rectangle.
-    /// </param>
+    /// <param name="rect">A rectangle.</param>
+    /// <param name="other">Another rectangle.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this rectangle fully encompasses the other (or edges touch); otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if this rectangle fully encompasses the other (or edges touch); otherwise, <c>false</c> .
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     rect
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">rect</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static bool Contains(this IRectangle rect, IRectangle other)
     {
         ArgumentNullException.ThrowIfNull(rect);
@@ -98,30 +81,15 @@ public static class RectangleExtensions
     /// <summary>
     ///     Determines whether a rectangle contains a given point.
     /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
+    /// <param name="rect">A rectangle.</param>
+    /// <param name="point">A point.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the point lies within or on the edge of the rectangle; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the point lies within or on the edge of the rectangle; otherwise, <c>false</c> .
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     rect
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">rect</exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
     public static bool Contains(this IRectangle rect, IPoint point)
     {
         ArgumentNullException.ThrowIfNull(rect);

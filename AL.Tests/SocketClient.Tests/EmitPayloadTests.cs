@@ -132,9 +132,9 @@ public class EmitPayloadTests
     }
 
     /// <summary>
-    ///     The correlation token rides as a plain "request_id" field beside the emit's own fields. The server reads it
-    ///     off data.request_id and echoes it; a misspelling produces a reply that correlates to nothing and an await
-    ///     that can only time out.
+    ///     The correlation token rides as a plain "request_id" field beside the emit's own fields. The server reads it off
+    ///     data.request_id and echoes it; a misspelling produces a reply that correlates to nothing and an await that can only
+    ///     time out.
     /// </summary>
     [Test]
     public void RequestIdRidesAsAPlainFieldBesideThePayload()

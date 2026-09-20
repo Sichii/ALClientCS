@@ -22,19 +22,13 @@ public sealed class NavMesh
     private readonly int MinX;
     private readonly int MinY;
 
-    /// <summary>
-    ///     The map this mesh is for.
-    /// </summary>
+    /// <summary>The map this mesh is for.</summary>
     public string Map { get; }
 
-    /// <summary>
-    ///     The walkable ground as triangles.
-    /// </summary>
+    /// <summary>The walkable ground as triangles.</summary>
     public TriangleMesh Mesh { get; }
 
-    /// <summary>
-    ///     The wall lines with the local carve applied.
-    /// </summary>
+    /// <summary>The wall lines with the local carve applied.</summary>
     public WallLines Walls { get; }
 
     internal NavMesh(GMap map, GGeometry geometry, TriangleMesh mesh)
@@ -256,9 +250,7 @@ public sealed class NavMesh
         return true;
     }
 
-    /// <summary>
-    ///     The total length of a polyline.
-    /// </summary>
+    /// <summary>The total length of a polyline.</summary>
     internal static float Length(List<Point> polyline)
     {
         var length = 0f;

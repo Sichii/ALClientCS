@@ -7,10 +7,7 @@ namespace AL.Data.Events;
 
 /// <summary>
 ///     A monster and how many of it: one entry of a camp's pack, or the fight an encounter reply starts. Rides the wire as
-///     <c>
-///         ["cave_rat", 6]
-///     </c>
-///     .
+///     <c>["cave_rat", 6]</c> .
 /// </summary>
 [JsonConverter(typeof(GMonsterCountConverter))]
 public sealed record GMonsterCount

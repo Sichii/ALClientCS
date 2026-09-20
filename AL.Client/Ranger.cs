@@ -23,24 +23,12 @@ public class Ranger : ALClient
     /// <summary>
     ///     Initializes a new instance of the <see cref="Ranger" /> class.
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the ranger.
-    /// </param>
-    /// <param name="apiClient">
-    ///     An API client implementation.
-    /// </param>
-    /// <param name="socketClient">
-    ///     A socket client implementation.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     socketClient
-    /// </exception>
+    /// <param name="characterName">The name of the ranger.</param>
+    /// <param name="apiClient">An API client implementation.</param>
+    /// <param name="socketClient">A socket client implementation.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
+    /// <exception cref="ArgumentNullException">socketClient</exception>
     public Ranger(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
         : base(characterName, apiClient, socketClient) { }
 
@@ -56,26 +44,18 @@ public class Ranger : ALClient
     ///     <br />
     ///     Information about the projectiles from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetIds
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetIds</exception>
     /// <exception cref="ArgumentException">
     ///     targetIds is empty, longer than five, or holds a null or empty id.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '5shot' on targets. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use '5shot' on targets. ({reason})</exception>
     public Task<List<ActionData>> FiveShotAsync(params string[] targetIds) => MultiShotAsync("5shot", 5, targetIds);
 
     /// <summary>
     ///     Asynchronously uses 4Fingers on a target, stopping it from moving or attacking.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <param name="targetId">The id of the target.</param>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use '4fingers' on {targetId}. ({reason})
     /// </exception>
@@ -90,19 +70,11 @@ public class Ranger : ALClient
     /// <summary>
     ///     Asynchronously uses HuntersMark on a target, raising the damage it takes.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <remarks>
-    ///     This produces no projectile — the server answers with a
-    ///     <c>
-    ///         ui
-    ///     </c>
-    ///     frame and the cooldown, nothing else.
+    ///     This produces no projectile — the server answers with a <c>ui</c> frame and the cooldown, nothing else.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'huntersmark' on {targetId}. ({reason})
     /// </exception>
@@ -149,17 +121,13 @@ public class Ranger : ALClient
     /// <summary>
     ///     Asynchronously uses PiercingShot on a target, ignoring some of its armor.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'piercingshot' on {targetId}. ({reason})
     /// </exception>
@@ -172,9 +140,7 @@ public class Ranger : ALClient
     /// <summary>
     ///     Asynchronously uses PoisonArrow on a target, poisoning it.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <param name="inventorySlot">
     ///     The slot holding the poison to use. Left unset, the server picks the last poison in your inventory.
     /// </param>
@@ -183,9 +149,7 @@ public class Ranger : ALClient
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'poisonarrow' on {targetId}. ({reason})
     /// </exception>
@@ -200,15 +164,9 @@ public class Ranger : ALClient
     ///     Asynchronously creates a Ranger client and connects.
     ///     <br />
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the character to log in as.
-    /// </param>
-    /// <param name="region">
-    ///     The region to log into.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier suffic for the region.
-    /// </param>
+    /// <param name="characterName">The name of the character to log in as.</param>
+    /// <param name="region">The region to log into.</param>
+    /// <param name="identifier">The identifier suffic for the region.</param>
     /// <param name="apiClient">
     ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
@@ -218,12 +176,8 @@ public class Ranger : ALClient
     /// <returns>
     ///     <see cref="Ranger" />
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     characterName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
     public static Task<Ranger> StartAsync(
         string characterName,
         ServerRegion region,
@@ -241,17 +195,13 @@ public class Ranger : ALClient
     /// <summary>
     ///     Asynchronously uses Supershot on a target, hitting it from far outside normal range.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'supershot' on {targetId}. ({reason})
     /// </exception>
@@ -273,15 +223,11 @@ public class Ranger : ALClient
     ///     <br />
     ///     Information about the projectiles from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetIds
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetIds</exception>
     /// <exception cref="ArgumentException">
     ///     targetIds is empty, longer than three, or holds a null or empty id.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '3shot' on targets. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use '3shot' on targets. ({reason})</exception>
     public Task<List<ActionData>> ThreeShotAsync(params string[] targetIds) => MultiShotAsync("3shot", 3, targetIds);
 
     /// <summary>
@@ -292,9 +238,7 @@ public class Ranger : ALClient
     ///     <br />
     ///     The tracked players, sorted ascending by distance.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'track'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'track'. ({reason})</exception>
     public async Task<IReadOnlyList<TrackData>> TrackAsync()
     {
         const string SKILL_NAME = "track";

@@ -13,18 +13,11 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     Restates the server's own
-///     <c>
-///         can_move
-///     </c>
-///     as a line intersection test and holds every leg the search emits to it. Worth a whole file because the server does
-///     not do this itself: its move handler hashes the two endpoints onto the smap lattice and jails on a miss, but never
-///     traces what lies between them, so a straight leg whose ends are both on the fill is performed exactly as sent. The
-///     pathfinder is the only thing standing between a character and a wall, and calling
-///     <c>
-///         CanMove
-///     </c>
-///     here would only ask the same raster the search already asked.
+///     Restates the server's own <c>can_move</c> as a line intersection test and holds every leg the search emits to it.
+///     Worth a whole file because the server does not do this itself: its move handler hashes the two endpoints onto the
+///     smap lattice and jails on a miss, but never traces what lies between them, so a straight leg whose ends are both on
+///     the fill is performed exactly as sent. The pathfinder is the only thing standing between a character and a wall,
+///     and calling <c>CanMove</c> here would only ask the same raster the search already asked.
 /// </summary>
 public class WallCrossingTests : PathfindingTestBed
 {
@@ -62,6 +55,7 @@ public class WallCrossingTests : PathfindingTestBed
     ///     The server's constants, restated rather than read from CONSTANTS so the oracle cannot inherit a port mistake.
     /// </summary>
     private const double SERVER_EPS = 1e-8;
+
     private const double SERVER_REPS = 2.220446049250313e-16;
     private const double SERVER_H = 8;
     private const double SERVER_V = 7;
@@ -377,13 +371,9 @@ public class WallCrossingTests : PathfindingTestBed
     /// <summary>
     ///     The bend between two legs, which is what actually gets walked when a leg's emit lands before the server has
     ///     finished the one before it: the move handler re-aims from part-way along the previous leg to this leg's end, over a
-    ///     line the search never validated.
-    ///     <c>
-    ///         SmartMoveAsync
-    ///     </c>
-    ///     stands still for a round trip wherever the raster refuses that line, so what has to hold is that the raster is not
-    ///     the more permissive of the two - a bend it waves through and the geometry refuses is a bend the guard never fires
-    ///     on.
+    ///     line the search never validated. <c>SmartMoveAsync</c> stands still for a round trip wherever the raster refuses
+    ///     that line, so what has to hold is that the raster is not the more permissive of the two - a bend it waves through
+    ///     and the geometry refuses is a bend the guard never fires on.
     /// </summary>
     [Test]
     public async Task NoBendTheGuardAllowsCrossesGeometry()

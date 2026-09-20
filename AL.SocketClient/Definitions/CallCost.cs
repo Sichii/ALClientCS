@@ -2,74 +2,27 @@ namespace AL.SocketClient.Definitions;
 
 /// <summary>
 ///     The server's rate limiter, as it actually meters. Every socket handler is wrapped (node/server.js:4337), and the
-///     accrued cost of the last <see cref="WINDOW" /> passing <see cref="LIMIT" /> is a
-///     <c>
-///         limitdcreport
-///     </c>
-///     and an immediate kick.
+///     accrued cost of the last <see cref="WINDOW" /> passing <see cref="LIMIT" /> is a <c>limitdcreport</c> and an
+///     immediate kick.
 /// </summary>
 /// <remarks>
 ///     A call is billed in two places, and <see cref="Of" /> is the sum of both: the method's row in the server's
-///     <c>
-///         CC
-///     </c>
-///     table (node/server.js:159), which most methods have none of, and every
-///     <c>
-///         resend
-///     </c>
-///     the handler runs before it returns (node/server.js:4017). A resend bills one unit when its events carry
-///     <c>
-///         u
-///     </c>
-///     and one more when they lack
-///     <c>
-///         nc
-///     </c>
-///     , each at the method's
-///     <c>
-///         call_modifier
-///     </c>
-///     : 1 for everything but
-///     <c>
-///         skill
-///     </c>
-///     (0.05),
-///     <c>
-///         target
-///     </c>
-///     (0.5) and
-///     <c>
-///         open_chest
-///     </c>
-///     (0.1). So an attack,
-///     <c>
-///         u+cid
-///     </c>
-///     at 1, is two; the same resend from a skill is a fifth of one.
+///     <c>CC</c> table (node/server.js:159), which most methods have none of, and every <c>resend</c> the handler runs
+///     before it returns (node/server.js:4017). A resend bills one unit when its events carry <c>u</c> and one more when
+///     they lack <c>nc</c> , each at the method's <c>call_modifier</c> : 1 for everything but <c>skill</c> (0.05),
+///     <c>target</c> (0.5) and <c>open_chest</c> (0.1). So an attack, <c>u+cid</c> at 1, is two; the same resend from a
+///     skill is a fifth of one.
 ///     <br />
-///     There is no per-call base charge. The wrapper's
-///     <c>
-///         add_call_cost(-1)
-///     </c>
-///     runs before
-///     <c>
-///         current_socket
-///     </c>
-///     is set, and the previous handler left that pointing at the module's
-///     <c>
-///         false_socket
-///     </c>
-///     (node/server.js:4421), so the unit never lands on a player. Billing one anyway reads a skill-heavy character at
-///     about double the server; leaving the resends out reads an attack-heavy one at about half.
+///     There is no per-call base charge. The wrapper's <c>add_call_cost(-1)</c> runs before <c>current_socket</c> is set,
+///     and the previous handler left that pointing at the module's <c>false_socket</c> (node/server.js:4421), so the unit
+///     never lands on a player. Billing one anyway reads a skill-heavy character at about double the server; leaving the
+///     resends out reads an attack-heavy one at about half.
 /// </remarks>
 public static class CallCost
 {
     /// <summary>
-    ///     <c>
-    ///         limits.calls
-    ///     </c>
-    ///     (node/server.js:174). Quartered for a socket with no player behind it yet, so the pre-login handshake is metered
-    ///     four times as harshly as this reads.
+    ///     <c>limits.calls</c> (node/server.js:174). Quartered for a socket with no player behind it yet, so the pre-login
+    ///     handshake is metered four times as harshly as this reads.
     /// </summary>
     public const double LIMIT = 200d;
 
@@ -80,32 +33,17 @@ public static class CallCost
     public static readonly TimeSpan WINDOW = TimeSpan.FromSeconds(4);
 
     /// <summary>
-    ///     What a
-    ///     <c>
-    ///         u+cid
-    ///     </c>
-    ///     resend bills at modifier 1: a unit for
-    ///     <c>
-    ///         u
-    ///     </c>
-    ///     and a unit for the stats pass.
+    ///     What a <c>u+cid</c> resend bills at modifier 1: a unit for <c>u</c> and a unit for the stats pass.
     /// </summary>
     private const double RESEND = 2d;
 
     /// <summary>
-    ///     <c>
-    ///         CC.equip
-    ///     </c>
-    ///     , kept apart from the equip row because <see cref="OfEquipBatch" /> scales it alone.
+    ///     <c>CC.equip</c> , kept apart from the equip row because <see cref="OfEquipBatch" /> scales it alone.
     /// </summary>
     private const double EQUIP_ROW = 3d;
 
     /// <summary>
-    ///     The
-    ///     <c>
-    ///         open_chest
-    ///     </c>
-    ///     modifier: what one unit of a resend costs from inside that handler.
+    ///     The <c>open_chest</c> modifier: what one unit of a resend costs from inside that handler.
     /// </summary>
     private const double OPEN_CHEST = 0.1d;
 
@@ -115,13 +53,9 @@ public static class CallCost
     private const double REOPEN_OTHER = 4d;
 
     /// <summary>
-    ///     What
-    ///     <c>
-    ///         transport_player_to
-    ///     </c>
-    ///     bills whoever it moves (node/server.js:4180), from a loop as readily as from a handler. Public for the one cast
-    ///     that ends in it - a landed blink is a skill at 0.1 and then this when its condition runs out
-    ///     (node/server.js:13386), which no row keyed on the emit type can carry.
+    ///     What <c>transport_player_to</c> bills whoever it moves (node/server.js:4180), from a loop as readily as from a
+    ///     handler. Public for the one cast that ends in it - a landed blink is a skill at 0.1 and then this when its
+    ///     condition runs out (node/server.js:13386), which no row keyed on the emit type can carry.
     /// </summary>
     public const double TRANSPORT = 8d;
 
@@ -205,11 +139,8 @@ public static class CallCost
     };
 
     /// <summary>
-    ///     What one emit of this type costs against <see cref="LIMIT" />: its
-    ///     <c>
-    ///         CC
-    ///     </c>
-    ///     row plus what its handler's resend bills, and nothing for a method that has neither.
+    ///     What one emit of this type costs against <see cref="LIMIT" />: its <c>CC</c> row plus what its handler's resend
+    ///     bills, and nothing for a method that has neither.
     /// </summary>
     /// <remarks>
     ///     <see cref="ALSocketEmitType.EquipBatch" /> is priced here as a batch of one, because the count is not a function of
@@ -219,22 +150,13 @@ public static class CallCost
 
     /// <summary>
     ///     What a transport bills on top of <see cref="Of" /> for crossing the bank's threshold: 32 to mount the account's
-    ///     bank on the way in, 16 to unmount it on the way out (node/server.js:5569, :5580), under the name
-    ///     <c>
-    ///         bank
-    ///     </c>
-    ///     beside the door's own charge. A door between two bank floors, or two ordinary maps, adds nothing.
+    ///     bank on the way in, 16 to unmount it on the way out (node/server.js:5569, :5580), under the name <c>bank</c> beside
+    ///     the door's own charge. A door between two bank floors, or two ordinary maps, adds nothing.
     /// </summary>
     /// <param name="fromBank">
-    ///     Whether the map being left has the bank mounted (
-    ///     <c>
-    ///         GMap.Mount
-    ///     </c>
-    ///     ).
+    ///     Whether the map being left has the bank mounted ( <c>GMap.Mount</c> ).
     /// </param>
-    /// <param name="toBank">
-    ///     Whether the destination does.
-    /// </param>
+    /// <param name="toBank">Whether the destination does.</param>
     public static double OfBankCrossing(bool fromBank, bool toBank)
         => (fromBank, toBank) switch
         {
@@ -244,14 +166,10 @@ public static class CallCost
         };
 
     /// <summary>
-    ///     What one
-    ///     <c>
-    ///         open_chest
-    ///     </c>
-    ///     costs in a party of <paramref name="partySize" />, one meaning alone. The handler resends every member, the opener
-    ///     included, and the whole bill lands on the opener (node/server.js:10460). A member who got nothing is an empty
-    ///     resend, a tenth; one who got an item is reopened instead, which is free for the opener and
-    ///     <see cref="REOPEN_OTHER" /> tenths for anybody else.
+    ///     What one <c>open_chest</c> costs in a party of <paramref name="partySize" />, one meaning alone. The handler
+    ///     resends every member, the opener included, and the whole bill lands on the opener (node/server.js:10460). A member
+    ///     who got nothing is an empty resend, a tenth; one who got an item is reopened instead, which is free for the opener
+    ///     and <see cref="REOPEN_OTHER" /> tenths for anybody else.
     /// </summary>
     /// <param name="partySize">
     ///     Everybody in the party, wherever they are - the server does not check the map.
@@ -259,9 +177,7 @@ public static class CallCost
     /// <param name="othersWithItems">
     ///     Members other than the opener who received an item from the chest.
     /// </param>
-    /// <param name="openerGotItem">
-    ///     Whether the opener received one.
-    /// </param>
+    /// <param name="openerGotItem">Whether the opener received one.</param>
     public static double OfChestOpen(int partySize, int othersWithItems, bool openerGotItem)
     {
         var emptyResends = Math.Max(0, partySize - othersWithItems - (openerGotItem ? 1 : 0));
@@ -270,22 +186,12 @@ public static class CallCost
     }
 
     /// <summary>
-    ///     What one
-    ///     <c>
-    ///         equip_batch
-    ///     </c>
-    ///     carrying <paramref name="count" /> items costs against <see cref="LIMIT" />.
+    ///     What one <c>equip_batch</c> carrying <paramref name="count" /> items costs against <see cref="LIMIT" />.
     /// </summary>
     /// <remarks>
-    ///     <c>
-    ///         CC.equip * (0.5 + count/2)
-    ///     </c>
-    ///     (node/server.js:4357) plus the one
-    ///     <c>
-    ///         reopen+u+cid
-    ///     </c>
-    ///     resend the handler ends on. From two items up it beats sending the same equips one at a time and the gap widens
-    ///     with each: two cost 6.5 against 10, five cost 11 against 25. It buys nothing on the penalty cooldown.
+    ///     <c>CC.equip * (0.5 + count/2)</c> (node/server.js:4357) plus the one <c>reopen+u+cid</c> resend the handler ends
+    ///     on. From two items up it beats sending the same equips one at a time and the gap widens with each: two cost 6.5
+    ///     against 10, five cost 11 against 25. It buys nothing on the penalty cooldown.
     /// </remarks>
     public static double OfEquipBatch(int count) => EQUIP_ROW * (0.5d + Math.Max(0, count) / 2d) + RESEND;
 }

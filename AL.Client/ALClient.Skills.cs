@@ -14,25 +14,13 @@ public abstract partial class ALClient
     /// <summary>
     ///     Uses a skill that sends a single projectile at a target, and returns that projectile.
     /// </summary>
-    /// <param name="skillName">
-    ///     The name of the skill as the server knows it.
-    /// </param>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="skillName">The name of the skill as the server knows it.</param>
+    /// <param name="targetId">The id of the target.</param>
     /// <param name="completion">
-    ///     The signal to await. Defaults to the projectile itself, which is how
-    ///     <c>
-    ///         commence_attack
-    ///     </c>
-    ///     answers.
+    ///     The signal to await. Defaults to the projectile itself, which is how <c>commence_attack</c> answers.
     /// </param>
     /// <param name="extraFailure">
-    ///     Inspects each response for a failure specific to this skill, returning the reason or
-    ///     <c>
-    ///         null
-    ///     </c>
-    ///     .
+    ///     Inspects each response for a failure specific to this skill, returning the reason or <c>null</c> .
     /// </param>
     /// <param name="inventorySlot">
     ///     The slot holding the item this skill consumes, if it consumes one.
@@ -42,9 +30,7 @@ public abstract partial class ALClient
     ///     <br />
     ///     The projectile this skill produced.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use '{skillName}' on {targetId}. ({reason})
     /// </exception>
@@ -75,9 +61,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Uses a skill by name, for the skills with no dedicated method of their own.
     /// </summary>
-    /// <param name="skillName">
-    ///     The name of the skill as the server knows it.
-    /// </param>
+    /// <param name="skillName">The name of the skill as the server knows it.</param>
     /// <param name="targetId">
     ///     The id of the entity to use the skill on, for skills that take one.
     /// </param>
@@ -85,26 +69,16 @@ public abstract partial class ALClient
     ///     This awaits the contract the majority of skills use. A skill the server answers in some other way will throw
     ///     <see cref="TimeoutException" /> even though the cast landed — prefer the dedicated method where one exists.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '{skillName}'. ({reason})
-    /// </exception>
-    /// <exception cref="TimeoutException">
-    ///     The server never acknowledged the skill.
-    /// </exception>
+    /// <exception cref="ArgumentNullException">skillName</exception>
+    /// <exception cref="InvalidOperationException">Failed to use '{skillName}'. ({reason})</exception>
+    /// <exception cref="TimeoutException">The server never acknowledged the skill.</exception>
     public Task UseSkillAsync(string skillName, string? targetId = null) => UseSkillCoreAsync(skillName, targetId);
 
     /// <summary>
     ///     Emits a skill and waits for the server to acknowledge it.
     /// </summary>
     /// <param name="skillName">
-    ///     The name of the skill as the server knows it, e.g.
-    ///     <c>
-    ///         hardshell
-    ///     </c>
-    ///     .
+    ///     The name of the skill as the server knows it, e.g. <c>hardshell</c> .
     /// </param>
     /// <param name="targetId">
     ///     The id of the entity to use the skill on, for skills that take one.
@@ -117,11 +91,8 @@ public abstract partial class ALClient
     ///     The signal to await. Defaults to whatever <see cref="SkillCompletion.ForSkill" /> derives from G.
     /// </param>
     /// <param name="extraFailure">
-    ///     Inspects each response for a failure specific to this skill, returning the reason or
-    ///     <c>
-    ///         null
-    ///     </c>
-    ///     . The four failures every skill shares are handled already.
+    ///     Inspects each response for a failure specific to this skill, returning the reason or <c>null</c> . The four
+    ///     failures every skill shares are handled already.
     /// </param>
     /// <param name="collectActions">
     ///     Whether to collect the projectiles this skill produces.
@@ -131,42 +102,17 @@ public abstract partial class ALClient
     ///     inventory, which may well be one you meant to keep.
     /// </param>
     /// <param name="payload">
-    ///     The complete emit body, for the few skills whose arguments are not
-    ///     <c>
-    ///         name
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         id
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         num
-    ///     </c>
-    ///     . Must carry
-    ///     <c>
-    ///         name
-    ///     </c>
-    ///     itself.
+    ///     The complete emit body, for the few skills whose arguments are not <c>name</c> , <c>id</c> and <c>num</c> . Must
+    ///     carry <c>name</c> itself.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" /> of <see cref="ActionData" />
     ///     <br />
-    ///     The projectiles produced, or empty when <paramref name="collectActions" /> is
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     The projectiles produced, or empty when <paramref name="collectActions" /> is <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use '{skillName}'. ({reason})
-    /// </exception>
-    /// <exception cref="TimeoutException">
-    ///     The server never acknowledged the skill.
-    /// </exception>
+    /// <exception cref="ArgumentNullException">skillName</exception>
+    /// <exception cref="InvalidOperationException">Failed to use '{skillName}'. ({reason})</exception>
+    /// <exception cref="TimeoutException">The server never acknowledged the skill.</exception>
     protected async Task<List<ActionData>> UseSkillCoreAsync(
         string skillName,
         string? targetId = null,
@@ -354,15 +300,9 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously uses Charm on a target, requiring an equipped charmer.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'charm' on {targetId}. ({reason})
-    /// </exception>
+    /// <param name="targetId">The id of the target.</param>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'charm' on {targetId}. ({reason})</exception>
     public Task CharmAsync(string targetId)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -374,9 +314,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously uses Power, requiring an equipped powerglove.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'power'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'power'. ({reason})</exception>
     public Task PowerAsync() => UseSkillCoreAsync("power");
 
     /// <summary>
@@ -385,17 +323,11 @@ public abstract partial class ALClient
     /// <remarks>
     ///     Requires an equipped jack-o-lantern. Monsters flagged immune shrug it off and are reported separately.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'scare'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'scare'. ({reason})</exception>
     public Task ScareAsync() => UseSkillCoreAsync("scare");
 
-    /// <summary>
-    ///     Asynchronously throws a Snowball at a target.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <summary>Asynchronously throws a Snowball at a target.</summary>
+    /// <param name="targetId">The id of the target.</param>
     /// <param name="inventorySlot">
     ///     The slot holding the snowball to throw. Left unset, the server picks the last one in your inventory.
     /// </param>
@@ -404,9 +336,7 @@ public abstract partial class ALClient
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'snowball' on {targetId}. ({reason})
     /// </exception>
@@ -416,15 +346,9 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously uses Tangle on a target, rooting it in place. Requires an equipped heartwood.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'tangle' on {targetId}. ({reason})
-    /// </exception>
+    /// <param name="targetId">The id of the target.</param>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'tangle' on {targetId}. ({reason})</exception>
     public Task TangleAsync(string targetId)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -436,18 +360,12 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously uses Warp, jumping to any point on a map. Requires an equipped warpvest.
     /// </summary>
-    /// <param name="x">
-    ///     The x coordinate to warp to.
-    /// </param>
-    /// <param name="y">
-    ///     The y coordinate to warp to.
-    /// </param>
+    /// <param name="x">The x coordinate to warp to.</param>
+    /// <param name="y">The y coordinate to warp to.</param>
     /// <param name="instance">
     ///     The instance to warp into. Defaults to the one you are already in — the server would otherwise send you to main.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'warp'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'warp'. ({reason})</exception>
     public Task WarpAsync(float x, float y, string? instance = null)
         => UseSkillCoreAsync(
             "warp",
@@ -462,25 +380,19 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously uses XPower, requiring an equipped golden powerglove.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'xpower'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'xpower'. ({reason})</exception>
     public Task XPowerAsync() => UseSkillCoreAsync("xpower");
 
     /// <summary>
     ///     Asynchronously uses ZapperZap on a target, requiring an equipped zapper ring.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'zapperzap' on {targetId}. ({reason})
     /// </exception>

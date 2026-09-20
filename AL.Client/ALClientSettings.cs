@@ -13,6 +13,17 @@ namespace AL.Client;
 /// </summary>
 public static class ALClientSettings
 {
+    /// <summary>
+    ///     How long a bank door is given to land once the server has answered it "in progress", in milliseconds. Defaults to
+    ///     10000.
+    /// </summary>
+    /// <remarks>
+    ///     Entering or leaving the bank loads or saves it in a database transaction on the server's sync loop, and the map
+    ///     change arrives only when that has finished: two to five seconds on a live log, past <see cref="NetworkTimeoutMS" />
+    ///     every time.
+    /// </remarks>
+    public static int BankCrossingTimeoutMS { get; set; } = 10000;
+
     // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
     /// <summary>
     ///     The network timeout in milliseconds used for most socket calls. Defaults to 1000.
@@ -20,17 +31,6 @@ public static class ALClientSettings
     ///     If you live in narnia and are experiencing timeout exceptions, set it higher.
     /// </summary>
     public static int NetworkTimeoutMS { get; set; } = 1500;
-
-    /// <summary>
-    ///     How long a bank door is given to land once the server has answered it "in progress", in milliseconds. Defaults
-    ///     to 10000.
-    /// </summary>
-    /// <remarks>
-    ///     Entering or leaving the bank loads or saves it in a database transaction on the server's sync loop, and the map
-    ///     change arrives only when that has finished: two to five seconds on a live log, past
-    ///     <see cref="NetworkTimeoutMS" /> every time.
-    /// </remarks>
-    public static int BankCrossingTimeoutMS { get; set; } = 10000;
 
     /// <summary>
     ///     The rate (per second) to update entity positions. Default 30.
@@ -43,9 +43,7 @@ public static class ALClientSettings
     ///     If using <see cref="UseDefaultLoggingConfiguration" />, this will set the minimum logging level for all NLog
     ///     targets that fall under the "AL." namespace.
     /// </summary>
-    /// <param name="level">
-    ///     The minimum log level verbosity to see.
-    /// </param>
+    /// <param name="level">The minimum log level verbosity to see.</param>
     public static void SetLogLevel(LogLevel level)
     {
         var configuration = LogManager.Configuration;

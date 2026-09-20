@@ -11,9 +11,7 @@ public record GAchievement
     /// </summary>
     public int Count { get; init; }
 
-    /// <summary>
-    ///     How to earn the achievement.
-    /// </summary>
+    /// <summary>How to earn the achievement.</summary>
     public string? Explanation { get; init; }
 
     /// <summary>
@@ -21,9 +19,7 @@ public record GAchievement
     /// </summary>
     public string? Item { get; init; }
 
-    /// <summary>
-    ///     The achievement's display name.
-    /// </summary>
+    /// <summary>The achievement's display name.</summary>
     public string Name { get; init; } = null!;
 
     /// <summary>

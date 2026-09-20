@@ -21,33 +21,23 @@ public sealed record GSkill : AttributedRecordBase
     /// </summary>
     public string? Action { get; init; }
 
-    /// <summary>
-    ///     If true, this skill affects the casters party.
-    /// </summary>
+    /// <summary>If true, this skill affects the casters party.</summary>
     [JsonPropertyName("party")]
     public bool AffectsParty { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . If populated, this skill requires certain attributed to be used.
+    ///     <b>NULLABLE</b> . If populated, this skill requires certain attributed to be used.
     ///     <br />
     ///     This dictionary contains the attributes and the required values to meet this condition.
     /// </summary>
     [JsonPropertyName("requirements")]
     public IReadOnlyDictionary<ALAttribute, float>? AttributeRequirements { get; init; }
 
-    /// <summary>
-    ///     If true, this skill Emits an aura.
-    /// </summary>
+    /// <summary>If true, this skill Emits an aura.</summary>
     public bool Aura { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULlABLE
-    ///     </b>
-    ///     . If populated, this skill is only usable by certain classes.
+    ///     <b>NULlABLE</b> . If populated, this skill is only usable by certain classes.
     ///     <br />
     ///     This list contains the classes this skill can be used by.
     /// </summary>
@@ -55,16 +45,11 @@ public sealed record GSkill : AttributedRecordBase
     public IReadOnlyList<ALClass>? Classes { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . Extra information about the skill. Currently only used by magiport.
+    ///     <b>NULLABLE</b> . Extra information about the skill. Currently only used by magiport.
     /// </summary>
     public string? Complementary { get; init; }
 
-    /// <summary>
-    ///     The condition this skill causes on the target.
-    /// </summary>
+    /// <summary>The condition this skill causes on the target.</summary>
     public Condition Condition { get; init; }
 
     /// <summary>
@@ -100,9 +85,7 @@ public sealed record GSkill : AttributedRecordBase
     [JsonPropertyName("damage_multiplier")]
     public float DamageMultiplier { get; set; } = 1.0f;
 
-    /// <summary>
-    ///     The type of damage this skill deals.
-    /// </summary>
+    /// <summary>The type of damage this skill deals.</summary>
     [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
@@ -137,10 +120,7 @@ public sealed record GSkill : AttributedRecordBase
     public int? Level { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULlABLE
-    ///     </b>
-    ///     . If populated, this skill changes depending on the level of the caster.
+    ///     <b>NULlABLE</b> . If populated, this skill changes depending on the level of the caster.
     ///     <br />
     ///     This list contains the levels in which the effect of this skill changes, and the amount it changes to.
     /// </summary>
@@ -167,9 +147,7 @@ public sealed record GSkill : AttributedRecordBase
     [JsonInclude]
     public bool MultiTargeted { get; private set; }
 
-    /// <summary>
-    ///     The name of the skill as seen on the GUI.
-    /// </summary>
+    /// <summary>The name of the skill as seen on the GUI.</summary>
     public string Name { get; init; } = null!;
 
     /// <summary>
@@ -220,20 +198,14 @@ public sealed record GSkill : AttributedRecordBase
     public float Ratio { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . Always null. No skill in the game data carries an "inventory" key - an item requirement is written as
-    ///     <see cref="RequiredSlotItems" /> or <see cref="Consume" /> instead.
+    ///     <b>NULLABLE</b> . Always null. No skill in the game data carries an "inventory" key - an item requirement is
+    ///     written as <see cref="RequiredSlotItems" /> or <see cref="Consume" /> instead.
     /// </summary>
     [JsonPropertyName("inventory")]
     public IReadOnlyList<string>? RequiredInventoryItems { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . If populated, this skill requires an item to be equipped.
+    ///     <b>NULLABLE</b> . If populated, this skill requires an item to be equipped.
     ///     <br />
     ///     Each entry pairs a slot with the item that has to be in it. Several entries are alternatives, not all required - a
     ///     zapper in either ring slot enables zapperzap.
@@ -263,33 +235,22 @@ public sealed record GSkill : AttributedRecordBase
     ///     aiming at the wrong kind is refused as "invalid_target" (node/server.js:8936).
     /// </summary>
     /// <summary>
-    ///     If populated, the name of this skill's icon art in
-    ///     <c>
-    ///         G.positions
-    ///     </c>
-    ///     . Read the same way a condition's icon is, through the item pipeline rather than a sprite sheet.
+    ///     If populated, the name of this skill's icon art in <c>G.positions</c> . Read the same way a condition's icon is,
+    ///     through the item pipeline rather than a sprite sheet.
     /// </summary>
     /// <remarks>
-    ///     Usually
-    ///     <c>
-    ///         skill_
-    ///     </c>
-    ///     and the skill's own key, but not reliably enough to build: a dozen skills borrow a condition's or an item's art
-    ///     instead, and the healing skills share one icon between them.
+    ///     Usually <c>skill_</c> and the skill's own key, but not reliably enough to build: a dozen skills borrow a
+    ///     condition's or an item's art instead, and the healing skills share one icon between them.
     /// </remarks>
     public string? Skin { get; init; }
 
     [JsonPropertyName("target")]
     public TargetType TargetType { get; init; }
 
-    /// <summary>
-    ///     If true, this skill is toggleable.
-    /// </summary>
+    /// <summary>If true, this skill is toggleable.</summary>
     public bool Toggle { get; init; }
 
-    /// <summary>
-    ///     The type of skill.
-    /// </summary>
+    /// <summary>The type of skill.</summary>
     public SkillType Type { get; init; }
 
     /// <summary>
@@ -307,11 +268,8 @@ public sealed record GSkill : AttributedRecordBase
     public float? Variance { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . If populated, this skill is only usable if you have a certain weapon type equipped. This list contains the weapon
-    ///     types that enable this skill to be used.
+    ///     <b>NULLABLE</b> . If populated, this skill is only usable if you have a certain weapon type equipped. This list
+    ///     contains the weapon types that enable this skill to be used.
     /// </summary>
     [JsonPropertyName("wtype")]
     [JsonConverter(typeof(StjConverters.ArrayOrSingleConverter<WeaponType>))]

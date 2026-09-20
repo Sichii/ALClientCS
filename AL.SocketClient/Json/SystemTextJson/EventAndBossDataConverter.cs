@@ -12,11 +12,8 @@ namespace AL.SocketClient.Json.SystemTextJson;
 /// <summary>
 ///     Deserializes <see cref="EventAndBossData" />: fills the declared fields, then treats every remaining object-valued
 ///     property as a <see cref="BossInfo" /> keyed by (and stamped with) its property name. The System.Text.Json
-///     replacement for the Newtonsoft
-///     <c>
-///         EventAndBossDataConverter
-///     </c>
-///     . Register in the shared options so the declared-field fill drops this converter and cannot re-enter itself.
+///     replacement for the Newtonsoft <c>EventAndBossDataConverter</c> . Register in the shared options so the
+///     declared-field fill drops this converter and cannot re-enter itself.
 /// </summary>
 public sealed class EventAndBossDataConverter : JsonConverter<EventAndBossData>
 {

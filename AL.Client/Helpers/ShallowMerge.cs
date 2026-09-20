@@ -59,18 +59,10 @@ public static class ShallowMerge<T> where T: class
     ///     <br />
     ///     The first time this runs (for each type), an expression tree will be compiled and stored.
     /// </summary>
-    /// <param name="fromObj">
-    ///     The object to merge from.
-    /// </param>
-    /// <param name="targetObj">
-    ///     The object to merge into.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     fromObj
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     targetObj
-    /// </exception>
+    /// <param name="fromObj">The object to merge from.</param>
+    /// <param name="targetObj">The object to merge into.</param>
+    /// <exception cref="ArgumentNullException">fromObj</exception>
+    /// <exception cref="ArgumentNullException">targetObj</exception>
     public static void Merge(T fromObj, T targetObj)
     {
         ArgumentNullException.ThrowIfNull(fromObj);

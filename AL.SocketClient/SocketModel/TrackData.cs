@@ -6,9 +6,7 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record TrackData
 {
-    /// <summary>
-    ///     Distance from the caster to the tracked player.
-    /// </summary>
+    /// <summary>Distance from the caster to the tracked player.</summary>
     public double Dist { get; init; }
 
     /// <summary>

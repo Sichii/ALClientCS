@@ -16,8 +16,6 @@ public sealed record QueuedActionResultData
     [JsonPropertyName("type")]
     public QueuedActionType QueuedActionType { get; init; }
 
-    /// <summary>
-    ///     Whether or not the upgrade succeeded.
-    /// </summary>
+    /// <summary>Whether or not the upgrade succeeded.</summary>
     public bool Success { get; init; }
 }

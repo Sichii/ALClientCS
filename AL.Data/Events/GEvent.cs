@@ -43,20 +43,9 @@ public record GEvent
     public string? Sprite { get; init; }
 
     /// <summary>
-    ///     The schedule the event runs on -
-    ///     <c>
-    ///         daily
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         nightly
-    ///     </c>
-    ///     or
-    ///     <c>
-    ///         seasonal
-    ///     </c>
-    ///     . It says how often the event comes round rather than what kind of content it is: the two nightly ones are world
-    ///     bosses, and so is one of the seasonal ones.
+    ///     The schedule the event runs on - <c>daily</c> , <c>nightly</c> or <c>seasonal</c> . It says how often the event
+    ///     comes round rather than what kind of content it is: the two nightly ones are world bosses, and so is one of the
+    ///     seasonal ones.
     /// </summary>
     public string? Type { get; init; }
 }

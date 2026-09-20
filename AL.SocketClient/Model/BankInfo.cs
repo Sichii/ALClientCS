@@ -7,9 +7,7 @@ using AL.Core.Json.Attributes;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents all data for the bank system.
-/// </summary>
+/// <summary>Represents all data for the bank system.</summary>
 [JsonForcedObject]
 public record BankInfo : IReadOnlyDictionary<BankPack, IReadOnlyList<Item?>>
 {

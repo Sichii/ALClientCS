@@ -15,9 +15,7 @@ namespace AL.Data.Geometry;
 /// <seealso cref="IRectangle" />
 public record GGeometry : IRectangle
 {
-    /// <summary>
-    ///     The unique accessor for this geometry object.
-    /// </summary>
+    /// <summary>The unique accessor for this geometry object.</summary>
     [JsonIgnore]
     public string Accessor { get; internal set; } = null!;
 
@@ -28,33 +26,23 @@ public record GGeometry : IRectangle
     [JsonInclude]
     public IReadOnlyList<StraightLine> HorizontalLines { get; internal set; } = new List<StraightLine>();
 
-    /// <summary>
-    ///     Maximum X coordinate on the map.
-    /// </summary>
+    /// <summary>Maximum X coordinate on the map.</summary>
     [JsonPropertyName("max_x")]
     public int MaxX { get; init; }
 
-    /// <summary>
-    ///     Maximum Y coordinate on the map.
-    /// </summary>
+    /// <summary>Maximum Y coordinate on the map.</summary>
     [JsonPropertyName("max_y")]
     public int MaxY { get; init; }
 
-    /// <summary>
-    ///     Minimum X coordinate on the map.
-    /// </summary>
+    /// <summary>Minimum X coordinate on the map.</summary>
     [JsonPropertyName("min_x")]
     public int MinX { get; init; }
 
-    /// <summary>
-    ///     Minimum Y coordinate on the map.
-    /// </summary>
+    /// <summary>Minimum Y coordinate on the map.</summary>
     [JsonPropertyName("min_y")]
     public int MinY { get; init; }
 
-    /// <summary>
-    ///     A list of tiles on this map.
-    /// </summary>
+    /// <summary>A list of tiles on this map.</summary>
     public IReadOnlyList<GTile> Tiles { get; init; } = new List<GTile>();
 
     /// <summary>

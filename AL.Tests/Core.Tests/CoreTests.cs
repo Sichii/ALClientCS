@@ -409,12 +409,10 @@ public class CoreTests
     }
 
     /// <summary>
-    ///     The three edges the stale-frame position repair leans on. It reckons where a leg has got to as
-    ///     <c>
+    ///     The three edges the stale-frame position repair leans on. It reckons where a leg has got to as <c>
     ///         start.OffsetTowards(destination, speed * elapsed)
-    ///     </c>
-    ///     , so an overshoot would put the character past the corner and a divide-by-nothing would put it at NaN - both of
-    ///     which are read as truth by every range check until the leg ends.
+    ///     </c> , so an overshoot would put the character past the corner and a divide-by-nothing would put it at NaN - both
+    ///     of which are read as truth by every range check until the leg ends.
     /// </summary>
     [Test]
     public void OffsetTowardsClampsAtTheDestination()
@@ -465,15 +463,8 @@ public class CoreTests
     /// <summary>
     ///     A wall test that indexes a point map by each traced point truncates it, which is only the same answer as rounding
     ///     while every point lands on a whole number. Nothing about the signature says so, and a fractional point would move a
-    ///     wall by one cell rather than fail, so it is pinned here.
-    ///     <c>
-    ///         WallLines
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         Pathfinder.CanMove
-    ///     </c>
-    ///     no longer trace at all; the contract stays for the callers that still do.
+    ///     wall by one cell rather than fail, so it is pinned here. <c>WallLines</c> and <c>Pathfinder.CanMove</c> no longer
+    ///     trace at all; the contract stays for the callers that still do.
     /// </summary>
     [Test]
     public void RayTraceYieldsWholeNumbersFromFractionalEnds()

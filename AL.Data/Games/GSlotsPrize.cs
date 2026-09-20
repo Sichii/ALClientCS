@@ -11,9 +11,7 @@ namespace AL.Data.Games;
 ///     The item name the outcome is keyed by, which is also the reel symbol three of a kind of it shows. Every one of the
 ///     seven is a real item on <see cref="GameData.Items" />.
 /// </param>
-/// <param name="Payout">
-///     What the outcome pays, in gold.
-/// </param>
+/// <param name="Payout">What the outcome pays, in gold.</param>
 /// <param name="Weight">
 ///     How many of <see cref="GSlots.Draws" /> land on this outcome. Divide by <see cref="GSlots.Draws" /> for the
 ///     probability of one pull.

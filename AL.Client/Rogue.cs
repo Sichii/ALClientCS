@@ -20,24 +20,12 @@ public class Rogue : ALClient
     /// <summary>
     ///     Initializes a new instance of the <see cref="Rogue" /> class.
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the rogue.
-    /// </param>
-    /// <param name="apiClient">
-    ///     An API client implementation.
-    /// </param>
-    /// <param name="socketClient">
-    ///     A socket client implementation.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     socketClient
-    /// </exception>
+    /// <param name="characterName">The name of the rogue.</param>
+    /// <param name="apiClient">An API client implementation.</param>
+    /// <param name="socketClient">A socket client implementation.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
+    /// <exception cref="ArgumentNullException">socketClient</exception>
     public Rogue(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
         : base(characterName, apiClient, socketClient) { }
 
@@ -45,15 +33,8 @@ public class Rogue : ALClient
     ///     Asynchronously uses Fan of Knives, throwing up to five knives at the targets given.
     /// </summary>
     /// <param name="targetIds">
-    ///     The ids to aim at, at most five. The server takes the first
-    ///     <c>
-    ///         max_targets
-    ///     </c>
-    ///     of them and skips any it cannot hit, answering
-    ///     <c>
-    ///         no_target
-    ///     </c>
-    ///     only once every one of them failed.
+    ///     The ids to aim at, at most five. The server takes the first <c>max_targets</c> of them and skips any it cannot hit,
+    ///     answering <c>no_target</c> only once every one of them failed.
     /// </param>
     /// <returns>
     ///     <see cref="List{T}" /> of <see cref="ActionData" />
@@ -62,25 +43,12 @@ public class Rogue : ALClient
     /// </returns>
     /// <remarks>
     ///     A list rather than five parameters, because the count is genuinely variable where the ranger's shots are fixed at
-    ///     three and five: the server caps this at
-    ///     <c>
-    ///         max_targets
-    ///     </c>
-    ///     and two is a legitimate cast.
+    ///     three and five: the server caps this at <c>max_targets</c> and two is a legitimate cast.
     ///     <br />
-    ///     No wrong-weapon failure to report, unlike the multishots. What this skill wants is a
-    ///     <c>
-    ///         knifebelt
-    ///     </c>
-    ///     worn on the belt, which <see cref="ALClient.CanUseSkill" /> already answers for through the skill's
-    ///     <c>
-    ///         slot
-    ///     </c>
-    ///     requirement.
+    ///     No wrong-weapon failure to report, unlike the multishots. What this skill wants is a <c>knifebelt</c> worn on the
+    ///     belt, which <see cref="ALClient.CanUseSkill" /> already answers for through the skill's <c>slot</c> requirement.
     /// </remarks>
-    /// <exception cref="ArgumentException">
-    ///     targetIds
-    /// </exception>
+    /// <exception cref="ArgumentException">targetIds</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'fanofknives' on targets. ({reason})
     /// </exception>
@@ -113,25 +81,17 @@ public class Rogue : ALClient
     ///     The server takes this skill's cooldown when the invisibility ends rather than when it starts, so the call completes
     ///     on going invisible instead. Casting it while already invisible does nothing and will time out.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'invis'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'invis'. ({reason})</exception>
     public Task InvisAsync() => UseSkillCoreAsync("invis", completion: SkillCompletion.OnCondition(Condition.Invis));
 
-    /// <summary>
-    ///     Asynchronously uses MentalBurst on a target.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <summary>Asynchronously uses MentalBurst on a target.</summary>
+    /// <param name="targetId">The id of the target.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'mentalburst' on {targetId}. ({reason})
     /// </exception>
@@ -143,36 +103,26 @@ public class Rogue : ALClient
     /// <param name="inventorySlot">
     ///     The slot holding the poison to use. Left unset, the server picks the last poison in your inventory.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'pcoat'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'pcoat'. ({reason})</exception>
     public Task PCoatAsync(int? inventorySlot = null) => UseSkillCoreAsync("pcoat", inventorySlot: inventorySlot);
 
     /// <summary>
     ///     Asynchronously starts Pickpocket on a target, trying to steal a pvp-marked item from them.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <remarks>
     ///     This returns once the server accepts the cast, which starts the attempt rather than finishing it. The steal
     ///     resolves later and mostly fails; the long cooldown is taken only when it succeeds.
     ///     <br />
-    ///     No token can correlate this cast, for the reasons on <see cref="Merchant.FishingAsync" /> - the acknowledgement
-    ///     is built without one (node/server.js:9540). The steal itself resolves 200 to 2000 ms after the emit, so its
-    ///     frames land past <see cref="ALClientSettings.NetworkTimeoutMS" /> on the slower rolls.
+    ///     No token can correlate this cast, for the reasons on <see cref="Merchant.FishingAsync" /> - the acknowledgement is
+    ///     built without one (node/server.js:9540). The steal itself resolves 200 to 2000 ms after the emit, so its frames
+    ///     land past <see cref="ALClientSettings.NetworkTimeoutMS" /> on the slower rolls.
     ///     <br />
-    ///     Pickpocket is
-    ///     <c>
-    ///         persistent
-    ///     </c>
-    ///     , and the server restores its cooldown on a frame that does not ride login — so between connecting and your first
-    ///     state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready when it is not.
-    ///     Casting anyway costs one call and fails with "(on cooldown)".
+    ///     Pickpocket is <c>persistent</c> , and the server restores its cooldown on a frame that does not ride login — so
+    ///     between connecting and your first state-changing action, <see cref="ALClient.Cooldowns" /> has no entry for it and
+    ///     it reads as ready when it is not. Casting anyway costs one call and fails with "(on cooldown)".
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'pickpocket' on {targetId}. ({reason})
     /// </exception>
@@ -187,17 +137,13 @@ public class Rogue : ALClient
     /// <summary>
     ///     Asynchronously uses QuickPunch on a target, an extra hit between normal attacks.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
     ///     Information about the projectile from this skill.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'quickpunch' on {targetId}. ({reason})
     /// </exception>
@@ -206,9 +152,7 @@ public class Rogue : ALClient
     /// <summary>
     ///     Asynchronously uses QuickStab on a target, an extra hit between normal attacks.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
@@ -217,9 +161,7 @@ public class Rogue : ALClient
     /// <remarks>
     ///     This shares its cooldown with QuickPunch, so the server acknowledges it under that name.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to use 'quickstab' on {targetId}. ({reason})
     /// </exception>
@@ -228,15 +170,9 @@ public class Rogue : ALClient
     /// <summary>
     ///     Asynchronously uses RSpeed on a target, raising their movement speed.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'rspeed' on {targetId}. ({reason})
-    /// </exception>
+    /// <param name="targetId">The id of the target.</param>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'rspeed' on {targetId}. ({reason})</exception>
     public Task RSpeedAsync(string targetId)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -256,9 +192,7 @@ public class Rogue : ALClient
     ///     <br />
     ///     A collection of projectiles resulting from this attack.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'shadowstrike'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'shadowstrike'. ({reason})</exception>
     public Task<List<ActionData>> ShadowStrikeAsync(int? inventorySlot = null)
         => UseSkillCoreAsync("shadowstrike", collectActions: true, inventorySlot: inventorySlot);
 
@@ -266,15 +200,9 @@ public class Rogue : ALClient
     ///     Asynchronously creates a Rogue client and connects.
     ///     <br />
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the character to log in as.
-    /// </param>
-    /// <param name="region">
-    ///     The region to log into.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier suffic for the region.
-    /// </param>
+    /// <param name="characterName">The name of the character to log in as.</param>
+    /// <param name="region">The region to log into.</param>
+    /// <param name="identifier">The identifier suffic for the region.</param>
     /// <param name="apiClient">
     ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
@@ -284,12 +212,8 @@ public class Rogue : ALClient
     /// <returns>
     ///     <see cref="Rogue" />
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     characterName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
     public static Task<Rogue> StartAsync(
         string characterName,
         ServerRegion region,

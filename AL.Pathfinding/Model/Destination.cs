@@ -4,9 +4,7 @@ using AL.Core.Interfaces;
 
 namespace AL.Pathfinding.Model;
 
-/// <summary>
-///     Represents a pathfinding destination.
-/// </summary>
+/// <summary>Represents a pathfinding destination.</summary>
 public sealed record Destination : ILocation, ICircle
 {
     public string Map { get; init; } = null!;

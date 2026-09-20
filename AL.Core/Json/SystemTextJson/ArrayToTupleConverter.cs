@@ -8,11 +8,7 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Shared positional-element reader: null-safe and forwards <see cref="JsonSerializerOptions" /> so nested converters
-///     and number-from-string coercion apply, mirroring Newtonsoft's
-///     <c>
-///         JToken.ToObject&lt;T&gt;(serializer)
-///     </c>
-///     .
+///     and number-from-string coercion apply, mirroring Newtonsoft's <c>JToken.ToObject&lt;T&gt;(serializer)</c> .
 /// </summary>
 internal static class TupleElement
 {
@@ -203,24 +199,10 @@ public class ArrayToTupleConverter<T1, T2, T3, T4, T5, T6, T7> : JsonConverter<V
 
 /// <summary>
 ///     Applies the arity-matched <see cref="ArrayToTupleConverter{T1,T2}" /> to any <see cref="ValueTuple" />. Every
-///     serialized tuple in the model is a positional array (both the single-tuple
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     sites and the
-///     <c>
-///         ItemConverterType
-///     </c>
-///     list-element sites), so one global factory replaces both. The
-///     <c>
-///         ?
-///     </c>
-///     on the converter's unconstrained parameters is annotation-only, so the produced converter's runtime target type is
-///     the exact declared tuple (e.g.
-///     <c>
-///         ValueTuple&lt;float, float&gt;
-///     </c>
-///     ), which is what System.Text.Json matches on.
+///     serialized tuple in the model is a positional array (both the single-tuple <c>[JsonConverter]</c> sites and the
+///     <c>ItemConverterType</c> list-element sites), so one global factory replaces both. The <c>?</c> on the converter's
+///     unconstrained parameters is annotation-only, so the produced converter's runtime target type is the exact declared
+///     tuple (e.g. <c>ValueTuple&lt;float, float&gt;</c> ), which is what System.Text.Json matches on.
 /// </summary>
 public sealed class TupleConverterFactory : JsonConverterFactory
 {

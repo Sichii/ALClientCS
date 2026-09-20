@@ -31,9 +31,7 @@ public class AchievementsDatum : DatumBase<GAchievement>
     [JsonPropertyName("monsterhunter")]
     public GAchievement Monsterhunter { get; init; } = null!;
 
-    /// <summary>
-    ///     Defeat 1,000 Bosses.
-    /// </summary>
+    /// <summary>Defeat 1,000 Bosses.</summary>
     [JsonPropertyName("reach40")]
     public GAchievement Reach40 { get; init; } = null!;
 

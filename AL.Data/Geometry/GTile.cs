@@ -21,27 +21,19 @@ public record GTile : IRectangle
     [JsonArrayIndex(3)]
     public float Size { get; init; }
 
-    /// <summary>
-    ///     The name of the tileset this tile belongs to.
-    /// </summary>
+    /// <summary>The name of the tileset this tile belongs to.</summary>
     [JsonArrayIndex(0)]
     public string TileSet { get; init; } = null!;
 
-    /// <summary>
-    ///     TODO: Unknown
-    /// </summary>
+    /// <summary>TODO: Unknown</summary>
     [JsonArrayIndex(4)]
     public float? Unknown { get; init; }
 
-    /// <summary>
-    ///     The X coordinate of the top left of the tile.
-    /// </summary>
+    /// <summary>The X coordinate of the top left of the tile.</summary>
     [JsonArrayIndex(1)]
     public float X { get; init; }
 
-    /// <summary>
-    ///     The Y coordinate of the top left of the tile.
-    /// </summary>
+    /// <summary>The Y coordinate of the top left of the tile.</summary>
     [JsonArrayIndex(2)]
     public float Y { get; init; }
 

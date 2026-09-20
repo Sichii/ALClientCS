@@ -9,14 +9,10 @@ namespace AL.Core.Model;
 /// </summary>
 public readonly struct Mutation
 {
-    /// <summary>
-    ///     The attribute being mutated.
-    /// </summary>
+    /// <summary>The attribute being mutated.</summary>
     public ALAttribute Attribute { get; }
 
-    /// <summary>
-    ///     How much it is being mutated by.
-    /// </summary>
+    /// <summary>How much it is being mutated by.</summary>
     public float Mutator { get; }
 
     public Mutation(ALAttribute attribute, float mutator)

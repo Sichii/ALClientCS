@@ -8,22 +8,12 @@ using Condition = AL.Core.Definitions.Condition;
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins
-///     <c>
-///         TolerantEnumKeyDictionaryConverter
-///     </c>
-///     's
-///     <c>
-///         if (value != null)
-///     </c>
-///     filter as load-bearing: a null value under a known enum key is dropped so it never enters the non-nullable
-///     <see cref="EntityBase.Conditions" /> dictionary, and an unrecognised key is skipped rather than merged onto the
-///     enum's zero member. Neither is System.Text.Json's own default, which is why the whole-dictionary converter exists
-///     and why it is applied by a member-level
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     on <see cref="EntityBase.Conditions" /> rather than left to the built-in enum-key reader.
+///     Pins <c>TolerantEnumKeyDictionaryConverter</c> 's <c>if (value != null)</c> filter as load-bearing: a null value
+///     under a known enum key is dropped so it never enters the non-nullable <see cref="EntityBase.Conditions" />
+///     dictionary, and an unrecognised key is skipped rather than merged onto the enum's zero member. Neither is
+///     System.Text.Json's own default, which is why the whole-dictionary converter exists and why it is applied by a
+///     member-level <c>[JsonConverter]</c> on <see cref="EntityBase.Conditions" /> rather than left to the built-in
+///     enum-key reader.
 /// </summary>
 public class EnumKeyNullFilterCharacterization
 {

@@ -11,9 +11,7 @@ namespace AL.SocketClient.SocketModel;
 /// <seealso cref="IPoint" />
 public record ActionData : IPoint
 {
-    /// <summary>
-    ///     The id of the entity who attacked.
-    /// </summary>
+    /// <summary>The id of the entity who attacked.</summary>
     [JsonPropertyName("attacker")]
     public string AttackerId { get; init; } = null!;
 
@@ -42,9 +40,7 @@ public record ActionData : IPoint
     /// </summary>
     public bool Instant { get; init; }
 
-    /// <summary>
-    ///     TODO: unknown
-    /// </summary>
+    /// <summary>TODO: unknown</summary>
     public float M { get; init; }
 
     /// <summary>
@@ -52,14 +48,10 @@ public record ActionData : IPoint
     /// </summary>
     public bool Positive { get; init; }
 
-    /// <summary>
-    ///     If populated, the name of the projectile.
-    /// </summary>
+    /// <summary>If populated, the name of the projectile.</summary>
     public string? Projectile { get; init; }
 
-    /// <summary>
-    ///     If populated, a unique id for the projectile.
-    /// </summary>
+    /// <summary>If populated, a unique id for the projectile.</summary>
     [JsonPropertyName("pid")]
     public string? ProjectileId { get; init; }
 

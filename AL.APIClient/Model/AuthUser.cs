@@ -6,19 +6,13 @@ using AL.APIClient.Request;
 
 namespace AL.APIClient.Model;
 
-/// <summary>
-///     Represents a logged in user.
-/// </summary>
+/// <summary>Represents a logged in user.</summary>
 public sealed record AuthUser
 {
-    /// <summary>
-    ///     The user's authorization key.
-    /// </summary>
+    /// <summary>The user's authorization key.</summary>
     public string AuthKey { get; }
 
-    /// <summary>
-    ///     When the authorization expires.
-    /// </summary>
+    /// <summary>When the authorization expires.</summary>
     public DateTime Expires { get; }
 
     internal LoginInfo LoginInfo { get; }

@@ -30,9 +30,7 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     The key this monster is filed under in <see cref="GameData.Monsters" />.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
@@ -51,9 +49,7 @@ public sealed record GMonster : AttributedRecordBase
     ///     The collision footprint this monster walks and pathfinds with, from the sprite's (h, v, vn). Much smaller than
     ///     <see cref="HitBox" />, which is what a range is measured against.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public BoundingBase BoundingBase { get; set; } = null!;
 
@@ -78,9 +74,7 @@ public sealed record GMonster : AttributedRecordBase
     /// </summary>
     public bool Cute { get; init; }
 
-    /// <summary>
-    ///     The type of damage this monster deals.
-    /// </summary>
+    /// <summary>The type of damage this monster deals.</summary>
     [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
@@ -103,17 +97,11 @@ public sealed record GMonster : AttributedRecordBase
     public bool Global { get; init; }
 
     /// <summary>
-    ///     The box this monster's
-    ///     <i>
-    ///         range
-    ///     </i>
-    ///     is measured against - the whole sprite, centred horizontally and rising from its feet. Deliberately not
-    ///     <see cref="BoundingBase" />, which is the much smaller foot-print the game walks and pathfinds with: an attack
-    ///     reaches the sprite, a step collides with the base.
+    ///     The box this monster's <i>range</i> is measured against - the whole sprite, centred horizontally and rising from
+    ///     its feet. Deliberately not <see cref="BoundingBase" />, which is the much smaller foot-print the game walks and
+    ///     pathfinds with: an attack reaches the sprite, a step collides with the base.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public BoundingBase HitBox { get; set; } = null!;
 
@@ -215,19 +203,12 @@ public sealed record GMonster : AttributedRecordBase
     /// </remarks>
     public string? Skin { get; init; }
 
-    /// <summary>
-    ///     A list of areas this Monster can be found.
-    /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <summary>A list of areas this Monster can be found.</summary>
+    /// <remarks>Enriched property</remarks>
     public IReadOnlyList<InscribedBoundary> SpawnAreas { get; internal set; } = new List<InscribedBoundary>();
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . If populated, this monster spawns other monsters while it has a target, next to that target.
+    ///     <b>NULLABLE</b> . If populated, this monster spawns other monsters while it has a target, next to that target.
     ///     <br />
     ///     Each entry is the delay in milliseconds and the name of the monster spawned on it (node/server.js:12795).
     /// </summary>
@@ -239,9 +220,7 @@ public sealed record GMonster : AttributedRecordBase
     /// </summary>
     public bool Special { get; init; }
 
-    /// <summary>
-    ///     If true, this monster does not move at all.
-    /// </summary>
+    /// <summary>If true, this monster does not move at all.</summary>
     public bool Stationary { get; init; }
 
     /// <summary>
@@ -275,9 +254,7 @@ public sealed record GMonster : AttributedRecordBase
     ///     game fills the rest in when it loads G (js/old_common_functions.js:162), so a monster read straight out of the data
     ///     here has a <see cref="ChargeSpeed" /> of zero rather than the speed it chases at.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public float ChaseSpeed
     {

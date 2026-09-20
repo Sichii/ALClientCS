@@ -1,7 +1,7 @@
 #region
 using System.Collections;
-using AL.Core.Interfaces;
 using System.Text.Json.Serialization;
+using AL.Core.Interfaces;
 #endregion
 
 // ReSharper disable ConstantConditionalAccessQualifier
@@ -28,18 +28,10 @@ public record Rectangle : IRectangle
     /// <summary>
     ///     Initializes a new instance of the <see cref="Rectangle" /> class.
     /// </summary>
-    /// <param name="x">
-    ///     The center x coordinate.
-    /// </param>
-    /// <param name="y">
-    ///     The center y coordinate.
-    /// </param>
-    /// <param name="width">
-    ///     The width of the rectangle.
-    /// </param>
-    /// <param name="height">
-    ///     The height of the rectangle.
-    /// </param>
+    /// <param name="x">The center x coordinate.</param>
+    /// <param name="y">The center y coordinate.</param>
+    /// <param name="width">The width of the rectangle.</param>
+    /// <param name="height">The height of the rectangle.</param>
     [JsonConstructor]
     public Rectangle(
         float x,
@@ -69,18 +61,10 @@ public record Rectangle : IRectangle
     /// <summary>
     ///     Initializes a new instance of the <see cref="Rectangle" /> class.
     /// </summary>
-    /// <param name="height">
-    ///     The height of the rectangle.
-    /// </param>
-    /// <param name="width">
-    ///     The width of the rectangle.
-    /// </param>
-    /// <param name="center">
-    ///     The center point of the rectangle.
-    /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     center
-    /// </exception>
+    /// <param name="height">The height of the rectangle.</param>
+    /// <param name="width">The width of the rectangle.</param>
+    /// <param name="center">The center point of the rectangle.</param>
+    /// <exception cref="System.ArgumentNullException">center</exception>
     public Rectangle(float height, float width, IPoint center)
         : this(
             center?.X ?? throw new ArgumentNullException(nameof(center)),
@@ -91,18 +75,10 @@ public record Rectangle : IRectangle
     /// <summary>
     ///     Initializes a new instance of the <see cref="Rectangle" /> class.
     /// </summary>
-    /// <param name="vertex1">
-    ///     An opposing vertex of a rectangle.
-    /// </param>
-    /// <param name="vertex2">
-    ///     Another opposing vertex of a rectangle.
-    /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     pt1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     pt2
-    /// </exception>
+    /// <param name="vertex1">An opposing vertex of a rectangle.</param>
+    /// <param name="vertex2">Another opposing vertex of a rectangle.</param>
+    /// <exception cref="System.ArgumentNullException">pt1</exception>
+    /// <exception cref="System.ArgumentNullException">pt2</exception>
     public Rectangle(IPoint vertex1, IPoint vertex2)
         : this(
             Math.Abs(

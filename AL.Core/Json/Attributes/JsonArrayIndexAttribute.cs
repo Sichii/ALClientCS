@@ -7,16 +7,12 @@ namespace AL.Core.Json.Attributes;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class JsonArrayIndexAttribute : Attribute
 {
-    /// <summary>
-    ///     The index of the property within the array.
-    /// </summary>
+    /// <summary>The index of the property within the array.</summary>
     public int Index { get; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="JsonArrayIndexAttribute" /> class.
     /// </summary>
-    /// <param name="index">
-    ///     The index.
-    /// </param>
+    /// <param name="index">The index.</param>
     public JsonArrayIndexAttribute(int index) => Index = index;
 }

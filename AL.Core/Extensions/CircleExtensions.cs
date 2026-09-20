@@ -33,9 +33,7 @@ public static class CircleExtensions
                 numberOfPoints,
                 startingAngle);
 
-        /// <summary>
-        ///     Whether two circles touch or overlap.
-        /// </summary>
+        /// <summary>Whether two circles touch or overlap.</summary>
         public bool Intersects<T2>(T2 other) where T2: ICircle, allows ref struct
             => circle.Distance(other) <= (circle.Radius + other.Radius);
 
@@ -73,28 +71,13 @@ public static class CircleExtensions
     /// <summary>
     ///     Determines whether this circle fully encompasses another circle.
     /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="other">
-    ///     Another circle.
-    /// </param>
+    /// <param name="circle">This circle.</param>
+    /// <param name="other">Another circle.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this circle fully encompasses the other (or edges touch); otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if this circle fully encompasses the other (or edges touch); otherwise, <c>false</c> .
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">circle</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static bool Contains(this ICircle circle, ICircle other)
     {
         ArgumentNullException.ThrowIfNull(circle);
@@ -107,28 +90,13 @@ public static class CircleExtensions
     /// <summary>
     ///     Determines whether this circle contains the given point.
     /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
+    /// <param name="circle">This circle.</param>
+    /// <param name="point">A point.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this circle contains the point, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if this circle contains the point, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">circle</exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
     public static bool Contains(this ICircle circle, IPoint point)
     {
         ArgumentNullException.ThrowIfNull(circle);

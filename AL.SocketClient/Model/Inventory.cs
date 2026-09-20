@@ -4,9 +4,7 @@ using System.Collections;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents the character's inventory.
-/// </summary>
+/// <summary>Represents the character's inventory.</summary>
 public sealed class Inventory : IReadOnlyList<Item?>
 {
     public IReadOnlyList<Item?> Items { get; }
@@ -49,16 +47,9 @@ public sealed class Inventory : IReadOnlyList<Item?>
     /// </summary>
     /// <remarks>
     ///     This is the only way an in-progress upgrade or compound's detail reaches the item it belongs to. The server
-    ///     publishes it on
-    ///     <c>
-    ///         q_data
-    ///     </c>
-    ///     carrying nothing but the slot number (
-    ///     <c>
-    ///         node/server.js:13240
-    ///     </c>
-    ///     ) and never folds it into an inventory frame, so without this the placeholder occupying that slot keeps whatever
-    ///     prediction it was deserialized with - which for the roll's digits means an empty list for the whole operation.
+    ///     publishes it on <c>q_data</c> carrying nothing but the slot number ( <c>node/server.js:13240</c> ) and never folds
+    ///     it into an inventory frame, so without this the placeholder occupying that slot keeps whatever prediction it was
+    ///     deserialized with - which for the roll's digits means an empty list for the whole operation.
     /// </remarks>
     internal void SetPrediction(int index, Prediction? prediction)
     {

@@ -1,8 +1,6 @@
 namespace AL.Core.Interfaces;
 
-/// <summary>
-///     Provides
-/// </summary>
+/// <summary>Provides</summary>
 public interface IBounding
 {
     float HalfWidth { get; }

@@ -9,8 +9,7 @@ namespace AL.Data;
 /// <summary>
 ///     Provides dictionary-like access to contained properties.
 /// </summary>
-/// <typeparam name="T">
-/// </typeparam>
+/// <typeparam name="T"></typeparam>
 public abstract class DatumBase<T>
 {
     private IReadOnlyDictionary<string, T> LookupCache { get; set; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
@@ -21,17 +20,24 @@ public abstract class DatumBase<T>
     [JsonIgnore]
     public IReadOnlyDictionary<string, T> Entries => LookupCache;
 
-    /// <summary>
-    ///     Gets all property names.
-    /// </summary>
+    /// <summary>Gets all property names.</summary>
     [JsonIgnore]
     public IEnumerable<string> Keys => LookupCache.Keys;
 
-    /// <summary>
-    ///     Gets all property values.
-    /// </summary>
+    /// <summary>Gets all property values.</summary>
     [JsonIgnore]
     public IEnumerable<T> Values => LookupCache.Values;
+
+    /// <summary>
+    ///     Adds an entry, copy-on-write like <see cref="Remove" />: a datum is read from every thread without a lock, so the
+    ///     entry lands in a fresh table and the reference is swapped, leaving whatever table a reader already holds intact and
+    ///     in order.
+    /// </summary>
+    internal void Add(string key, T value)
+        => LookupCache = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase)
+        {
+            [key] = value
+        };
 
     internal virtual void BuildLookupTable()
     {
@@ -73,16 +79,17 @@ public abstract class DatumBase<T>
         }
     }
 
+    /// <summary>Allows using a string to access properties.</summary>
+    /// <param name="datumName"></param>
+    [JsonIgnore]
+    public T? this[string datumName] => LookupCache.TryGetValue(datumName, out var value) ? value : default;
+
     /// <summary>
-    ///     Adds an entry, copy-on-write like <see cref="Remove" />: a datum is read from every thread without a lock, so the
-    ///     entry lands in a fresh table and the reference is swapped, leaving whatever table a reader already holds intact and
-    ///     in order.
+    ///     Allows using string representation of an enum to access properties.
     /// </summary>
-    internal void Add(string key, T value)
-        => LookupCache = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase)
-        {
-            [key] = value
-        };
+    /// <param name="enum"></param>
+    [JsonIgnore]
+    public T? this[Enum @enum] => this[EnumHelper.ToString(@enum)];
 
     internal void Remove(string key)
     {
@@ -90,20 +97,4 @@ public abstract class DatumBase<T>
         copy.Remove(key);
         LookupCache = copy;
     }
-
-    /// <summary>
-    ///     Allows using a string to access properties.
-    /// </summary>
-    /// <param name="datumName">
-    /// </param>
-    [JsonIgnore]
-    public T? this[string datumName] => LookupCache.TryGetValue(datumName, out var value) ? value : default;
-
-    /// <summary>
-    ///     Allows using string representation of an enum to access properties.
-    /// </summary>
-    /// <param name="enum">
-    /// </param>
-    [JsonIgnore]
-    public T? this[Enum @enum] => this[EnumHelper.ToString(@enum)];
 }

@@ -8,9 +8,7 @@ using IJsonOnDeserialized = System.Text.Json.Serialization.IJsonOnDeserialized;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a player. (ymyself or others)
-/// </summary>
+/// <summary>Represents a player. (ymyself or others)</summary>
 /// <seealso cref="EntityBase" />
 /// <seealso cref="ISimplePlayer" />
 /// <seealso cref="IEquatable{T}" />
@@ -24,31 +22,20 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     public int Age { get; protected set; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE.
-    ///     </b>
-    ///     If populated, you are channeling.
+    ///     <b>NULLABLE.</b> If populated, you are channeling.
     ///     <br />
-    ///     Some channeling abilities will be canceled if you move. Check the skill's
-    ///     <c>
-    ///         CanMove
-    ///     </c>
-    ///     property.
+    ///     Some channeling abilities will be canceled if you move. Check the skill's <c>CanMove</c> property.
     /// </summary>
     [JsonPropertyName("c")]
     [JsonInclude]
     public IReadOnlyDictionary<string, ChannelingInfo>? Channeling { get; protected set; }
 
-    /// <summary>
-    ///     The class of the player.
-    /// </summary>
+    /// <summary>The class of the player.</summary>
     [JsonPropertyName("ctype")]
     [JsonInclude]
     public ALClass Class { get; protected set; }
 
-    /// <summary>
-    ///     Whether or not the player is running code.
-    /// </summary>
+    /// <summary>Whether or not the player is running code.</summary>
     [JsonInclude]
     public bool Code { get; protected set; }
 
@@ -60,9 +47,7 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     [JsonInclude]
     public string? Controller { get; protected set; }
 
-    /// <summary>
-    ///     Appearanc information about the character.
-    /// </summary>
+    /// <summary>Appearanc information about the character.</summary>
     [JsonPropertyName("cx")]
     [JsonInclude]
     public CosmeticInfo Cosmetics { get; protected set; } = null!;
@@ -95,17 +80,7 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     public string? PartyLeader { get; protected set; }
 
     /// <summary>
-    ///     If populated, this player's assigned side ("A" or "B") in a team-based PVP event such as the A/B Testing
-    ///     arena or a duel. Null outside such an event — the server deletes the field the moment the player leaves.
-    /// </summary>
-    [JsonInclude]
-    public string? Team { get; protected set; }
-
-    /// <summary>
-    ///     <b>
-    ///         NULLABLE.
-    ///     </b>
-    ///     If populated, this player is performing a queued action.
+    ///     <b>NULLABLE.</b> If populated, this player is performing a queued action.
     ///     <br />
     ///     Queued actions are actions that take some time to complete. This object lets you keep track of their progress.
     /// </summary>
@@ -113,16 +88,11 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     [JsonInclude]
     public QueuedActionInfo? QueuedActions { get; protected set; }
 
-    /// <summary>
-    ///     Whether or not you are dead.
-    /// </summary>
+    /// <summary>Whether or not you are dead.</summary>
     /// <remarks>
-    ///     The server sends
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     or, once a gravestone cosmetic is chosen, the cosmetic's name - which is the same true-or-string shape AFK has, so
-    ///     it reuses that converter. The cosmetic name itself is of no use to a headless client.
+    ///     The server sends <c>true</c> or, once a gravestone cosmetic is chosen, the cosmetic's name - which is the same
+    ///     true-or-string shape AFK has, so it reuses that converter. The cosmetic name itself is of no use to a headless
+    ///     client.
     /// </remarks>
     [JsonInclude]
     [JsonConverter(typeof(StjConverters.AfkConverter))]
@@ -139,17 +109,20 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     ///     <br />
     ///     All slots should have keys in the dictionary, but the items may be null.
     /// </summary>
-    /// <remarks>
-    ///     Enriched by converter
-    /// </remarks>
+    /// <remarks>Enriched by converter</remarks>
     [JsonInclude]
     public IReadOnlyDictionary<Slot, SlotItem?> Slots { get; protected set; } = new Dictionary<Slot, SlotItem?>();
 
-    /// <summary>
-    ///     The type of stand this player is using.
-    /// </summary>
+    /// <summary>The type of stand this player is using.</summary>
     [JsonInclude]
     public Stand Stand { get; protected set; }
+
+    /// <summary>
+    ///     If populated, this player's assigned side ("A" or "B") in a team-based PVP event such as the A/B Testing arena or a
+    ///     duel. Null outside such an event — the server deletes the field the moment the player leaves.
+    /// </summary>
+    [JsonInclude]
+    public string? Team { get; protected set; }
 
     /// <summary>
     ///     Whether or not this player is currently teleporting.
@@ -158,15 +131,11 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     [JsonInclude]
     public bool Teleporting { get; protected set; }
 
-    /// <summary>
-    ///     Checks if this player is actually an NPC.
-    /// </summary>
+    /// <summary>Checks if this player is actually an NPC.</summary>
     [JsonIgnore]
     public bool IsNPC => (NPCName != null) || (Class == ALClass.NPC);
 
-    /// <summary>
-    ///     The name of the player.
-    /// </summary>
+    /// <summary>The name of the player.</summary>
     [JsonIgnore]
     public string Name => Id;
 

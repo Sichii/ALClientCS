@@ -52,6 +52,7 @@ public sealed class ALSocketClient : IALSocketClient
     /// <remarks>
     ///     Held only to keep the consumer loop rooted for the client's lifetime; nothing awaits it.
     /// </remarks>
+
     // ReSharper disable once NotAccessedField.Local
     private readonly Task Pump;
 
@@ -89,9 +90,7 @@ public sealed class ALSocketClient : IALSocketClient
     /// <summary>
     ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
     /// </summary>
-    /// <param name="logger">
-    ///     The prefixed logged to log messages to.
-    /// </param>
+    /// <param name="logger">The prefixed logged to log messages to.</param>
     /// <param name="proxy">
     ///     The proxy to reach the game through, or null for the machine's own connection.
     /// </param>
@@ -118,9 +117,7 @@ public sealed class ALSocketClient : IALSocketClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Socket is already open.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Socket is already open.</exception>
     public async Task ConnectAsync(Server server)
     {
         if (Connected)
@@ -258,9 +255,7 @@ public sealed class ALSocketClient : IALSocketClient
             .ConfigureAwait(false);
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Socket is null or closed.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
     public async Task EmitAsync<T>(ALSocketEmitType emitType, T data)
     {
         Logger.Trace($"{emitType}, {data}");
@@ -292,9 +287,7 @@ public sealed class ALSocketClient : IALSocketClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Socket is null or closed.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
     public async Task EmitAsync(ALSocketEmitType emitType)
     {
         Logger.Trace($"{emitType}");
@@ -506,16 +499,10 @@ RAW JSON:
     ///     Hands each frame to its subscribers, one at a time, in the order the transport read them.
     /// </summary>
     /// <remarks>
-    ///     <b>
-    ///         No subscriber may await a server response.
-    ///     </b>
-    ///     Its answer arrives as a frame, and that frame queues behind the subscriber waiting for it, so the wait never ends.
-    ///     Nothing does this today - the only
-    ///     <c>
-    ///         async
-    ///     </c>
-    ///     subscriber in the client awaits nothing at all - and a new one that did would not fail visibly, it would stop the
-    ///     socket. Register a callback that records what it saw and returns.
+    ///     <b>No subscriber may await a server response.</b> Its answer arrives as a frame, and that frame queues behind the
+    ///     subscriber waiting for it, so the wait never ends. Nothing does this today - the only <c>async</c> subscriber in
+    ///     the client awaits nothing at all - and a new one that did would not fail visibly, it would stop the socket.
+    ///     Register a callback that records what it saw and returns.
     ///     <br />
     ///     Hitchhiked events are not affected: they arrive inside a frame already being handled and dispatch through
     ///     <see cref="HandleEventAsync" /> inline, which is the order they belong in anyway.
@@ -573,10 +560,7 @@ RAW JSON:
     ///     about.
     /// </remarks>
     /// <returns>
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     when nothing subscribes to <paramref name="messageType" />, or the queue has closed
+    ///     <c>false</c> when nothing subscribes to <paramref name="messageType" />, or the queue has closed
     /// </returns>
     internal bool TryEnqueue(ALSocketMessageType messageType, object data, string eventName)
     {
@@ -592,9 +576,7 @@ RAW JSON:
                 Stopwatch.GetTimestamp()));
     }
 
-    /// <summary>
-    ///     One frame, decoded and waiting its turn.
-    /// </summary>
+    /// <summary>One frame, decoded and waiting its turn.</summary>
     /// <remarks>
     ///     Decoding happens on the transport's receive loop, before the frame is queued, so the queue holds work that is
     ///     already done rather than json waiting to be parsed. What waits here is only the handler call.

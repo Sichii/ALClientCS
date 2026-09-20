@@ -19,13 +19,9 @@ namespace AL.Tests.SocketClient.Tests;
 /// </summary>
 /// <remarks>
 ///     Restated against the wire rather than against the library. Asking SocketIOClient whether it would use the proxy, or
-///     asking
-///     <c>
-///         ClientWebSocket
-///     </c>
-///     what it supports, is a probe agreeing with itself; the only answer that means anything is the bytes that actually
-///     leave. A runtime or library change that quietly stopped speaking SOCKS would put the character back on the
-///     machine's own IP, and nothing else here would notice.
+///     asking <c>ClientWebSocket</c> what it supports, is a probe agreeing with itself; the only answer that means
+///     anything is the bytes that actually leave. A runtime or library change that quietly stopped speaking SOCKS would
+///     put the character back on the machine's own IP, and nothing else here would notice.
 /// </remarks>
 public class ProxyTests
 {
@@ -115,29 +111,16 @@ public class ProxyTests
     }
 
     /// <summary>
-    ///     <c>
-    ///         ALClient.EnsureSocketCarriesProxy
-    ///     </c>
-    ///     throws when the socket about to connect was not built with this character's configured proxy.
+    ///     <c>ALClient.EnsureSocketCarriesProxy</c> throws when the socket about to connect was not built with this
+    ///     character's configured proxy.
     /// </summary>
     /// <remarks>
-    ///     Two earlier attempts pinned this invariant by scanning
-    ///     <c>
-    ///         ALClient.cs
-    ///     </c>
-    ///     's source text for how a replacement socket's construction was spelled, and each was fooled by a different legal
-    ///     spelling of the same construction. A source scan can only ever recognize spellings it was told about. Driving an
-    ///     actual reconnect to exercise the real call site needs a live server, so instead this calls the guard method
-    ///     directly (
-    ///     <c>
-    ///         internal
-    ///     </c>
-    ///     , visible here via
-    ///     <c>
-    ///         InternalsVisibleTo
-    ///     </c>
-    ///     ) against a client assembled by hand - the smallest honest way to prove the check fires on a mismatch and stays
-    ///     quiet on a match, without caring how any particular socket happened to get built.
+    ///     Two earlier attempts pinned this invariant by scanning <c>ALClient.cs</c> 's source text for how a replacement
+    ///     socket's construction was spelled, and each was fooled by a different legal spelling of the same construction. A
+    ///     source scan can only ever recognize spellings it was told about. Driving an actual reconnect to exercise the real
+    ///     call site needs a live server, so instead this calls the guard method directly ( <c>internal</c> , visible here via
+    ///     <c>InternalsVisibleTo</c> ) against a client assembled by hand - the smallest honest way to prove the check fires
+    ///     on a mismatch and stays quiet on a match, without caring how any particular socket happened to get built.
     /// </remarks>
     [Test]
     public void ThrowsWhenTheSocketDoesNotCarryTheConfiguredProxy()
@@ -166,16 +149,16 @@ public class ProxyTests
     {
         public AuthUser Auth => throw new NotSupportedException();
 
+        public Task DeleteMailAsync(Mail mail) => throw new NotSupportedException();
+
         public IAsyncEnumerable<Mail> GetMailAsync() => throw new NotSupportedException();
 
         public IAsyncEnumerable<MerchantInfo> GetMerchantsAsync() => throw new NotSupportedException();
 
-        public Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false) => throw new NotSupportedException();
+        public Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false)
+            => throw new NotSupportedException();
 
         public Task ReadMailAsync(Mail mail) => throw new NotSupportedException();
-
-
-        public Task DeleteMailAsync(Mail mail) => throw new NotSupportedException();
 
         public Task RenewAuth() => throw new NotSupportedException();
     }

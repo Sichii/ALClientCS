@@ -7,39 +7,29 @@ using AL.Core.Model;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents information about a boss monster.
-/// </summary>
+/// <summary>Represents information about a boss monster.</summary>
 /// <seealso cref="ILocation" />
 /// <seealso cref="IMutable{TMutator}" />
-/// <remarks>
-///     Mutated by <see cref="Mutation" />
-/// </remarks>
+/// <remarks>Mutated by <see cref="Mutation" /></remarks>
 public record BossInfo : ILocation, IMutable<Mutation>
 {
     /// <summary>
-    ///     If populated, the remaining HP of the boss.
-    /// </summary>
-    [JsonInclude]
-    public float? HP { get; protected set; }
-
-    /// <summary>
-    ///     The accessor of this boss.
-    /// </summary>
-    [JsonIgnore]
-    public string Id { get; init; } = null!;
-
-    /// <summary>
-    ///     Whether or not this boss is alive.
-    /// </summary>
-    public bool Live { get; init; }
-
-    /// <summary>
-    ///     For the anniversary event, whether the featured player can be reached right now. The server keeps the round on
-    ///     them and waits when they cannot be, so false means hold rather than look for somebody else. Absent for a boss.
+    ///     For the anniversary event, whether the featured player can be reached right now. The server keeps the round on them
+    ///     and waits when they cannot be, so false means hold rather than look for somebody else. Absent for a boss.
     /// </summary>
     [JsonPropertyName("available")]
     public bool? Available { get; init; }
+
+    /// <summary>If populated, the remaining HP of the boss.</summary>
+    [JsonInclude]
+    public float? HP { get; protected set; }
+
+    /// <summary>The accessor of this boss.</summary>
+    [JsonIgnore]
+    public string Id { get; init; } = null!;
+
+    /// <summary>Whether or not this boss is alive.</summary>
+    public bool Live { get; init; }
 
     /// <summary>
     ///     If populated, the name of the map this boss is on.
@@ -48,9 +38,7 @@ public record BossInfo : ILocation, IMutable<Mutation>
     public string? Map { get; init; }
     #pragma warning restore 8766
 
-    /// <summary>
-    ///     If populated, the maximum hp of the boss.
-    /// </summary>
+    /// <summary>If populated, the maximum hp of the boss.</summary>
     [JsonPropertyName("max_hp")]
     [JsonInclude]
     public float? MaxHP { get; protected set; }
@@ -62,19 +50,13 @@ public record BossInfo : ILocation, IMutable<Mutation>
     [JsonPropertyName("round")]
     public long? Round { get; init; }
 
-    /// <summary>
-    ///     If populated, the current target of the boss.
-    /// </summary>
+    /// <summary>If populated, the current target of the boss.</summary>
     public string? Target { get; init; }
 
-    /// <summary>
-    ///     The X coordinate of the boss if it's alive.
-    /// </summary>
+    /// <summary>The X coordinate of the boss if it's alive.</summary>
     public float X { get; init; }
 
-    /// <summary>
-    ///     The Y coordinate of the boss if it's alive.
-    /// </summary>
+    /// <summary>The Y coordinate of the boss if it's alive.</summary>
     public float Y { get; init; }
 
     public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);

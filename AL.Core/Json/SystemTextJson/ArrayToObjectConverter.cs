@@ -13,11 +13,9 @@ namespace AL.Core.Json.SystemTextJson;
 /// <summary>
 ///     Converts an object whose wire form is a positional array, mapping array index &lt;-&gt; member via
 ///     <see cref="JsonArrayIndexAttribute" />. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         ArrayToObjectConverter
-///     </c>
-///     . Register in the shared options (or reuse <see cref="FromArray" />) rather than as a type-level attribute, so the
-///     inner declared-member deserialize can drop this converter and avoid re-entering itself.
+///     <c>ArrayToObjectConverter</c> . Register in the shared options (or reuse <see cref="FromArray" />) rather than as a
+///     type-level attribute, so the inner declared-member deserialize can drop this converter and avoid re-entering
+///     itself.
 /// </summary>
 public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
 {
@@ -177,11 +175,9 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
 /// <summary>
 ///     Applies <see cref="ArrayToObjectConverter{T}" /> to any type that carries <see cref="JsonArrayIndexAttribute" />
 ///     members — such a type is positional by design and is therefore always array-shaped on the wire. Registered in the
-///     shared options so a single factory covers every
-///     <c>
+///     shared options so a single factory covers every <c>
 ///         ItemConverterType = ArrayToObjectConverter&lt;…&gt;
-///     </c>
-///     element type (doors, spawns, tiles, orientations, …) without a per-type registration.
+///     </c> element type (doors, spawns, tiles, orientations, …) without a per-type registration.
 /// </summary>
 public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
 {

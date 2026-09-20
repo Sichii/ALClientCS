@@ -17,7 +17,8 @@ public class CaveWireTests
     [Test]
     public void ACaveChestDropParsesItsChestType()
     {
-        var data = TestJson.Socket<DropData>(@"{""chest"":""cavechest"",""id"":""abc"",""x"":1,""y"":2,""map"":""main"",""items"":1,""owners"":[""a""]}");
+        var data = TestJson.Socket<DropData>(
+            @"{""chest"":""cavechest"",""id"":""abc"",""x"":1,""y"":2,""map"":""main"",""items"":1,""owners"":[""a""]}");
 
         data.Should()
             .NotBeNull();

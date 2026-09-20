@@ -9,9 +9,7 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record DisappearingTextData
 {
-    /// <summary>
-    ///     If populated, contains various UI datas
-    /// </summary>
+    /// <summary>If populated, contains various UI datas</summary>
     public JsonNode? Args { get; init; }
 
     /// <summary>
@@ -20,9 +18,7 @@ public sealed record DisappearingTextData
     /// </summary>
     public string? Id { get; init; }
 
-    /// <summary>
-    ///     The raw text that appears.
-    /// </summary>
+    /// <summary>The raw text that appears.</summary>
     public string Message { get; init; } = null!;
 
     public float X { get; init; }

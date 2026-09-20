@@ -8,24 +8,18 @@ using FluentAssertions;
 namespace AL.Tests.Client.Tests;
 
 /// <summary>
-///     A burn deals
-///     <c>
-///         ceil(intensity / 5)
-///     </c>
-///     per tick, and that divisor has nothing to do with the interval beside it - the server hardcodes the one where the
-///     other is data. Deriving the tick from the interval instead reads as equivalent, because the condition's own text
-///     calls it "damage equal to its intensity per second" and at 210ms that is very nearly true.
+///     A burn deals <c>ceil(intensity / 5)</c> per tick, and that divisor has nothing to do with the interval beside it -
+///     the server hardcodes the one where the other is data. Deriving the tick from the interval instead reads as
+///     equivalent, because the condition's own text calls it "damage equal to its intensity per second" and at 210ms that
+///     is very nearly true.
 ///     <br />
 ///     The interval is not the tick rate either. The server polls conditions once per instance update rather than
 ///     scheduling them, and an instance updates no faster than 75ms, so a burn fires on every third update - 225ms, not
 ///     210. Both mistakes overstate a burn, and an overstated burn is a monster the combat lanes decline to shoot and then
 ///     have to kill anyway.
 ///     <br />
-///     Pinned on a <see cref="Player" /> so it needs no monster data: the
-///     <c>
-///         Monster
-///     </c>
-///     arm of the check adds only the 1hp and self-healing bail-outs on top of this arithmetic.
+///     Pinned on a <see cref="Player" /> so it needs no monster data: the <c>Monster</c> arm of the check adds only the
+///     1hp and self-healing bail-outs on top of this arithmetic.
 /// </summary>
 public class BurnTests : GameDataTestBed
 {

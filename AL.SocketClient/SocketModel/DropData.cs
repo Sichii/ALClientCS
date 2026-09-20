@@ -23,9 +23,7 @@ public record DropData : ILocation
     /// </summary>
     public string Id { get; set; } = null!;
 
-    /// <summary>
-    ///     The number of items the chest contains.
-    /// </summary>
+    /// <summary>The number of items the chest contains.</summary>
     [JsonPropertyName("items")]
     public int ItemCount { get; set; }
 

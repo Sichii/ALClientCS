@@ -4,11 +4,8 @@ using System.Collections;
 
 namespace AL.Core.Collections;
 
-/// <summary>
-///     Represents a fixed size array.
-/// </summary>
-/// <typeparam name="T">
-/// </typeparam>
+/// <summary>Represents a fixed size array.</summary>
+/// <typeparam name="T"></typeparam>
 /// <seealso cref="System.Collections.Generic.IEnumerable{T}" />
 public sealed class CyclicBuffer<T> : IEnumerable<T?>
 {
@@ -23,9 +20,7 @@ public sealed class CyclicBuffer<T> : IEnumerable<T?>
     /// <summary>
     ///     Initializes a new instance of the <see cref="CyclicBuffer{T}" /> class.
     /// </summary>
-    /// <param name="size">
-    ///     The size.
-    /// </param>
+    /// <param name="size">The size.</param>
     public CyclicBuffer(int size) => Items = new T?[size];
 
     /// <inheritdoc />
@@ -39,9 +34,7 @@ public sealed class CyclicBuffer<T> : IEnumerable<T?>
     /// <summary>
     ///     Adds a new item to the buffer, overwriting the oldest item if full.
     /// </summary>
-    /// <param name="item">
-    ///     The item.
-    /// </param>
+    /// <param name="item">The item.</param>
     /// <returns>
     ///     <typeparamref name="T" />
     ///     <br />

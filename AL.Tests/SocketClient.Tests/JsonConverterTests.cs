@@ -51,15 +51,6 @@ public class JsonConverterTests
     }
 
     [Test]
-    public void DeserializeCharacterDataTest()
-    {
-        var obj = TestJson.Socket<CharacterData>(Fixture.ReadCommittedSnapshot("character-frame.json")!);
-
-        obj.Should()
-           .NotBeNull();
-    }
-
-    [Test]
     public void DeserializeAnniversaryStatusTest()
     {
         //the frame the game's kiss button reads: a status for one realm and round, with the reason the kiss will not pay
@@ -74,7 +65,8 @@ public class JsonConverterTests
 
         var obj = TestJson.Socket<CharacterData>(CHARACTER_WITH_STATUS);
 
-        obj!.Anniversary.Should()
+        obj!.Anniversary
+            .Should()
             .BeEquivalentTo(
                 new AnniversaryStatus
                 {
@@ -82,6 +74,15 @@ public class JsonConverterTests
                     Round = 993919L,
                     Reason = "claimed"
                 });
+    }
+
+    [Test]
+    public void DeserializeCharacterDataTest()
+    {
+        var obj = TestJson.Socket<CharacterData>(Fixture.ReadCommittedSnapshot("character-frame.json")!);
+
+        obj.Should()
+           .NotBeNull();
     }
 
     [Test]
@@ -315,21 +316,26 @@ public class JsonConverterTests
 
         var round = obj!.BossInfo["anniversary"];
 
-        round.Live.Should()
+        round.Live
+             .Should()
              .BeTrue();
 
-        round.Target.Should()
+        round.Target
+             .Should()
              .Be("T1l40Mercha");
 
-        round.Round.Should()
+        round.Round
+             .Should()
              .Be(993919L);
 
-        round.Available.Should()
+        round.Available
+             .Should()
              .BeFalse();
 
         //a boss carries no such flag, and absent has to read as nothing said rather than as unreachable
         obj.BossInfo["franky"]
-           .Available.Should()
+           .Available
+           .Should()
            .BeNull();
     }
 

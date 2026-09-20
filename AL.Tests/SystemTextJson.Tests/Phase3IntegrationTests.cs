@@ -17,12 +17,9 @@ namespace AL.Tests.SystemTextJson.Tests;
 /// <summary>
 ///     STJ Phase 3 end-to-end check: real game-data models deserialize through the canonical <see cref="ALJson.Options" />
 ///     — proving the models' own System.Text.Json attributes and the type-matched converter factories are wired correctly
-///     together.
-///     <c>
-///         [JsonPropertyName]
-///     </c>
-///     renames, the attributed-object harvest, scroll-stat recovery, the value-tuple factory (single and list), positional
-///     arrays, map rectangles, and the tolerant-enum factory are all exercised end to end.
+///     together. <c>[JsonPropertyName]</c> renames, the attributed-object harvest, scroll-stat recovery, the value-tuple
+///     factory (single and list), positional arrays, map rectangles, and the tolerant-enum factory are all exercised end
+///     to end.
 /// </summary>
 public sealed class Phase3IntegrationTests
 {

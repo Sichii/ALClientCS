@@ -11,21 +11,11 @@ namespace AL.Core.Json.SystemTextJson;
 ///     3339 and throws on anything else, which in a socket frame takes the whole frame down.
 /// </summary>
 /// <remarks>
-///     The server builds an item's expiry with JavaScript's
-///     <c>
-///         Date.prototype.toUTCString()
-///     </c>
-///     , which emits RFC 1123 (
-///     <c>
-///         "Wed, 14 Jun 2017 07:00:00 GMT"
-///     </c>
-///     ), and substitutes an empty string when the item has no expiry. Newtonsoft's
-///     <c>
-///         IsoDateTimeConverter
-///     </c>
-///     absorbed both because it fell through to <see cref="DateTime.Parse(string, IFormatProvider, DateTimeStyles)" />;
-///     this reproduces that leniency. Everything is normalised to UTC — the wire form is always UTC, whether or not it
-///     says so.
+///     The server builds an item's expiry with JavaScript's <c>Date.prototype.toUTCString()</c> , which emits RFC 1123 (
+///     <c>"Wed, 14 Jun 2017 07:00:00 GMT"</c> ), and substitutes an empty string when the item has no expiry. Newtonsoft's
+///     <c>IsoDateTimeConverter</c> absorbed both because it fell through to
+///     <see cref="DateTime.Parse(string, IFormatProvider, DateTimeStyles)" />; this reproduces that leniency. Everything
+///     is normalised to UTC — the wire form is always UTC, whether or not it says so.
 /// </remarks>
 public sealed class LenientDateTimeConverter : JsonConverter<DateTime?>
 {

@@ -26,15 +26,8 @@ public sealed record QueuedActionData
 
     /// <summary>
     ///     The inventory slot the queued operation is running in - the one holding its placeholder, and the slot
-    ///     <see cref="Prediction" /> below belongs to. It is the server's
-    ///     <c>
-    ///         ref.num
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         node/server.js:13240
-    ///     </c>
-    ///     ), not a count of anything.
+    ///     <see cref="Prediction" /> below belongs to. It is the server's <c>ref.num</c> ( <c>node/server.js:13240</c> ), not
+    ///     a count of anything.
     /// </summary>
     [JsonPropertyName("num")]
     public int Slot { get; init; }

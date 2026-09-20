@@ -9,18 +9,8 @@ using AL.Core.Geometry;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Parses a <see cref="MapRectangle" /> from a positional array that is either
-///     <c>
-///         [x1, y1, x2, y2]
-///     </c>
-///     or
-///     <c>
-///         [mapName, x1, y1, x2, y2]
-///     </c>
-///     . The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         MapRectangleConverter
-///     </c>
+///     Parses a <see cref="MapRectangle" /> from a positional array that is either <c>[x1, y1, x2, y2]</c> or
+///     <c>[mapName, x1, y1, x2, y2]</c> . The System.Text.Json replacement for the Newtonsoft <c>MapRectangleConverter</c>
 ///     .
 /// </summary>
 public sealed class MapRectangleConverter : JsonConverter<MapRectangle>

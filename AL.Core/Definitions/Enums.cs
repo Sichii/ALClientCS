@@ -85,8 +85,8 @@ public enum ALAttribute
 
     /// <summary>
     ///     Percent chance to shrug off stunned outright, rolled as the condition lands. Stun is the only condition that names
-    ///     it. The wire key and the game's "impact resistance" label both suggest physical damage reduction, which this is
-    ///     not - that is Armor's job.
+    ///     it. The wire key and the game's "impact resistance" label both suggest physical damage reduction, which this is not
+    ///     - that is Armor's job.
     /// </summary>
     [EnumMember(Value = "phresistance")]
     StunResistance,
@@ -366,23 +366,16 @@ public enum ALAttribute
     //appended for the same reason as the courages
     /// <summary>
     ///     Percent chance to shrug off any incoming attack, physical or magical, as a miss - the splash of an explosion
-    ///     included, which rolls it again on every monster it reaches. Nothing wearable carries it; a handful of monsters
-    ///     do, at 98 and up.
+    ///     included, which rolls it again on every monster it reaches. Nothing wearable carries it; a handful of monsters do,
+    ///     at 98 and up.
     /// </summary>
     Avoidance
 }
 
 /// <summary>
-///     What stops an item being disposed of, read from the socket item field
-///     <c>
-///         l
-///     </c>
-///     . The server deletes the field rather than clearing it, so an item whose unlock has run to completion arrives
-///     carrying no
-///     <c>
-///         l
-///     </c>
-///     at all and reads back as <see cref="None" /> (node/server.js:6313, :6324).
+///     What stops an item being disposed of, read from the socket item field <c>l</c> . The server deletes the field
+///     rather than clearing it, so an item whose unlock has run to completion arrives carrying no <c>l</c> at all and
+///     reads back as <see cref="None" /> (node/server.js:6313, :6324).
 /// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ItemLockType
@@ -398,22 +391,12 @@ public enum ItemLockType
     /// <summary>
     ///     A seal 48 hours into being lifted - not a lock that has been lifted. The countdown starts when the unseal is paid
     ///     for, and the item stays fully protected for every hour of it: the branches that refuse a locked item test
-    ///     <c>
-    ///         item.l
-    ///     </c>
-    ///     for truthiness rather than for one particular letter, so a sale and a fresh lock are refused here exactly as they
-    ///     are on <see cref="Locked" /> (node/server.js:6307-6318, :6328).
+    ///     <c>item.l</c> for truthiness rather than for one particular letter, so a sale and a fresh lock are refused here
+    ///     exactly as they are on <see cref="Locked" /> (node/server.js:6307-6318, :6328).
     /// </summary>
     /// <remarks>
-    ///     The deadline itself is
-    ///     <c>
-    ///         item.ld
-    ///     </c>
-    ///     , which this library does not model. How long is left has to come from the server's
-    ///     <c>
-    ///         locksmith_unsealing
-    ///     </c>
-    ///     response.
+    ///     The deadline itself is <c>item.ld</c> , which this library does not model. How long is left has to come from the
+    ///     server's <c>locksmith_unsealing</c> response.
     /// </remarks>
     [EnumMember(Value = "u")]
     Unsealing
@@ -429,16 +412,9 @@ public enum DoorLockType
     None,
 
     /// <summary>
-    ///     A bank level the account has not unlocked. The server refuses the transport when the door reads
-    ///     <c>
-    ///         "ulocked"
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         player.user.unlocked
-    ///     </c>
-    ///     holds no entry for the destination (node/server.js:5510-5518), so the pathfinder leaves these doors out of the
-    ///     navmesh entirely.
+    ///     A bank level the account has not unlocked. The server refuses the transport when the door reads <c>"ulocked"</c>
+    ///     and <c>player.user.unlocked</c> holds no entry for the destination (node/server.js:5510-5518), so the pathfinder
+    ///     leaves these doors out of the navmesh entirely.
     /// </summary>
     [EnumMember(Value = "ulocked")]
     AccountLocked,
@@ -450,11 +426,7 @@ public enum DoorLockType
     Key,
 
     /// <summary>
-    ///     Local marker, never on the wire -
-    ///     <c>
-    ///         GDoor.Unlock()
-    ///     </c>
-    ///     is the only thing that sets it.
+    ///     Local marker, never on the wire - <c>GDoor.Unlock()</c> is the only thing that sets it.
     /// </summary>
     Unlocked
 }
@@ -487,30 +459,14 @@ public enum KeyType
 public enum LocksmithOperation
 {
     /// <summary>
-    ///     Set
-    ///     <c>
-    ///         item.l
-    ///     </c>
-    ///     to
-    ///     <c>
-    ///         "l"
-    ///     </c>
-    ///     . Comes off again instantly for the same price.
+    ///     Set <c>item.l</c> to <c>"l"</c> . Comes off again instantly for the same price.
     /// </summary>
     [EnumMember(Value = "lock")]
     Lock,
 
     /// <summary>
-    ///     Set
-    ///     <c>
-    ///         item.l
-    ///     </c>
-    ///     to
-    ///     <c>
-    ///         "s"
-    ///     </c>
-    ///     . Protects exactly as a lock does; the difference is entirely in the removal, which costs another 250,000 gold and
-    ///     then two real days.
+    ///     Set <c>item.l</c> to <c>"s"</c> . Protects exactly as a lock does; the difference is entirely in the removal, which
+    ///     costs another 250,000 gold and then two real days.
     /// </summary>
     [EnumMember(Value = "seal")]
     Seal,
@@ -1408,15 +1364,7 @@ public enum UIDataType
     RSpeed,
 
     /// <summary>
-    ///     Warrior Stomp.
-    ///     <c>
-    ///         Name
-    ///     </c>
-    ///     is the warrior,
-    ///     <c>
-    ///         Ids
-    ///     </c>
-    ///     everything it stunned.
+    ///     Warrior Stomp. <c>Name</c> is the warrior, <c>Ids</c> everything it stunned.
     /// </summary>
     Stomp,
 

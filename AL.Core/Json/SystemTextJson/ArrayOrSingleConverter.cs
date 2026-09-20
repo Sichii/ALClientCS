@@ -7,16 +7,9 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Normalizes a field the server sends as either a single enum value or an array of them into a list. The
-///     System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         ArrayOrSingleConverter
-///     </c>
-///     . Targets <see cref="IReadOnlyList{T}" /> (not
-///     <c>
-///         T[]
-///     </c>
-///     ) so it matches the declared property type when applied as a property-level converter — System.Text.Json, unlike
-///     Newtonsoft, requires an exact converter/member type match.
+///     System.Text.Json replacement for the Newtonsoft <c>ArrayOrSingleConverter</c> . Targets
+///     <see cref="IReadOnlyList{T}" /> (not <c>T[]</c> ) so it matches the declared property type when applied as a
+///     property-level converter — System.Text.Json, unlike Newtonsoft, requires an exact converter/member type match.
 /// </summary>
 public sealed class ArrayOrSingleConverter<T> : JsonConverter<IReadOnlyList<T>> where T: struct, Enum
 {

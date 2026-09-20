@@ -11,16 +11,9 @@ using AL.SocketClient.Model;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     Deserializes <see cref="BankInfo" /> from a flat object: the
-///     <c>
-///         gold
-///     </c>
-///     key -&gt; Gold, every other key that parses to a <see cref="BankPack" /> -&gt; an item array for that pack. The
-///     System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         BankDataConverter
-///     </c>
-///     .
+///     Deserializes <see cref="BankInfo" /> from a flat object: the <c>gold</c> key -&gt; Gold, every other key that
+///     parses to a <see cref="BankPack" /> -&gt; an item array for that pack. The System.Text.Json replacement for the
+///     Newtonsoft <c>BankDataConverter</c> .
 /// </summary>
 public sealed class BankDataConverter : JsonConverter<BankInfo>
 {

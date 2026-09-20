@@ -2,16 +2,11 @@ namespace AL.Data.Maps;
 
 /// <summary>
 ///     Which dungeon run a generated floor belongs to. The floor's map key is spelled from these two values as
-///     <c>
-///         zone_{run}_{floor}
-///     </c>
-///     .
+///     <c>zone_{run}_{floor}</c> .
 /// </summary>
 public sealed record GGenerated
 {
-    /// <summary>
-    ///     The floor's number within the run, from zero.
-    /// </summary>
+    /// <summary>The floor's number within the run, from zero.</summary>
     public int Floor { get; init; }
 
     /// <summary>

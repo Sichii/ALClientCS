@@ -23,6 +23,16 @@ namespace AL.Tests.Pathfinding.Tests;
 /// </summary>
 public class PathParityTests : PathfindingTestBed
 {
+    /// <summary>
+    ///     Maps no walk can reach: every door into one is key-locked. Collected from the game data rather than named.
+    /// </summary>
+    private static readonly HashSet<string> BehindAKey = GameData.Maps
+                                                                 .Values
+                                                                 .SelectMany(map => map.Doors)
+                                                                 .Where(door => door.LockType == DoorLockType.Key)
+                                                                 .Select(door => door.DestinationMap)
+                                                                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     private static bool IsOptimized()
     {
         var attribute = typeof(Pathfinder).Assembly
@@ -32,6 +42,13 @@ public class PathParityTests : PathfindingTestBed
 
         return attribute is null || !attribute.IsJITOptimizerDisabled;
     }
+
+    /// <summary>
+    ///     Whether the corpus only found this route because the old graph walked a key door. Staying inside one copy, or
+    ///     leaving one, needs no key and is still held to the record.
+    /// </summary>
+    private static bool NeedsAKey(Case recorded)
+        => BehindAKey.Contains(recorded.End.Map) && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase);
 
     [Test]
     public async Task TheNewPathfinderMatchesTheRecordedCorpus()
@@ -123,24 +140,6 @@ public class PathParityTests : PathfindingTestBed
         newBytes.Should()
                 .BeLessThan(oldBytes, "the rewrite exists to allocate less");
     }
-
-    /// <summary>
-    ///     Maps no walk can reach: every door into one is key-locked. Collected from the game data rather than named.
-    /// </summary>
-    private static readonly HashSet<string> BehindAKey = GameData.Maps
-                                                                 .Values
-                                                                 .SelectMany(map => map.Doors)
-                                                                 .Where(door => door.LockType == DoorLockType.Key)
-                                                                 .Select(door => door.DestinationMap)
-                                                                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    ///     Whether the corpus only found this route because the old graph walked a key door. Staying inside one copy, or
-    ///     leaving one, needs no key and is still held to the record.
-    /// </summary>
-    private static bool NeedsAKey(Case recorded)
-        => BehindAKey.Contains(recorded.End.Map)
-           && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase);
 
     private static bool TryFind(Case recorded, out IReadOnlyList<PathEdge> path)
     {

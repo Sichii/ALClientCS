@@ -10,11 +10,8 @@ namespace AL.Core.Json.SystemTextJson;
 /// <summary>
 ///     A converter factory that can produce a copy of itself which declines one specific type, so a converter registered
 ///     VIA this factory can run its inner declared-member fill without the factory re-producing the very converter that is
-///     running (nested types still match). Mirrors
-///     <c>
-///         AttributedObjectConverterFactory.Excluding
-///     </c>
-///     ; needed because a factory cannot be removed by concrete converter type.
+///     running (nested types still match). Mirrors <c>AttributedObjectConverterFactory.Excluding</c> ; needed because a
+///     factory cannot be removed by concrete converter type.
 /// </summary>
 public interface IExcludingConverterFactory
 {

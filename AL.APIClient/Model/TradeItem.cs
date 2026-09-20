@@ -6,9 +6,7 @@ using AL.Core.Definitions;
 
 namespace AL.APIClient.Model;
 
-/// <summary>
-///     Represents an item in a merchant's stand.
-/// </summary>
+/// <summary>Represents an item in a merchant's stand.</summary>
 /// <seealso cref="ITradeItem" />
 public sealed record TradeItem : ITradeItem
 {

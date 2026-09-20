@@ -15,76 +15,77 @@ namespace AL.Tests.Data.Tests;
 public class GEventCampsTests
 {
     private const string DREAMS = """
-        {
-          "name": "Cave of Many Dreams",
-          "type": "daily",
-          "duration": 1440,
-          "camps": [
-            [
-              { "name": "Amber Nest", "packs": [[["cave_rat", 6], ["cave_spider", 2]], [["cave_bat", 6]]] },
-              { "name": "Bat Roost", "packs": [[["cave_bat", 8]]] }
-            ],
-            [
-              { "name": "Guard Outpost", "packs": [[["cave_guard", 4], ["cave_wolf", 2]]] }
-            ]
-          ],
-          "encounters": [
-            {
-              "id": "e07",
-              "name": "Borrow a Uniform",
-              "kind": "disguise",
-              "options": [
-                {
-                  "id": "e07_1",
-                  "effect": "venture",
-                  "label": "Steal the captain's coat",
-                  "outcomes": [
-                    { "weight": 1, "text": "The captain has not noticed. Yet.", "flags": ["truce"], "gold": 2000 },
-                    { "weight": 1, "text": "That coat has a bell sewn into it.", "fight": ["cave_guard", 3] }
-                  ]
-                },
-                { "id": "e07_3", "effect": "leave", "label": "Walk on" }
-              ]
-            }
-          ]
-        }
-        """;
-
-    private static GEvent Dreams() => JsonSerializer.Deserialize<GEvent>(DREAMS, ALJson.Options)!;
+                                  {
+                                    "name": "Cave of Many Dreams",
+                                    "type": "daily",
+                                    "duration": 1440,
+                                    "camps": [
+                                      [
+                                        { "name": "Amber Nest", "packs": [[["cave_rat", 6], ["cave_spider", 2]], [["cave_bat", 6]]] },
+                                        { "name": "Bat Roost", "packs": [[["cave_bat", 8]]] }
+                                      ],
+                                      [
+                                        { "name": "Guard Outpost", "packs": [[["cave_guard", 4], ["cave_wolf", 2]]] }
+                                      ]
+                                    ],
+                                    "encounters": [
+                                      {
+                                        "id": "e07",
+                                        "name": "Borrow a Uniform",
+                                        "kind": "disguise",
+                                        "options": [
+                                          {
+                                            "id": "e07_1",
+                                            "effect": "venture",
+                                            "label": "Steal the captain's coat",
+                                            "outcomes": [
+                                              { "weight": 1, "text": "The captain has not noticed. Yet.", "flags": ["truce"], "gold": 2000 },
+                                              { "weight": 1, "text": "That coat has a bell sewn into it.", "fight": ["cave_guard", 3] }
+                                            ]
+                                          },
+                                          { "id": "e07_3", "effect": "leave", "label": "Walk on" }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                  """;
 
     [Test]
-    public void AnEventWithoutCampsHasNone()
+    public void AMalformedPairReadsAsNothing()
     {
-        var gEvent = JsonSerializer.Deserialize<GEvent>("""{ "name": "Egg Hunt", "type": "event" }""", ALJson.Options)!;
+        var json = """{ "name": "x", "packs": [[["cave_rat"], 7, ["cave_bat", "two"]]] }""";
+        var camp = JsonSerializer.Deserialize<GCamp>(json, ALJson.Options)!;
 
-        gEvent.Camps
-              .Should()
-              .BeNull();
+        camp.Packs[0]
+            .Should()
+            .HaveCount(3)
+            .And
+            .AllSatisfy(
+                entry => entry.Should()
+                              .BeNull(),
+                "a pair missing its count, a bare number and a count that is not a number all read as nothing rather than throwing");
     }
 
     [Test]
-    public void CampsComeOneListPerFloorInWireOrder()
+    public void AMonsterCountWritesBackAsThePair()
     {
-        var camps = Dreams().Camps!;
+        var json = JsonSerializer.Serialize(
+            new GMonsterCount
+            {
+                Monster = "cave_wolf",
+                Count = 5
+            },
+            ALJson.Options);
 
-        camps.Should()
-             .HaveCount(2);
-
-        camps[0]
-            .Select(camp => camp.Name)
-            .Should()
-            .Equal("Amber Nest", "Bat Roost");
-
-        camps[1][0]
-            .Name
-            .Should()
-            .Be("Guard Outpost");
+        json.Should()
+            .Be("""["cave_wolf",5]""");
     }
 
     [Test]
     public void APackIsTheMonstersOneWaveHolds()
     {
-        var amberNest = Dreams().Camps![0][0];
+        var amberNest = Dreams()
+            .Camps![0][0];
 
         amberNest.Packs
                  .Should()
@@ -98,13 +99,29 @@ public class GEventCampsTests
         amberNest.Packs[1]
                  .Single()
                  .Should()
-                 .BeEquivalentTo(new GMonsterCount { Monster = "cave_bat", Count = 6 });
+                 .BeEquivalentTo(
+                     new GMonsterCount
+                     {
+                         Monster = "cave_bat",
+                         Count = 6
+                     });
     }
+
+    [Test]
+    public void AReplyWithoutOutcomesHasNone()
+        => Dreams()
+           .Encounters![0]
+           .Options[1]
+           .Outcomes
+           .Should()
+           .BeEmpty();
 
     [Test]
     public void AReplysOutcomesCarryTheFightTheyCanStart()
     {
-        var steal = Dreams().Encounters![0].Options[0];
+        var steal = Dreams()
+                    .Encounters![0]
+                    .Options[0];
 
         steal.Outcomes
              .Should()
@@ -123,36 +140,43 @@ public class GEventCampsTests
         steal.Outcomes[1]
              .Fight
              .Should()
-             .BeEquivalentTo(new GMonsterCount { Monster = "cave_guard", Count = 3 });
+             .BeEquivalentTo(
+                 new GMonsterCount
+                 {
+                     Monster = "cave_guard",
+                     Count = 3
+                 });
     }
 
     [Test]
-    public void AReplyWithoutOutcomesHasNone()
-        => Dreams().Encounters![0]
-                   .Options[1]
-                   .Outcomes
-                   .Should()
-                   .BeEmpty();
-
-    [Test]
-    public void AMonsterCountWritesBackAsThePair()
+    public void AnEventWithoutCampsHasNone()
     {
-        var json = JsonSerializer.Serialize(new GMonsterCount { Monster = "cave_wolf", Count = 5 }, ALJson.Options);
+        var gEvent = JsonSerializer.Deserialize<GEvent>("""{ "name": "Egg Hunt", "type": "event" }""", ALJson.Options)!;
 
-        json.Should()
-            .Be("""["cave_wolf",5]""");
+        gEvent.Camps
+              .Should()
+              .BeNull();
     }
 
     [Test]
-    public void AMalformedPairReadsAsNothing()
+    public void CampsComeOneListPerFloorInWireOrder()
     {
-        var json = """{ "name": "x", "packs": [[["cave_rat"], 7, ["cave_bat", "two"]]] }""";
-        var camp = JsonSerializer.Deserialize<GCamp>(json, ALJson.Options)!;
+        var camps = Dreams()
+            .Camps!;
 
-        camp.Packs[0]
+        camps.Should()
+             .HaveCount(2);
+
+        camps[0]
+            .Select(camp => camp.Name)
             .Should()
-            .HaveCount(3)
-            .And
-            .AllSatisfy(entry => entry.Should().BeNull(), "a pair missing its count, a bare number and a count that is not a number all read as nothing rather than throwing");
+            .Equal("Amber Nest", "Bat Roost");
+
+        camps[1][0]
+            .Name
+            .Should()
+            .Be("Guard Outpost");
     }
+
+    private static GEvent Dreams() => JsonSerializer.Deserialize<GEvent>(DREAMS, ALJson.Options)!;
 }

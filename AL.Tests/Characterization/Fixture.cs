@@ -19,9 +19,7 @@ public static class Fixture
 
     private static readonly Lazy<JsonObject> ParsedGameData = new(() => JsonNode.Parse(RawGameData.Value)!.AsObject());
 
-    /// <summary>
-    ///     The whole snapshot, parsed.
-    /// </summary>
+    /// <summary>The whole snapshot, parsed.</summary>
     public static JsonObject GameData => ParsedGameData.Value;
 
     /// <summary>
@@ -29,17 +27,11 @@ public static class Fixture
     /// </summary>
     public static string GameDataJson => RawGameData.Value;
 
-    /// <summary>
-    ///     Path to the snapshot on disk.
-    /// </summary>
+    /// <summary>Path to the snapshot on disk.</summary>
     public static string GameDataPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "data.json");
 
     /// <summary>
-    ///     A single entry from a top-level section, e.g.
-    ///     <c>
-    ///         Entry("items", "fireblade")
-    ///     </c>
-    ///     .
+    ///     A single entry from a top-level section, e.g. <c>Entry("items", "fireblade")</c> .
     /// </summary>
     public static JsonNode Entry(string section, string key)
         => Section(section)[key] ?? throw new InvalidOperationException($@"Snapshot has no ""{section}.{key}"".");
@@ -49,11 +41,7 @@ public static class Fixture
                .Trim('\n');
 
     /// <summary>
-    ///     Reads a snapshot committed under
-    ///     <c>
-    ///         AL.Tests/Fixtures/snapshots
-    ///     </c>
-    ///     , or null if it does not exist yet.
+    ///     Reads a snapshot committed under <c>AL.Tests/Fixtures/snapshots</c> , or null if it does not exist yet.
     /// </summary>
     public static string? ReadCommittedSnapshot(string fileName)
     {
@@ -80,19 +68,8 @@ public static class Fixture
     ///     The sidecar carries a distinct name so regenerating can never overwrite the committed fixture's own output path and
     ///     turn the comparison into a tautology, and the committed text is read first so the build-copied source stays
     ///     authoritative. A missing fixture fails rather than being bootstrapped from the engine under test — the committed
-    ///     text
-    ///     <b>
-    ///         is
-    ///     </b>
-    ///     the frozen oracle. The compare is line-ending agnostic because the repo has
-    ///     <c>
-    ///         core.autocrlf=true
-    ///     </c>
-    ///     and no
-    ///     <c>
-    ///         .gitattributes
-    ///     </c>
-    ///     , so a checkout rewrites the committed fixture to CRLF.
+    ///     text <b>is</b> the frozen oracle. The compare is line-ending agnostic because the repo has
+    ///     <c>core.autocrlf=true</c> and no <c>.gitattributes</c> , so a checkout rewrites the committed fixture to CRLF.
     /// </remarks>
     public static void ShouldMatchCommittedSnapshot(string generated, string fileName)
     {

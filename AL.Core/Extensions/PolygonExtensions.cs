@@ -14,23 +14,12 @@ public static class PolygonExtensions
     ///     <br />
     ///     https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
     /// </summary>
-    /// <param name="polygon">
-    ///     A polygon.
-    /// </param>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
+    /// <param name="polygon">A polygon.</param>
+    /// <param name="point">A point.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the point lies inside(or on the endge) the polygon, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the point lies inside(or on the endge) the polygon, otherwise <c>false</c> .
     /// </returns>
     public static bool Contains(this IPolygon polygon, IPoint point)
     {

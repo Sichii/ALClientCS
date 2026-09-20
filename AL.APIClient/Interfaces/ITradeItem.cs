@@ -1,8 +1,6 @@
 namespace AL.APIClient.Interfaces;
 
-/// <summary>
-///     Represents an item for trade or sale.
-/// </summary>
+/// <summary>Represents an item for trade or sale.</summary>
 /// <seealso cref="ICommonItem" />
 public interface ITradeItem : ICommonItem
 {
@@ -26,8 +24,6 @@ public interface ITradeItem : ICommonItem
     /// </summary>
     string Id { get; init; }
 
-    /// <summary>
-    ///     The price of this item to buy.
-    /// </summary>
+    /// <summary>The price of this item to buy.</summary>
     long Price { get; init; }
 }

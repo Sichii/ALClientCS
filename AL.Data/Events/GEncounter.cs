@@ -1,8 +1,8 @@
 namespace AL.Data.Events;
 
 /// <summary>
-///     One encounter the daily dungeon can put to the party, and the replies it offers. Rides events.dreams.encounters.
-///     A choice on the wire carries option ids and no effects; the effect of each id is read from here.
+///     One encounter the daily dungeon can put to the party, and the replies it offers. Rides events.dreams.encounters. A
+///     choice on the wire carries option ids and no effects; the effect of each id is read from here.
 /// </summary>
 public record GEncounter
 {

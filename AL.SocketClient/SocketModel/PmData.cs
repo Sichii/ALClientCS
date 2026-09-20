@@ -1,11 +1,7 @@
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents an inbound private message (node/server.js:4601). The outbound half is
-///     <c>
-///         WhisperAsync
-///     </c>
-///     .
+///     Represents an inbound private message (node/server.js:4601). The outbound half is <c>WhisperAsync</c> .
 /// </summary>
 /// <remarks>
 ///     The server sends this to both ends of a whisper, and <see cref="To" /> is the only thing that tells them apart: it
@@ -25,9 +21,7 @@ public sealed record PmData
     /// </summary>
     public string Message { get; init; } = null!;
 
-    /// <summary>
-    ///     The character name of the sender.
-    /// </summary>
+    /// <summary>The character name of the sender.</summary>
     public string Owner { get; init; } = null!;
 
     /// <summary>

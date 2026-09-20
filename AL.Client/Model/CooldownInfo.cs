@@ -24,9 +24,7 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     /// </remarks>
     private const float JITTER_GUARD_MS = 5f;
 
-    /// <summary>
-    ///     The cooldown of the skill.
-    /// </summary>
+    /// <summary>The cooldown of the skill.</summary>
     public float CooldownMs { get; init; }
 
     /// <summary>
@@ -39,17 +37,13 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     //TODO: maybe make this the skill name, but there's really no point
     string IMutable.Id => string.Empty;
 
-    /// <summary>
-    ///     Gets the remaining cooldown in milliseconds.
-    /// </summary>
+    /// <summary>Gets the remaining cooldown in milliseconds.</summary>
     public float RemainingMS => CooldownMs - (float)Elapsed.TotalMilliseconds;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="CooldownInfo" /> class.
     /// </summary>
-    /// <param name="cooldownMs">
-    ///     The cooldown of the skill.
-    /// </param>
+    /// <param name="cooldownMs">The cooldown of the skill.</param>
     public CooldownInfo(float cooldownMs) => CooldownMs = cooldownMs;
 
     public void CompensateOnce(TimeSpan offset)
@@ -67,20 +61,11 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     /// <inheritdoc />
     public void Update(TimeSpan delta) => Elapsed += delta;
 
-    /// <summary>
-    ///     Whether or not the skill can be used.
-    /// </summary>
+    /// <summary>Whether or not the skill can be used.</summary>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the skill can be used, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the skill can be used, otherwise <c>false</c> .
     /// </returns>
     public bool CanUse() => Elapsed.TotalMilliseconds > CooldownMs;
 }

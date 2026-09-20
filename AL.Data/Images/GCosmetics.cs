@@ -12,11 +12,8 @@ namespace AL.Data.Images;
 /// <remarks>
 ///     Every table here is looked up ordinally, unlike the rest of the game data. The server's are plain JS objects and
 ///     its own lookups are therefore case-sensitive (node/server.js:4844), so a case-insensitive table would answer that a
-///     differently-cased name is wearable and the emit built on that answer comes back
-///     <c>
-///         cx_not_found
-///     </c>
-///     . The defaults below are ordinal for that reason, and so is what System.Text.Json binds over them.
+///     differently-cased name is wearable and the emit built on that answer comes back <c>cx_not_found</c> . The defaults
+///     below are ordinal for that reason, and so is what System.Text.Json binds over them.
 ///     <br />
 ///     A cosmetic's slot is resolved through <see cref="GSprite.Type" />, never through these catalogues: only four slots
 ///     carry one, and the catalogues exist for the per-slot placement their values hold rather than to enumerate what may
@@ -62,12 +59,9 @@ public sealed record GCosmetics
     ///     screen ones.
     /// </summary>
     /// <remarks>
-    ///     These six are where the client starts every placement from (js/html.js:5849-5851,
-    ///     <c>
-    ///         :5917-5920
-    ///     </c>
-    ///     ). They are the whole reason a preview drawn from the catalogues alone sits wrong: a hat stacks on the head's
-    ///     placement plus the head's own height plus the hair's, and none of those three are in the catalogues below.
+    ///     These six are where the client starts every placement from (js/html.js:5849-5851, <c>:5917-5920</c> ). They are the
+    ///     whole reason a preview drawn from the catalogues alone sits wrong: a hat stacks on the head's placement plus the
+    ///     head's own height plus the hair's, and none of those three are in the catalogues below.
     /// </remarks>
     [JsonPropertyName("default_head_place")]
     public int DefaultHeadPlace { get; init; }
@@ -96,21 +90,13 @@ public sealed record GCosmetics
     [JsonPropertyName("hat")]
     public IReadOnlyDictionary<string, JsonElement> Hat { get; init; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
-    /// <summary>
-    ///     The head catalogue.
-    /// </summary>
+    /// <summary>The head catalogue.</summary>
     /// <remarks>
-    ///     <b>
-    ///         The values are not one shape.
-    ///     </b>
-    ///     Most name the small, medium and large sheets the head is drawn from, but a third of them carry a trailing number
-    ///     after those three. That is why this is <see cref="JsonElement" />: typing it as a list of strings binds most of the
-    ///     table and throws on the rest, and it throws inside
-    ///     <c>
-    ///         GameData.Bind
-    ///     </c>
-    ///     , so the symptom is a bot that will not start rather than a head that will not draw. Whoever needs the values reads
-    ///     the shape here first.
+    ///     <b>The values are not one shape.</b> Most name the small, medium and large sheets the head is drawn from, but a
+    ///     third of them carry a trailing number after those three. That is why this is <see cref="JsonElement" />: typing it
+    ///     as a list of strings binds most of the table and throws on the rest, and it throws inside <c>GameData.Bind</c> , so
+    ///     the symptom is a bot that will not start rather than a head that will not draw. Whoever needs the values reads the
+    ///     shape here first.
     /// </remarks>
     [JsonPropertyName("head")]
     public IReadOnlyDictionary<string, JsonElement> Head { get; init; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);

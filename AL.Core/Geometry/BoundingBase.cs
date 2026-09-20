@@ -6,12 +6,8 @@ using AL.Core.Interfaces;
 
 namespace AL.Core.Geometry;
 
-/// <summary>
-///     Represents the measurements of a bounding box.
-/// </summary>
-/// <param name="HalfWidth">
-///     Half of the width of the bounding box.
-/// </param>
+/// <summary>Represents the measurements of a bounding box.</summary>
+/// <param name="HalfWidth">Half of the width of the bounding box.</param>
 /// <param name="VerticalNorth">
 ///     The distance between the center and top of the bounding box.
 /// </param>

@@ -50,35 +50,10 @@ namespace AL.Data;
 public record GameData
 {
     /// <summary>
-    ///     The npc every exchange with no quest tag of its own is measured against -
-    ///     <c>
-    ///         G.maps.main.exchange
-    ///     </c>
-    ///     , which the map data carries as a placement of this id on
-    ///     <c>
-    ///         main
-    ///     </c>
-    ///     alone. The copy on
-    ///     <c>
-    ///         original_main
-    ///     </c>
-    ///     sits on a map marked ignored, so <see cref="EnrichNPCs" /> never adds it to
-    ///     <c>
-    ///         Locations
-    ///     </c>
-    ///     - the same skip the server's own placement loop takes (
-    ///     <c>
-    ///         js/old_common_functions.js:197
-    ///     </c>
-    ///     , filling
-    ///     <c>
-    ///         map.exchange
-    ///     </c>
-    ///     at
-    ///     <c>
-    ///         :236
-    ///     </c>
-    ///     ).
+    ///     The npc every exchange with no quest tag of its own is measured against - <c>G.maps.main.exchange</c> , which the
+    ///     map data carries as a placement of this id on <c>main</c> alone. The copy on <c>original_main</c> sits on a map
+    ///     marked ignored, so <see cref="EnrichNPCs" /> never adds it to <c>Locations</c> - the same skip the server's own
+    ///     placement loop takes ( <c>js/old_common_functions.js:197</c> , filling <c>map.exchange</c> at <c>:236</c> ).
     /// </summary>
     private const string EXCHANGE_NPC = "exchange";
 
@@ -88,10 +63,7 @@ public record GameData
     private const int MAX_EXCHANGE_LEVEL = 12;
 
     /// <summary>
-    ///     The cosmetics every account may wear whether it owns them or not - the server's own
-    ///     <c>
-    ///         free_cx
-    ///     </c>
+    ///     The cosmetics every account may wear whether it owns them or not - the server's own <c>free_cx</c>
     ///     (js/old_common_functions.js:153). They reach a character through its class rather than on their own, so
     ///     <see cref="EnrichClasses" /> is the only thing that reads them.
     /// </summary>
@@ -121,13 +93,15 @@ public record GameData
     /// <summary>
     ///     The hit box every player is measured against for range: 26 wide and 36 tall, fixed for everyone rather than read
     ///     from the dimensions table, which carries a different height for the same entry and is not what range is resolved
-    ///     with. Their
-    ///     <i>
-    ///         collision
-    ///     </i>
-    ///     box is a separate and much smaller thing - the pathfinding default.
+    ///     with. Their <i>collision</i> box is a separate and much smaller thing - the pathfinding default.
     /// </summary>
     public static readonly BoundingBase DEFAULT_CHARACTER_HIT_BOX = new(13f, 36f, 0f);
+
+    /// <summary>
+    ///     Serializes the runtime edits to the map and geometry tables against each other. Reads need nothing, because each
+    ///     edit swaps in a fresh copy of the table rather than mutating the one a reader holds.
+    /// </summary>
+    private static readonly Lock GeneratedLock = new();
 
     [GameDataRoot]
     public static AchievementsDatum Achievements { get; private set; }
@@ -136,10 +110,10 @@ public record GameData
     public static ClassesDatum Classes { get; private set; }
 
     [GameDataRoot]
-    public static ConditionsDatum Conditions { get; private set; }
+    public static CompoundsDatum Compounds { get; private set; }
 
     [GameDataRoot]
-    public static CompoundsDatum Compounds { get; private set; }
+    public static ConditionsDatum Conditions { get; private set; }
 
     /// <summary>
     ///     Defaulted for the reason <see cref="Multipliers" /> is: a payload missing <c>cosmetics</c> degrades to empty tables
@@ -157,6 +131,19 @@ public record GameData
 
     [GameDataRoot]
     public static DismantleDatum Dismantle { get; private set; }
+
+    /// <summary>
+    ///     Defaulted for the same reason <see cref="Multipliers" /> is: a payload missing <c>drops</c> degrades to an empty
+    ///     table rather than throwing, and every consumer already has to handle a monster that drops nothing.
+    /// </summary>
+    [GameDataRoot]
+    public static GDrops Drops
+    {
+        get;
+
+        [UsedImplicitly]
+        private set;
+    } = new();
 
     [GameDataRoot]
     public static EventsDatum Events { get; private set; }
@@ -188,11 +175,27 @@ public record GameData
     public static MapsDatum Maps { get; private set; }
 
     [GameDataRoot]
-    public static MonstersDatum Monsters { get; private set; }
-
-    [GameDataRoot]
     [JsonPropertyName("monster_gold")]
     public static MonsterGoldDatum MonsterGold { get; private set; }
+
+    [GameDataRoot]
+    public static MonstersDatum Monsters { get; private set; }
+
+    /// <summary>
+    ///     Defaulted so a payload missing <c>multipliers</c> degrades to zeroed ratios instead of throwing.
+    /// </summary>
+    /// <remarks>
+    ///     The setter is what <see cref="Bind" /> needs to reach it at all: get-only, it was skipped by the setter filter and
+    ///     every ratio stayed 0.
+    /// </remarks>
+    [GameDataRoot]
+    public static GMultipliers Multipliers
+    {
+        get;
+
+        [UsedImplicitly]
+        private set;
+    } = new();
 
     [GameDataRoot]
     public static NPCsDatum NPCs { get; private set; }
@@ -232,35 +235,6 @@ public record GameData
 
     [GameDataRoot]
     public static int Version { get; private set; }
-
-    /// <summary>
-    ///     Defaulted for the same reason <see cref="Multipliers" /> is: a payload missing <c>drops</c> degrades to an empty
-    ///     table rather than throwing, and every consumer already has to handle a monster that drops nothing.
-    /// </summary>
-    [GameDataRoot]
-    public static GDrops Drops
-    {
-        get;
-
-        [UsedImplicitly]
-        private set;
-    } = new();
-
-    /// <summary>
-    ///     Defaulted so a payload missing <c>multipliers</c> degrades to zeroed ratios instead of throwing.
-    /// </summary>
-    /// <remarks>
-    ///     The setter is what <see cref="Bind" /> needs to reach it at all: get-only, it was skipped by the setter filter and
-    ///     every ratio stayed 0.
-    /// </remarks>
-    [GameDataRoot]
-    public static GMultipliers Multipliers
-    {
-        get;
-
-        [UsedImplicitly]
-        private set;
-    } = new();
 
     [JsonIgnore]
     public static int ShellsToGold => Multipliers.ShellsToGold;
@@ -622,12 +596,8 @@ public record GameData
     /// <remarks>
     ///     The payload is the raw list, not the finished one - most classes send nothing for it at all, and none of them names
     ///     its own looks. A character is entitled to those, so without this pass anything asking what a class may wear is
-    ///     missing its default looks and answers
-    ///     <c>
-    ///         cx_not_found
-    ///     </c>
-    ///     on a name the server would have taken. Each push is guarded the way the server guards it, so a name already granted
-    ///     outright is not repeated.
+    ///     missing its default looks and answers <c>cx_not_found</c> on a name the server would have taken. Each push is
+    ///     guarded the way the server guards it, so a name already granted outright is not repeated.
     /// </remarks>
     private static void EnrichClasses()
     {
@@ -769,20 +739,6 @@ public record GameData
             }
     }
 
-    private static void EnrichMaps()
-    {
-        Log.Debug("Enriching map metadata");
-
-        //--CONNECT MAP DATA--
-        foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
-        {
-            if (map.Ignore)
-                continue;
-
-            EnrichMap(map);
-        }
-    }
-
     /// <summary>
     ///     Applies one map's share of <see cref="EnrichMaps" />, so a floor filed at runtime gets the same exits, npc and
     ///     monster links G's own maps got on load.
@@ -905,6 +861,20 @@ public record GameData
         }
     }
 
+    private static void EnrichMaps()
+    {
+        Log.Debug("Enriching map metadata");
+
+        //--CONNECT MAP DATA--
+        foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
+        {
+            if (map.Ignore)
+                continue;
+
+            EnrichMap(map);
+        }
+    }
+
     private static void EnrichMonsters()
     {
         Log.Debug("Enriching monster metadata");
@@ -996,27 +966,15 @@ public record GameData
     ///     line.
     /// </summary>
     /// <remarks>
-    ///     The server does this to its own copy of G at boot -
-    ///     <c>
-    ///         sprocess_game_data
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         node/server_functions.js:248-260
-    ///     </c>
-    ///     - and then applies the single entry matching the worn count,
-    ///     <c>
-    ///         node/server.js:1255-1261
-    ///     </c>
-    ///     . That rollup never reaches the appengine copy this downloads, so what arrives here is per-tier deltas. Reading a
-    ///     delta as the count's value understates it badly: heavy armor at five pieces lists 16 fortitude and grants 38.
+    ///     The server does this to its own copy of G at boot - <c>sprocess_game_data</c> ,
+    ///     <c>node/server_functions.js:248-260</c> - and then applies the single entry matching the worn count,
+    ///     <c>node/server.js:1255-1261</c> . That rollup never reaches the appengine copy this downloads, so what arrives here
+    ///     is per-tier deltas. Reading a delta as the count's value understates it badly: heavy armor at five pieces lists 16
+    ///     fortitude and grants 38.
     ///     <br />
-    ///     The server's loop stops at
-    ///     <c>
-    ///         items.length
-    ///     </c>
-    ///     , so a count past the top authored tier keeps the top total - twelve vampire pieces is what three is. Reproduced
-    ///     here by running the ladder to the member count rather than to the highest tier the wire authored.
+    ///     The server's loop stops at <c>items.length</c> , so a count past the top authored tier keeps the top total - twelve
+    ///     vampire pieces is what three is. Reproduced here by running the ladder to the member count rather than to the
+    ///     highest tier the wire authored.
     /// </remarks>
     private static void EnrichSets()
     {
@@ -1060,11 +1018,7 @@ public record GameData
     }
 
     /// <summary>
-    ///     Every prize table this item can be exchanged for, by level, or
-    ///     <c>
-    ///         null
-    ///     </c>
-    ///     where the data has none.
+    ///     Every prize table this item can be exchanged for, by level, or <c>null</c> where the data has none.
     /// </summary>
     private static IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewardsFor(GItem item)
     {
@@ -1086,6 +1040,19 @@ public record GameData
                 levelled[level] = table;
 
         return levelled.Count > 0 ? levelled : null;
+    }
+
+    private static GMap FileGeneratedFloor(GeneratedFloor floor)
+    {
+        var map = floor.Definition;
+        map.Accessor = floor.Key;
+
+        if (string.IsNullOrEmpty(map.Key))
+            map.Key = floor.Key;
+
+        Maps.Add(floor.Key, map);
+
+        return map;
     }
 
     private static void FixLines()
@@ -1125,9 +1092,9 @@ public record GameData
 
         //the payload only began carrying these three tables at version 16846, and the frozen fixture carries the two
         //odds tables and not the gold one: a section the payload lacks reads as an empty table rather than a null root
-        Compounds ??= new();
-        MonsterGold ??= new();
-        Upgrades ??= new();
+        Compounds ??= new CompoundsDatum();
+        MonsterGold ??= new MonsterGoldDatum();
+        Upgrades ??= new UpgradesDatum();
 
         Achievements.BuildLookupTable();
         Classes.BuildLookupTable();
@@ -1183,15 +1150,9 @@ public record GameData
     }
 
     /// <summary>
-    ///     Serializes the runtime edits to the map and geometry tables against each other. Reads need nothing, because each
-    ///     edit swaps in a fresh copy of the table rather than mutating the one a reader holds.
-    /// </summary>
-    private static readonly Lock GeneratedLock = new();
-
-    /// <summary>
-    ///     Files a dungeon run's floors under their keys, enriched like the maps G carries. A manifest entry files the
-    ///     floor's record alone, so a stair leading to it resolves before its geometry arrives; the floor's own delivery
-    ///     then replaces the record and adds the geometry. Delivering a floor twice changes nothing.
+    ///     Files a dungeon run's floors under their keys, enriched like the maps G carries. A manifest entry files the floor's
+    ///     record alone, so a stair leading to it resolves before its geometry arrives; the floor's own delivery then replaces
+    ///     the record and adds the geometry. Delivering a floor twice changes nothing.
     /// </summary>
     public static void RegisterGeneratedFloors(GeneratedMapBundle bundle)
     {
@@ -1249,18 +1210,5 @@ public record GameData
                 Geometry.Remove(key);
             }
         }
-    }
-
-    private static GMap FileGeneratedFloor(GeneratedFloor floor)
-    {
-        var map = floor.Definition;
-        map.Accessor = floor.Key;
-
-        if (string.IsNullOrEmpty(map.Key))
-            map.Key = floor.Key;
-
-        Maps.Add(floor.Key, map);
-
-        return map;
     }
 }

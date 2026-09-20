@@ -5,19 +5,13 @@ using AL.APIClient.Interfaces;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents an item looted out of a chest.
-/// </summary>
+/// <summary>Represents an item looted out of a chest.</summary>
 public sealed class ChestItem : ISimpleItem
 {
     public int Level { get; set; }
 
     /// <summary>
-    ///     The name of the character that looted the item, or
-    ///     <c>
-    ///         null
-    ///     </c>
-    ///     for an item sent to lost-and-found.
+    ///     The name of the character that looted the item, or <c>null</c> for an item sent to lost-and-found.
     /// </summary>
     [JsonPropertyName("looter")]
     public string? LooterName { get; set; }
@@ -30,9 +24,7 @@ public sealed class ChestItem : ISimpleItem
 
     public string Name { get; set; } = null!;
 
-    /// <summary>
-    ///     True when the item is a PvP-loot award.
-    /// </summary>
+    /// <summary>True when the item is a PvP-loot award.</summary>
     [JsonPropertyName("pvp_loot")]
     public bool PvpLoot { get; set; }
 

@@ -12,9 +12,7 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record CaveData
 {
-    /// <summary>
-    ///     A traveler's line, on a "chat" frame.
-    /// </summary>
+    /// <summary>A traveler's line, on a "chat" frame.</summary>
     [JsonPropertyName("chat")]
     public CaveChat? Chat { get; init; }
 

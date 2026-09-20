@@ -15,9 +15,7 @@ namespace AL.Visualizer.Extensions;
 /// </summary>
 public static class PixelCanvasExtensions
 {
-    /// <summary>
-    ///     Draws every triangle edge of the mesh.
-    /// </summary>
+    /// <summary>Draws every triangle edge of the mesh.</summary>
     public static PixelCanvas DrawEdges(this PixelCanvas canvas, NavMesh navMesh, SKColor color = default)
     {
         ArgumentNullException.ThrowIfNull(canvas);
@@ -44,18 +42,10 @@ public static class PixelCanvasExtensions
         return canvas;
     }
 
-    /// <summary>
-    ///     Draws a line on a canvas.
-    /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="line">
-    ///     The line to draw on the canvas.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the line.
-    /// </param>
+    /// <summary>Draws a line on a canvas.</summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="line">The line to draw on the canvas.</param>
+    /// <param name="color">The color to draw the line.</param>
     /// <param name="ptColor">
     ///     The color to draw the pixel the start/end points.
     /// </param>
@@ -64,12 +54,8 @@ public static class PixelCanvasExtensions
     ///     <br />
     ///     The canvas with the line drawn on it.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     line
-    /// </exception>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">line</exception>
     public static PixelCanvas DrawLine<TLine>(
         this PixelCanvas canvas,
         TLine line,
@@ -87,21 +73,11 @@ public static class PixelCanvasExtensions
             ptColor);
     }
 
-    /// <summary>
-    ///     Draws a line on a canvas.
-    /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="start">
-    ///     The start of the line.
-    /// </param>
-    /// <param name="end">
-    ///     The end of the line.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the line.
-    /// </param>
+    /// <summary>Draws a line on a canvas.</summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="start">The start of the line.</param>
+    /// <param name="end">The end of the line.</param>
+    /// <param name="color">The color to draw the line.</param>
     /// <param name="ptColor">
     ///     The color to draw the pixel the start/end points.
     /// </param>
@@ -110,15 +86,9 @@ public static class PixelCanvasExtensions
     ///     <br />
     ///     The canvas with the line drawn on it.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     start
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     end
-    /// </exception>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">start</exception>
+    /// <exception cref="ArgumentNullException">end</exception>
     public static PixelCanvas DrawLine<TPoint>(
         this PixelCanvas canvas,
         TPoint start,
@@ -176,26 +146,16 @@ public static class PixelCanvasExtensions
     /// <summary>
     ///     Draws a path along a number of points on a canvas.
     /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="points">
-    ///     The points to draw the path along.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the path.
-    /// </param>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="points">The points to draw the path along.</param>
+    /// <param name="color">The color to draw the path.</param>
     /// <returns>
     ///     <see cref="PixelCanvas" />
     ///     <br />
     ///     The canvas with the path drawn on it.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     points
-    /// </exception>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">points</exception>
     public static PixelCanvas DrawPath<TPoint>(this PixelCanvas canvas, IEnumerable<TPoint> points, SKColor color = default)
         where TPoint: IPoint
     {
@@ -216,9 +176,7 @@ public static class PixelCanvasExtensions
         return canvas;
     }
 
-    /// <summary>
-    ///     The point in canvas pixels for a map point.
-    /// </summary>
+    /// <summary>The point in canvas pixels for a map point.</summary>
     public static IPoint ToCanvas(this NavMesh navMesh, IPoint point)
     {
         var geometry = GameData.Geometry[navMesh.Map]!;

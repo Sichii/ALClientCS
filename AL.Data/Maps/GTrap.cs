@@ -5,17 +5,12 @@ using AL.Core.Geometry;
 
 namespace AL.Data.Maps;
 
-/// <summary>
-///     Represents the static data for a trap on a map.
-/// </summary>
+/// <summary>Represents the static data for a trap on a map.</summary>
 public sealed record GTrap
 {
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance tick
-    ///     (node/server.js:13632).
+    ///     <b>NULLABLE</b> . The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance
+    ///     tick (node/server.js:13632).
     ///     <br />
     /// </summary>
     public Polygon? Polygon { get; init; }

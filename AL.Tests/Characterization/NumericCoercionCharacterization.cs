@@ -11,18 +11,12 @@ using StjJsonException = System.Text.Json.JsonException;
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins where a fractional JSON number still coerces into an
-///     <c>
-///         int
-///     </c>
-///     CLR target and where it no longer does. It coerces on exactly one path: <see cref="LenientInt32Converter" /> is
-///     registered solely in <see cref="AttributedObjectStjConverter{T}" />'s inner options, so <see cref="GItem.Grade" />
-///     still rounds while <see cref="Recipe.Items" />'
-///     <c>
-///         int
-///     </c>
-///     slot - read by <see cref="ArrayToTupleConverter{T1,T2,T3}" />, which deserializes each element under the CALLER's
-///     options - throws. Where it does round, the direction is round-half-to-even.
+///     Pins where a fractional JSON number still coerces into an <c>int</c> CLR target and where it no longer does. It
+///     coerces on exactly one path: <see cref="LenientInt32Converter" /> is registered solely in
+///     <see cref="AttributedObjectStjConverter{T}" />'s inner options, so <see cref="GItem.Grade" /> still rounds while
+///     <see cref="Recipe.Items" />' <c>int</c> slot - read by <see cref="ArrayToTupleConverter{T1,T2,T3}" />, which
+///     deserializes each element under the CALLER's options - throws. Where it does round, the direction is
+///     round-half-to-even.
 /// </summary>
 public class NumericCoercionCharacterization
 {
@@ -55,14 +49,8 @@ public class NumericCoercionCharacterization
 
     /// <summary>
     ///     Deserializes an item the way <see cref="ItemsDatum" /> does - through the shared options, which route every
-    ///     <c>
-    ///         IAttributed
-    ///     </c>
-    ///     type into <see cref="AttributedObjectStjConverter{T}" />, so the
-    ///     <c>
-    ///         grade
-    ///     </c>
-    ///     coercion under test runs on the production lenient path and not the throwing shared one.
+    ///     <c>IAttributed</c> type into <see cref="AttributedObjectStjConverter{T}" />, so the <c>grade</c> coercion under
+    ///     test runs on the production lenient path and not the throwing shared one.
     /// </summary>
     private static GItem DeserializeItem(JsonObject wire) => TestJson.Data<GItem>(wire.ToJsonString())!;
 
@@ -93,11 +81,7 @@ public class NumericCoercionCharacterization
     }
 
     /// <summary>
-    ///     Round-trip-safe invariant literal for a double, so
-    ///     <c>
-    ///         de-DE
-    ///     </c>
-    ///     cannot turn 3.6 into "3,6".
+    ///     Round-trip-safe invariant literal for a double, so <c>de-DE</c> cannot turn 3.6 into "3,6".
     /// </summary>
     private static string Literal(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
@@ -266,6 +250,7 @@ public class NumericCoercionCharacterization
         /// <summary>
         ///     The binding target under test; only ever written by the serializer, and only when it does not throw.
         /// </summary>
+
         // ReSharper disable once UnusedMember.Global
         public int? Value { get; set; }
     }

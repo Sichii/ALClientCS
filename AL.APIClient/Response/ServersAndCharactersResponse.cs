@@ -9,18 +9,12 @@ namespace AL.APIClient.Response;
 /// </summary>
 public record ServersAndCharactersResponse
 {
-    /// <summary>
-    ///     A list of characters this user owns.
-    /// </summary>
+    /// <summary>A list of characters this user owns.</summary>
     public IReadOnlyList<CharacterInfo> Characters { get; init; } = new List<CharacterInfo>();
 
-    /// <summary>
-    ///     The amount of mail in this user's inbox.
-    /// </summary>
+    /// <summary>The amount of mail in this user's inbox.</summary>
     public int Mail { get; init; }
 
-    /// <summary>
-    ///     A list of servers available to log onto.
-    /// </summary>
+    /// <summary>A list of servers available to log onto.</summary>
     public IReadOnlyList<Server> Servers { get; init; } = new List<Server>();
 }

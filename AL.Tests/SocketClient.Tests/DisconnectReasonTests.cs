@@ -8,16 +8,9 @@ using FluentAssertions;
 namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
-///     Phase 8 - disconnect semantics. The server drops the connection with a
-///     <c>
-///         disconnect_reason
-///     </c>
-///     event (and, on a rate-limit kick, a
-///     <c>
-///         limitdcreport
-///     </c>
-///     ) right before the transport closes; these pin the wire names the reconnect policy branches on, and the report DTO
-///     the client logs.
+///     Phase 8 - disconnect semantics. The server drops the connection with a <c>disconnect_reason</c> event (and, on a
+///     rate-limit kick, a <c>limitdcreport</c> ) right before the transport closes; these pin the wire names the reconnect
+///     policy branches on, and the report DTO the client logs.
 /// </summary>
 public class DisconnectReasonTests
 {

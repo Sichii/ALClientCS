@@ -11,21 +11,15 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record TrackerData
 {
-    /// <summary>
-    ///     Drop tables by monster type.
-    /// </summary>
+    /// <summary>Drop tables by monster type.</summary>
     [JsonPropertyName("drops")]
     public JsonObject Drops { get; init; } = new();
 
-    /// <summary>
-    ///     Home-server drop tables by monster type.
-    /// </summary>
+    /// <summary>Home-server drop tables by monster type.</summary>
     [JsonPropertyName("drops_home")]
     public JsonObject DropsHome { get; init; } = new();
 
-    /// <summary>
-    ///     Exchange (token/quest) counts by item.
-    /// </summary>
+    /// <summary>Exchange (token/quest) counts by item.</summary>
     [JsonPropertyName("exchanges")]
     public JsonObject Exchanges { get; init; } = new();
 
@@ -41,21 +35,15 @@ public sealed record TrackerData
     [JsonPropertyName("global_static")]
     public JsonArray? GlobalStatic { get; init; }
 
-    /// <summary>
-    ///     Drop tables by map.
-    /// </summary>
+    /// <summary>Drop tables by map.</summary>
     [JsonPropertyName("maps")]
     public JsonObject Maps { get; init; } = new();
 
-    /// <summary>
-    ///     The character's max-stat records.
-    /// </summary>
+    /// <summary>The character's max-stat records.</summary>
     [JsonPropertyName("max")]
     public JsonObject Max { get; init; } = new();
 
-    /// <summary>
-    ///     Lifetime kill counts by monster type.
-    /// </summary>
+    /// <summary>Lifetime kill counts by monster type.</summary>
     [JsonPropertyName("monsters")]
     public JsonObject Monsters { get; init; } = new();
 
@@ -65,15 +53,11 @@ public sealed record TrackerData
     [JsonPropertyName("monsters_diff")]
     public JsonObject MonstersDiff { get; init; } = new();
 
-    /// <summary>
-    ///     Home-server drop tables by monster type.
-    /// </summary>
+    /// <summary>Home-server drop tables by monster type.</summary>
     [JsonPropertyName("monsters_home_server")]
     public JsonObject MonstersHomeServer { get; init; } = new();
 
-    /// <summary>
-    ///     Named drop tables.
-    /// </summary>
+    /// <summary>Named drop tables.</summary>
     [JsonPropertyName("tables")]
     public JsonObject Tables { get; init; } = new();
 }

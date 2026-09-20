@@ -27,17 +27,18 @@ internal sealed class SearchScratch
     ///     The current search's ends, resolved onto their meshes; a null mesh is an end that resolved nowhere.
     /// </summary>
     public NavMesh?[] EndMesh = [];
+
     public Reach[] EndReach = [];
     public int[] EndTriangle = [];
-
-    public float[] NodeCost = [];
-    public int[] NodeParent = [];
-    public int[] NodeParentEdge = [];
 
     /// <summary>
     ///     Whether the node's parent edge was charged at the blink's price rather than walked; the expansion reads it back.
     /// </summary>
     public bool[] NodeBlinked = [];
+
+    public float[] NodeCost = [];
+    public int[] NodeParent = [];
+    public int[] NodeParentEdge = [];
 
     public int SearchTriangle = -1;
 
@@ -45,6 +46,7 @@ internal sealed class SearchScratch
     ///     The vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from.
     /// </summary>
     public float[] VertexCost = [];
+
     public int[] VertexParent = [];
 
     /// <summary>

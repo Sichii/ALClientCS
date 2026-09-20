@@ -17,28 +17,11 @@ namespace AL.Tests.Characterization;
 
 /// <summary>
 ///     Pins the single highest-risk semantic change in the STJ migration: the attributed-object converter harvests
-///     <b>
-///         every
-///     </b>
-///     numeric key that parses to an <see cref="ALAttribute" /> into <see cref="IAttributed.Attributes" /> — including
-///     keys that also bind to a declared property, so both
-///     <c>
-///         GItem.Attack
-///     </c>
-///     and
-///     <c>
-///         Attributes[ALAttribute.Attack]
-///     </c>
-///     hold the value. A naive
-///     <c>
-///         [JsonExtensionData]
-///     </c>
-///     replacement only sees keys with
-///     <b>
-///         no
-///     </b>
-///     matching property and silently drops every property-backed entry. The counts, key sets and values here are the
-///     frozen baseline the System.Text.Json converter must reproduce.
+///     <b>every</b> numeric key that parses to an <see cref="ALAttribute" /> into <see cref="IAttributed.Attributes" /> —
+///     including keys that also bind to a declared property, so both <c>GItem.Attack</c> and
+///     <c>Attributes[ALAttribute.Attack]</c> hold the value. A naive <c>[JsonExtensionData]</c> replacement only sees keys
+///     with <b>no</b> matching property and silently drops every property-backed entry. The counts, key sets and values
+///     here are the frozen baseline the System.Text.Json converter must reproduce.
 /// </summary>
 public class AttributesCensusCharacterization
 {
@@ -111,11 +94,8 @@ public class AttributesCensusCharacterization
     }
 
     /// <summary>
-    ///     One entry through the production System.Text.Json options, whose
-    ///     <c>
-    ///         AttributedObjectConverterFactory
-    ///     </c>
-    ///     claims every <see cref="IAttributed" />.
+    ///     One entry through the production System.Text.Json options, whose <c>AttributedObjectConverterFactory</c> claims
+    ///     every <see cref="IAttributed" />.
     /// </summary>
     private static IAttributed Deserialize(string section, string key)
     {
@@ -149,24 +129,10 @@ public class AttributesCensusCharacterization
     }
 
     /// <summary>
-    ///     Renders a float exactly as the frozen snapshot holds it: round-trip format, plus a trailing
-    ///     <c>
-    ///         .0
-    ///     </c>
-    ///     when the text carries no decimal point or exponent (
-    ///     <c>
-    ///         4
-    ///     </c>
-    ///     ->
-    ///     <c>
-    ///         4.0
-    ///     </c>
-    ///     ). Parsed back into a node so the writer emits that text verbatim rather than applying its own shortest-round-trip
-    ///     policy, which drops the
-    ///     <c>
-    ///         .0
-    ///     </c>
-    ///     and would turn every integral stat into a false diff.
+    ///     Renders a float exactly as the frozen snapshot holds it: round-trip format, plus a trailing <c>.0</c> when the text
+    ///     carries no decimal point or exponent ( <c>4</c> -> <c>4.0</c> ). Parsed back into a node so the writer emits that
+    ///     text verbatim rather than applying its own shortest-round-trip policy, which drops the <c>.0</c> and would turn
+    ///     every integral stat into a false diff.
     /// </summary>
     private static JsonNode Number(float value)
     {
@@ -190,12 +156,8 @@ public class AttributesCensusCharacterization
     ///     <see cref="CensusOptions" /> and <see cref="Number" />, so any difference is a real value difference.
     /// </summary>
     /// <remarks>
-    ///     A missing snapshot is a hard failure with no bootstrap: the committed text
-    ///     <b>
-    ///         is
-    ///     </b>
-    ///     the frozen oracle, and regenerating it from the engine under test would make this comparison pass vacuously
-    ///     forever.
+    ///     A missing snapshot is a hard failure with no bootstrap: the committed text <b>is</b> the frozen oracle, and
+    ///     regenerating it from the engine under test would make this comparison pass vacuously forever.
     /// </remarks>
     [Test]
     public void T2_AttributesCensusMatchesCommittedSnapshot()

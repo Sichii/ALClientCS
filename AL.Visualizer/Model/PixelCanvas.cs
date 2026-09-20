@@ -20,12 +20,8 @@ public sealed class PixelCanvas
     /// <summary>
     ///     Gets or sets the color of the pixel at the given coordinates.
     /// </summary>
-    /// <param name="x">
-    ///     The column of the pixel.
-    /// </param>
-    /// <param name="y">
-    ///     The row of the pixel.
-    /// </param>
+    /// <param name="x">The column of the pixel.</param>
+    /// <param name="y">The row of the pixel.</param>
     public SKColor this[int x, int y]
     {
         //an out-of-range x would silently wrap onto the next row, so it is checked here; y falls out of the array bounds on its own
@@ -48,34 +44,20 @@ public sealed class PixelCanvas
         }
     }
 
-    /// <summary>
-    ///     The height of the canvas, in pixels.
-    /// </summary>
+    /// <summary>The height of the canvas, in pixels.</summary>
     public int Height { get; }
 
-    /// <summary>
-    ///     The width of the canvas, in pixels.
-    /// </summary>
+    /// <summary>The width of the canvas, in pixels.</summary>
     public int Width { get; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="PixelCanvas" /> class.
     /// </summary>
-    /// <param name="width">
-    ///     The width of the canvas, in pixels.
-    /// </param>
-    /// <param name="height">
-    ///     The height of the canvas, in pixels.
-    /// </param>
-    /// <param name="background">
-    ///     The color to fill the canvas with.
-    /// </param>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     width
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     height
-    /// </exception>
+    /// <param name="width">The width of the canvas, in pixels.</param>
+    /// <param name="height">The height of the canvas, in pixels.</param>
+    /// <param name="background">The color to fill the canvas with.</param>
+    /// <exception cref="ArgumentOutOfRangeException">width</exception>
+    /// <exception cref="ArgumentOutOfRangeException">height</exception>
     public PixelCanvas(int width, int height, SKColor background)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -92,15 +74,9 @@ public sealed class PixelCanvas
     /// <summary>
     ///     Encodes the canvas as a PNG and writes it to the given path.
     /// </summary>
-    /// <param name="path">
-    ///     The path to write the PNG to.
-    /// </param>
-    /// <param name="cancellationToken">
-    ///     A token to cancel the write with.
-    /// </param>
-    /// <exception cref="ArgumentException">
-    ///     path
-    /// </exception>
+    /// <param name="path">The path to write the PNG to.</param>
+    /// <param name="cancellationToken">A token to cancel the write with.</param>
+    /// <exception cref="ArgumentException">path</exception>
     public async Task SaveAsPngAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);

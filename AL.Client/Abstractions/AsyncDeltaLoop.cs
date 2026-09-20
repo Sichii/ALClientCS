@@ -36,9 +36,7 @@ public abstract class AsyncDeltaLoop
     /// <param name="client">
     ///     The instance of the <see cref="Client" /> this loop is for.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     client
-    /// </exception>
+    /// <exception cref="ArgumentNullException">client</exception>
     protected AsyncDeltaLoop(ALClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -53,9 +51,7 @@ public abstract class AsyncDeltaLoop
     /// </summary>
     protected abstract Task DoWorkAsync(TimeSpan delta, CancellationToken cancellationToken);
 
-    /// <summary>
-    ///     Starts the loop.
-    /// </summary>
+    /// <summary>Starts the loop.</summary>
     public async void Start()
     {
         try

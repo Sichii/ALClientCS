@@ -31,9 +31,7 @@ public readonly ref struct ValuePoint : IPoint, IEquatable<ValuePoint>
 
     public static bool operator !=(ValuePoint left, ValuePoint right) => !left.Equals(right);
 
-    /// <summary>
-    ///     Copies any <see cref="IPoint" /> onto the stack.
-    /// </summary>
+    /// <summary>Copies any <see cref="IPoint" /> onto the stack.</summary>
     public static ValuePoint From(IPoint point) => new(point.X, point.Y);
 
     public void Deconstruct(out float x, out float y)

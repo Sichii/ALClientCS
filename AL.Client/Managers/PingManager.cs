@@ -67,12 +67,9 @@ public sealed class PingManager : AsyncDeltaLoop
     ///     The measured round trips, in any order. Nulls are unfilled buffer slots and are skipped.
     /// </param>
     /// <param name="percentile">
-    ///     Where to read in the sorted samples, from 0 to 100. The rank taken is
-    ///     <c>
-    ///         ceil(percentile / 100 * count) - 1
-    ///     </c>
-    ///     , clamped into the array, so 0 gives the smallest sample and any percentile whose rank rounds below the first
-    ///     sample gives it too.
+    ///     Where to read in the sorted samples, from 0 to 100. The rank taken is <c>ceil(percentile / 100 * count) - 1</c> ,
+    ///     clamped into the array, so 0 gives the smallest sample and any percentile whose rank rounds below the first sample
+    ///     gives it too.
     /// </param>
     /// <returns>
     ///     The sample at that rank, or <see cref="TimeSpan.Zero" /> if nothing has been measured yet.

@@ -15,9 +15,7 @@ using FluentAssertions;
 
 namespace AL.Tests.Characterization;
 
-/// <summary>
-///     T12 — Interface-declared attribute census.
-/// </summary>
+/// <summary>T12 — Interface-declared attribute census.</summary>
 /// <remarks>
 ///     ~70 wire names used to live only on the six item/attribute/player interfaces, not on the concrete types that
 ///     implement them. System.Text.Json does not inherit member attributes from interfaces, so it would read none of them;
@@ -62,40 +60,10 @@ public class InterfaceAttributeCharacterization
     }
 
     /// <summary>
-    ///     The eight custom-named attribute stats:
-    ///     <c>
-    ///         firesistance
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         fzresistance
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         mp_reduction
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         potionsm
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         healm
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         frequencym
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         pnresistance
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         stun
-    ///     </c>
-    ///     . Their wire names live only on <see cref="IAttributed" />; the concrete <see cref="AttributedRecordBase" />
-    ///     re-declares the properties with no attribute. Pins that they currently bind on a real attributed type.
+    ///     The eight custom-named attribute stats: <c>firesistance</c> , <c>fzresistance</c> , <c>mp_reduction</c> ,
+    ///     <c>potionsm</c> , <c>healm</c> , <c>frequencym</c> , <c>pnresistance</c> , <c>stun</c> . Their wire names live only
+    ///     on <see cref="IAttributed" />; the concrete <see cref="AttributedRecordBase" /> re-declares the properties with no
+    ///     attribute. Pins that they currently bind on a real attributed type.
     /// </summary>
     [Test]
     public void T12_AttributedType_InterfaceDeclaredStatNames_CurrentlyBind()
@@ -152,11 +120,8 @@ public class InterfaceAttributeCharacterization
     }
 
     /// <summary>
-    ///     Same three modifier stats, but read from the real committed
-    ///     <c>
-    ///         conditions.poisoned
-    ///     </c>
-    ///     entry rather than a synthetic literal, so the values are genuine wire data.
+    ///     Same three modifier stats, but read from the real committed <c>conditions.poisoned</c> entry rather than a
+    ///     synthetic literal, so the values are genuine wire data.
     /// </summary>
     [Test]
     public void T12_AttributedType_RealPoisonedCondition_ModifierStatsBind()
@@ -228,55 +193,9 @@ public class InterfaceAttributeCharacterization
     }
 
     /// <summary>
-    ///     Pins that all twelve of <see cref="SlotItem" />'s inherited wire keys currently bind:
-    ///     <c>
-    ///         b
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         giveaway
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         list
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         rid
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         ach
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         stat_type
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         acc
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         gf
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         l
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         ps
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         v
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         q
-    ///     </c>
-    ///     . None of these names exists on <see cref="SlotItem" /> itself.
+    ///     Pins that all twelve of <see cref="SlotItem" />'s inherited wire keys currently bind: <c>b</c> , <c>giveaway</c> ,
+    ///     <c>list</c> , <c>rid</c> , <c>ach</c> , <c>stat_type</c> , <c>acc</c> , <c>gf</c> , <c>l</c> , <c>ps</c> , <c>v</c>
+    ///     , <c>q</c> . None of these names exists on <see cref="SlotItem" /> itself.
     /// </summary>
     [Test]
     public void T12_SlotItem_InterfaceDeclaredWireKeys_CurrentlyBind()

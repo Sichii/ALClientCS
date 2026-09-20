@@ -17,67 +17,10 @@ public class GeneratedMapBundleTests
     [Test]
     public void AFloorKeyThatDoesNotSpellItsRunAndFloorIsRefused()
     {
-        var act = () => GeneratedMapBundle.Parse(Bundle(floorKey: $"zone_{RUN}_1", floor: 0));
+        var act = () => GeneratedMapBundle.Parse(Bundle($"zone_{RUN}_1", 0));
 
         act.Should()
            .Throw<InvalidOperationException>();
-    }
-
-    [Test]
-    public void ParsesFloorsAndManifest()
-    {
-        var bundle = GeneratedMapBundle.Parse(Bundle(floorKey: $"zone_{RUN}_0", floor: 0));
-
-        bundle.Run
-              .Should()
-              .Be(RUN);
-
-        var floor = bundle.Floors
-                          .Should()
-                          .ContainSingle()
-                          .Subject;
-
-        floor.Key
-             .Should()
-             .Be($"zone_{RUN}_0");
-
-        floor.Definition
-             .Generated
-             .Should()
-             .BeEquivalentTo(
-                 new GGenerated
-                 {
-                     Run = RUN,
-                     Floor = 0,
-                     Zone = "dreams"
-                 });
-
-        floor.Definition
-             .Doors
-             .Should()
-             .ContainSingle()
-             .Which
-             .DestinationMap
-             .Should()
-             .Be($"zone_{RUN}_1");
-
-        floor.Geometry!
-             .VerticalLines
-             .Should()
-             .ContainSingle();
-
-        floor.Geometry!
-             .MaxX
-             .Should()
-             .Be(400);
-
-        bundle.Manifest
-              .Should()
-              .ContainSingle()
-              .Which
-              .Key
-              .Should()
-              .Be($"zone_{RUN}_1");
     }
 
     private static string Bundle(string floorKey, int floor)
@@ -119,4 +62,59 @@ public class GeneratedMapBundleTests
                ]
              }
              """;
+
+    [Test]
+    public void ParsesFloorsAndManifest()
+    {
+        var bundle = GeneratedMapBundle.Parse(Bundle($"zone_{RUN}_0", 0));
+
+        bundle.Run
+              .Should()
+              .Be(RUN);
+
+        var floor = bundle.Floors
+                          .Should()
+                          .ContainSingle()
+                          .Subject;
+
+        floor.Key
+             .Should()
+             .Be($"zone_{RUN}_0");
+
+        floor.Definition
+             .Generated
+             .Should()
+             .BeEquivalentTo(
+                 new GGenerated
+                 {
+                     Run = RUN,
+                     Floor = 0,
+                     Zone = "dreams"
+                 });
+
+        floor.Definition
+             .Doors
+             .Should()
+             .ContainSingle()
+             .Which
+             .DestinationMap
+             .Should()
+             .Be($"zone_{RUN}_1");
+
+        floor.Geometry!.VerticalLines
+             .Should()
+             .ContainSingle();
+
+        floor.Geometry!.MaxX
+             .Should()
+             .Be(400);
+
+        bundle.Manifest
+              .Should()
+              .ContainSingle()
+              .Which
+              .Key
+              .Should()
+              .Be($"zone_{RUN}_1");
+    }
 }

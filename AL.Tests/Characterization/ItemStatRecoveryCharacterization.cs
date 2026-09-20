@@ -9,32 +9,18 @@ using FluentAssertions;
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins the
-///     <c>
-///         stat
-///     </c>
-///     recovery on <see cref="GItem" />. When
-///     <c>
-///         stat
-///     </c>
-///     arrives as a string rather than a number the numeric bind cannot take it; the string is resolved to an
-///     <see cref="ALAttribute" />, assigned to <see cref="GItem.ScrollStat" />, and binding continues with the remaining
-///     wire members. System.Text.Json strips the offending
-///     <c>
-///         stat
-///     </c>
-///     key before binding and recovers it afterwards. Every expectation below comes from the wire itself or from the
-///     hardcoded <see cref="ExpectedScrollStat" /> table, so the pins hold without a second engine to compare against.
+///     Pins the <c>stat</c> recovery on <see cref="GItem" />. When <c>stat</c> arrives as a string rather than a number
+///     the numeric bind cannot take it; the string is resolved to an <see cref="ALAttribute" />, assigned to
+///     <see cref="GItem.ScrollStat" />, and binding continues with the remaining wire members. System.Text.Json strips the
+///     offending <c>stat</c> key before binding and recovers it afterwards. Every expectation below comes from the wire
+///     itself or from the hardcoded <see cref="ExpectedScrollStat" /> table, so the pins hold without a second engine to
+///     compare against.
 /// </summary>
 public class ItemStatRecoveryCharacterization
 {
     /// <summary>
-    ///     The wire
-    ///     <c>
-    ///         stat
-    ///     </c>
-    ///     string of each recovering item mapped to the attribute the handler resolves it to. Hardcoded as an independent
-    ///     source of truth so the assertion does not merely re-run the parser it pins.
+    ///     The wire <c>stat</c> string of each recovering item mapped to the attribute the handler resolves it to. Hardcoded
+    ///     as an independent source of truth so the assertion does not merely re-run the parser it pins.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, ALAttribute> ExpectedScrollStat = new Dictionary<string, ALAttribute>
     {
@@ -63,13 +49,10 @@ public class ItemStatRecoveryCharacterization
     };
 
     /// <summary>
-    ///     Every item in the snapshot whose
-    ///     <c>
-    ///         stat
-    ///     </c>
-    ///     value is a JSON string, discovered from the raw wire so the count is independent of any deserialization the tests
-    ///     also exercise, paired with the <see cref="GItem" /> the converter binds it to. Lazy and shared: every test below
-    ///     reads the same 22 items, and deserializing them once is what keeps that from being five passes over the section.
+    ///     Every item in the snapshot whose <c>stat</c> value is a JSON string, discovered from the raw wire so the count is
+    ///     independent of any deserialization the tests also exercise, paired with the <see cref="GItem" /> the converter
+    ///     binds it to. Lazy and shared: every test below reads the same 22 items, and deserializing them once is what keeps
+    ///     that from being five passes over the section.
     /// </summary>
     private static readonly Lazy<IReadOnlyList<ScrollItem>> StringStatItems = new(Collect);
 

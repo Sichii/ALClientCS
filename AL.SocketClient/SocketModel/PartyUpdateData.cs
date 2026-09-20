@@ -15,28 +15,14 @@ public sealed record PartyUpdateData
     ///     True when this update was caused by a member leaving the party; absent (false) otherwise.
     /// </summary>
     /// <remarks>
-    ///     The server sends the integer
-    ///     <c>
-    ///         1
-    ///     </c>
-    ///     on the wire; Newtonsoft coerces it to
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     .
+    ///     The server sends the integer <c>1</c> on the wire; Newtonsoft coerces it to <c>true</c> .
     /// </remarks>
     [JsonPropertyName("leave")]
     public bool Leave { get; init; }
 
-    /// <summary>
-    ///     A list of the names of everyone in your party.
-    /// </summary>
+    /// <summary>A list of the names of everyone in your party.</summary>
     /// <remarks>
-    ///     Arrives as
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     rather than an empty array when the party dissolves.
+    ///     Arrives as <c>false</c> rather than an empty array when the party dissolves.
     /// </remarks>
     [JsonPropertyName("list")]
     [JsonConverter(typeof(StjConverters.FalsyListConverter<string>))]

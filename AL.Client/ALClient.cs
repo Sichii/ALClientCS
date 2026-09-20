@@ -53,15 +53,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 {
     /// <summary>
     ///     Slots in one bank pack. Not derivable from the pack the server sent: it pushes items on (
-    ///     <c>
-    ///         node/server.js:2018
-    ///     </c>
-    ///     ) and pads nothing, so the array is only as long as the pack's highest occupied slot and a pack bought but never
-    ///     used arrives as an empty one.
+    ///     <c>node/server.js:2018</c> ) and pads nothing, so the array is only as long as the pack's highest occupied slot and
+    ///     a pack bought but never used arrives as an empty one.
     /// </summary>
     private const int BANK_PACK_SIZE = 42;
 
     private readonly EntityManager EntityManager;
+
+    /// <summary>
+    ///     Monsters a killing hit removed, kept until the death frame names them: the server sends the hit first, and the
+    ///     death frame carries only the id.
+    /// </summary>
+
+    //ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
+    private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
+
     private readonly PingManager PingManager;
     private readonly FifoAutoReleasingSemaphoreSlim Sync = new(1, 1);
 
@@ -69,6 +75,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     This will be populated and persist after the first time this character enters the bank.
     /// </summary>
     public BankInfo? Bank { get; private set; }
+
+    /// <summary>
+    ///     Whether a bank door has been answered "in progress" and its map change is still to come. The server moves the
+    ///     character to the bank from wherever it stands once the bank has loaded, so while this is up a magiport is refused:
+    ///     accepted, the ride would land beside the mage and the bank would pull the character away seconds later.
+    /// </summary>
+    public bool BankCrossingPending { get; internal set; }
 
     /// <summary>
     ///     A collection of values indicating base gold rewards for killing a monster on a specific map.
@@ -80,18 +93,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
 
     /// <summary>
-    ///     The emotions this character has unlocked and their unlock timestamps. Populated from
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     .
+    ///     The emotions this character has unlocked and their unlock timestamps. Populated from <c>start</c> .
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10577); the server never re-sends it on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only data (node/server.js:10577); the server never re-sends it on a <c>player</c> frame.
     /// </remarks>
     public IReadOnlyDictionary<Emotion, float> Emotion { get; private set; }
 
@@ -101,101 +106,28 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public EventAndBossInfo EventsAndBosses { get; private set; }
 
     /// <summary>
-    ///     The cosmetics this account may wear without owning a copy of any of them. Populated from
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     .
+    ///     The cosmetics this account may wear without owning a copy of any of them. Populated from <c>start</c> .
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10757); the server never re-sends it on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame. A flat list of names, unlike the counted <see cref="OwnedCosmetics" /> dictionary, and only half of what a
-    ///     character may wear for free - the rest reaches it through <see cref="AL.Data.Classes.GClass.ExclusiveCosmetics" />.
+    ///     Start-only data (node/server.js:10757); the server never re-sends it on a <c>player</c> frame. A flat list of
+    ///     names, unlike the counted <see cref="OwnedCosmetics" /> dictionary, and only half of what a character may wear for
+    ///     free - the rest reaches it through <see cref="AL.Data.Classes.GClass.ExclusiveCosmetics" />.
     /// </remarks>
     public IReadOnlyList<string> ExclusiveCosmetics { get; private set; }
 
     /// <summary>
-    ///     The names of the characters on this account's friends list. Populated from
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     .
+    ///     The names of the characters on this account's friends list. Populated from <c>start</c> .
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10574); the server never re-sends it on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only data (node/server.js:10574); the server never re-sends it on a <c>player</c> frame.
     /// </remarks>
     public IReadOnlyList<string> Friends { get; private set; }
 
     /// <summary>
-    ///     The server this character calls home, as
-    ///     <c>
-    ///         region + server_name
-    ///     </c>
-    ///     (node/server.js:11161). Populated from
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     and rewritten on
-    ///     <c>
-    ///         home_set
-    ///     </c>
-    ///     . Never on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     The server this character calls home, as <c>region + server_name</c> (node/server.js:11161). Populated from
+    ///     <c>start</c> and rewritten on <c>home_set</c> . Never on a <c>player</c> frame.
     /// </summary>
     public string? Home { get; private set; }
-
-    /// <summary>
-    ///     Whether the server has this character's
-    ///     <c>
-    ///         player.computer
-    ///     </c>
-    ///     set, which waives the distance check on eleven NPC handlers.
-    /// </summary>
-    /// <remarks>
-    ///     Read off the bags because the flag is never on the wire:
-    ///     <c>
-    ///         player_to_client
-    ///     </c>
-    ///     (node/server.js:755) whitelists neither
-    ///     <c>
-    ///         computer
-    ///     </c>
-    ///     nor
-    ///     <c>
-    ///         tracker
-    ///     </c>
-    ///     on either the stranger or the own-character list. Not a proxy for the flag - the server derives it from exactly
-    ///     this scan of
-    ///     <c>
-    ///         player.items
-    ///     </c>
-    ///     in
-    ///     <c>
-    ///         calculate_player_stats
-    ///     </c>
-    ///     (node/server.js:1328), which reruns on every resend. The bank is not scanned, so a banked one counts for nothing.
-    ///     <br />
-    ///     Both names, because a supercomputer sets
-    ///     <c>
-    ///         player.computer
-    ///     </c>
-    ///     as well as
-    ///     <c>
-    ///         player.tracker
-    ///     </c>
-    ///     . A spelling that listed one name would send a supercomputer-carrying merchant on trips it does not owe.
-    /// </remarks>
-    public bool HasComputer => Character.Inventory.ContainsItem("computer") || Character.Inventory.ContainsItem("supercomputer");
 
     /// <summary>
     ///     The <see cref="Character" />'s unique identifier, as fetched via the <see cref="API" />.
@@ -203,40 +135,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public string? Identifier { get; private set; }
 
     /// <summary>
-    ///     Whether this is a PvP server. Populated from
-    ///     <c>
-    ///         welcome
-    ///     </c>
-    ///     .
+    ///     Whether this is a PvP server. Populated from <c>welcome</c> .
     /// </summary>
     /// <remarks>
-    ///     Only half of the game's own rule — the server counts you as in PvP when either this or the map's own
-    ///     <c>
-    ///         pvp
-    ///     </c>
+    ///     Only half of the game's own rule — the server counts you as in PvP when either this or the map's own <c>pvp</c>
     ///     flag is set (node/server_functions.js:470).
     /// </remarks>
     public bool IsPvPServer { get; private set; }
 
     /// <summary>
-    ///     A collection of all of the cosmetics owned by this character. Populated from
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     .
+    ///     A collection of all of the cosmetics owned by this character. Populated from <c>start</c> .
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10575); the server never re-sends it on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only data (node/server.js:10575); the server never re-sends it on a <c>player</c> frame.
     /// </remarks>
     public IReadOnlyDictionary<string, int> OwnedCosmetics { get; private set; }
 
-    /// <summary>
-    ///     Contains information about the party.
-    /// </summary>
+    /// <summary>Contains information about the party.</summary>
     public PartyUpdateData Party { get; private set; } = new();
 
     /// <summary>
@@ -251,21 +166,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IALSocketClient Socket { get; private set; }
 
     /// <summary>
-    ///     Whether a bank door has been answered "in progress" and its map change is still to come. The server moves the
-    ///     character to the bank from wherever it stands once the bank has loaded, so while this is up a magiport is
-    ///     refused: accepted, the ride would land beside the mage and the bank would pull the character away seconds
-    ///     later.
-    /// </summary>
-    public bool BankCrossingPending { get; internal set; }
-
-    /// <summary>
     ///     The proxy this character reaches the game through, or null for the machine's own connection.
     /// </summary>
     /// <remarks>
-    ///     Set once at login and read by every socket built afterwards. Held here rather than on
-    ///     <c>
-    ///         IALSocketClient
-    ///     </c>
+    ///     Set once at login and read by every socket built afterwards. Held here rather than on <c>IALSocketClient</c>
     ///     because the socket is single use and the client outlives it: a change of server and a reconnect both build a
     ///     replacement, and the replacement has to be routed the same way the original was.
     /// </remarks>
@@ -315,9 +219,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public ConcurrentDictionary<string, CooldownInfo> Cooldowns { get; }
 
-    /// <summary>
-    ///     A Common.Logging wrapper for this client.
-    /// </summary>
+    /// <summary>A Common.Logging wrapper for this client.</summary>
     public FormattedLogger Logger { get; }
 
     /// <summary>
@@ -329,9 +231,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public ConcurrentDictionary<string, Monster> Monsters { get; }
 
-    /// <summary>
-    ///     The name of the character this client is for.
-    /// </summary>
+    /// <summary>The name of the character this client is for.</summary>
     public string Name { get; }
 
     /// <summary>
@@ -353,17 +253,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public ConcurrentDictionary<string, ActionData> Projectiles { get; }
 
     /// <summary>
-    ///     Monsters a killing hit removed, kept until the death frame names them: the server sends the hit first, and the
-    ///     death frame carries only the id.
-    /// </summary>
-
-    //ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
-    private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
-
-    /// <summary>
     ///     <see cref="CallMeter" />'s window, taken against the server's own running total.
     /// </summary>
     public CallBudgetSnapshot CallBudget => CallMeter.Snapshot(Character.CodeCost);
+
+    /// <summary>
+    ///     Whether the server has this character's <c>player.computer</c> set, which waives the distance check on eleven NPC
+    ///     handlers.
+    /// </summary>
+    /// <remarks>
+    ///     Read off the bags because the flag is never on the wire: <c>player_to_client</c> (node/server.js:755) whitelists
+    ///     neither <c>computer</c> nor <c>tracker</c> on either the stranger or the own-character list. Not a proxy for the
+    ///     flag - the server derives it from exactly this scan of <c>player.items</c> in <c>calculate_player_stats</c>
+    ///     (node/server.js:1328), which reruns on every resend. The bank is not scanned, so a banked one counts for nothing.
+    ///     <br />
+    ///     Both names, because a supercomputer sets <c>player.computer</c> as well as <c>player.tracker</c> . A spelling that
+    ///     listed one name would send a supercomputer-carrying merchant on trips it does not owe.
+    /// </remarks>
+    public bool HasComputer => Character.Inventory.ContainsItem("computer") || Character.Inventory.ContainsItem("supercomputer");
 
     /// <summary>
     ///     A fast socket round trip for this connection: the 5th percentile of the last fifty pings, floored at 100ms until
@@ -378,24 +285,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Initializes a new instance of the <see cref="ALClient" /> class.
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the character.
-    /// </param>
-    /// <param name="apiClient">
-    ///     An API client implementation.
-    /// </param>
-    /// <param name="socketClient">
-    ///     A socket client implementation.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     socketClient
-    /// </exception>
+    /// <param name="characterName">The name of the character.</param>
+    /// <param name="apiClient">An API client implementation.</param>
+    /// <param name="socketClient">A socket client implementation.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
+    /// <exception cref="ArgumentNullException">socketClient</exception>
     protected ALClient(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
     {
         if (string.IsNullOrEmpty(characterName))
@@ -481,9 +376,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public event EventHandler<MonsterDeathData>? OnMonsterDeath;
 
-    /// <summary>
-    ///     An event fired when a party invite is received.
-    /// </summary>
+    /// <summary>An event fired when a party invite is received.</summary>
 
     // ReSharper disable once EventNeverSubscribedTo.Global
     public event EventHandler<InviteData>? OnPartyInvite;
@@ -511,56 +404,31 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </param>
     /// <remarks>
     ///     Every handler <see cref="CanBuy" />, <see cref="CanCraft" />, <see cref="CanExchange" /> and <see cref="CanSell" />
-    ///     stand in for tests
-    ///     <c>
-    ///         player.user
-    ///     </c>
-    ///     and answers
-    ///     <c>
-    ///         cant_in_bank
-    ///     </c>
-    ///     before it reaches the distance arm - buy at node/server.js:8014, sell at :7673, craft at :6227, exchange at :6312 -
-    ///     and <see cref="HasComputer" /> waives none of it. The flag is set on entering the vault and cleared on leaving
-    ///     (:15645, :15702), so it covers a whole visit rather than an instant.
+    ///     stand in for tests <c>player.user</c> and answers <c>cant_in_bank</c> before it reaches the distance arm - buy at
+    ///     node/server.js:8014, sell at :7673, craft at :6227, exchange at :6312 - and <see cref="HasComputer" /> waives none
+    ///     of it. The flag is set on entering the vault and cleared on leaving (:15645, :15702), so it covers a whole visit
+    ///     rather than an instant.
     ///     <br />
     ///     Worth asking in its own right because the two used to share one answer: a character out of position walked, and the
     ///     walk left the vault on its way. One that no longer has to walk no longer leaves.
     ///     <br />
-    ///     <c>
-    ///         Character.Bank
-    ///     </c>
-    ///     and never <see cref="Bank" />: the second is populated on the first visit and never cleared, so it would refuse
-    ///     everything the character did for the rest of the session.
+    ///     <c>Character.Bank</c> and never <see cref="Bank" />: the second is populated on the first visit and never cleared,
+    ///     so it would refuse everything the character did for the rest of the session.
     /// </remarks>
-    private bool BankFrameRefuses(bool distanceCheck) => distanceCheck && (Character.Bank is not null);
+    private bool BankFrameRefuses(bool distanceCheck) => distanceCheck && Character.Bank is not null;
 
-    /// <summary>
-    ///     Determines if you should be able to buy an item.
-    /// </summary>
-    /// <param name="itemName">
-    ///     The name of the buyable item.
-    /// </param>
+    /// <summary>Determines if you should be able to buy an item.</summary>
+    /// <param name="itemName">The name of the buyable item.</param>
     /// <param name="fromPonty">
     ///     Whether or not you're trying to buy it from Ponty.
     /// </param>
-    /// <param name="distanceCheck">
-    ///     Whether or not to include a distance check.
-    /// </param>
+    /// <param name="distanceCheck">Whether or not to include a distance check.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the item can be bought, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the item can be bought, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
     public bool CanBuy(string itemName, bool fromPonty = false, bool distanceCheck = true)
     {
         if (string.IsNullOrEmpty(itemName))
@@ -610,30 +478,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Determines if you should be able to craft an item.
     /// </summary>
-    /// <param name="itemName">
-    ///     The name of a craftable item.
-    /// </param>
+    /// <param name="itemName">The name of a craftable item.</param>
     /// <param name="includeBank">
     ///     Whether or not to include banked gold/items in the check. (only works if <see cref="Bank" /> has been populated)
     /// </param>
-    /// <param name="distanceCheck">
-    ///     Whether or not to include a distance check.
-    /// </param>
+    /// <param name="distanceCheck">Whether or not to include a distance check.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the item can be crafted, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the item can be crafted, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
     /// <remarks>
     ///     There should never be a reason to use <paramref name="includeBank" /> and <paramref name="distanceCheck" />
     ///     together.
@@ -664,33 +519,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return !BankFrameRefuses(distanceCheck)
                && (!distanceCheck
                    || HasComputer
-                   || data.ObtainableFromNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE));
+                   || data.ObtainableFromNPC.Locations.Any(location
+                       => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE));
     }
 
     /// <summary>
     ///     Determines if you should be able to exchange an item.
     /// </summary>
-    /// <param name="itemName">
-    ///     The name of the exchangeable item.
-    /// </param>
-    /// <param name="distanceCheck">
-    ///     Whether or not to include a distance chack.
-    /// </param>
+    /// <param name="itemName">The name of the exchangeable item.</param>
+    /// <param name="distanceCheck">Whether or not to include a distance chack.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the item can be exchanged, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the item can be exchanged, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
     public bool CanExchange(string itemName, bool distanceCheck = true)
     {
         if (string.IsNullOrEmpty(itemName))
@@ -716,25 +559,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Determines if you should be able to sell an item.
     /// </summary>
-    /// <param name="itemName">
-    ///     The name of the sellable item.
-    /// </param>
-    /// <param name="distanceCheck">
-    ///     Whether or not to include a distance check.
-    /// </param>
+    /// <param name="itemName">The name of the sellable item.</param>
+    /// <param name="distanceCheck">Whether or not to include a distance check.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the item can be sold, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the item can be sold, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
     public bool CanSell(string itemName, bool distanceCheck = true)
     {
         if (string.IsNullOrEmpty(itemName))
@@ -762,12 +592,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return false;
     }
 
-    /// <summary>
-    ///     Determines if this skill can be used.
-    /// </summary>
-    /// <param name="skillName">
-    ///     The name of the skill.
-    /// </param>
+    /// <summary>Determines if this skill can be used.</summary>
+    /// <param name="skillName">The name of the skill.</param>
     /// <param name="checkWeapon">
     ///     Whether or not to check the equipped weapon against the required weapon type. (if there is one)
     /// </param>
@@ -777,18 +603,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     answer is no for exactly the character that is one swap away from yes.
     /// </param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the skill can be used, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the skill can be used, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">skillName</exception>
     public bool CanUseSkill(string skillName, bool checkWeapon = true, bool checkSlotItems = true)
     {
         if (string.IsNullOrEmpty(skillName))
@@ -896,22 +713,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Determines if this skill is off cooldown. (shared cooldown if it has one)
     /// </summary>
-    /// <param name="skillName">
-    ///     The name of the skill.
-    /// </param>
+    /// <param name="skillName">The name of the skill.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the skill is off cooldown, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the skill is off cooldown, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">skillName</exception>
     public bool IsOffCooldown(string skillName)
     {
         if (string.IsNullOrEmpty(skillName))
@@ -928,16 +734,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return !Cooldowns.TryGetValue(skillName, out var cooldown) || cooldown.CanUse();
     }
 
-    /// <summary>
-    ///     Checks if a target is within trade range
-    /// </summary>
+    /// <summary>Checks if a target is within trade range</summary>
     public bool WithinTradeRange(Player player) => Character.HitBox.EdgeToEdgeDistance(player.HitBox) < CORE_CONSTANTS.TRADE_RANGE;
 
-    /// <summary>
-    ///     Checks if a target is within range
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// </exception>
+    /// <summary>Checks if a target is within range</summary>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public bool WithinRange(EntityBase target, float range, DistanceType distanceType)
         => distanceType switch
         {
@@ -947,36 +748,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
         };
 
-    /// <summary>
-    ///     Checks if a target is within range of a skill.
-    /// </summary>
+    /// <summary>Checks if a target is within range of a skill.</summary>
     /// <param name="target">
     ///     A target able to have edge-to-edge distance calculated.
     /// </param>
-    /// <param name="skillName">
-    ///     The name of the skill.
-    /// </param>
-    /// <param name="distanceType">
-    ///     The type of distance to calculate.
-    /// </param>
+    /// <param name="skillName">The name of the skill.</param>
+    /// <param name="distanceType">The type of distance to calculate.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the target is within range of the skill, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the target is within range of the skill, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     target
-    /// </exception>
+    /// <exception cref="ArgumentNullException">skillName</exception>
+    /// <exception cref="ArgumentNullException">target</exception>
     public bool WithinSkillRange(EntityBase target, string skillName, DistanceType distanceType = DistanceType.EdgeToEdge)
     {
         if (string.IsNullOrEmpty(skillName))
@@ -1023,105 +807,29 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Checks if you are within range of an NPC, using a range depending on the NPC.
     /// </summary>
     /// <param name="npcId">
-    ///     The id of the NPC - its key in
-    ///     <c>
-    ///         G.npcs
-    ///     </c>
-    ///     , which is also what an NPC entity carries in its <see cref="Player.NPCName" />.
+    ///     The id of the NPC - its key in <c>G.npcs</c> , which is also what an NPC entity carries in its
+    ///     <see cref="Player.NPCName" />.
     /// </param>
     /// <remarks>
     ///     Measured against the game data's placements rather than against the live entity, and that is a fix rather than a
-    ///     preference: an NPC
-    ///     <i>
-    ///         is
-    ///     </i>
-    ///     in <see cref="Players" />, but never under this id. It is keyed by its display name -
-    ///     <c>
-    ///         Cue
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         Ponty
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         Ace
-    ///     </c>
-    ///     - while the key this takes is the one in
-    ///     <c>
-    ///         G.npcs
-    ///     </c>
-    ///     , which the entity carries in its <see cref="Player.NPCName" /> instead. So the
-    ///     <c>
-    ///         TryGetValue
-    ///     </c>
-    ///     this used to do missed every time and the method answered false for every NPC on every map, silently.
+    ///     preference: an NPC <i>is</i> in <see cref="Players" />, but never under this id. It is keyed by its display name -
+    ///     <c>Cue</c> , <c>Ponty</c> , <c>Ace</c> - while the key this takes is the one in <c>G.npcs</c> , which the entity
+    ///     carries in its <see cref="Player.NPCName" /> instead. So the <c>TryGetValue</c> this used to do missed every time
+    ///     and the method answered false for every NPC on every map, silently.
     ///     <br />
     ///     What that id looks like exactly is unsettled, which is the other reason not to key off it. The captured start frame
-    ///     in
-    ///     <c>
-    ///         AL.Tests
-    ///     </c>
-    ///     holds
-    ///     <c>
-    ///         {"npc":"pvp","id":"Ace"}
-    ///     </c>
-    ///     where
-    ///     <c>
-    ///         G.npcs.pvp.name
-    ///     </c>
-    ///     is
-    ///     <c>
-    ///         Ace
-    ///     </c>
-    ///     ; the cloned server's
-    ///     <c>
-    ///         create_npc
-    ///     </c>
-    ///     would make that
-    ///     <c>
-    ///         $Ace
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         node/server_functions.js:1495
-    ///     </c>
-    ///     ), and
-    ///     <c>
-    ///         player_to_client
-    ///     </c>
-    ///     carries a commented-out
-    ///     <c>
-    ///         data.id="$"+data.id
-    ///     </c>
-    ///     from some earlier arrangement (
-    ///     <c>
-    ///         node/server.js:803
-    ///     </c>
-    ///     ). The capture also lacks the
-    ///     <c>
-    ///         name
-    ///     </c>
-    ///     that the same
-    ///     <c>
-    ///         is_npc
-    ///     </c>
-    ///     branch sets, so it did not come through that branch as written and its age is unknown. The display name is the
-    ///     constant across all of it; the prefix is not.
+    ///     in <c>AL.Tests</c> holds <c>{"npc":"pvp","id":"Ace"}</c> where <c>G.npcs.pvp.name</c> is <c>Ace</c> ; the cloned
+    ///     server's <c>create_npc</c> would make that <c>$Ace</c> ( <c>node/server_functions.js:1495</c> ), and
+    ///     <c>player_to_client</c> carries a commented-out <c>data.id="$"+data.id</c> from some earlier arrangement (
+    ///     <c>node/server.js:803</c> ). The capture also lacks the <c>name</c> that the same <c>is_npc</c> branch sets, so it
+    ///     did not come through that branch as written and its age is unknown. The display name is the constant across all of
+    ///     it; the prefix is not.
     ///     <br />
     ///     Placements are also the better source. They do not need the NPC to be inside the client's vision radius, and they
-    ///     carry the map, which the entity comparison did not check.
-    ///     <c>
-    ///         CanBuy
-    ///     </c>
-    ///     already measures this way.
+    ///     carry the map, which the entity comparison did not check. <c>CanBuy</c> already measures this way.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     npcId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Missing npc metadata for {npcId}
-    /// </exception>
+    /// <exception cref="ArgumentNullException">npcId</exception>
+    /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
     public bool WithinRangeOfNPC(string npcId)
     {
         if (string.IsNullOrEmpty(npcId))
@@ -1149,21 +857,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously connects to an Adventure.Land socket server.
     /// </summary>
-    /// <param name="region">
-    ///     The region to connect to.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier within the region to connect to.
-    /// </param>
+    /// <param name="region">The region to connect to.</param>
+    /// <param name="identifier">The identifier within the region to connect to.</param>
     /// <exception cref="InvalidOperationException">
     ///     There is already an open socket in use. Try disposing it and reconnecting.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Character ""{Name}"" not found.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Server {region} {identifier} not found."
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Character ""{Name}"" not found.</exception>
+    /// <exception cref="InvalidOperationException">Server {region} {identifier} not found."</exception>
     public async Task ConnectAsync(ServerRegion region, ServerId identifier)
     {
         if (Socket.Connected)
@@ -1186,10 +886,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     How many logins <see cref="ChangeServerAsync" /> attempts on the far server before giving up, and how long it
-    ///     waits between them. Together they outlast the 24s sync_loop pass the old server's logout can be deferred to.
+    ///     How many logins <see cref="ChangeServerAsync" /> attempts on the far server before giving up, and how long it waits
+    ///     between them. Together they outlast the 24s sync_loop pass the old server's logout can be deferred to.
     /// </summary>
     private const int CHANGE_SERVER_ATTEMPTS = 10;
+
     private const int CHANGE_SERVER_RETRY_MS = 3000;
 
     /// <summary>
@@ -1202,29 +903,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     own record rather than on the server it was last seen from.
     /// </summary>
     /// <remarks>
-    ///     The intentional disconnect is what keeps the automatic reconnect out of this.
-    ///     <c>
-    ///         ALSocketClient
-    ///     </c>
-    ///     clears its
-    ///     <c>
-    ///         Connected
-    ///     </c>
-    ///     flag before the transport drops, so its own handler suppresses <see cref="OnDisconnected" /> and nothing races us
-    ///     back to the server we are leaving.
+    ///     The intentional disconnect is what keeps the automatic reconnect out of this. <c>ALSocketClient</c> clears its
+    ///     <c>Connected</c> flag before the transport drops, so its own handler suppresses <see cref="OnDisconnected" /> and
+    ///     nothing races us back to the server we are leaving.
     ///     <br />
-    ///     What is
-    ///     <b>
-    ///         not
-    ///     </b>
-    ///     guarded is a genuine drop landing in the same moment. <see cref="ReconnectAsync" /> takes no lock, so both would be
-    ///     assigning <see cref="Socket" /> and the last writer decides where the character ends up. Nothing here can detect
-    ///     that; a caller that cares should re-read <see cref="Server" /> afterwards and ask again. Closing it properly means
-    ///     putting <see cref="ReconnectAsync" /> under
-    ///     <c>
-    ///         Sync
-    ///     </c>
-    ///     too, which is a wider change than this one.
+    ///     What is <b>not</b> guarded is a genuine drop landing in the same moment. <see cref="ReconnectAsync" /> takes no
+    ///     lock, so both would be assigning <see cref="Socket" /> and the last writer decides where the character ends up.
+    ///     Nothing here can detect that; a caller that cares should re-read <see cref="Server" /> afterwards and ask again.
+    ///     Closing it properly means putting <see cref="ReconnectAsync" /> under <c>Sync</c> too, which is a wider change than
+    ///     this one.
     ///     <br />
     ///     A refused login on the far server is retried for <see cref="CHANGE_SERVER_ATTEMPTS" /> attempts, since the old
     ///     server's logout lands after the drop and the far one answers "ingame" until it has. One that outlasts the retries
@@ -1232,9 +919,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Deliberately not handled past that - the socket we came from is already gone, so there is nothing to fall back to
     ///     at this level. The caller decides.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Server {region} {identifier} not found.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Server {region} {identifier} not found.</exception>
     public async Task ChangeServerAsync(ServerRegion region, ServerId identifier)
     {
         await using var @lock = await Sync.WaitAsync();
@@ -1296,7 +981,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //ignored
                 }
 
-                Logger.Warn($"Login on {serverInfo.Key} refused ({e.Message}); retrying in {CHANGE_SERVER_RETRY_MS}ms. (Attempt {attempt})");
+                Logger.Warn(
+                    $"Login on {serverInfo.Key} refused ({e.Message}); retrying in {CHANGE_SERVER_RETRY_MS}ms. (Attempt {attempt})");
 
                 await Task.Delay(CHANGE_SERVER_RETRY_MS);
             }
@@ -1341,9 +1027,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return client;
     }
 
-    /// <summary>
-    ///     The only place a replacement socket is built.
-    /// </summary>
+    /// <summary>The only place a replacement socket is built.</summary>
     /// <remarks>
     ///     "Replacement" because the first socket is built by <see cref="StartClientAsync{T}" />, before an
     ///     <see cref="ALClient" /> instance exists to read <see cref="SocketProxy" /> from - that call site is handed the
@@ -1362,11 +1046,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     This feature's whole point is that a misrouted character fails to connect rather than silently rejoining the game
     ///     on the machine's own IP; this is where that gets enforced, at the one funnel every connection path - the initial
     ///     login, a change of server, and the reconnect loop - runs through. Skips fakes of <see cref="IALSocketClient" />:
-    ///     the interface carries no
-    ///     <c>
-    ///         Proxy
-    ///     </c>
-    ///     member, so only a concrete <see cref="ALSocketClient" /> can be checked here.
+    ///     the interface carries no <c>Proxy</c> member, so only a concrete <see cref="ALSocketClient" /> can be checked here.
     ///     <br />
     ///     The comparison is <see cref="object.ReferenceEquals(object, object)" /> rather than value equality because it
     ///     relies on <see cref="SocketProxy" /> being assigned exactly once, in <see cref="StartClientAsync{T}" />, and
@@ -1500,18 +1180,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     Set when the client has stopped and will not reconnect on its own: the server rejected this character terminally (
-    ///     <c>
-    ///         "limits"
-    ///     </c>
-    ///     /
-    ///     <c>
-    ///         "wrong_passphrase"
-    ///     </c>
-    ///     ) or every reconnect attempt was exhausted. A bot script should poll this and stop its loops - unlike a transient
-    ///     drop, the client will not recover without being recreated.
-    ///     <c>
-    ///         null
-    ///     </c>
+    ///     <c>"limits"</c> / <c>"wrong_passphrase"</c> ) or every reconnect attempt was exhausted. A bot script should poll
+    ///     this and stop its loops - unlike a transient drop, the client will not recover without being recreated. <c>null</c>
     ///     while the client is healthy.
     /// </summary>
     public string? FatalError { get; private set; }
@@ -1528,26 +1198,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     Whether the handshake has completed and this character is actually in the world. False from the moment a drop is
-    ///     noticed until
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     arrives on the replacement socket.
+    ///     noticed until <c>start</c> arrives on the replacement socket.
     ///     <br />
     ///     <b>
     ///         This is the readiness flag to gate work on, not <see cref="ALSocketClient.Connected" />.
-    ///     </b>
-    ///     That one is open for the whole connect, because the server's
-    ///     <c>
-    ///         welcome
-    ///     </c>
-    ///     can land before
-    ///     <c>
-    ///         ConnectAsync
-    ///     </c>
-    ///     returns and the auth emit answering it has to get out. So it reads true over a socket that has no transport yet, or
-    ///     one whose transport died before it ever authenticated - and a caller that treats it as "logged in" resumes a script
-    ///     into a socket every emit throws on.
+    ///     </b> That one is open for the whole connect, because the server's <c>welcome</c> can land before
+    ///     <c>ConnectAsync</c> returns and the auth emit answering it has to get out. So it reads true over a socket that has
+    ///     no transport yet, or one whose transport died before it ever authenticated - and a caller that treats it as "logged
+    ///     in" resumes a script into a socket every emit throws on.
     ///     <br />
     ///     The client maintains this across every connect, drop and reconnect; the setter is open so a harness driving a stub
     ///     socket can stand a client up without one. Nothing inside the client branches on it.
@@ -1561,11 +1219,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public event EventHandler? OnReconnected;
 
     /// <summary>
-    ///     Raised when the server supplied a parting reason for a disconnect (e.g.
-    ///     <c>
-    ///         "limitdc"
-    ///     </c>
-    ///     ).
+    ///     Raised when the server supplied a parting reason for a disconnect (e.g. <c>"limitdc"</c> ).
     /// </summary>
     public event EventHandler<string>? OnDisconnectReason;
 
@@ -1727,37 +1381,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     #endregion
 
     #region Actions
-    /// <summary>
-    ///     Asynchronously accepts a magiport offer.
-    /// </summary>
-    /// <param name="from">
-    ///     The name of the mage who offered the magiport.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     from
-    /// </exception>
+    /// <summary>Asynchronously accepts a magiport offer.</summary>
+    /// <param name="from">The name of the mage who offered the magiport.</param>
+    /// <exception cref="ArgumentNullException">from</exception>
     /// <exception cref="TimeoutException">
     ///     The server did not answer within <see cref="ALClientSettings.NetworkTimeoutMS" />.
     /// </exception>
-    /// <exception cref="Exception">
-    ///     The server refused the accept.
-    /// </exception>
+    /// <exception cref="Exception">The server refused the accept.</exception>
     /// <remarks>
-    ///     The server files the offer under the mage's name when the cast is read and refuses an accept it has no offer for
-    ///     as gone (node/server.js:11292), so this belongs after <see cref="OnMagiport" /> has delivered the offer - the cast
-    ///     and the accept travel on different sockets, and nothing else orders them. The refusal lands on
-    ///     <c>
-    ///         game_response
-    ///     </c>
-    ///     with
-    ///     <c>
-    ///         failed: true
-    ///     </c>
-    ///     under the
-    ///     <c>
-    ///         magiport
-    ///     </c>
-    ///     place, and is listened for so a refused accept says why rather than burning the timeout.
+    ///     The server files the offer under the mage's name when the cast is read and refuses an accept it has no offer for as
+    ///     gone (node/server.js:11292), so this belongs after <see cref="OnMagiport" /> has delivered the offer - the cast and
+    ///     the accept travel on different sockets, and nothing else orders them. The refusal lands on <c>game_response</c>
+    ///     with <c>failed: true</c> under the <c>magiport</c> place, and is listened for so a refused accept says why rather
+    ///     than burning the timeout.
     /// </remarks>
     public async Task AcceptMagiportAsync(string from)
     {
@@ -1802,18 +1438,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously accepts a party invite.
-    /// </summary>
-    /// <param name="from">
-    ///     The name of the character who invited you.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     from
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to accept party invite. ({reason})
-    /// </exception>
+    /// <summary>Asynchronously accepts a party invite.</summary>
+    /// <param name="from">The name of the character who invited you.</param>
+    /// <exception cref="ArgumentNullException">from</exception>
+    /// <exception cref="InvalidOperationException">Failed to accept party invite. ({reason})</exception>
     public async Task AcceptPartyInviteAsync(string from)
     {
         if (string.IsNullOrEmpty(from))
@@ -1863,18 +1491,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously accepts a party request.
-    /// </summary>
+    /// <summary>Asynchronously accepts a party request.</summary>
     /// <param name="from">
     ///     The name of the character who requested the invite.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     from
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to accept party request. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">from</exception>
+    /// <exception cref="InvalidOperationException">Failed to accept party request. ({reason})</exception>
     public async Task AcceptPartyRequestAsync(string from)
     {
         if (string.IsNullOrEmpty(from))
@@ -1924,23 +1546,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously attempts to attack a target.
-    /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target to attack.
-    /// </param>
+    /// <summary>Asynchronously attempts to attack a target.</summary>
+    /// <param name="targetId">The id of the target to attack.</param>
     /// <returns>
     ///     <see cref="ActionData" />
     ///     <br />
     ///     Details about the action taken.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Attack on {targetId} failed. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Attack on {targetId} failed. ({reason})</exception>
     public async Task<ActionData> AttackAsync(string targetId)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -2018,26 +1632,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously attempts to buy an item from an NPC.
     /// </summary>
-    /// <param name="itemName">
-    ///     The name of the item to buy.
-    /// </param>
-    /// <param name="quantity">
-    ///     The quantity of the item to buy.
-    /// </param>
+    /// <param name="itemName">The name of the item to buy.</param>
+    /// <param name="quantity">The quantity of the item to buy.</param>
     /// <returns>
     ///     <see cref="SimpleItem" />
     ///     <br />
     ///     Basic information about the item that was bought.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Quantity cannot be below 1.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to buy {itemName}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
+    /// <exception cref="InvalidOperationException">Quantity cannot be below 1.</exception>
+    /// <exception cref="InvalidOperationException">Failed to buy {itemName}. ({reason})</exception>
     public async Task<SimpleIndexer> BuyAsync(string itemName, int quantity = 1)
     {
         if (string.IsNullOrEmpty(itemName))
@@ -2099,32 +1703,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously attempts to buy an item from a player.
     /// </summary>
-    /// <param name="playerName">
-    ///     The name of the player to buy from.
-    /// </param>
-    /// <param name="slot">
-    ///     The slot the item is in.
-    /// </param>
-    /// <param name="item">
-    ///     The item to buy
-    /// </param>
-    /// <param name="quantity">
-    ///     The quantity of the item to buy.
-    /// </param>
+    /// <param name="playerName">The name of the player to buy from.</param>
+    /// <param name="slot">The slot the item is in.</param>
+    /// <param name="item">The item to buy</param>
+    /// <param name="quantity">The quantity of the item to buy.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
     ///     Information about the item that was bought.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     playerName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     item
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     {reason}
-    /// </exception>
+    /// <exception cref="ArgumentNullException">playerName</exception>
+    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="InvalidOperationException">{reason}</exception>
     public async Task<InventoryIndexer> BuyFromPlayerAsync(
         string playerName,
         TradeSlot slot,
@@ -2225,9 +1815,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Attempts to buy an item from Ponty, who sells what other players have vendored to NPCs.
     /// </summary>
-    /// <param name="item">
-    ///     The item to buy.
-    /// </param>
+    /// <param name="item">The item to buy.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
@@ -2235,129 +1823,50 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     /// <remarks>
     ///     What this costs is not in the listing and is never sent: the server prices it at
-    ///     <c>
-    ///         calculate_item_value * secondhands_mult
-    ///     </c>
-    ///     the moment the emit lands (
-    ///     <c>
-    ///         node/server.js:7145
-    ///     </c>
-    ///     ). That is twice the item's value, and
-    ///     <c>
-    ///         calculate_item_value
-    ///     </c>
-    ///     has already taken the 0.6 buy-to-sell discount off a non-cash item, so an unleveled one leaves the purse at
-    ///     <see cref="CONSTANTS.PONTY_MARKUP" /> times its
-    ///     <c>
-    ///         g
-    ///     </c>
-    ///     - not the 20% an earlier version of this comment claimed. A cash item skips the discount and pays
+    ///     <c>calculate_item_value * secondhands_mult</c> the moment the emit lands ( <c>node/server.js:7145</c> ). That is
+    ///     twice the item's value, and <c>calculate_item_value</c> has already taken the 0.6 buy-to-sell discount off a
+    ///     non-cash item, so an unleveled one leaves the purse at <see cref="CONSTANTS.PONTY_MARKUP" /> times its <c>g</c> -
+    ///     not the 20% an earlier version of this comment claimed. A cash item skips the discount and pays
     ///     <see cref="CONSTANTS.PONTY_CASH_MARKUP" />.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     item
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to buy {item.Name}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="InvalidOperationException">Failed to buy {item.Name}. ({reason})</exception>
     public Task<InventoryIndexer> BuyFromPontyAsync(TradeItem item) => BuySecondHandAsync(item, false);
 
     /// <summary>
     ///     Attempts to buy an item out of the lost and found, the pool of chest loot that would not fit in the bag of whoever
     ///     it dropped for.
     /// </summary>
-    /// <param name="item">
-    ///     The item to buy.
-    /// </param>
+    /// <param name="item">The item to buy.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
     ///     Information about the item that was bought.
     /// </returns>
     /// <remarks>
-    ///     One handler serves both second-hand pools and
-    ///     <c>
-    ///         data.f
-    ///     </c>
-    ///     is the whole of what picks between them (
-    ///     <c>
-    ///         node/server.js:7112-7130
-    ///     </c>
-    ///     ), so this is <see cref="BuyFromPontyAsync" /> with one extra field on the same emit. Three things differ on the
-    ///     far side of it. The price is <see cref="AL.Data.Multipliers.GMultipliers.LostAndFoundMult" /> rather than
-    ///     <see cref="AL.Data.Multipliers.GMultipliers.SecondHandsMult" />, and the cash-item branch at
-    ///     <c>
-    ///         :7143
-    ///     </c>
-    ///     tests
-    ///     <c>
-    ///         mult == 2
-    ///     </c>
-    ///     , so it never fires for this pool - a cash item here keeps the ordinary rate. Hopsickness refuses this buy outright
-    ///     (
-    ///     <c>
-    ///         :7134
-    ///     </c>
-    ///     ) and leaves Ponty alone. And the distance test at
-    ///     <c>
-    ///         :7136
-    ///     </c>
-    ///     carries no
-    ///     <c>
-    ///         player.computer
-    ///     </c>
-    ///     branch, so unlike most NPC handlers this one has to be walked to.
+    ///     One handler serves both second-hand pools and <c>data.f</c> is the whole of what picks between them (
+    ///     <c>node/server.js:7112-7130</c> ), so this is <see cref="BuyFromPontyAsync" /> with one extra field on the same
+    ///     emit. Three things differ on the far side of it. The price is
+    ///     <see cref="AL.Data.Multipliers.GMultipliers.LostAndFoundMult" /> rather than
+    ///     <see cref="AL.Data.Multipliers.GMultipliers.SecondHandsMult" />, and the cash-item branch at <c>:7143</c> tests
+    ///     <c>mult == 2</c> , so it never fires for this pool - a cash item here keeps the ordinary rate. Hopsickness refuses
+    ///     this buy outright ( <c>:7134</c> ) and leaves Ponty alone. And the distance test at <c>:7136</c> carries no
+    ///     <c>player.computer</c> branch, so unlike most NPC handlers this one has to be walked to.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     item
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to buy {item.Name}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="InvalidOperationException">Failed to buy {item.Name}. ({reason})</exception>
     public Task<InventoryIndexer> BuyFromLostAndFoundAsync(TradeItem item) => BuySecondHandAsync(item, true);
 
     /// <summary>
-    ///     The
-    ///     <c>
-    ///         sbuy
-    ///     </c>
-    ///     handler both second-hand pools share, with <paramref name="lostAndFound" /> its
-    ///     <c>
-    ///         data.f
-    ///     </c>
-    ///     .
+    ///     The <c>sbuy</c> handler both second-hand pools share, with <paramref name="lostAndFound" /> its <c>data.f</c> .
     /// </summary>
     /// <remarks>
-    ///     The emit carries a
-    ///     <c>
-    ///         request_id
-    ///     </c>
-    ///     , which moves every refusal onto
-    ///     <c>
-    ///         game_response
-    ///     </c>
-    ///     at the pool's own place. Two of them used to arrive elsewhere and no longer do:
-    ///     <c>
-    ///         no_space
-    ///     </c>
-    ///     was a
-    ///     <c>
-    ///         disappearing_text
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         item_gone
-    ///     </c>
-    ///     a
-    ///     <c>
-    ///         game_log
-    ///     </c>
-    ///     , so the callbacks that read those two frames were removed rather than kept beside these arms.
+    ///     The emit carries a <c>request_id</c> , which moves every refusal onto <c>game_response</c> at the pool's own place.
+    ///     Two of them used to arrive elsewhere and no longer do: <c>no_space</c> was a <c>disappearing_text</c> and
+    ///     <c>item_gone</c> a <c>game_log</c> , so the callbacks that read those two frames were removed rather than kept
+    ///     beside these arms.
     ///     <br />
-    ///     It also turns on a refusal that does not otherwise run: the lost-and-found arm answers
-    ///     <c>
-    ///         lostandfound_donate
-    ///     </c>
+    ///     It also turns on a refusal that does not otherwise run: the lost-and-found arm answers <c>lostandfound_donate</c>
     ///     to a connection that has not donated, where the uncorrelated arm would have sold.
     /// </remarks>
     private async Task<InventoryIndexer> BuySecondHandAsync(TradeItem item, bool lostAndFound)
@@ -2398,7 +1907,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                     //no_space and item_gone used to arrive as a disappearing_text and a game_log; the token moves both
                     //onto game_response and stops the loose frames, so this is where they are read now
-                    GameResponseType.NoSpace => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (no space)"),
+                    GameResponseType.NoSpace  => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (no space)"),
                     GameResponseType.ItemGone => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (item gone)"),
 
                     //hopsickness is refused for the lost-and-found pool alone; Ponty is served the same handler and is
@@ -2411,7 +1920,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //whoever is reading the failure
                     GameResponseType.CantInBank => source.TrySetResult(
                         $"Failed to buy {item.Name} from {seller}. (the character is standing in the bank)"),
-                    _ when data.Failed => source.TrySetResult($"Failed to buy {item.Name} from {seller}. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ when data.Failed => source.TrySetResult(
+                        $"Failed to buy {item.Name} from {seller}. ({data.Reason ?? data.ResponseType.ToString()})"),
                     _ => false
                 };
 
@@ -2441,6 +1951,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         await Socket.EmitAsync(
             ALSocketEmitType.SecondHandsBuy,
             lostAndFound
+
                 // ReSharper disable once RedundantCast
                 ? (object)new
                 {
@@ -2497,36 +2008,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Attempts to compound 3 items of the same level/name.
     /// </summary>
-    /// <param name="inventorySlot1">
-    ///     The inventory index of the first item.
-    /// </param>
-    /// <param name="inventorySlot2">
-    ///     The inventory index of the second item.
-    /// </param>
-    /// <param name="inventorySlot3">
-    ///     The inventory index of the third item.
-    /// </param>
-    /// <param name="scrollIndex">
-    ///     The inventory index of the compound scroll.
-    /// </param>
-    /// <param name="offeringIndex">
-    ///     Optional: the inventory index of a tribute item.
-    /// </param>
+    /// <param name="inventorySlot1">The inventory index of the first item.</param>
+    /// <param name="inventorySlot2">The inventory index of the second item.</param>
+    /// <param name="inventorySlot3">The inventory index of the third item.</param>
+    /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+    /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the compound succeeded, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the compound succeeded, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to compound. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to compound. ({reason})</exception>
     public async Task<bool> CompoundAsync(
         int inventorySlot1,
         int inventorySlot2,
@@ -2599,29 +2091,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Attempts to have the server calculate the chance for a compound to succeed.
     /// </summary>
-    /// <param name="inventorySlot1">
-    ///     The inventory index of the first item.
-    /// </param>
-    /// <param name="inventorySlot2">
-    ///     The inventory index of the second item.
-    /// </param>
-    /// <param name="inventorySlot3">
-    ///     The inventory index of the third item.
-    /// </param>
-    /// <param name="scrollIndex">
-    ///     The inventory index of the compound scroll.
-    /// </param>
-    /// <param name="offeringIndex">
-    ///     Optional: the inventory index of a tribute item.
-    /// </param>
+    /// <param name="inventorySlot1">The inventory index of the first item.</param>
+    /// <param name="inventorySlot2">The inventory index of the second item.</param>
+    /// <param name="inventorySlot3">The inventory index of the third item.</param>
+    /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+    /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
     /// <returns>
     ///     <see cref="ResponseItem" />
     ///     <br />
     ///     An object containing details about the item, and it's chance to successully be compounded.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to compound. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to compound. ({reason})</exception>
     public async Task<ResponseItem> CompoundCalculateAsync(
         int inventorySlot1,
         int inventorySlot2,
@@ -2689,23 +2169,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return await source.Task.WithTimeout(60000);
     }
 
-    /// <summary>
-    ///     Asynchronously crafts an item.
-    /// </summary>
-    /// <param name="itemName">
-    ///     The name of the item to craft.
-    /// </param>
+    /// <summary>Asynchronously crafts an item.</summary>
+    /// <param name="itemName">The name of the item to craft.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
     ///     Information about the item that was crafted, and it's position in the inventory.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to craft {itemName}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
+    /// <exception cref="InvalidOperationException">Failed to craft {itemName}. ({reason})</exception>
     public Task<InventoryIndexer> CraftAsync(string itemName)
     {
         if (string.IsNullOrEmpty(itemName))
@@ -2738,9 +2210,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously crafts an item out of slots the caller chose.
     /// </summary>
-    /// <param name="itemName">
-    ///     The name of the item to craft.
-    /// </param>
+    /// <param name="itemName">The name of the item to craft.</param>
     /// <param name="inventorySlots">
     ///     One inventory slot per recipe input, in the recipe's own order.
     /// </param>
@@ -2749,23 +2219,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     holding exactly the recipe amount - which for a non-stackable input is every slot holding one - so it will consume
     ///     a low-indexed copy in preference to a higher-indexed over-sized one, and nothing on this side knows which slots a
     ///     caller considers off limits. Choosing the slots is the only way to say so without restating the
-    ///     exact-before-over-sized preference, which exists to keep the server's
-    ///     <c>
-    ///         space
-    ///     </c>
-    ///     flag true and is not the caller's to re-derive.
+    ///     exact-before-over-sized preference, which exists to keep the server's <c>space</c> flag true and is not the
+    ///     caller's to re-derive.
     /// </remarks>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
     ///     Information about the item that was crafted, and it's position in the inventory.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to craft {itemName}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">itemName</exception>
+    /// <exception cref="InvalidOperationException">Failed to craft {itemName}. ({reason})</exception>
     public async Task<InventoryIndexer> CraftAsync(string itemName, IReadOnlyList<int> inventorySlots)
     {
         if (string.IsNullOrEmpty(itemName))
@@ -2839,12 +2302,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return await source.Task.WithNetworkTimeout();
     }
 
-    /// <summary>
-    ///     Asynchronously deposits gold in the bank.
-    /// </summary>
-    /// <param name="amount">
-    ///     The amount of gold to deposit.
-    /// </param>
+    /// <summary>Asynchronously deposits gold in the bank.</summary>
+    /// <param name="amount">The amount of gold to deposit.</param>
     /// <returns>
     ///     <see cref="int" />
     ///     <br />
@@ -2892,21 +2351,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Unlocks a paid bank pack with gold on the pack's floor map (node/server.js bank
-    ///     <c>
-    ///         operation: "unlock"
-    ///     </c>
-    ///     branch). Gold-only — shells and key items are out of scope.
+    ///     Unlocks a paid bank pack with gold on the pack's floor map (node/server.js bank <c>operation: "unlock"</c> branch).
+    ///     Gold-only — shells and key items are out of scope.
     /// </summary>
     /// <param name="pack">
     ///     The bank pack to unlock, e.g. <see cref="BankPack.Items3" />.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to unlock bank pack {pack}. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to unlock bank pack {pack}. ({reason})</exception>
     public async Task UnlockBankPackAsync(BankPack pack)
     {
-        var packWire = pack.ToString().ToLowerInvariant();
+        var packWire = pack.ToString()
+                           .ToLowerInvariant();
 
         if (Character.Bank == null)
             throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (not in bank)");
@@ -2917,7 +2372,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             >= 1 and <= 8   => "bank",
             >= 9 and <= 24  => "bank_b",
             >= 25 and <= 48 => "bank_u",
-            _                 => throw new ArgumentOutOfRangeException(nameof(pack))
+            _               => throw new ArgumentOutOfRangeException(nameof(pack))
         };
 
         if (!Character.Map.EqualsI(requiredMap))
@@ -2933,8 +2388,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                if (data.ResponseType == GameResponseType.BankNewPack
-                    && (string.IsNullOrEmpty(data.Pack) || packWire.EqualsI(data.Pack)))
+                if ((data.ResponseType == GameResponseType.BankNewPack) && (string.IsNullOrEmpty(data.Pack) || packWire.EqualsI(data.Pack)))
                 {
                     source.TrySetResult(Expectation.Success);
 
@@ -2973,9 +2427,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously deposits an item in the bank.
-    /// </summary>
+    /// <summary>Asynchronously deposits an item in the bank.</summary>
     /// <param name="inventorySlot">
     ///     The slot in the inventory the item is currently at.
     /// </param>
@@ -2984,11 +2436,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </param>
     /// <param name="bankSlot">
     ///     If specified with bankPack, will deposit the item into that exact slot, swapping with whatever is already there.
-    ///     Pass
-    ///     <c>
-    ///         -1
-    ///     </c>
-    ///     to let the server pick, which is also how an item folds into a stack the pack already holds.
+    ///     Pass <c>-1</c> to let the server pick, which is also how an item folds into a stack the pack already holds.
     /// </param>
     /// <returns>
     ///     <see cref="BankIndexer" />
@@ -3004,9 +2452,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentException">
     ///     If specifying bankSlot), must also specify bankPack.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to deposit item {item}. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to deposit item {item}. ({reason})</exception>
     public async Task<BankIndexer> DepositItemAsync(int inventorySlot, BankPack? bankPack = null, int? bankSlot = null)
     {
         if ((bankSlot != null) && (bankPack == null))
@@ -3148,15 +2594,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return await source.Task.WithNetworkTimeout();
     }
 
-    /// <summary>
-    ///     Asynchronously equips an item in a slot.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot in the inventory of the item to equip.
-    /// </param>
-    /// <param name="slot">
-    ///     The slot to equip the item into.
-    /// </param>
+    /// <summary>Asynchronously equips an item in a slot.</summary>
+    /// <param name="inventorySlot">The slot in the inventory of the item to equip.</param>
+    /// <param name="slot">The slot to equip the item into.</param>
     /// <exception cref="InvalidOperationException">
     ///     Failed to equip item {itemNameOrSlot}. ({reason})
     /// </exception>
@@ -3249,23 +2689,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously attempts to exchange an item.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The index of the item to exchange.
-    /// </param>
+    /// <summary>Asynchronously attempts to exchange an item.</summary>
+    /// <param name="inventorySlot">The index of the item to exchange.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
-    ///     The prize received from the exchange, with quantity set to units gained, or
-    ///     <c>
-    ///         null
-    ///     </c>
-    ///     when the table paid only gold / nothing.
+    ///     The prize received from the exchange, with quantity set to units gained, or <c>null</c> when the table paid only
+    ///     gold / nothing.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// </exception>
+    /// <exception cref="InvalidOperationException"></exception>
     public async Task<InventoryIndexer?> ExchangeAsync(int inventorySlot)
     {
         if (inventorySlot >= Character.InventorySize)
@@ -3391,9 +2823,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously leaves the party.
-    /// </summary>
+    /// <summary>Asynchronously leaves the party.</summary>
     public async Task LeavePartyAsync()
     {
         var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -3420,9 +2850,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously begins or completes a monsterhunt quest.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to monsterhunt. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to monsterhunt. ({reason})</exception>
     public async Task MonsterHuntAsync()
     {
         if (Character.Conditions.TryGetValue(Condition.MonsterHunt, out var condition))
@@ -3458,23 +2886,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously moves to a given point.
-    /// </summary>
-    /// <param name="point">
-    ///     The point to move to.
-    /// </param>
-    /// <param name="token">
-    ///     A token used to cancel this action.
-    /// </param>
+    /// <summary>Asynchronously moves to a given point.</summary>
+    /// <param name="point">The point to move to.</param>
+    /// <param name="token">A token used to cancel this action.</param>
     /// <returns>
     ///     <see cref="IPoint" />
     ///     <br />
     ///     The point we ended up on after this operation either completed, failed, or was canceled.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to move to {point}. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to move to {point}. ({reason})</exception>
     [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
     [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
     public async Task MoveAsync(IPoint point, CancellationToken? token = null)
@@ -3760,26 +3180,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         }
     }
 
-    /// <summary>
-    ///     Asynchronously opens a chest.
-    /// </summary>
-    /// <param name="chestId">
-    ///     The id of the chest.
-    /// </param>
+    /// <summary>Asynchronously opens a chest.</summary>
+    /// <param name="chestId">The id of the chest.</param>
     /// <returns>
     ///     <see cref="ChestOpenedData" />
     ///     <br />
     ///     Information about what was in the chest.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     chestId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to open chest {chestId}. ({reason})
-    /// </exception>
-    /// <exception cref="TimeoutException">
-    ///     Network operation timed out after {timeout}ms.
-    /// </exception>
+    /// <exception cref="ArgumentNullException">chestId</exception>
+    /// <exception cref="InvalidOperationException">Failed to open chest {chestId}. ({reason})</exception>
+    /// <exception cref="TimeoutException">Network operation timed out after {timeout}ms.</exception>
     /// <remarks>
     ///     Only a chest_opened frame removes the chest from <see cref="Chests" />, so an open that fails or times out prunes
     ///     it here instead - otherwise the chest stays in the collection and every later sweep retries it.
@@ -3853,12 +3263,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         CallMeter.Charge(ALSocketEmitType.OpenChest, cost - CallCost.Of(ALSocketEmitType.OpenChest));
     }
 
-    /// <summary>
-    ///     Asynchronously pings the server.
-    /// </summary>
-    /// <param name="pingCount">
-    ///     The current ping count.
-    /// </param>
+    /// <summary>Asynchronously pings the server.</summary>
+    /// <param name="pingCount">The current ping count.</param>
     /// <returns>
     ///     <see cref="PingAckData" />
     ///     <br />
@@ -3942,10 +3348,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     //the token moves the listing onto game_response; the bare secondhands event is no longer sent
-                    GameResponseType.Data when (data.RequestId != null) && (data.Items is not null) =>
+                    GameResponseType.Data when (data.RequestId != null) && data.Items is not null =>
+
                         //reversed back because the server ships it newest-first (csold.slice().reverse()) while the
                         //bare event shipped it oldest-first, and callers buy down the list in the order they get it
-                        source.TrySetResult(data.Items.Reverse().ToArray()),
+                        source.TrySetResult(
+                            data.Items
+                                .Reverse()
+                                .ToArray()),
+
                     //the null-id branch is dead for this arm: once a token is sent the server always echoes it back on
                     //the refusal, so an un-tokened distance frame on this socket is some other call's to answer
                     GameResponseType.Distance when data.RequestId != null => source.TrySetResult("Failed to get ponty items. (get closer)"),
@@ -3978,44 +3389,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     /// <remarks>
     ///     Two gates ahead of the listing, and both throw here rather than time out. The first is a single donation of
-    ///     1,000,000 gold or more, which sets
-    ///     <c>
-    ///         player.donation
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         node/server.js:7399-7402
-    ///     </c>
-    ///     ); that flag lives on the live player and never on
-    ///     <c>
-    ///         player.p
-    ///     </c>
-    ///     , so
-    ///     <b>
-    ///         it is spent again on every reconnect
-    ///     </b>
-    ///     and an account that donated an hour ago is refused after a dropped socket. The second is distance, and it carries
-    ///     no
-    ///     <c>
-    ///         player.computer
-    ///     </c>
-    ///     branch (
-    ///     <c>
-    ///         :6893
-    ///     </c>
-    ///     ), so this has to be asked from woffice.
+    ///     1,000,000 gold or more, which sets <c>player.donation</c> ( <c>node/server.js:7399-7402</c> ); that flag lives on
+    ///     the live player and never on <c>player.p</c> , so <b>it is spent again on every reconnect</b> and an account that
+    ///     donated an hour ago is refused after a dropped socket. The second is distance, and it carries no
+    ///     <c>player.computer</c> branch ( <c>:6893</c> ), so this has to be asked from woffice.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to get lost-and-found items. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to get lost-and-found items. ({reason})</exception>
     /// <summary>
     ///     The phrase <see cref="RequestLostAndFoundItemsAsync" /> puts in the one refusal that a donation would fix.
     /// </summary>
     /// <remarks>
     ///     A caller has to tell that refusal from the other ways the call can fail, because it is the only one worth spending
-    ///     a million gold on - and what reaches the caller is an exception message, so the sentence is all there is to
-    ///     match. Named here so the match is against a constant both sides compile against rather than against
-    ///     a string typed out twice.
+    ///     a million gold on - and what reaches the caller is an exception message, so the sentence is all there is to match.
+    ///     Named here so the match is against a constant both sides compile against rather than against a string typed out
+    ///     twice.
     /// </remarks>
     public const string LOSTANDFOUND_DONATION_REQUIRED = "no donation on this connection";
 
@@ -4037,11 +3424,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     //the token moves the listing onto game_response; the bare lostandfound event is no longer sent
-                    GameResponseType.Data when (data.RequestId != null) && (data.Items is not null) =>
+                    GameResponseType.Data when (data.RequestId != null) && data.Items is not null =>
+
                         //reversed back because the server ships it newest-first (cfound.slice().reverse()) while the
                         //bare event shipped it oldest-first, and callers read down the list in the order they get it
-                        source.TrySetResult(data.Items.Reverse().ToArray()),
-                    GameResponseType.Distance when data.RequestId != null => source.TrySetResult("Failed to get lost-and-found items. (get closer)"),
+                        source.TrySetResult(
+                            data.Items
+                                .Reverse()
+                                .ToArray()),
+                    GameResponseType.Distance when data.RequestId != null => source.TrySetResult(
+                        "Failed to get lost-and-found items. (get closer)"),
                     GameResponseType.LostAndFoundDonate when data.RequestId != null => source.TrySetResult(
                         $"Failed to get lost-and-found items. ({LOSTANDFOUND_DONATION_REQUIRED}; one of 1,000,000 gold or more unlocks it)"),
                     _ => false
@@ -4066,9 +3458,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <see cref="RequestLostAndFoundItemsAsync" />, the info branch returns before either the donation or the distance
     ///     check runs, so this needs no prior donation and no proximity to the lost-and-found NPC.
     /// </summary>
-    /// <returns>
-    ///     The server's current gold reserve.
-    /// </returns>
+    /// <returns>The server's current gold reserve.</returns>
     public async Task<float> RequestServerGoldAsync()
     {
         var source = new TaskCompletionSource<Expectation<float>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -4145,12 +3535,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return (await source.Task.WithNetworkTimeout()).Result;
     }
 
-    /// <summary>
-    ///     Asynchronously attempts to respawn if dead.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to respawn. ({reason})
-    /// </exception>
+    /// <summary>Asynchronously attempts to respawn if dead.</summary>
+    /// <exception cref="InvalidOperationException">Failed to respawn. ({reason})</exception>
     public async Task RespawnAsync()
     {
         if (!Character.RIP)
@@ -4186,18 +3572,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously sells an item.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The inventory slot of the item to sell.
-    /// </param>
-    /// <param name="quantity">
-    ///     The quantity to sell.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to sell item {nameOrSlot}. ({reason})
-    /// </exception>
+    /// <summary>Asynchronously sells an item.</summary>
+    /// <param name="inventorySlot">The inventory slot of the item to sell.</param>
+    /// <param name="quantity">The quantity to sell.</param>
+    /// <exception cref="InvalidOperationException">Failed to sell item {nameOrSlot}. ({reason})</exception>
     public async Task SellItemAsync(int inventorySlot, int quantity)
     {
         var item = Character.Inventory[inventorySlot];
@@ -4252,21 +3630,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously sends gold to a player.
-    /// </summary>
-    /// <param name="amount">
-    ///     The amount of gold to send.
-    /// </param>
-    /// <param name="toPlayerId">
-    ///     The id of the player to send gold to.
-    /// </param>
-    /// <param name="distanceCheck">
-    ///     Whether or not to check distance.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     toPlayerId
-    /// </exception>
+    /// <summary>Asynchronously sends gold to a player.</summary>
+    /// <param name="amount">The amount of gold to send.</param>
+    /// <param name="toPlayerId">The id of the player to send gold to.</param>
+    /// <param name="distanceCheck">Whether or not to check distance.</param>
+    /// <exception cref="ArgumentNullException">toPlayerId</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to send {amount} gold to {toPlayerId}. ({reason})
     /// </exception>
@@ -4332,27 +3700,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously sends an item to a player.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot of the item to send.
-    /// </param>
-    /// <param name="toPlayerId">
-    ///     The id of the player to send to.
-    /// </param>
-    /// <param name="quantity">
-    ///     The quantity of the item to send.
-    /// </param>
-    /// <param name="distanceCheck">
-    ///     Whether or not to perform a distance check.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     toPlayerId
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     quantity
-    /// </exception>
+    /// <summary>Asynchronously sends an item to a player.</summary>
+    /// <param name="inventorySlot">The slot of the item to send.</param>
+    /// <param name="toPlayerId">The id of the player to send to.</param>
+    /// <param name="quantity">The quantity of the item to send.</param>
+    /// <param name="distanceCheck">Whether or not to perform a distance check.</param>
+    /// <exception cref="ArgumentNullException">toPlayerId</exception>
+    /// <exception cref="ArgumentOutOfRangeException">quantity</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to send {quantity} of item {itemNameOrSlot} to {toPlayerId}. ({reason})
     /// </exception>
@@ -4427,15 +3781,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously sends a party invite.
-    /// </summary>
-    /// <param name="name">
-    ///     The name of the person to invite.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <summary>Asynchronously sends a party invite.</summary>
+    /// <param name="name">The name of the person to invite.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
     public async Task SendPartyInviteAsync(string name)
     {
         if (string.IsNullOrEmpty(name))
@@ -4491,22 +3839,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously begins moving to a point on the current map that may or may not require complex pathfinding.
     /// </summary>
-    /// <param name="point">
-    ///     The point to walk to.
-    /// </param>
+    /// <param name="point">The point to walk to.</param>
     /// <param name="distance">
     ///     The distance from the location that it is acceptable to stop at.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     locations
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">locations</exception>
     public Task SmartMoveAsync(
         IPoint point,
         float distance = 0,
@@ -4525,15 +3867,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     locations
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">locations</exception>
     public Task SmartMoveAsync(
         IEnumerable<IPoint> endPoints,
         float distance = 0,
@@ -4547,22 +3885,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously begins moving to a location that may or may not require complex pathfinding.
     /// </summary>
-    /// <param name="location">
-    ///     The location to walk to.
-    /// </param>
+    /// <param name="location">The location to walk to.</param>
     /// <param name="distance">
     ///     The distance from the location that it is acceptable to stop at.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     locations
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">locations</exception>
     [OverloadResolutionPriority(1)]
     public Task SmartMoveAsync(
         ILocation location,
@@ -4575,22 +3907,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
     ///     pathfinding.
     /// </summary>
-    /// <param name="endLocations">
-    ///     A collection of potential end locations.
-    /// </param>
+    /// <param name="endLocations">A collection of potential end locations.</param>
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     locations
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">locations</exception>
     public Task SmartMoveAsync(
         IEnumerable<ILocation> endLocations,
         float distance = 0,
@@ -4601,19 +3927,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding.
     /// </summary>
-    /// <param name="endDestinations">
-    ///     A collection of potential end locations.
-    /// </param>
+    /// <param name="endDestinations">A collection of potential end locations.</param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     locations
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">locations</exception>
     public Task SmartMoveAsync<T>(IEnumerable<T> endDestinations, PathOptions? options = null, CancellationToken? cancellationToken = null)
         where T: ILocation, ICircle
         => SmartMoveAsync(
@@ -4627,12 +3947,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously moves to any number of locations that may or may not require complex pathfinding, with town recall
     ///     and blink each suppressed on one map.
     /// </summary>
-    /// <param name="endDestinations">
-    ///     A collection of potential end locations.
-    /// </param>
+    /// <param name="endDestinations">A collection of potential end locations.</param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. What the caller asked for, kept whole across a refusal.
-    ///     The walker fills in the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. What the caller asked for, kept whole across a refusal. The
+    ///     walker fills in the character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="townBlockedOn">
     ///     The map a recall was just refused on, or null. The server refuses one while more than five things are targeting the
@@ -4640,13 +3958,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     suppression, and leaving it brings the option back.
     /// </param>
     /// <param name="blinkBlockedOn">
-    ///     The map a blink was just refused on, or null. The server refuses one when it finds nowhere to land the
-    ///     character, and a dampened or dead character cannot cast at all - facts about standing here rather than about
-    ///     the trip, so it is the map that carries the suppression, and leaving it brings the option back.
+    ///     The map a blink was just refused on, or null. The server refuses one when it finds nowhere to land the character,
+    ///     and a dampened or dead character cannot cast at all - facts about standing here rather than about the trip, so it
+    ///     is the map that carries the suppression, and leaving it brings the option back.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
     private async Task SmartMoveAsync<T>(
         IEnumerable<T> endDestinations,
         PathOptions options,
@@ -4790,25 +4106,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously moves to the first spawn of a given map.
     /// </summary>
-    /// <param name="mapName">
-    ///     The name of the map to move to.
-    /// </param>
+    /// <param name="mapName">The name of the map to move to.</param>
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     npcId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Missing npc metadata for {npcId}
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">npcId</exception>
+    /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
     public Task SmartMoveToMapAsync(
         string mapName,
         float distance = 0f,
@@ -4836,25 +4144,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously moves to the closest monster spawn for a given monster name.
     /// </summary>
-    /// <param name="monsterName">
-    ///     The name of the monster whose spawn to move to.
-    /// </param>
+    /// <param name="monsterName">The name of the monster whose spawn to move to.</param>
     /// <param name="pickRandomSpawn">
     ///     Changes the behavior from closest spawn to random spawn.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     monsterName
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Missing monster metadata for {monsterName}
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">monsterName</exception>
+    /// <exception cref="InvalidOperationException">Missing monster metadata for {monsterName}</exception>
     public Task SmartMoveToMonsterAsync(
         string monsterName,
         bool pickRandomSpawn = false,
@@ -4882,25 +4182,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously moves to the closest possible location for a given npc id.
     /// </summary>
-    /// <param name="npcId">
-    ///     The name of the npc to move to.
-    /// </param>
+    /// <param name="npcId">The name of the npc to move to.</param>
     /// <param name="distance">
     ///     The distance from the point that it is acceptable to stop at.
     /// </param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in
-    ///     the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
+    ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
-    /// <param name="cancellationToken">
-    ///     A token used to cancel this action.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     npcId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Missing npc metadata for {npcId}
-    /// </exception>
+    /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">npcId</exception>
+    /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
     public Task SmartMoveToNPCAsync(
         string npcId,
         float distance = CORE_CONSTANTS.NPC_RANGE,
@@ -4922,10 +4214,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             cancellationToken);
     }
 
-    public Task SmartMoveNearAreaAsync(
-        InscribedBoundary boundary,
-        PathOptions? options = null,
-        CancellationToken? cancellationToken = null)
+    public Task SmartMoveNearAreaAsync(InscribedBoundary boundary, PathOptions? options = null, CancellationToken? cancellationToken = null)
         => SmartMoveAsync(
             boundary,
             boundary.Radius,
@@ -4935,21 +4224,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
     /// </summary>
-    /// <param name="bankPack">
-    ///     The bankpack whose slots are to be swapped.
-    /// </param>
-    /// <param name="bankSlot1">
-    ///     A slot index within the inventory.
-    /// </param>
-    /// <param name="bankSlot2">
-    ///     A slot index within the inventory.
-    /// </param>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     bankSlot1
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     bankSlot2
-    /// </exception>
+    /// <param name="bankPack">The bankpack whose slots are to be swapped.</param>
+    /// <param name="bankSlot1">A slot index within the inventory.</param>
+    /// <param name="bankSlot2">A slot index within the inventory.</param>
+    /// <exception cref="ArgumentOutOfRangeException">bankSlot1</exception>
+    /// <exception cref="ArgumentOutOfRangeException">bankSlot2</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to swap bank slots {bankSlot1} and {bankSlot2}. ({reason})
     /// </exception>
@@ -5040,18 +4319,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously swaps the items between two inventory slots, or moves an item from one slot to another.
     /// </summary>
-    /// <param name="inventorySlot1">
-    ///     A slot index within the inventory.
-    /// </param>
-    /// <param name="inventorySlot2">
-    ///     A slot index within the inventory.
-    /// </param>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     inventorySlot1
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///     inventorySlot2
-    /// </exception>
+    /// <param name="inventorySlot1">A slot index within the inventory.</param>
+    /// <param name="inventorySlot2">A slot index within the inventory.</param>
+    /// <exception cref="ArgumentOutOfRangeException">inventorySlot1</exception>
+    /// <exception cref="ArgumentOutOfRangeException">inventorySlot2</exception>
     public async Task SwapInventorySlotsAsync(int inventorySlot1, int inventorySlot2)
     {
         //imove takes any index below items.length, not just below isize (node/server.js:8699), and it is the only
@@ -5117,12 +4388,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously transports from the current map to given spawn in the given map.
     /// </summary>
-    /// <param name="map">
-    ///     The map to transport to.
-    /// </param>
-    /// <param name="spawnIndex">
-    ///     The spawn index on the map to transport to.
-    /// </param>
+    /// <param name="map">The map to transport to.</param>
+    /// <param name="spawnIndex">The spawn index on the map to transport to.</param>
     /// <returns>
     ///     <see cref="NewMapData" />
     ///     <br />
@@ -5144,12 +4411,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.TransportFailed         => source.TrySetResult("Transport failed. (can't walk, or jailed)"),
-                    GameResponseType.CantEnter               => source.TrySetResult("Transport failed. (can't enter)"),
-                    GameResponseType.CantEscape              => source.TrySetResult("Transport failed. (can't escape)"),
-                    GameResponseType.TransportCantReach      => source.TrySetResult("Transport failed. (can't reach)"),
-                    GameResponseType.BankOperationInProgress => source.TrySetResult("Transport failed. (the previous bank door is still landing)"),
-                    GameResponseType.BankOperation           => source.TrySetResult($"Transport failed. (bank {data.Reason ?? "error"})"),
+                    GameResponseType.TransportFailed    => source.TrySetResult("Transport failed. (can't walk, or jailed)"),
+                    GameResponseType.CantEnter          => source.TrySetResult("Transport failed. (can't enter)"),
+                    GameResponseType.CantEscape         => source.TrySetResult("Transport failed. (can't escape)"),
+                    GameResponseType.TransportCantReach => source.TrySetResult("Transport failed. (can't reach)"),
+                    GameResponseType.BankOperationInProgress => source.TrySetResult(
+                        "Transport failed. (the previous bank door is still landing)"),
+                    GameResponseType.BankOperation => source.TrySetResult($"Transport failed. (bank {data.Reason ?? "error"})"),
                     _ when data.InProgress && "transport".EqualsI(data.Place!) => inProgress.TrySetResult(),
                     _ when data.Failed && "transport".EqualsI(data.Place!) => source.TrySetResult(
                         $"Transport failed. ({data.Reason ?? data.ResponseType.ToString()})"),
@@ -5306,12 +4574,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return resolvedInstance;
     }
 
-    /// <summary>
-    ///     Asynchronously unequips an item from a slot.
-    /// </summary>
-    /// <param name="slot">
-    ///     The slot of the item to unequip.
-    /// </param>
+    /// <summary>Asynchronously unequips an item from a slot.</summary>
+    /// <param name="slot">The slot of the item to unequip.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />
@@ -5397,33 +4661,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return await source.Task.WithNetworkTimeout();
     }
 
-    /// <summary>
-    ///     Attempts to upgrade an item.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The inventory index of the item.
-    /// </param>
-    /// <param name="scrollIndex">
-    ///     The inventory index of the compound scroll.
-    /// </param>
-    /// <param name="offeringIndex">
-    ///     Optional: the inventory index of a tribute item.
-    /// </param>
+    /// <summary>Attempts to upgrade an item.</summary>
+    /// <param name="inventorySlot">The inventory index of the item.</param>
+    /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+    /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the upgrade succeeded, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the upgrade succeeded, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to upgrade. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to upgrade. ({reason})</exception>
     public async Task<bool> UpgradeAsync(int inventorySlot, int scrollIndex, int? offeringIndex = null)
     {
         var item = Character.Inventory[inventorySlot];
@@ -5480,24 +4727,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Sacrifices an offering on an upgradable item with no scroll, banking a flat +0.5 grace on it. The item's level does
     ///     not change and the item is never at risk - the server rolls nothing, it only runs the usual 1 second upgrade
-    ///     animation and answers
-    ///     <c>
-    ///         upgrade_offering_success
-    ///     </c>
-    ///     beside the generic success frame.
+    ///     animation and answers <c>upgrade_offering_success</c> beside the generic success frame.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot of the item receiving the grace.
-    /// </param>
+    /// <param name="inventorySlot">The slot of the item receiving the grace.</param>
     /// <param name="offeringSlot">
     ///     The slot of the offering to consume. Every offering banks the same +0.5, so the cheapest is the right one.
     /// </param>
-    /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     when the grace landed.
-    /// </returns>
+    /// <returns><c>true</c> when the grace landed.</returns>
     public async Task<bool> DepositGraceAsync(int inventorySlot, int offeringSlot)
     {
         var item = Character.Inventory[inventorySlot];
@@ -5557,23 +4793,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Attempts to have the server calculate the chance for an upgrade to succeed.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The inventory index of the item.
-    /// </param>
-    /// <param name="scrollIndex">
-    ///     The inventory index of the compound scroll.
-    /// </param>
-    /// <param name="offeringIndex">
-    ///     Optional: the inventory index of a tribute item.
-    /// </param>
+    /// <param name="inventorySlot">The inventory index of the item.</param>
+    /// <param name="scrollIndex">The inventory index of the compound scroll.</param>
+    /// <param name="offeringIndex">Optional: the inventory index of a tribute item.</param>
     /// <returns>
     ///     <see cref="ResponseItem" />
     ///     <br />
     ///     An object containing details about the item, and it's chance to successully be upgraded.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to upgrade. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to upgrade. ({reason})</exception>
     public async Task<ResponseItem> UpgradeChanceAsync(int inventorySlot, int scrollIndex, int? offeringIndex = null)
     {
         var item = Character.Inventory[inventorySlot];
@@ -5629,30 +4857,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously uses a consumable from the inventory: a potion, an elixir, a cosmetic jar, a licence or a
-    ///     field generator.
+    ///     Asynchronously uses a consumable from the inventory: a potion, an elixir, a cosmetic jar, a licence or a field
+    ///     generator.
     /// </summary>
     /// <remarks>
-    ///     The same emit as <see cref="EquipAsync" />, <c>equip</c> with <c>num</c> and no slot; the server picks the
-    ///     branch from the item's type (node/server.js:7321-7536). Every branch ends on the same
-    ///     <c>{response:"data", place:"equip", success:true, num}</c> frame and every refusal is a <c>fail_response</c>
-    ///     carrying <c>place:"equip"</c>, so one waiter serves them all. <c>num</c> ties the success to this call rather
-    ///     than to another equip in flight on the same socket. A refusal carries no <c>num</c>, so one from a concurrent
-    ///     equip can end this call early - the exposure <see cref="EquipAsync" /> already has.
+    ///     The same emit as <see cref="EquipAsync" />, <c>equip</c> with <c>num</c> and no slot; the server picks the branch
+    ///     from the item's type (node/server.js:7321-7536). Every branch ends on the same <c>
+    ///         {response:"data", place:"equip", success:true, num}
+    ///     </c> frame and every refusal is a <c>fail_response</c> carrying <c>place:"equip"</c>, so one waiter serves them
+    ///     all. <c>num</c> ties the success to this call rather than to another equip in flight on the same socket. A refusal
+    ///     carries no <c>num</c>, so one from a concurrent equip can end this call early - the exposure
+    ///     <see cref="EquipAsync" /> already has.
     ///     <br />
-    ///     Whatever a branch sends beside the success - a jar's <c>cx_new</c>, a potion's <c>pot_timeout</c> - lands on
-    ///     the client's own handlers. An equippable item handed to this goes to its default slot, which is what the
-    ///     handler does with no slot; <see cref="EquipAsync" /> is the call for that.
+    ///     Whatever a branch sends beside the success - a jar's <c>cx_new</c>, a potion's <c>pot_timeout</c> - lands on the
+    ///     client's own handlers. An equippable item handed to this goes to its default slot, which is what the handler does
+    ///     with no slot; <see cref="EquipAsync" /> is the call for that.
     ///     <br />
-    ///     Call cost is the equip row, billed by the emit hook, less one unit for a potion: that branch alone resends
-    ///     with <c>nc</c>.
+    ///     Call cost is the equip row, billed by the emit hook, less one unit for a potion: that branch alone resends with
+    ///     <c>nc</c>.
     /// </remarks>
-    /// <param name="inventorySlot">
-    ///     The inventory index of the item to use.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use item {slotOrName}. ({reason})
-    /// </exception>
+    /// <param name="inventorySlot">The inventory index of the item to use.</param>
+    /// <exception cref="InvalidOperationException">Failed to use item {slotOrName}. ({reason})</exception>
     public async Task UseItemAsync(int inventorySlot)
     {
         var item = Character.Inventory[inventorySlot];
@@ -5714,9 +4939,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously regens a small amount of hp. Has a shared CD with potions with a 2x multiplier.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use regen_hp. ({readon})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use regen_hp. ({readon})</exception>
     public Task UseRegenHPAsync()
         => ConsumeAsync(
             ALSocketEmitType.Use,
@@ -5729,9 +4952,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously regens a small amount of mp. Has a shared CD with potions with a 2x multiplier.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use regen_mp. ({readon})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use regen_mp. ({readon})</exception>
     public Task UseRegenMPAsync()
         => ConsumeAsync(
             ALSocketEmitType.Use,
@@ -5746,11 +4967,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     /// <remarks>
     ///     The server's own bound, and it guards all four ways out - leaving a map, a door or transporter, a dungeon entry,
-    ///     and the town recall (node/server.js:5368, 5389, 5538, 5720). Over it, each is refused with
-    ///     <c>
-    ///         cant_escape
-    ///     </c>
-    ///     .
+    ///     and the town recall (node/server.js:5368, 5389, 5538, 5720). Over it, each is refused with <c>cant_escape</c> .
     /// </remarks>
     private const int MAX_ESCAPE_TARGETS = 5;
 
@@ -5758,22 +4975,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Whether the server would let this character off the map right now.
     /// </summary>
     /// <remarks>
-    ///     Exact rather than a guess.
-    ///     <c>
-    ///         targets
-    ///     </c>
-    ///     is the server's own counter and it ships on every update of this character, so this is the number the refusal
-    ///     branches on rather than a recount of what is in sight - a monster that has lost interest comes off it a beat after
-    ///     the screen says so, and that lag is the server's as well.
+    ///     Exact rather than a guess. <c>targets</c> is the server's own counter and it ships on every update of this
+    ///     character, so this is the number the refusal branches on rather than a recount of what is in sight - a monster that
+    ///     has lost interest comes off it a beat after the screen says so, and that lag is the server's as well.
     /// </remarks>
     public bool CanEscape => Character.AggroTargets <= MAX_ESCAPE_TARGETS;
 
     /// <summary>
-    ///     Invoked immediately before an emit the server may refuse with
-    ///     <c>
-    ///         cant_escape
-    ///     </c>
-    ///     , and only when <see cref="CanEscape" /> is false. A consumer's chance to shed aggro so the emit goes through.
+    ///     Invoked immediately before an emit the server may refuse with <c>cant_escape</c> , and only when
+    ///     <see cref="CanEscape" /> is false. A consumer's chance to shed aggro so the emit goes through.
     /// </summary>
     /// <remarks>
     ///     Raised on the refusal's own condition rather than on every escape, so a door that was never going to be refused
@@ -5781,10 +4991,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <br />
     ///     Awaited, so the emit waits on it and a hook that throws takes the emit down with it. Whatever it arranges has to
     ///     reach the wire ahead of the emit: one socket carries them in the order they were written, and the server reads
-    ///     <c>
-    ///         targets
-    ///     </c>
-    ///     when it handles the escape rather than when it was sent.
+    ///     <c>targets</c> when it handles the escape rather than when it was sent.
     /// </remarks>
     public Func<CancellationToken, Task>? BeforeEscape { get; set; }
 
@@ -5819,13 +5026,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     True from the moment a recall is emitted until it has landed, been refused, or been given up on.
     /// </summary>
     /// <remarks>
-    ///     <c>
-    ///         Character.Channeling
-    ///     </c>
-    ///     carries the recall only once the server has answered for it, so anything reading that to decide whether to stand
-    ///     down is blind for the round trip after the emit - and an attack, a drink or an equip landing inside that window
-    ///     empties the whole channel dictionary on the server before the client ever knew there was one to protect. That is a
-    ///     cancellation the character causes itself, and it reads as a recall failing for no reason.
+    ///     <c>Character.Channeling</c> carries the recall only once the server has answered for it, so anything reading that
+    ///     to decide whether to stand down is blind for the round trip after the emit - and an attack, a drink or an equip
+    ///     landing inside that window empties the whole channel dictionary on the server before the client ever knew there was
+    ///     one to protect. That is a cancellation the character causes itself, and it reads as a recall failing for no reason.
     ///     <br />
     ///     This is the same question asked about intent rather than about confirmation, so it covers the window as well. Not
     ///     raised until <see cref="BeforeTownRecall" /> has returned, since the cover that hook arranges is itself a cast that
@@ -5872,8 +5076,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private const int BLINK_LANDING_TIMEOUT_MS = 3000;
 
     /// <summary>
-    ///     Whether a cast is still being kept off the table for <paramref name="map" />. The recall's window, for the
-    ///     recall's reason: a lane polling at 10Hz would otherwise re-plan straight onto the cast that was just refused.
+    ///     Whether a cast is still being kept off the table for <paramref name="map" />. The recall's window, for the recall's
+    ///     reason: a lane polling at 10Hz would otherwise re-plan straight onto the cast that was just refused.
     /// </summary>
     private bool BlinkRecentlyFailedOn(string map)
         => BlinkFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
@@ -5885,8 +5089,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <remarks>
     ///     Dampened is a refusal rather than a wait: Lucinda's aura and Franky's fieldgens set it, and standing still never
     ///     clears it. Death is a refusal for the same reason. Everything else is waited out without a cap - the cancellation
-    ///     token is what ends the wait early, and a cancelled walk leaves the character standing anyway. Dampened is
-    ///     re-read inside the wait, since an aura can arrive during it.
+    ///     token is what ends the wait early, and a cancelled walk leaves the character standing anyway. Dampened is re-read
+    ///     inside the wait, since an aura can arrive during it.
     ///     <br />
     ///     The server answers blink_failed before charging when it finds nowhere to put the character; the skill core turns
     ///     that into the thrown failure the leg loop catches. A cast it accepts lands after its hold as a new_map frame whose
@@ -5939,9 +5143,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously uses the town ability to go to spawn index 0 on the current map.
     /// </summary>
-    /// <param name="token">
-    ///     A token used to cancel this action.
-    /// </param>
+    /// <param name="token">A token used to cancel this action.</param>
     /// <returns>
     ///     <see cref="NewMapData" />
     ///     <br />
@@ -6071,15 +5273,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         }
     }
 
-    /// <summary>
-    ///     Asynchronously withdraws gold from the bank.
-    /// </summary>
-    /// <param name="amount">
-    ///     The amount of gold to withdraw
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to withdraw {amount} gold. ({reason})
-    /// </exception>
+    /// <summary>Asynchronously withdraws gold from the bank.</summary>
+    /// <param name="amount">The amount of gold to withdraw</param>
+    /// <exception cref="InvalidOperationException">Failed to withdraw {amount} gold. ({reason})</exception>
     public async Task WithdrawGoldAsync(long amount)
     {
         if (Character.Bank == null)
@@ -6120,15 +5316,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously withdraws an item from the bank.
-    /// </summary>
-    /// <param name="bankPack">
-    ///     The bankPack to withdraw from.
-    /// </param>
-    /// <param name="bankSlot">
-    ///     The slot within the bankPack to withdraw from.
-    /// </param>
+    /// <summary>Asynchronously withdraws an item from the bank.</summary>
+    /// <param name="bankPack">The bankPack to withdraw from.</param>
+    /// <param name="bankSlot">The slot within the bankPack to withdraw from.</param>
     /// <param name="inventorySlot">
     ///     The slot in the inventory to place the item. -1 for first available.
     /// </param>
@@ -6137,9 +5327,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <br />
     ///     Information about the withdrawn item in the inventory.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to withdraw item {item}. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to withdraw item {item}. ({reason})</exception>
     public async Task<InventoryIndexer> WithdrawItemAsync(BankPack bankPack, int bankSlot, int inventorySlot = -1)
     {
         if (Character.Bank == null)
@@ -6207,40 +5395,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously withdraws an item from the bank without naming a destination, so the server picks the landing slot
     ///     and folds the item into a stack the inventory already holds.
     /// </summary>
-    /// <param name="bankPack">
-    ///     The bankPack to withdraw from.
-    /// </param>
-    /// <param name="bankSlot">
-    ///     The slot within the bankPack to withdraw from.
-    /// </param>
+    /// <param name="bankPack">The bankPack to withdraw from.</param>
+    /// <param name="bankSlot">The slot within the bankPack to withdraw from.</param>
     /// <returns>
     ///     The inventory slot the item landed in - an existing stack's slot whenever it merged.
     /// </returns>
     /// <remarks>
-    ///     <see cref="WithdrawItemAsync" /> cannot do this: naming
-    ///     <c>
-    ///         inv
-    ///     </c>
-    ///     takes the server's raw swap branch, which assigns the slot outright, where an unnamed one takes the pull branch and
-    ///     its
-    ///     <c>
-    ///         add_item
-    ///     </c>
-    ///     (
-    ///     <c>
-    ///         node/server.js:8548
-    ///     </c>
-    ///     ). That merge is what puts a whole quantity in the one slot a craft or an exchange reads it from, and it needs no
-    ///     free slot at all when a stacking partner is held (
-    ///     <c>
-    ///         js/old_common_functions.js:405
-    ///     </c>
+    ///     <see cref="WithdrawItemAsync" /> cannot do this: naming <c>inv</c> takes the server's raw swap branch, which
+    ///     assigns the slot outright, where an unnamed one takes the pull branch and its <c>add_item</c> (
+    ///     <c>node/server.js:8548</c> ). That merge is what puts a whole quantity in the one slot a craft or an exchange reads
+    ///     it from, and it needs no free slot at all when a stacking partner is held ( <c>js/old_common_functions.js:405</c>
     ///     ). The cost is that the reserved-range discipline a caller gets by naming the slot does not apply - the server
     ///     merges into the first partner it finds, reserved or not.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to withdraw item {item}. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to withdraw item {item}. ({reason})</exception>
     public async Task<int> WithdrawItemMergingAsync(BankPack bankPack, int bankSlot)
     {
         if (Character.Bank == null)
@@ -6483,7 +5651,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //raised before the drop, since the id is all the frame carries and the type is on the entity. A killing hit has
         //already dropped it by now, which is what KilledByHit is for
         if (KilledByHit.TryRemove(data.Id, out var monster) || Monsters.TryGetValue(data.Id, out monster))
-            OnMonsterDeath?.Invoke(this, new MonsterDeathData(monster.Id, monster.Name, data.Points, monster.Level));
+            OnMonsterDeath?.Invoke(
+                this,
+                new MonsterDeathData(
+                    monster.Id,
+                    monster.Name,
+                    data.Points,
+                    monster.Level));
 
         DestroyEntity(data.Id);
 
@@ -6743,40 +5917,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     /// <remarks>
     ///     <b>
-    ///         The cooldown
-    ///         <c>
-    ///             consume_skill
-    ///         </c>
-    ///         sends for an attack is the one that stood when the request began.
-    ///     </b>
-    ///     It reads
-    ///     <c>
-    ///         G.skills.attack.cooldown
-    ///     </c>
-    ///     , which the skill handler sets from
-    ///     <c>
-    ///         attack_ms
-    ///     </c>
-    ///     on its first line - so a buff this very swing procced is not in the number. Sugar rush is the one that shows it:
-    ///     the swing that procs it waits out a whole unbuffed cooldown, and only the swings after that run fast. The
-    ///     correction that would have said otherwise is computed inside
-    ///     <c>
-    ///         commence_attack
-    ///     </c>
-    ///     , before
-    ///     <c>
-    ///         consume_skill
-    ///     </c>
-    ///     moves
-    ///     <c>
-    ///         last.attack
-    ///     </c>
-    ///     forward, so it measures against the previous swing, comes out negative, clamps to zero here, and is then
-    ///     overwritten by
-    ///     <c>
-    ///         consume_skill
-    ///     </c>
-    ///     's own timeout.
+    ///         The cooldown <c>consume_skill</c> sends for an attack is the one that stood when the request began.
+    ///     </b> It reads <c>G.skills.attack.cooldown</c> , which the skill handler sets from <c>attack_ms</c> on its first
+    ///     line - so a buff this very swing procced is not in the number. Sugar rush is the one that shows it: the swing that
+    ///     procs it waits out a whole unbuffed cooldown, and only the swings after that run fast. The correction that would
+    ///     have said otherwise is computed inside <c>commence_attack</c> , before <c>consume_skill</c> moves
+    ///     <c>last.attack</c> forward, so it measures against the previous swing, comes out negative, clamps to zero here, and
+    ///     is then overwritten by <c>consume_skill</c> 's own timeout.
     ///     <br />
     ///     The frame carrying the new frequency is emitted earlier in the same request, so it has already been merged by the
     ///     time that timeout arrives, and the server gates the next swing on frequency as it stands rather than as it stood.
@@ -7074,8 +6221,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Serializes game data, initializes caches and pathfinding
     /// </summary>
-    /// <param name="unlockedDoors">
-    /// </param>
+    /// <param name="unlockedDoors"></param>
     public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null)
     {
         var tasks = new List<Task>

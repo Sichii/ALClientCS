@@ -23,6 +23,7 @@ public static class Snapshots
     ///     Detail lines printed per section before the rest is folded into a count.
     /// </summary>
     private const int DETAIL_CAP = 60;
+
     private const int VALUE_WIDTH = 72;
 
     /// <summary>
@@ -53,8 +54,8 @@ public static class Snapshots
            .FirstOrDefault();
 
     /// <summary>
-    ///     What a refresh reports about the values: a header per section that moved with its counts, the moved entries
-    ///     beneath it as <c>entry.path: old -> new</c>, and a closing summary line.
+    ///     What a refresh reports about the values: a header per section that moved with its counts, the moved entries beneath
+    ///     it as <c>entry.path: old -> new</c>, and a closing summary line.
     /// </summary>
     public static IReadOnlyList<string> Diff(JsonObject old, JsonObject fresh)
     {
@@ -90,7 +91,12 @@ public static class Snapshots
                                            .Order(StringComparer.Ordinal))
             {
                 var leaves = new List<(string Path, JsonNode? Before, JsonNode? After)>();
-                Walk(oldEntries[name], newEntries[name], string.Empty, leaves);
+
+                Walk(
+                    oldEntries[name],
+                    newEntries[name],
+                    string.Empty,
+                    leaves);
 
                 if (leaves.Count > 0)
                     changed.Add((name, leaves));
@@ -99,7 +105,12 @@ public static class Snapshots
             if ((added.Count == 0) && (removed.Count == 0) && (changed.Count == 0))
                 continue;
 
-            (int Count, string Word)[] parts = [(changed.Count, "changed"), (added.Count, "added"), (removed.Count, "removed")];
+            (int Count, string Word)[] parts =
+            [
+                (changed.Count, "changed"),
+                (added.Count, "added"),
+                (removed.Count, "removed")
+            ];
 
             var counts = string.Join(
                 ", ",
@@ -122,9 +133,11 @@ public static class Snapshots
                     var where = (path.Length == 0) || (path[0] == '[') ? $"{name}{path}" : $"{name}.{path}";
 
                     detail.Add(
-                        before is null ? $"  {where}: (new) {Scalar(after)}"
-                        : after is null ? $"  {where}: {Scalar(before)} (gone)"
-                                          : $"  {where}: {Scalar(before)} -> {Scalar(after)}");
+                        before is null
+                            ? $"  {where}: (new) {Scalar(after)}"
+                            : after is null
+                                ? $"  {where}: {Scalar(before)} (gone)"
+                                : $"  {where}: {Scalar(before)} -> {Scalar(after)}");
                 }
 
             lines.AddRange(detail.Take(DETAIL_CAP));
@@ -202,7 +215,11 @@ public static class Snapshots
                     else if (!oldObject.ContainsKey(key))
                         leaves.Add((sub, null, newObject[key]));
                     else
-                        Walk(oldObject[key], newObject[key], sub, leaves);
+                        Walk(
+                            oldObject[key],
+                            newObject[key],
+                            sub,
+                            leaves);
                 }
 
                 return;
@@ -215,7 +232,11 @@ public static class Snapshots
                 }
 
                 for (var index = 0; index < oldArray.Count; index++)
-                    Walk(oldArray[index], newArray[index], $"{path}[{index}]", leaves);
+                    Walk(
+                        oldArray[index],
+                        newArray[index],
+                        $"{path}[{index}]",
+                        leaves);
 
                 return;
             default:

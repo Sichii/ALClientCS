@@ -6,13 +6,9 @@ using FluentAssertions;
 namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
-///     The
-///     <c>
-///         cx
-///     </c>
-///     block on a player frame. A slot the character wears nothing in sends no key at all, so a missing key has to read as
-///     null - a non-nullable member there reports an empty string as a worn cosmetic. <see cref="CosmeticInfo" /> carries
-///     which ten slots exist and why.
+///     The <c>cx</c> block on a player frame. A slot the character wears nothing in sends no key at all, so a missing key
+///     has to read as null - a non-nullable member there reports an empty string as a worn cosmetic.
+///     <see cref="CosmeticInfo" /> carries which ten slots exist and why.
 /// </summary>
 public class CosmeticInfoTests
 {
@@ -45,19 +41,8 @@ public class CosmeticInfoTests
     }
 
     /// <summary>
-    ///     Every slot the server can fill, in one frame.
-    ///     <c>
-    ///         tail
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         back
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         gravestone
-    ///     </c>
-    ///     were the three the model used to drop on the floor.
+    ///     Every slot the server can fill, in one frame. <c>tail</c> , <c>back</c> and <c>gravestone</c> were the three the
+    ///     model used to drop on the floor.
     /// </summary>
     [Test]
     public void EveryServerSlotSurvivesDeserialization()

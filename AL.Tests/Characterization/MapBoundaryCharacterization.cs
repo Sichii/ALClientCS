@@ -11,26 +11,16 @@ using FluentAssertions;
 namespace AL.Tests.Characterization;
 
 /// <summary>
-///     Pins the exact coordinates
-///     <c>
-///         MapRectangleConverter
-///     </c>
-///     produces for every map rectangle in the committed snapshot. The committed fixture is the oracle: it was frozen
-///     while the Newtonsoft converter still existed, so reproducing it through the System.Text.Json path proves what the
-///     old two-engine differential proved, with no Newtonsoft left in the loop (plan T5 / S12 / S17).
+///     Pins the exact coordinates <c>MapRectangleConverter</c> produces for every map rectangle in the committed snapshot.
+///     The committed fixture is the oracle: it was frozen while the Newtonsoft converter still existed, so reproducing it
+///     through the System.Text.Json path proves what the old two-engine differential proved, with no Newtonsoft left in
+///     the loop (plan T5 / S12 / S17).
 /// </summary>
 public class MapBoundaryCharacterization
 {
     /// <summary>
-    ///     Committed fixture, copied into the build output by the
-    ///     <c>
-    ///         Fixtures\**\*
-    ///     </c>
-    ///     glob in
-    ///     <c>
-    ///         AL.Tests.csproj
-    ///     </c>
-    ///     . Read back through <see cref="Fixture.ReadCommittedSnapshot" />.
+    ///     Committed fixture, copied into the build output by the <c>Fixtures\**\*</c> glob in <c>AL.Tests.csproj</c> . Read
+    ///     back through <see cref="Fixture.ReadCommittedSnapshot" />.
     /// </summary>
     private const string COMMITTED_NAME = "map-boundaries.json";
 
@@ -64,23 +54,9 @@ public class MapBoundaryCharacterization
     }
 
     /// <summary>
-    ///     Deserializes every <see cref="MapRectangle" /> the converter is wired to — a monster's
-    ///     <c>
-    ///         boundary
-    ///     </c>
-    ///     /
-    ///     <c>
-    ///         boundaries
-    ///     </c>
-    ///     /
-    ///     <c>
-    ///         rage
-    ///     </c>
-    ///     and an NPC's
-    ///     <c>
-    ///         boundary
-    ///     </c>
-    ///     — from the committed game-data snapshot, through the production System.Text.Json options, in a deterministic order.
+    ///     Deserializes every <see cref="MapRectangle" /> the converter is wired to — a monster's <c>boundary</c> /
+    ///     <c>boundaries</c> / <c>rage</c> and an NPC's <c>boundary</c> — from the committed game-data snapshot, through the
+    ///     production System.Text.Json options, in a deterministic order.
     /// </summary>
     private static List<RectRecord> CollectRectangles()
     {
@@ -165,12 +141,8 @@ public class MapBoundaryCharacterization
 
     /// <summary>
     ///     The migration's proof for T5: all 160-plus rectangles re-collected through the production System.Text.Json options
-    ///     must render to the
-    ///     <b>
-    ///         same
-    ///     </b>
-    ///     committed fixture, which is frozen text from the Newtonsoft era. <see cref="Render" /> is engine-neutral, so any
-    ///     diff is a real coordinate difference.
+    ///     must render to the <b>same</b> committed fixture, which is frozen text from the Newtonsoft era.
+    ///     <see cref="Render" /> is engine-neutral, so any diff is a real coordinate difference.
     /// </summary>
     [Test]
     public void T5_AllMapRectangles_StjPath_ReproducesCommittedSnapshot()
@@ -178,17 +150,10 @@ public class MapBoundaryCharacterization
 
     /// <summary>
     ///     Documents the converter's two array shapes, both built from Point(x1, y1) and Point(x2, y2). In the 5-element form
-    ///     the leading element fails
-    ///     <c>
-    ///         float.TryParse
-    ///     </c>
-    ///     and is taken as the map name rather than a coordinate; the 4-element form carries no map name. All four coordinates
-    ///     have been
-    ///     <c>
-    ///         float
-    ///     </c>
-    ///     since the Phase 1 widening, so no fraction is lost either way: center X = (100.7 + 300.4) / 2 = 200.55, center Y =
-    ///     (200.9 + 400.6) / 2 = 300.75, and both extents are 199.7. This is the mechanism the snapshot captures in aggregate.
+    ///     the leading element fails <c>float.TryParse</c> and is taken as the map name rather than a coordinate; the
+    ///     4-element form carries no map name. All four coordinates have been <c>float</c> since the Phase 1 widening, so no
+    ///     fraction is lost either way: center X = (100.7 + 300.4) / 2 = 200.55, center Y = (200.9 + 400.6) / 2 = 300.75, and
+    ///     both extents are 199.7. This is the mechanism the snapshot captures in aggregate.
     /// </summary>
     [Test]
     [Arguments("[100.7, 200.9, 300.4, 400.6]", "")]
@@ -219,19 +184,9 @@ public class MapBoundaryCharacterization
     }
 
     /// <summary>
-    ///     Pins the converter's culture behaviour — the hazard S17 flagged: a coordinate parsed under
-    ///     <c>
-    ///         de-DE
-    ///     </c>
-    ///     , where
-    ///     <c>
-    ///         ,
-    ///     </c>
-    ///     is the decimal separator, must not come back 100x off. This test drives the real converter under
-    ///     <c>
-    ///         de-DE
-    ///     </c>
-    ///     and asserts what actually happens, restoring the culture afterwards.
+    ///     Pins the converter's culture behaviour — the hazard S17 flagged: a coordinate parsed under <c>de-DE</c> , where
+    ///     <c>,</c> is the decimal separator, must not come back 100x off. This test drives the real converter under
+    ///     <c>de-DE</c> and asserts what actually happens, restoring the culture afterwards.
     /// </summary>
     [Test]
     public void T5_MapRectangleConverter_CultureSensitivity_DeDE()

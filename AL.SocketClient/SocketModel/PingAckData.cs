@@ -5,8 +5,6 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record PingAckData
 {
-    /// <summary>
-    ///     The id of the ping being responded to.
-    /// </summary>
+    /// <summary>The id of the ping being responded to.</summary>
     public string Id { get; init; } = null!;
 }

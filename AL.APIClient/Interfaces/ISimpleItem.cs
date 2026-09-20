@@ -5,13 +5,9 @@ namespace AL.APIClient.Interfaces;
 /// </summary>
 public interface ISimpleItem
 {
-    /// <summary>
-    ///     The name of the item.
-    /// </summary>
+    /// <summary>The name of the item.</summary>
     string Name { get; }
 
-    /// <summary>
-    ///     The quantity of the item.
-    /// </summary>
+    /// <summary>The quantity of the item.</summary>
     int Quantity { get; }
 }

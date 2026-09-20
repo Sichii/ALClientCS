@@ -14,42 +14,23 @@ namespace AL.Tests.Characterization;
 /// <remarks>
 ///     Production downcasts a deserialized <see cref="System.Collections.Generic.IReadOnlyList{T}" /> /
 ///     <see cref="System.Collections.Generic.IReadOnlyDictionary{TKey,TValue}" /> to its concrete mutable type and mutates
-///     it in place (ALClient's boss bookkeeping,
-///     <c>
-///         Player.OnDeserialized
-///     </c>
-///     ,
-///     <c>
-///         Inventory.SetCapacity
-///     </c>
-///     ). These tests pin the exact runtime type System.Text.Json materialises those interfaces as, and prove every one of
-///     those downcasts still succeeds.
+///     it in place (ALClient's boss bookkeeping, <c>Player.OnDeserialized</c> , <c>Inventory.SetCapacity</c> ). These
+///     tests pin the exact runtime type System.Text.Json materialises those interfaces as, and prove every one of those
+///     downcasts still succeeds.
 /// </remarks>
 public class CollectionIdentityCharacterization
 {
     /// <summary>
-    ///     A minimal real-shape player frame: id plus one equipped slot.
-    ///     <c>
-    ///         Player.OnDeserialized
-    ///     </c>
-    ///     back-fills the rest, so even a bare player comes back carrying every <see cref="Slot" /> key.
+    ///     A minimal real-shape player frame: id plus one equipped slot. <c>Player.OnDeserialized</c> back-fills the rest, so
+    ///     even a bare player comes back carrying every <see cref="Slot" /> key.
     /// </summary>
     private const string PLAYER_FRAME = @"{""id"":""testplayer"",""ctype"":""mage"",""slots"":{""mainhand"":{""name"":""fireblade""}}}";
 
     /// <summary>
-    ///     A minimal real-shape character frame.
-    ///     <c>
-    ///         Character.OnDeserialized
-    ///     </c>
-    ///     runs both downcasts: the Slots downcast + slot fill it inherits from <see cref="Player" />, and
-    ///     <c>
-    ///         Inventory.SetCapacity
-    ///     </c>
-    ///     's
-    ///     <c>
-    ///         (List&lt;Item?&gt;)Items
-    ///     </c>
-    ///     . Both "items" and "isize" are present — without "items" the inventory is null and SetCapacity is skipped entirely.
+    ///     A minimal real-shape character frame. <c>Character.OnDeserialized</c> runs both downcasts: the Slots downcast +
+    ///     slot fill it inherits from <see cref="Player" />, and <c>Inventory.SetCapacity</c> 's
+    ///     <c>(List&lt;Item?&gt;)Items</c> . Both "items" and "isize" are present — without "items" the inventory is null and
+    ///     SetCapacity is skipped entirely.
     /// </summary>
     private const string CHARACTER_FRAME
         = @"{""id"":""me"",""ctype"":""mage"",""slots"":{""mainhand"":{""name"":""fireblade""}},""items"":[{""name"":""hpot0""}],""isize"":42}";
@@ -266,12 +247,9 @@ public class CollectionIdentityCharacterization
     }
 
     /// <summary>
-    ///     The post-deserialize step must survive a frame with no
-    ///     <c>
-    ///         items
-    ///     </c>
-    ///     key, which leaves the inventory null. Reachable the moment the callback actually fires, and fatal to the whole
-    ///     frame if it does not guard — the socket path swallows the throw and discards everything.
+    ///     The post-deserialize step must survive a frame with no <c>items</c> key, which leaves the inventory null. Reachable
+    ///     the moment the callback actually fires, and fatal to the whole frame if it does not guard — the socket path
+    ///     swallows the throw and discards everything.
     /// </summary>
     [Test]
     public void T13_Character_WithoutItems_OnDeserialized_DoesNotThrow()
@@ -296,7 +274,7 @@ public class CollectionIdentityCharacterization
     private sealed class SeededListHolder
     {
         [JsonPropertyName("values")]
-        public List<int> Values { get; set; } =
+        public List<int> Values { get; } =
             [
                 1,
                 2,

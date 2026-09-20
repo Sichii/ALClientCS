@@ -14,14 +14,9 @@ namespace AL.Core.Json.SystemTextJson;
 ///     Handles a field the server sends as either a bare string or a full object. On a string, constructs T and assigns
 ///     the string to the property named at construction; on an object, populates T normally and marks
 ///     <see cref="IOptionalObject.ContainsData" />. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         StringOrObjectConverter
-///     </c>
-///     . Register in the shared options (its property name cannot be passed through a System.Text.Json
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     attribute), so the object branch drops this converter to avoid re-entering itself.
+///     <c>StringOrObjectConverter</c> . Register in the shared options (its property name cannot be passed through a
+///     System.Text.Json <c>[JsonConverter]</c> attribute), so the object branch drops this converter to avoid re-entering
+///     itself.
 /// </summary>
 public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: class, IOptionalObject, new()
 {
@@ -63,13 +58,9 @@ public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: clas
 /// <summary>
 ///     Registers <see cref="StringOrObjectConverter{T}" /> for the types the models mark with
 ///     <see cref="JsonStringOrObjectAttribute" />, taking the string-property name from it. The parameter is why the
-///     marker exists: System.Text.Json's
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     attribute requires a public parameterless constructor and so cannot carry it. The factory lives in AL.Core yet
-///     still covers the socket/API types (it reads the marker by reflection and closes the generic at runtime), so no
-///     cross-project reference is needed.
+///     marker exists: System.Text.Json's <c>[JsonConverter]</c> attribute requires a public parameterless constructor and
+///     so cannot carry it. The factory lives in AL.Core yet still covers the socket/API types (it reads the marker by
+///     reflection and closes the generic at runtime), so no cross-project reference is needed.
 /// </summary>
 public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
 {
@@ -78,6 +69,7 @@ public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcl
     ///     attribute read is cached.
     /// </summary>
     private static readonly ConcurrentDictionary<Type, bool> Dual = new();
+
     private readonly Type? Excluded;
 
     public StringOrObjectConverterFactory() { }

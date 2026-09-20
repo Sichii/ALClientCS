@@ -6,9 +6,9 @@ using AL.SocketClient.SocketModel;
 namespace AL.Client.Helpers;
 
 /// <summary>
-///     Joins a run of map_chunk frames back into the one JSON bundle the server split. The game's client restates the
-///     rule this keeps: a bundle starts at index zero, every later chunk must carry the same run and count and the next
-///     index, and anything else throws the pending pieces away rather than gluing a stale half onto a fresh one.
+///     Joins a run of map_chunk frames back into the one JSON bundle the server split. The game's client restates the rule
+///     this keeps: a bundle starts at index zero, every later chunk must carry the same run and count and the next index,
+///     and anything else throws the pending pieces away rather than gluing a stale half onto a fresh one.
 /// </summary>
 internal sealed partial class MapChunkAssembler
 {
@@ -16,6 +16,7 @@ internal sealed partial class MapChunkAssembler
     ///     The game client's own caps, so a malformed stream cannot grow the buffer without bound.
     /// </summary>
     private const int MAX_COUNT = 1400;
+
     private const int MAX_TEXT_LENGTH = 12_000;
     private const int MAX_BUNDLE_LENGTH = 16 * 1024 * 1024;
 
@@ -54,7 +55,7 @@ internal sealed partial class MapChunkAssembler
             Size = 0;
         }
 
-        if ((Parts is null) || (chunk.Run != Run) || (chunk.Count != Count) || (chunk.Index != Parts.Count))
+        if (Parts is null || (chunk.Run != Run) || (chunk.Count != Count) || (chunk.Index != Parts.Count))
         {
             Reset();
 

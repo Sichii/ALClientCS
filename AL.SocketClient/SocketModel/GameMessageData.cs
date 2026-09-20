@@ -27,8 +27,6 @@ public sealed record GameMessageData : IOptionalObject
     [JsonIgnore]
     public bool ContainsData { get; set; }
 
-    /// <summary>
-    ///     The game error/log message.
-    /// </summary>
+    /// <summary>The game error/log message.</summary>
     public string Message { get; init; } = null!;
 }

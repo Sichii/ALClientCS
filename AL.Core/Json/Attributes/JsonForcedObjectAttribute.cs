@@ -8,12 +8,9 @@ namespace AL.Core.Json.Attributes;
 ///     containers that enumerate their vertices for bounding-box convenience.
 /// </summary>
 /// <remarks>
-///     Replaces Newtonsoft's
-///     <c>
-///         [JsonObject]
-///     </c>
-///     , which served this purpose while both engines ran side by side. System.Text.Json has no attribute that overrides
-///     an object/collection classification, so the marker has to be local.
+///     Replaces Newtonsoft's <c>[JsonObject]</c> , which served this purpose while both engines ran side by side.
+///     System.Text.Json has no attribute that overrides an object/collection classification, so the marker has to be
+///     local.
 /// </remarks>
 /// <seealso cref="System.Attribute" />
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]

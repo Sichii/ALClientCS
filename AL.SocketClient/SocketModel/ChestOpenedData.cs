@@ -35,24 +35,16 @@ public sealed record ChestOpenedData
     [JsonPropertyName("goldm")]
     public float GoldMod { get; set; }
 
-    /// <summary>
-    ///     TODO: unknown
-    /// </summary>
+    /// <summary>TODO: unknown</summary>
     public bool Gone { get; set; }
 
-    /// <summary>
-    ///     The id of the chest.
-    /// </summary>
+    /// <summary>The id of the chest.</summary>
     public string Id { get; set; } = null!;
 
-    /// <summary>
-    ///     A list of items received from the chest.
-    /// </summary>
+    /// <summary>A list of items received from the chest.</summary>
     public IReadOnlyList<ChestItem> Items { get; set; } = new List<ChestItem>();
 
-    /// <summary>
-    ///     The name of the player that opened the chest.
-    /// </summary>
+    /// <summary>The name of the player that opened the chest.</summary>
     [JsonPropertyName("opener")]
     public string OpenerName { get; set; } = null!;
 

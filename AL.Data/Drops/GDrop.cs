@@ -5,9 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace AL.Data.Drops;
 
-/// <summary>
-///     One roll on a drop table.
-/// </summary>
+/// <summary>One roll on a drop table.</summary>
 [JsonConverter(typeof(GDropConverter))]
 public sealed record GDrop
 {
@@ -27,11 +25,9 @@ public sealed record GDrop
     public int Quantity { get; init; } = 1;
 
     /// <summary>
-    ///     The per-kill chance, for a solo kill of a level-1 monster with no luck bonus. The server rolls
-    ///     <c>
+    ///     The per-kill chance, for a solo kill of a level-1 monster with no luck bonus. The server rolls <c>
     ///         random() / (share * luckm * level * mult) &lt; rate
-    ///     </c>
-    ///     (node/server.js:2189), so a rate of 1 or more is a guaranteed drop rather than a probability - several tables
+    ///     </c> (node/server.js:2189), so a rate of 1 or more is a guaranteed drop rather than a probability - several tables
     ///     express that as 100 or 10000.
     /// </summary>
     public float Rate { get; init; }
@@ -39,18 +35,8 @@ public sealed record GDrop
 
 /// <summary>
 ///     Reads the positional wire form of a <see cref="GDrop" />, whose third slot means two different things:
-///     <c>
-///         [rate, item]
-///     </c>
-///     ,
-///     <c>
-///         [rate, item, quantity]
-///     </c>
-///     ,
-///     <c>
-///         [rate, "open", tableName]
-///     </c>
-///     . <see cref="AL.Core.Json.SystemTextJson.ArrayToObjectConverter{T}" /> cannot express that - it binds one declared
+///     <c>[rate, item]</c> , <c>[rate, item, quantity]</c> , <c>[rate, "open", tableName]</c> .
+///     <see cref="AL.Core.Json.SystemTextJson.ArrayToObjectConverter{T}" /> cannot express that - it binds one declared
 ///     type per index.
 /// </summary>
 public sealed class GDropConverter : JsonConverter<GDrop>

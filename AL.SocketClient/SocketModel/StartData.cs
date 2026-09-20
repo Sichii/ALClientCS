@@ -1,7 +1,7 @@
 #region
-using AL.Core.Definitions;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AL.Core.Definitions;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -51,22 +51,12 @@ public class StartData : CharacterData
     ///     The emotions this character has unlocked and their unlock timestamps.
     /// </summary>
     /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         emx
-    ///     </c>
-    ///     on join (node/server.js:10577) and never on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only: sent as <c>emx</c> on join (node/server.js:10577) and never on a <c>player</c> frame.
     /// </remarks>
     [JsonPropertyName("emx")]
     public IReadOnlyDictionary<Emotion, float> Emotion { get; init; } = new Dictionary<Emotion, float>();
 
-    /// <summary>
-    ///     Initial entity load for the map you loaded into.
-    /// </summary>
+    /// <summary>Initial entity load for the map you loaded into.</summary>
     public EntitiesData Entities { get; init; } = null!;
 
     /// <summary>
@@ -74,18 +64,9 @@ public class StartData : CharacterData
     /// </summary>
     /// <remarks>
     ///     Declared as the derived <see cref="EventAndBossData" /> rather than the base on purpose:
-    ///     <c>
-    ///         EventAndBossDataConverter
-    ///     </c>
-    ///     is a
-    ///     <c>
-    ///         JsonConverter&lt;EventAndBossData&gt;
-    ///     </c>
-    ///     and does not claim a base-typed member, and that converter is the only thing that fills
-    ///     <c>
-    ///         BossInfo
-    ///     </c>
-    ///     from the unmodeled per-boss keys. Base-typed, the four event flags bind and every boss is silently dropped.
+    ///     <c>EventAndBossDataConverter</c> is a <c>JsonConverter&lt;EventAndBossData&gt;</c> and does not claim a base-typed
+    ///     member, and that converter is the only thing that fills <c>BossInfo</c> from the unmodeled per-boss keys.
+    ///     Base-typed, the four event flags bind and every boss is silently dropped.
     /// </remarks>
     [JsonPropertyName("s_info")]
     public EventAndBossData EventAndBossInfo { get; init; } = null!;
@@ -94,15 +75,8 @@ public class StartData : CharacterData
     ///     The names of this character's exclusive (class-locked) cosmetics.
     /// </summary>
     /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         xcx
-    ///     </c>
-    ///     on join (node/server.js:10757). A flat string list, unlike the
-    ///     <c>
-    ///         acx
-    ///     </c>
-    ///     dictionary in <see cref="OwnedCosmetics" />.
+    ///     Start-only: sent as <c>xcx</c> on join (node/server.js:10757). A flat string list, unlike the <c>acx</c> dictionary
+    ///     in <see cref="OwnedCosmetics" />.
     /// </remarks>
     [JsonPropertyName("xcx")]
     public IReadOnlyList<string> ExclusiveCosmetics { get; init; } = new List<string>();
@@ -111,41 +85,15 @@ public class StartData : CharacterData
     ///     The names of the characters on this account's friends list.
     /// </summary>
     /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         friends
-    ///     </c>
-    ///     on join (node/server.js:10574) and never on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only: sent as <c>friends</c> on join (node/server.js:10574) and never on a <c>player</c> frame.
     /// </remarks>
     [JsonPropertyName("friends")]
     public IReadOnlyList<string> Friends { get; init; } = new List<string>();
 
     /// <summary>
-    ///     The server this character calls home, as
-    ///     <c>
-    ///         region + server_name
-    ///     </c>
-    ///     (node/server.js:11161).
-    ///     Start-only: never on a later
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame. A successful
-    ///     <c>
-    ///         set_home
-    ///     </c>
-    ///     updates it through
-    ///     <c>
-    ///         game_response
-    ///     </c>
-    ///     <c>
-    ///         home_set
-    ///     </c>
-    ///     , not through this field.
+    ///     The server this character calls home, as <c>region + server_name</c> (node/server.js:11161). Start-only: never on a
+    ///     later <c>player</c> frame. A successful <c>set_home</c> updates it through <c>game_response</c> <c>home_set</c> ,
+    ///     not through this field.
     /// </summary>
     [JsonPropertyName("home")]
     public string? Home { get; init; }
@@ -154,15 +102,7 @@ public class StartData : CharacterData
     ///     A short-lived token used to re-authenticate to the API without the password.
     /// </summary>
     /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         ipass
-    ///     </c>
-    ///     on join (node/server.js:10569) and never on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only: sent as <c>ipass</c> on join (node/server.js:10569) and never on a <c>player</c> frame.
     /// </remarks>
     [JsonPropertyName("ipass")]
 
@@ -174,11 +114,7 @@ public class StartData : CharacterData
     ///     object.
     /// </summary>
     /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         info
-    ///     </c>
-    ///     on join (node/server.js:10578).
+    ///     Start-only: sent as <c>info</c> on join (node/server.js:10578).
     /// </remarks>
     [JsonPropertyName("info")]
     public JsonObject? InstanceInfo { get; init; }
@@ -187,15 +123,7 @@ public class StartData : CharacterData
     ///     A collection of all of the cosmetics owned by this character.
     /// </summary>
     /// <remarks>
-    ///     Start-only: sent as
-    ///     <c>
-    ///         acx
-    ///     </c>
-    ///     on join (node/server.js:10575) and never on a
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     frame.
+    ///     Start-only: sent as <c>acx</c> on join (node/server.js:10575) and never on a <c>player</c> frame.
     /// </remarks>
     [JsonPropertyName("acx")]
     public IReadOnlyDictionary<string, int> OwnedCosmetics { get; init; } = new Dictionary<string, int>();

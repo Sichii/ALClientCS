@@ -31,8 +31,6 @@ public static class Pathfinder
     ];
 
     private static readonly ILog Logger = LogManager.GetLogger(typeof(Pathfinder).FullName);
-    private static IReadOnlyDictionary<string, NavMesh> Meshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
-    private static PortalGraph? Graph;
 
     /// <summary>
     ///     A dungeon run's floors join the mesh table while the run lasts and route over a graph of their own: nothing walks
@@ -41,19 +39,19 @@ public static class Pathfinder
     /// </summary>
     private static readonly Lock GeneratedLock = new();
 
-    private static IReadOnlyDictionary<string, (PortalGraph Graph, DateTime RegisteredAt)> RunGraphs
-        = new Dictionary<string, (PortalGraph, DateTime)>(StringComparer.OrdinalIgnoreCase);
-
     //ponytail: a run is dropped when a later run arrives this long after it. Nothing here knows when the last
     //character in the process has left a run, so a run outlives its 24 minutes by this margin at most
     private static readonly TimeSpan RUN_LIFETIME = TimeSpan.FromHours(2);
+    private static IReadOnlyDictionary<string, NavMesh> Meshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
+    private static PortalGraph? Graph;
+
+    private static IReadOnlyDictionary<string, (PortalGraph Graph, DateTime RegisteredAt)> RunGraphs
+        = new Dictionary<string, (PortalGraph, DateTime)>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Whether a character can move in a straight line from start to end on a map: the server's own test.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     The map has no mesh.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
     public static bool CanMove(string mapAccessor, IPoint start, IPoint end)
     {
         ArgumentException.ThrowIfNullOrEmpty(mapAccessor);
@@ -81,9 +79,7 @@ public static class Pathfinder
     ///     The cheapest route from <paramref name="start" /> to any of <paramref name="ends" />, as legs. A walk stops inside
     ///     an end's radius rather than on it. "No path" is an <see cref="InvalidOperationException" />.
     /// </summary>
-    /// <param name="start">
-    ///     Where the character is.
-    /// </param>
+    /// <param name="start">Where the character is.</param>
     /// <param name="ends">
     ///     Any of these is an acceptable destination; the cheapest to reach is chosen.
     /// </param>
@@ -102,16 +98,19 @@ public static class Pathfinder
 
     /// <inheritdoc cref="FindPath{T}" />
     /// <remarks>
-    ///     For callers that iterate the path with
-    ///     <c>
-    ///         await foreach
-    ///     </c>
-    ///     . The search itself runs to completion on the calling thread before the first leg is yielded.
+    ///     For callers that iterate the path with <c>await foreach</c> . The search itself runs to completion on the calling
+    ///     thread before the first leg is yielded.
     /// </remarks>
     public static IAsyncEnumerable<PathEdge> FindPathAsync<T>(ILocation start, IEnumerable<T> ends, PathOptions? options = null)
         where T: ILocation, ICircle
         => FindPath(start, ends, options)
             .ToAsyncEnumerable();
+
+    private static IEnumerable<GMap> FloorsOf(string run)
+        => GameData.Maps
+                   .Values
+                   .DistinctBy(map => map.Accessor)
+                   .Where(map => map.Generated is { } generated && run.EqualsI(generated.Run));
 
     /// <summary>
     ///     Retrieves the navmesh for a map, or null before <see cref="Initialize" /> has run, for an unknown map, or for a
@@ -119,6 +118,17 @@ public static class Pathfinder
     ///     character holds no map until its first new_map.
     /// </summary>
     public static NavMesh? GetNavMesh(string? name) => name is not null && Meshes.TryGetValue(name, out var mesh) ? mesh : null;
+
+    /// <summary>
+    ///     A search starting on a run's floor routes over that run's graph; everywhere else is the world.
+    /// </summary>
+    private static PortalGraph GraphFor(string map)
+    {
+        if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))
+            return run.Graph;
+
+        return Graph ?? throw new InvalidOperationException("Pathfinder.Initialize has not run.");
+    }
 
     /// <summary>
     ///     Builds every map's mesh and the portal graph between them. CPU-heavy; several hundred milliseconds.
@@ -156,9 +166,35 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own portal graph. A floor
-    ///     the bundle only lists in its manifest gets its mesh when its own delivery arrives; every delivery rebuilds the
-    ///     run's graph over the floors it has so far.
+    ///     Whether a walk may end here: inside the ground the mesh was built from. False for a map with no mesh rather than a
+    ///     throw: a map the pathfinder never modelled is one nothing can be routed onto.
+    /// </summary>
+    public static bool IsWalkable(ILocation location)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        return GetNavMesh(location.Map)
+                   ?.IsWalkable(location)
+               ?? false;
+    }
+
+    /// <summary>
+    ///     Whether a character standing here has a wall inside its collision box, or is off the map.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
+    public static bool IsWall(ILocation location)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        var mesh = GetNavMesh(location.Map) ?? throw new InvalidOperationException($"No mesh found for the map \"{location.Map}\"");
+
+        return mesh.IsWall(location);
+    }
+
+    /// <summary>
+    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own portal graph. A floor the
+    ///     bundle only lists in its manifest gets its mesh when its own delivery arrives; every delivery rebuilds the run's
+    ///     graph over the floors it has so far.
     /// </summary>
     public static void RegisterGeneratedRun(GeneratedMapBundle bundle)
     {
@@ -202,6 +238,36 @@ public static class Pathfinder
         }
     }
 
+    private static NavMesh? TryBuildNavMesh(string name, GMap map)
+    {
+        var geometry = GameData.Geometry[name];
+
+        if ((geometry == null) || (geometry.VerticalLines.Count == 0) || (geometry.HorizontalLines.Count == 0))
+        {
+            Logger.Debug($"Ignored {name}");
+
+            return null;
+        }
+
+        var mesh = new NavMeshBuilder(map, geometry).BuildMesh();
+        Logger.Debug($"Prepared {name}");
+
+        return new NavMesh(map, geometry, mesh);
+    }
+
+    /// <summary>
+    ///     The nearest point inside the ground, within <c>CONSTANTS.MAX_UNSTICK_DISTANCE</c> . False for a map with no mesh,
+    ///     for the reason <see cref="IsWalkable" /> is.
+    /// </summary>
+    public static bool TryFindNearestWalkable(ILocation location, out IPoint walkable)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        walkable = Point.None;
+
+        return GetNavMesh(location.Map) is { } mesh && mesh.TryFindNearestWalkable(location, out walkable);
+    }
+
     /// <summary>
     ///     Drops a run's meshes and graph, and takes its floors back out of the game data.
     /// </summary>
@@ -224,83 +290,5 @@ public static class Pathfinder
         }
 
         GameData.UnregisterGeneratedRun(run);
-    }
-
-    private static IEnumerable<GMap> FloorsOf(string run)
-        => GameData.Maps
-                   .Values
-                   .DistinctBy(map => map.Accessor)
-                   .Where(map => map.Generated is { } generated && run.EqualsI(generated.Run));
-
-    /// <summary>
-    ///     A search starting on a run's floor routes over that run's graph; everywhere else is the world.
-    /// </summary>
-    private static PortalGraph GraphFor(string map)
-    {
-        if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))
-            return run.Graph;
-
-        return Graph ?? throw new InvalidOperationException("Pathfinder.Initialize has not run.");
-    }
-
-    /// <summary>
-    ///     Whether a walk may end here: inside the ground the mesh was built from. False for a map with no mesh rather than a
-    ///     throw: a map the pathfinder never modelled is one nothing can be routed onto.
-    /// </summary>
-    public static bool IsWalkable(ILocation location)
-    {
-        ArgumentNullException.ThrowIfNull(location);
-
-        return GetNavMesh(location.Map)
-                   ?.IsWalkable(location)
-               ?? false;
-    }
-
-    /// <summary>
-    ///     Whether a character standing here has a wall inside its collision box, or is off the map.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     The map has no mesh.
-    /// </exception>
-    public static bool IsWall(ILocation location)
-    {
-        ArgumentNullException.ThrowIfNull(location);
-
-        var mesh = GetNavMesh(location.Map) ?? throw new InvalidOperationException($"No mesh found for the map \"{location.Map}\"");
-
-        return mesh.IsWall(location);
-    }
-
-    private static NavMesh? TryBuildNavMesh(string name, GMap map)
-    {
-        var geometry = GameData.Geometry[name];
-
-        if ((geometry == null) || (geometry.VerticalLines.Count == 0) || (geometry.HorizontalLines.Count == 0))
-        {
-            Logger.Debug($"Ignored {name}");
-
-            return null;
-        }
-
-        var mesh = new NavMeshBuilder(map, geometry).BuildMesh();
-        Logger.Debug($"Prepared {name}");
-
-        return new NavMesh(map, geometry, mesh);
-    }
-
-    /// <summary>
-    ///     The nearest point inside the ground, within
-    ///     <c>
-    ///         CONSTANTS.MAX_UNSTICK_DISTANCE
-    ///     </c>
-    ///     . False for a map with no mesh, for the reason <see cref="IsWalkable" /> is.
-    /// </summary>
-    public static bool TryFindNearestWalkable(ILocation location, out IPoint walkable)
-    {
-        ArgumentNullException.ThrowIfNull(location);
-
-        walkable = Point.None;
-
-        return GetNavMesh(location.Map) is { } mesh && mesh.TryFindNearestWalkable(location, out walkable);
     }
 }

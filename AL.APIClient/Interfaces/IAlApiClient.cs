@@ -10,14 +10,17 @@ namespace AL.APIClient.Interfaces;
 /// </summary>
 public interface IAlApiClient
 {
-    /// <summary>
-    ///     Authorization data for the logged in user.
-    /// </summary>
+    /// <summary>Authorization data for the logged in user.</summary>
     AuthUser Auth { get; }
 
     /// <summary>
-    ///     Asynchronously fetches mail from the server.
+    ///     Asynchronously deletes a mail. The server does not refuse this for a mail whose attached item has never been taken
+    ///     - deleting one destroys the item, not just the message.
     /// </summary>
+    /// <param name="mail">The mail to delete.</param>
+    Task DeleteMailAsync(Mail mail);
+
+    /// <summary>Asynchronously fetches mail from the server.</summary>
     /// <returns>
     ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="Mail" />
     ///     <br />
@@ -49,23 +52,9 @@ public interface IAlApiClient
     /// </param>
     Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false);
 
-    /// <summary>
-    ///     Asynchronously marks a mail as having been read.
-    /// </summary>
-    /// <param name="mail">
-    ///     The mail to mark.
-    /// </param>
+    /// <summary>Asynchronously marks a mail as having been read.</summary>
+    /// <param name="mail">The mail to mark.</param>
     Task ReadMailAsync(Mail mail);
-
-
-    /// <summary>
-    ///     Asynchronously deletes a mail. The server does not refuse this for a mail whose attached item has never
-    ///     been taken - deleting one destroys the item, not just the message.
-    /// </summary>
-    /// <param name="mail">
-    ///     The mail to delete.
-    /// </param>
-    Task DeleteMailAsync(Mail mail);
 
     /// <summary>
     ///     Asynchronously re-logs in and replaces the <see cref="Auth" />.

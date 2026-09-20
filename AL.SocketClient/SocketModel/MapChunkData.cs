@@ -6,23 +6,15 @@ namespace AL.SocketClient.SocketModel;
 
 /// <summary>
 ///     One piece of a generated map bundle. The server streams a daily dungeon's floors as a run of these under one run
-///     id, in index order; the pieces joined in that order are one JSON document (see
-///     <c>
-///         GeneratedMapBundle
-///     </c>
-///     ).
+///     id, in index order; the pieces joined in that order are one JSON document (see <c>GeneratedMapBundle</c> ).
 /// </summary>
 public sealed record MapChunkData
 {
-    /// <summary>
-    ///     How many chunks the bundle has in total.
-    /// </summary>
+    /// <summary>How many chunks the bundle has in total.</summary>
     [JsonPropertyName("count")]
     public int Count { get; init; }
 
-    /// <summary>
-    ///     This chunk's position in the bundle, from zero.
-    /// </summary>
+    /// <summary>This chunk's position in the bundle, from zero.</summary>
     [JsonPropertyName("index")]
     public int Index { get; init; }
 
@@ -32,9 +24,7 @@ public sealed record MapChunkData
     [JsonPropertyName("run")]
     public string Run { get; init; } = null!;
 
-    /// <summary>
-    ///     This chunk's slice of the bundle text.
-    /// </summary>
+    /// <summary>This chunk's slice of the bundle text.</summary>
     [JsonPropertyName("text")]
     public string Text { get; init; } = null!;
 }

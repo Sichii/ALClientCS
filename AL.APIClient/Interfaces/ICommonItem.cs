@@ -15,18 +15,12 @@ public interface ICommonItem : ISimpleItem
     /// </summary>
     string? AchievementName { get; }
 
-    /// <summary>
-    ///     The grace value of this item.
-    /// </summary>
+    /// <summary>The grace value of this item.</summary>
     float Grace { get; }
 
-    /// <summary>
-    ///     The level of this item;
-    /// </summary>
+    /// <summary>The level of this item;</summary>
     int Level { get; }
 
-    /// <summary>
-    ///     The type of stat attributed to this item.
-    /// </summary>
+    /// <summary>The type of stat attributed to this item.</summary>
     ALAttribute StatType { get; }
 }

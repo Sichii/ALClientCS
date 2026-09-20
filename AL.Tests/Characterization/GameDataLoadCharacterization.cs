@@ -13,11 +13,7 @@ namespace AL.Tests.Characterization;
 /// <summary>
 ///     T1 - pins that <see cref="GameData.Populate" /> binds every static datum from the committed snapshot. The values
 ///     were frozen pre-migration, so the System.Text.Json port had a fixed target. Asserts real values (counts, scalars)
-///     rather than
-///     <c>
-///         IsNotNull
-///     </c>
-///     : a null check passes whether a datum bound 520 items or zero.
+///     rather than <c>IsNotNull</c> : a null check passes whether a datum bound 520 items or zero.
 /// </summary>
 /// <remarks>
 ///     <see cref="GameData" /> is static global state. This suite populates it from the offline snapshot rather than the
@@ -29,16 +25,15 @@ namespace AL.Tests.Characterization;
 public class GameDataLoadCharacterization
 {
     private static readonly FieldInfo[] StaticBackingFields = typeof(GameData).GetFields(BindingFlags.Static | BindingFlags.NonPublic)
-                                                                              .Where(field => field is { IsLiteral: false, IsInitOnly: false })
+                                                                              .Where(field => field is
+                                                                              {
+                                                                                  IsLiteral: false, IsInitOnly: false
+                                                                              })
                                                                               .ToArray();
 
     /// <summary>
-    ///     The server's own
-    ///     <c>
-    ///         free_cx
-    ///     </c>
-    ///     (js/old_common_functions.js:153), restated here rather than read back off the production copy - a test that asked
-    ///     the push what the push should do would pass on any answer.
+    ///     The server's own <c>free_cx</c> (js/old_common_functions.js:153), restated here rather than read back off the
+    ///     production copy - a test that asked the push what the push should do would pass on any answer.
     /// </summary>
     private static readonly string[] FreeCosmetics =
     [
@@ -53,11 +48,8 @@ public class GameDataLoadCharacterization
     /// <summary>
     ///     How many cosmetic names the class push owes each class in the snapshot, and how long its finished list is. Only
     ///     mage and priest are granted anything on the wire - three names each, none of which the push would have added - so
-    ///     only their two numbers differ. Warrior carries an empty list; the other four carry no
-    ///     <c>
-    ///         xcx
-    ///     </c>
-    ///     member at all, and none of the seven carries a null one.
+    ///     only their two numbers differ. Warrior carries an empty list; the other four carry no <c>xcx</c> member at all, and
+    ///     none of the seven carries a null one.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, (int Pushed, int Total)> ExclusiveCosmeticCounts
         = new Dictionary<string, (int, int)>
@@ -77,17 +69,10 @@ public class GameDataLoadCharacterization
     ///     A look the wire sends short, or with nothing in its second slot, binds with a null piece map.
     /// </summary>
     /// <remarks>
-    ///     This is the premise the null guards in
-    ///     <c>
-    ///         EnrichClasses
-    ///     </c>
-    ///     rest on, and it is surprising enough to pin on its own: the positional converter leaves a reference-typed argument
-    ///     null rather than defaulting it, so the map is null rather than empty, and walking it throws inside
-    ///     <c>
-    ///         Populate
-    ///     </c>
-    ///     - a client that will not start, not a look that will not draw. The server's own loop over that slot tolerates the
-    ///     same shape and keeps going.
+    ///     This is the premise the null guards in <c>EnrichClasses</c> rest on, and it is surprising enough to pin on its own:
+    ///     the positional converter leaves a reference-typed argument null rather than defaulting it, so the map is null
+    ///     rather than empty, and walking it throws inside <c>Populate</c> - a client that will not start, not a look that
+    ///     will not draw. The server's own loop over that slot tolerates the same shape and keeps going.
     ///     <br />
     ///     Every look in the snapshot is well formed, so nothing else here would notice if this changed. If the converter ever
     ///     starts defaulting the map, this test says so and those guards can go.
@@ -578,44 +563,18 @@ public class GameDataLoadCharacterization
     }
 
     /// <summary>
-    ///     Every buyable item resolves to a seller that is actually standing somewhere.
-    ///     <c>
-    ///         EnrichItems
-    ///     </c>
-    ///     races first-writer-wins over
-    ///     <c>
-    ///         NPCs.Values
-    ///     </c>
-    ///     , which is declaration order rather than wire order, and
-    ///     <c>
-    ///         CanBuy
-    ///     </c>
-    ///     ends on
-    ///     <c>
-    ///         ObtainableFromNPC.Locations.Any(…)
-    ///     </c>
-    ///     - so an item resolved to a seller placed only on
-    ///     <c>
-    ///         ignore: true
-    ///     </c>
-    ///     maps is unbuyable with nothing logged at all, which is what the placed-first ordering there exists to prevent.
+    ///     Every buyable item resolves to a seller that is actually standing somewhere. <c>EnrichItems</c> races
+    ///     first-writer-wins over <c>NPCs.Values</c> , which is declaration order rather than wire order, and <c>CanBuy</c>
+    ///     ends on <c>ObtainableFromNPC.Locations.Any(…)</c> - so an item resolved to a seller placed only on
+    ///     <c>ignore: true</c> maps is unbuyable with nothing logged at all, which is what the placed-first ordering there
+    ///     exists to prevent.
     ///     <br />
-    ///     <b>
-    ///         What this does and does not pin.
-    ///     </b>
-    ///     It cannot distinguish the ordering being present from absent, because on this snapshot every item's first seller
-    ///     happens to be placed already - the fix is a no-op on today's data and only removes the hazard. What it does catch
-    ///     is the data moving underneath: `pots` and `weapons` both carry item lists and stand only on
-    ///     <c>
-    ///         old_main
-    ///     </c>
-    ///     /
-    ///     <c>
-    ///         original_main
-    ///     </c>
-    ///     , so the day a seller ahead of them loses its placement, or one of their 8 items loses its other seller, this goes
-    ///     red instead of the merchant silently buying nothing. Inverting the ordering to prefer unplaced sellers fails it,
-    ///     which is how it was checked.
+    ///     <b>What this does and does not pin.</b> It cannot distinguish the ordering being present from absent, because on
+    ///     this snapshot every item's first seller happens to be placed already - the fix is a no-op on today's data and only
+    ///     removes the hazard. What it does catch is the data moving underneath: `pots` and `weapons` both carry item lists
+    ///     and stand only on <c>old_main</c> / <c>original_main</c> , so the day a seller ahead of them loses its placement,
+    ///     or one of their 8 items loses its other seller, this goes red instead of the merchant silently buying nothing.
+    ///     Inverting the ordering to prefer unplaced sellers fails it, which is how it was checked.
     /// </summary>
     [Test]
     public void T1_ObtainableFromNPC_ResolvesToAPlacedSeller()
@@ -635,6 +594,30 @@ public class GameDataLoadCharacterization
     }
 
     /// <summary>
+    ///     The two odds tables were added to the snapshot when the payload gained them at version 16846; the gold table was
+    ///     not. A section the payload lacks is an empty table, not a null root, so a reader on an old payload sees no entries
+    ///     rather than a crash.
+    /// </summary>
+    [Test]
+    public void T1_OddsTables_BindAndMonsterGoldStaysEmpty()
+    {
+        GameData.Compounds
+                .ChanceOf(0, 3)
+                .Should()
+                .Be(0.4);
+
+        GameData.Upgrades
+                .ChanceOf(2, 12)
+                .Should()
+                .Be(0.09);
+
+        GameData.MonsterGold
+                .Entries
+                .Should()
+                .BeEmpty();
+    }
+
+    /// <summary>
     ///     The name-to-type table the server builds by walking every typed sheet's matrix
     ///     (js/old_common_functions.js:183-193), restated here rather than read back out of production code: a probe sharing
     ///     the rule under test agrees with itself whatever the rule does.
@@ -643,11 +626,7 @@ public class GameDataLoadCharacterization
     ///     This is what turns a cosmetic name into a slot, so a <see cref="GSprite.Type" /> that bound null for every sheet
     ///     would compile, pass a null check, and still leave nothing placeable. The counts are what catches that: the rebuilt
     ///     table is empty without it, and with it resolves every name the four catalogues carry bar one. Untyped sheets are
-    ///     left out rather than defaulted to the server's
-    ///     <c>
-    ///         full
-    ///     </c>
-    ///     placeholder, which reaches no slot.
+    ///     left out rather than defaulted to the server's <c>full</c> placeholder, which reaches no slot.
     /// </remarks>
     [Test]
     public void T1_SpriteTypes_ResolveTheCosmeticCatalogues()
@@ -777,29 +756,5 @@ public class GameDataLoadCharacterization
         GameData.CountUnknownMembers(root)
                 .Should()
                 .Be(baseline + 1);
-    }
-
-    /// <summary>
-    ///     The two odds tables were added to the snapshot when the payload gained them at version 16846; the gold table
-    ///     was not. A section the payload lacks is an empty table, not a null root, so a reader on an old payload sees no
-    ///     entries rather than a crash.
-    /// </summary>
-    [Test]
-    public void T1_OddsTables_BindAndMonsterGoldStaysEmpty()
-    {
-        GameData.Compounds
-                .ChanceOf(0, 3)
-                .Should()
-                .Be(0.4);
-
-        GameData.Upgrades
-                .ChanceOf(2, 12)
-                .Should()
-                .Be(0.09);
-
-        GameData.MonsterGold
-                .Entries
-                .Should()
-                .BeEmpty();
     }
 }

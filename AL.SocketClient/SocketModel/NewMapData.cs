@@ -1,8 +1,8 @@
 #region
-using AL.Core.Definitions;
-using AL.Core.Interfaces;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AL.Core.Definitions;
+using AL.Core.Interfaces;
 #endregion
 
 namespace AL.SocketClient.SocketModel;
@@ -36,9 +36,7 @@ public record NewMapData : IInstancedLocation, IOriented
     [JsonPropertyName("name")]
     public string Map { get; init; } = null!;
 
-    /// <summary>
-    ///     The map change count value for this map change.
-    /// </summary>
+    /// <summary>The map change count value for this map change.</summary>
     [JsonPropertyName("m")]
     public ulong MapChangeCount { get; init; }
 

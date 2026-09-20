@@ -6,8 +6,8 @@ using FluentAssertions;
 namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
-///     Covers <see cref="Player.Team" />: the A/B Testing and duel "which side" field, sent as a plain string on the
-///     wire and cleared server-side the moment a player leaves the instance.
+///     Covers <see cref="Player.Team" />: the A/B Testing and duel "which side" field, sent as a plain string on the wire
+///     and cleared server-side the moment a player leaves the instance.
 /// </summary>
 public class PlayerTeamTests
 {
@@ -16,11 +16,12 @@ public class PlayerTeamTests
     {
         var player = TestJson.Socket<Player>(@"{ ""id"":""a"", ""team"":""A"" }");
 
-        player.Should().NotBeNull();
+        player.Should()
+              .NotBeNull();
 
         player!.Team
-              .Should()
-              .Be("A");
+               .Should()
+               .Be("A");
     }
 
     [Test]
@@ -28,11 +29,12 @@ public class PlayerTeamTests
     {
         var player = TestJson.Socket<Player>(@"{ ""id"":""a"" }");
 
-        player.Should().NotBeNull();
+        player.Should()
+              .NotBeNull();
 
         player!.Team
-              .Should()
-              .BeNull();
+               .Should()
+               .BeNull();
     }
 
     [Test]

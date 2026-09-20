@@ -16,11 +16,7 @@ public static class EnumHelper
 
     /// <summary>
     ///     Builds (once, cached) the case-insensitive name/<see cref="EnumMemberAttribute" />-alias -&gt; value lookup for an
-    ///     enum type. Shared by both
-    ///     <c>
-    ///         TryParse
-    ///     </c>
-    ///     overloads so their behaviour cannot drift.
+    ///     enum type. Shared by both <c>TryParse</c> overloads so their behaviour cannot drift.
     /// </summary>
     private static Dictionary<string, Enum> GetLookup(Type type)
     {
@@ -64,12 +60,8 @@ public static class EnumHelper
     ///     A helper method for converting an enum to a string, taking into consideration <see cref="EnumMemberAttribute" />s
     ///     if they exist.
     /// </summary>
-    /// <typeparam name="T">
-    ///     An enum type.
-    /// </typeparam>
-    /// <param name="value">
-    ///     An enum value.
-    /// </param>
+    /// <typeparam name="T">An enum type.</typeparam>
+    /// <param name="value">An enum value.</param>
     /// <returns>
     ///     <see cref="string" />
     ///     <br />
@@ -101,24 +93,13 @@ public static class EnumHelper
     ///     A helper method for parsing an enum from a string, taking into cosideration <see cref="EnumMemberAttribute" />s if
     ///     they exist.
     /// </summary>
-    /// <typeparam name="T">
-    ///     An enum type.
-    /// </typeparam>
-    /// <param name="str">
-    ///     A string to parse.
-    /// </param>
+    /// <typeparam name="T">An enum type.</typeparam>
+    /// <param name="str">A string to parse.</param>
     /// <param name="result">
     ///     <see cref="Enum" /> value of type <typeparamref name="T" />
     /// </param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if parsing was successful,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     otherwise.
+    ///     <c>true</c> if parsing was successful, <c>false</c> otherwise.
     /// </returns>
     public static bool TryParse<T>(string? str, out T? result) where T: Enum
     {

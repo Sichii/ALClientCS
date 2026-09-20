@@ -29,6 +29,7 @@ public class IceGolemCorridorTests : PathfindingTestBed
     ///     Bounds are those cells plus that rounding reach.
     /// </summary>
     private const float JAIL_MIN_X = 735f;
+
     private const float JAIL_MAX_X = 755f;
     private const float JAIL_MIN_Y = 285f;
     private const float JAIL_MAX_Y = 335f;

@@ -23,12 +23,8 @@ namespace AL.Tests.Characterization;
 /// </summary>
 /// <remarks>
 ///     Every array is fed through the production System.Text.Json options via <see cref="TestJson.Data{T}" />, which
-///     resolve the inner element with
-///     <c>
-///         ArrayToObjectConverter&lt;T&gt;
-///     </c>
-///     exactly as the game-data load path does — so deserializing each array on its own is byte-identical to loading it in
-///     place.
+///     resolve the inner element with <c>ArrayToObjectConverter&lt;T&gt;</c> exactly as the game-data load path does — so
+///     deserializing each array on its own is byte-identical to loading it in place.
 /// </remarks>
 public class PositionalArrayCharacterization
 {
@@ -249,6 +245,7 @@ public class PositionalArrayCharacterization
     /// <summary>
     ///     Nullable counterpart of <see cref="F" />; the casing pairs it with F/S/E rather than following the method rule.
     /// </summary>
+
     // ReSharper disable once InconsistentNaming
     private static string NF(float? value) => value.HasValue ? F(value.Value) : "null";
 

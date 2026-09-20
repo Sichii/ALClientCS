@@ -5,14 +5,12 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.Model;
 
 /// <summary>
-///     The daily dungeon's run state as the server last sent it: the clock, the party's shared purse, where the stairs
-///     and objectives are, and the vote in progress if the run is paused for one. Times are server epoch milliseconds.
+///     The daily dungeon's run state as the server last sent it: the clock, the party's shared purse, where the stairs and
+///     objectives are, and the vote in progress if the run is paused for one. Times are server epoch milliseconds.
 /// </summary>
 public sealed record CaveState
 {
-    /// <summary>
-    ///     Cave amber in the party's shared purse.
-    /// </summary>
+    /// <summary>Cave amber in the party's shared purse.</summary>
     [JsonPropertyName("amber")]
     public int Amber { get; init; }
 
@@ -22,21 +20,15 @@ public sealed record CaveState
     [JsonPropertyName("choice")]
     public CaveChoice? Choice { get; init; }
 
-    /// <summary>
-    ///     The stairs and the exit on the current floor.
-    /// </summary>
+    /// <summary>The stairs and the exit on the current floor.</summary>
     [JsonPropertyName("doors")]
     public IReadOnlyList<CaveDoor> Doors { get; init; } = [];
 
-    /// <summary>
-    ///     When the run's clock runs out, unless paused.
-    /// </summary>
+    /// <summary>When the run's clock runs out, unless paused.</summary>
     [JsonPropertyName("expires")]
     public long Expires { get; init; }
 
-    /// <summary>
-    ///     The floor the character is on, from zero.
-    /// </summary>
+    /// <summary>The floor the character is on, from zero.</summary>
     [JsonPropertyName("floor")]
     public int Floor { get; init; }
 
@@ -64,9 +56,7 @@ public sealed record CaveState
     [JsonPropertyName("paused")]
     public bool Paused { get; init; }
 
-    /// <summary>
-    ///     When the pause began.
-    /// </summary>
+    /// <summary>When the pause began.</summary>
     [JsonPropertyName("paused_at")]
     public long PausedAt { get; init; }
 
@@ -107,14 +97,10 @@ public sealed record CaveState
     public IReadOnlyList<string> Supplies { get; init; } = [];
 }
 
-/// <summary>
-///     A stair or the exit on the current floor.
-/// </summary>
+/// <summary>A stair or the exit on the current floor.</summary>
 public sealed record CaveDoor
 {
-    /// <summary>
-    ///     Whether the door leads a floor deeper.
-    /// </summary>
+    /// <summary>Whether the door leads a floor deeper.</summary>
     [JsonPropertyName("down")]
     public bool Down { get; init; }
 
@@ -148,15 +134,11 @@ public sealed record CaveDoor
 /// </summary>
 public sealed record CaveObjective
 {
-    /// <summary>
-    ///     Whether the room is settled.
-    /// </summary>
+    /// <summary>Whether the room is settled.</summary>
     [JsonPropertyName("done")]
     public bool Done { get; init; }
 
-    /// <summary>
-    ///     The floor the room is on, from zero.
-    /// </summary>
+    /// <summary>The floor the room is on, from zero.</summary>
     [JsonPropertyName("floor")]
     public int Floor { get; init; }
 
@@ -194,9 +176,7 @@ public sealed record CaveObjective
     public float Y { get; init; }
 }
 
-/// <summary>
-///     Something the party was paid.
-/// </summary>
+/// <summary>Something the party was paid.</summary>
 public sealed record CaveReward
 {
     [JsonPropertyName("amber")]
@@ -245,38 +225,28 @@ public sealed record CaveItem
     public int Quantity { get; init; } = 1;
 }
 
-/// <summary>
-///     A timed hunt a traveler set.
-/// </summary>
+/// <summary>A timed hunt a traveler set.</summary>
 public sealed record CaveHunt
 {
-    /// <summary>
-    ///     How many kills the hunt asks for.
-    /// </summary>
+    /// <summary>How many kills the hunt asks for.</summary>
     [JsonPropertyName("count")]
     public int Count { get; init; }
 
     [JsonPropertyName("deadline")]
     public long Deadline { get; init; }
 
-    /// <summary>
-    ///     Kills so far.
-    /// </summary>
+    /// <summary>Kills so far.</summary>
     [JsonPropertyName("kills")]
     public int Kills { get; init; }
 }
 
-/// <summary>
-///     A practice bout a duelist set.
-/// </summary>
+/// <summary>A practice bout a duelist set.</summary>
 public sealed record CavePractice
 {
     [JsonPropertyName("deadline")]
     public long Deadline { get; init; }
 
-    /// <summary>
-    ///     The sparring partner's hp to bring it down to.
-    /// </summary>
+    /// <summary>The sparring partner's hp to bring it down to.</summary>
     [JsonPropertyName("hp")]
     public int Hp { get; init; }
 
@@ -289,24 +259,18 @@ public sealed record CavePractice
 /// </summary>
 public sealed record CaveChoice
 {
-    /// <summary>
-    ///     When the vote closes and the fallback applies.
-    /// </summary>
+    /// <summary>When the vote closes and the fallback applies.</summary>
     [JsonPropertyName("deadline")]
     public long Deadline { get; init; }
 
-    /// <summary>
-    ///     What happens if no option wins.
-    /// </summary>
+    /// <summary>What happens if no option wins.</summary>
     [JsonPropertyName("fallback")]
     public string? Fallback { get; init; }
 
     [JsonPropertyName("id")]
     public string Id { get; init; } = null!;
 
-    /// <summary>
-    ///     The replies on offer.
-    /// </summary>
+    /// <summary>The replies on offer.</summary>
     [JsonPropertyName("options")]
     public IReadOnlyList<CaveOption> Options { get; init; } = [];
 
@@ -322,9 +286,7 @@ public sealed record CaveChoice
     [JsonPropertyName("resolved")]
     public bool Resolved { get; init; }
 
-    /// <summary>
-    ///     The reply that won, once resolved.
-    /// </summary>
+    /// <summary>The reply that won, once resolved.</summary>
     [JsonPropertyName("result_label")]
     public string? ResultLabel { get; init; }
 
@@ -340,9 +302,7 @@ public sealed record CaveChoice
     [JsonPropertyName("shop")]
     public CaveShop? Shop { get; init; }
 
-    /// <summary>
-    ///     What the resolution did, once resolved.
-    /// </summary>
+    /// <summary>What the resolution did, once resolved.</summary>
     [JsonPropertyName("summary")]
     public IReadOnlyList<string> Summary { get; init; } = [];
 
@@ -359,20 +319,14 @@ public sealed record CaveChoice
     public IReadOnlyDictionary<string, string> Votes { get; init; } = new Dictionary<string, string>();
 }
 
-/// <summary>
-///     One reply to a vote.
-/// </summary>
+/// <summary>One reply to a vote.</summary>
 public sealed record CaveOption
 {
-    /// <summary>
-    ///     What it costs from the purse's amber.
-    /// </summary>
+    /// <summary>What it costs from the purse's amber.</summary>
     [JsonPropertyName("amber")]
     public int Amber { get; init; }
 
-    /// <summary>
-    ///     What it costs from the purse's gold.
-    /// </summary>
+    /// <summary>What it costs from the purse's gold.</summary>
     [JsonPropertyName("cost")]
     public long Cost { get; init; }
 
@@ -389,9 +343,7 @@ public sealed record CaveOption
     public string? Unavailable { get; init; }
 }
 
-/// <summary>
-///     Someone in an encounter's room.
-/// </summary>
+/// <summary>Someone in an encounter's room.</summary>
 public sealed record CavePerson
 {
     [JsonPropertyName("attack")]
@@ -427,9 +379,7 @@ public sealed record CaveShop
     [JsonPropertyName("price")]
     public long Price { get; init; }
 
-    /// <summary>
-    ///     The room to name when buying.
-    /// </summary>
+    /// <summary>The room to name when buying.</summary>
     [JsonPropertyName("room")]
     public string Room { get; init; } = null!;
 
@@ -449,14 +399,10 @@ public sealed record CaveChat
     public string? Text { get; init; }
 }
 
-/// <summary>
-///     A line an actor said in a room.
-/// </summary>
+/// <summary>A line an actor said in a room.</summary>
 public sealed record CaveCue
 {
-    /// <summary>
-    ///     The entity id of the speaker.
-    /// </summary>
+    /// <summary>The entity id of the speaker.</summary>
     [JsonPropertyName("actor")]
     public string? Actor { get; init; }
 
@@ -472,21 +418,15 @@ public sealed record CaveCue
 /// </summary>
 public sealed record CaveVisit
 {
-    /// <summary>
-    ///     Whether the account can enter now.
-    /// </summary>
+    /// <summary>Whether the account can enter now.</summary>
     [JsonPropertyName("available")]
     public bool Available { get; init; }
 
-    /// <summary>
-    ///     The home server whose midnight resets the visit.
-    /// </summary>
+    /// <summary>The home server whose midnight resets the visit.</summary>
     [JsonPropertyName("home")]
     public string? Home { get; init; }
 
-    /// <summary>
-    ///     When the visit comes back.
-    /// </summary>
+    /// <summary>When the visit comes back.</summary>
     [JsonPropertyName("resets")]
     public long Resets { get; init; }
 

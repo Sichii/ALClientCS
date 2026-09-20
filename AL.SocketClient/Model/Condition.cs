@@ -8,9 +8,7 @@ using Chaos.Time.Abstractions;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a buff or debuff.
-/// </summary>
+/// <summary>Represents a buff or debuff.</summary>
 /// <seealso cref="AttributedObjectBase" />
 public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaUpdatable
 {
@@ -29,10 +27,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     If populated,
     ///     <br />
     ///     this could be the name of the monster you need to kill for <see cref="AL.Core.Definitions.Condition.MonsterHunt" />
-    ///     <b>
-    ///         OR
-    ///     </b>
-    ///     the ID of a coop boss this player is fighting.
+    ///     <b>OR</b> the ID of a coop boss this player is fighting.
     /// </summary>
     [JsonPropertyName("id")]
     public string? Id { get; init; }
@@ -62,18 +57,14 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// <summary>
     ///     If populated, the display effect the <see cref="AL.Core.Definitions.Condition.Filter" /> condition applies.
     ///     <br />
-    ///     The browser treats
-    ///     <c>
-    ///         scale
-    ///     </c>
-    ///     as the one name that draws nothing of its own, because the resizing in <see cref="Scale" /> is the whole effect;
-    ///     every other name is a colour filter over the sprite.
+    ///     The browser treats <c>scale</c> as the one name that draws nothing of its own, because the resizing in
+    ///     <see cref="Scale" /> is the whole effect; every other name is a colour filter over the sprite.
     /// </summary>
     public string? Name { get; init; }
 
     /// <summary>
-    ///     If populated, the points the server credits this character with on a coop boss: its accumulated damage and
-    ///     healing, not a share. Loot on the boss is paid by these.
+    ///     If populated, the points the server credits this character with on a coop boss: its accumulated damage and healing,
+    ///     not a share. Loot on the boss is paid by these.
     ///     <br />
     ///     See <see cref="Id" /> for the ID of the boss.
     /// </summary>
@@ -88,14 +79,13 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public float RemainingMonsters { get; init; }
 
     /// <summary>
-    ///     If populated, the anniversary round this
-    ///     <see cref="AL.Core.Definitions.Condition.AnniversaryVisit" />
-    ///     was issued for.
+    ///     If populated, the anniversary round this <see cref="AL.Core.Definitions.Condition.AnniversaryVisit" /> was issued
+    ///     for.
     /// </summary>
     /// <remarks>
-    ///     The server issues one invitation per round and honours it against no other, so one left over from an earlier
-    ///     round is a kiss that can never land - and it refuses without saying which of its rules it refused on. Compare
-    ///     this against the round the event table reports before spending a walk on it.
+    ///     The server issues one invitation per round and honours it against no other, so one left over from an earlier round
+    ///     is a kiss that can never land - and it refuses without saying which of its rules it refused on. Compare this
+    ///     against the round the event table reports before spending a walk on it.
     /// </remarks>
     [JsonPropertyName("round")]
     public long? Round { get; init; }
@@ -103,11 +93,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// <summary>
     ///     If populated, the multiplier the entity's sprite is drawn at, from the
     ///     <see cref="AL.Core.Definitions.Condition.Filter" /> condition. This is how an event's oversized monsters get their
-    ///     size, and it replaces the monster's own
-    ///     <c>
-    ///         size
-    ///     </c>
-    ///     rather than multiplying with it.
+    ///     size, and it replaces the monster's own <c>size</c> rather than multiplying with it.
     /// </summary>
     public float? Scale { get; init; }
 
@@ -132,9 +118,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
 
     string IMutable.Id => string.Empty;
 
-    /// <summary>
-    ///     Gets the remaining cooldown in milliseconds.
-    /// </summary>
+    /// <summary>Gets the remaining cooldown in milliseconds.</summary>
     public float RemainingMs => DurationMs - (float)Elapsed.TotalMilliseconds;
 
     public void CompensateOnce(TimeSpan offset)

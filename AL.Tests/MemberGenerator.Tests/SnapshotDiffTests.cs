@@ -17,22 +17,20 @@ public class SnapshotDiffTests
     public void MovedValuesAddedAndRemovedEntriesAreReportedPerSection()
     {
         var old = JsonNode.Parse(
-                              """
-                              {"version":1,
-                               "items":{"firestaff":{"range":60,"g":15000,"stat":[1,2]},"oldsword":{"g":1}},
-                               "levels":[10,20],
-                               "sprites":{"a":{"x":1}}}
-                              """)!
-                          .AsObject();
+            """
+            {"version":1,
+             "items":{"firestaff":{"range":60,"g":15000,"stat":[1,2]},"oldsword":{"g":1}},
+             "levels":[10,20],
+             "sprites":{"a":{"x":1}}}
+            """)!.AsObject();
 
         var fresh = JsonNode.Parse(
-                                """
-                                {"version":2,
-                                 "items":{"firestaff":{"range":70,"g":15000,"stat":[1,3],"dmg":5},"newsword":{"g":2}},
-                                 "levels":[10,25],
-                                 "sprites":{"a":{"x":2}}}
-                                """)!
-                            .AsObject();
+            """
+            {"version":2,
+             "items":{"firestaff":{"range":70,"g":15000,"stat":[1,3],"dmg":5},"newsword":{"g":2}},
+             "levels":[10,25],
+             "sprites":{"a":{"x":2}}}
+            """)!.AsObject();
 
         //a list section is one entry named after itself; a presentation section keeps its count and loses its lines
         Snapshots.Diff(old, fresh)

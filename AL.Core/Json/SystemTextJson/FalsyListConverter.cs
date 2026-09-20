@@ -6,19 +6,8 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads a list the server sends as literal
-///     <c>
-///         false
-///     </c>
-///     (JavaScript's
-///     <c>
-///         a &amp;&amp; a
-///     </c>
-///     idiom) instead of an empty array. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         FalsyListConverter
-///     </c>
-///     .
+///     Reads a list the server sends as literal <c>false</c> (JavaScript's <c>a &amp;&amp; a</c> idiom) instead of an
+///     empty array. The System.Text.Json replacement for the Newtonsoft <c>FalsyListConverter</c> .
 /// </summary>
 public sealed class FalsyListConverter<T> : JsonConverter<IReadOnlyList<T>>
 {

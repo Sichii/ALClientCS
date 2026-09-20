@@ -17,9 +17,7 @@ public sealed record GClass
     /// </summary>
     public int Armor { get; init; }
 
-    /// <summary>
-    ///     Base attack, before a weapon, stats and gear.
-    /// </summary>
+    /// <summary>Base attack, before a weapon, stats and gear.</summary>
     public int Attack { get; init; }
 
     /// <summary>
@@ -47,9 +45,7 @@ public sealed record GClass
     /// </summary>
     public int Courage { get; init; }
 
-    /// <summary>
-    ///     The type of damage this character deals.
-    /// </summary>
+    /// <summary>The type of damage this character deals.</summary>
     [JsonPropertyName("damage_type")]
     public DamageType DamageType { get; init; }
 
@@ -151,12 +147,6 @@ public sealed record GClass
     public int Output { get; init; }
 
     /// <summary>
-    ///     Percent chance to shrug off a stun outright. Stun is the only condition that names it.
-    /// </summary>
-    [JsonPropertyName("phresistance")]
-    public int StunResistance { get; init; }
-
-    /// <summary>
     ///     Percent chance to shrug off poison outright, and the percent by which a poison that does land is shortened.
     /// </summary>
     [JsonPropertyName("pnresistance")]
@@ -202,53 +192,35 @@ public sealed record GClass
     public int StatusResistance { get; init; }
 
     /// <summary>
+    ///     Percent chance to shrug off a stun outright. Stun is the only condition that names it.
+    /// </summary>
+    [JsonPropertyName("phresistance")]
+    public int StunResistance { get; init; }
+
+    /// <summary>
     ///     Checks if this class can wield the given 2handed weapon.
     /// </summary>
-    /// <param name="weaponType">
-    ///     A 2handed weapon.
-    /// </param>
+    /// <param name="weaponType">A 2handed weapon.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this class can wield it, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
+    ///     <c>true</c> if this class can wield it, otherwise <c>false</c>
     /// </returns>
     public bool Can2Hand(WeaponType weaponType) => Doublehand.ContainsKey(weaponType);
 
     /// <summary>
     ///     Checks if this class can wield the given mainhand weapon.
     /// </summary>
-    /// <param name="weaponType">
-    ///     A mainhand weapon.
-    /// </param>
+    /// <param name="weaponType">A mainhand weapon.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this class can wield it, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
+    ///     <c>true</c> if this class can wield it, otherwise <c>false</c>
     /// </returns>
     public bool CanMainHand(WeaponType weaponType) => Mainhand.ContainsKey(weaponType);
 
     /// <summary>
     ///     Checks if this class can wield the given offhand weapon.
     /// </summary>
-    /// <param name="weaponType">
-    ///     An offhand.
-    /// </param>
+    /// <param name="weaponType">An offhand.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this class can wield it, otherwise
-    ///     <c>
-    ///         false
-    ///     </c>
+    ///     <c>true</c> if this class can wield it, otherwise <c>false</c>
     /// </returns>
     public bool CanOffHand(WeaponType weaponType) => Offhand.ContainsKey(weaponType);
 }

@@ -29,12 +29,8 @@ public sealed class NavMeshBuilder
     /// <summary>
     ///     Initializes a new instances of the <see cref="NavMeshBuilder" /> class.
     /// </summary>
-    /// <param name="map">
-    ///     A map's gamedata.
-    /// </param>
-    /// <param name="geometry">
-    ///     A maps gemometry data.
-    /// </param>
+    /// <param name="map">A map's gamedata.</param>
+    /// <param name="geometry">A maps gemometry data.</param>
     public NavMeshBuilder(GMap map, GGeometry geometry)
     {
         Map = map;

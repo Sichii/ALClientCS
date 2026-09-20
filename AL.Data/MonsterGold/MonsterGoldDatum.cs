@@ -90,6 +90,9 @@ public class MonsterGoldDatum : DatumBase<int?>
     [JsonPropertyName("cutebee")]
     public int? Cutebee { get; init; }
 
+    [JsonPropertyName("d_wiz")]
+    public int? DWiz { get; init; }
+
     [JsonPropertyName("dknight2")]
     public int? Dknight2 { get; init; }
 
@@ -98,9 +101,6 @@ public class MonsterGoldDatum : DatumBase<int?>
 
     [JsonPropertyName("dryad")]
     public int? Dryad { get; init; }
-
-    [JsonPropertyName("d_wiz")]
-    public int? DWiz { get; init; }
 
     [JsonPropertyName("eelemental")]
     public int? Eelemental { get; init; }

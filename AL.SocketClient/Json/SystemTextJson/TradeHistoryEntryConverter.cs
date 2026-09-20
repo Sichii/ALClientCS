@@ -9,19 +9,9 @@ using AL.SocketClient.SocketModel;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     Binds the server's positional
-///     <c>
-///         [event, name, item, price]
-///     </c>
-///     trade-history tuple to a <see cref="TradeHistoryEntry" />. The 4th element is
-///     <c>
-///         null
-///     </c>
-///     for giveaways. The System.Text.Json replacement for the Newtonsoft
-///     <c>
-///         TradeHistoryEntryConverter
-///     </c>
-///     .
+///     Binds the server's positional <c>[event, name, item, price]</c> trade-history tuple to a
+///     <see cref="TradeHistoryEntry" />. The 4th element is <c>null</c> for giveaways. The System.Text.Json replacement
+///     for the Newtonsoft <c>TradeHistoryEntryConverter</c> .
 /// </summary>
 public sealed class TradeHistoryEntryConverter : JsonConverter<TradeHistoryEntry>
 {

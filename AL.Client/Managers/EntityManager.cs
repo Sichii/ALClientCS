@@ -21,6 +21,7 @@ public sealed class EntityManager : AsyncDeltaLoop
     ///     <c>type:"all"</c> frame rebuilds the set, and nothing else asks for one.
     /// </summary>
     private readonly IntervalTimer ForceEntitiesUpdateTimer = new(TimeSpan.FromSeconds(60), false);
+
     private IDisposable? OnCharacterSubscription;
     private IDisposable? OnEntitiesSubscription;
     protected override float PollingRate => ALClientSettings.PositionPollingRate;

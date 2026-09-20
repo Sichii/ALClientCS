@@ -2,16 +2,11 @@ namespace AL.SocketClient.SocketModel;
 
 /// <summary>
 ///     Represents a broadcast boss/holiday spawn event (node/server_functions.js:1698-1815). Distinct from the periodic
-///     <c>
-///         server_info
-///     </c>
-///     snapshot (<see cref="EventAndBossData" />).
+///     <c>server_info</c> snapshot (<see cref="EventAndBossData" />).
 /// </summary>
 public sealed record GameEventData
 {
-    /// <summary>
-    ///     The map the event spawned on.
-    /// </summary>
+    /// <summary>The map the event spawned on.</summary>
     public string Map { get; init; } = null!;
 
     /// <summary>

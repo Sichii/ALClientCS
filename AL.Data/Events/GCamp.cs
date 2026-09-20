@@ -1,8 +1,8 @@
 namespace AL.Data.Events;
 
 /// <summary>
-///     One farm room the daily dungeon can generate: a named site and the packs it spawns, in order, a pack being what
-///     one wave holds. Rides events.dreams.camps, one list per floor.
+///     One farm room the daily dungeon can generate: a named site and the packs it spawns, in order, a pack being what one
+///     wave holds. Rides events.dreams.camps, one list per floor.
 /// </summary>
 public record GCamp
 {

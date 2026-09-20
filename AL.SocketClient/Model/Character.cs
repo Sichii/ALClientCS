@@ -27,8 +27,8 @@ public class Character : Player, IEquatable<Character>
     public int AggroTargets { get; protected set; }
 
     /// <summary>
-    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. Read it
-    ///     rather than guessing at the featured player's state: the game's own kiss button is enabled on nothing else.
+    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. Read it rather
+    ///     than guessing at the featured player's state: the game's own kiss button is enabled on nothing else.
     /// </summary>
     [JsonPropertyName("anniversary")]
     [JsonInclude]
@@ -44,22 +44,18 @@ public class Character : Player, IEquatable<Character>
     [JsonInclude]
     public BankInfo? Bank { get; protected set; }
 
-    /// <summary>
-    ///     TODO: unknown
-    /// </summary>
+    /// <summary>TODO: unknown</summary>
     [JsonInclude]
     public int Cache { get; protected set; }
 
-    /// <summary>
-    ///     The account's premium currency (shells) balance.
-    /// </summary>
+    /// <summary>The account's premium currency (shells) balance.</summary>
     [JsonPropertyName("cash")]
     [JsonInclude]
     public int Cash { get; protected set; }
 
     /// <summary>
-    ///     The daily dungeon's run state while this character is inside one, or null. Set from the cave event, never from
-    ///     a character frame, which is why the frame merge leaves it alone.
+    ///     The daily dungeon's run state while this character is inside one, or null. Set from the cave event, never from a
+    ///     character frame, which is why the frame merge leaves it alone.
     /// </summary>
     [JsonIgnore]
     [ShallowMergeIgnore]
@@ -114,16 +110,10 @@ public class Character : Player, IEquatable<Character>
     ///     A lag allowance the server spends on your behalf: one budget per character, shared by every skill including attack.
     ///     It starts at 25 and refills 5 per second back to that cap, unconditionally - attacking does not hold it back.
     ///     <br />
-    ///     A cast lands when the distance is within
-    ///     <c>
-    ///         range + xrange
-    ///     </c>
-    ///     , and one that needed the allowance drains it by however much of it was used. A cast past that is refused with
-    ///     <c>
-    ///         too_far
-    ///     </c>
-    ///     and costs nothing, so the budget only ever pays for casts that worked. Nothing refuses while it holds, which is why
-    ///     a range check measuring against the nominal range alone reads as correct right up until it runs dry.
+    ///     A cast lands when the distance is within <c>range + xrange</c> , and one that needed the allowance drains it by
+    ///     however much of it was used. A cast past that is refused with <c>too_far</c> and costs nothing, so the budget only
+    ///     ever pays for casts that worked. Nothing refuses while it holds, which is why a range check measuring against the
+    ///     nominal range alone reads as correct right up until it runs dry.
     /// </summary>
     [JsonPropertyName("xrange")]
     [JsonInclude]
@@ -146,23 +136,19 @@ public class Character : Player, IEquatable<Character>
     [JsonInclude]
     public int IncomingDamageAmp { get; protected set; }
 
-    /// <summary>
-    ///     The character's inventory.
-    /// </summary>
+    /// <summary>The character's inventory.</summary>
     [JsonPropertyName("items")]
     [JsonInclude]
     public Inventory Inventory { get; internal set; } = null!;
 
-    /// <summary>
-    ///     The maximum size of this character's inventory.
-    /// </summary>
+    /// <summary>The maximum size of this character's inventory.</summary>
     [JsonPropertyName("isize")]
     [JsonInclude]
     public int InventorySize { get; protected set; }
 
     /// <summary>
-    ///     The character's luck multiplier (1 + xluck/100). Gear, mluck, potions and party luck
-    ///     all fold into this; the frame never carries flat luck or xluck separately.
+    ///     The character's luck multiplier (1 + xluck/100). Gear, mluck, potions and party luck all fold into this; the frame
+    ///     never carries flat luck or xluck separately.
     /// </summary>
     [JsonPropertyName("luckm")]
     [JsonInclude]
@@ -175,9 +161,7 @@ public class Character : Player, IEquatable<Character>
     [JsonInclude]
     public int MCourage { get; protected set; }
 
-    /// <summary>
-    ///     The mp cost of the character's basic attack.
-    /// </summary>
+    /// <summary>The mp cost of the character's basic attack.</summary>
     [JsonPropertyName("mp_cost")]
     [JsonInclude]
     public new int MPCost { get; protected set; }
@@ -212,9 +196,7 @@ public class Character : Player, IEquatable<Character>
     [JsonInclude]
     public float Tax { get; protected set; }
 
-    /// <summary>
-    ///     The character's xp multiplier (1 + xxp/100).
-    /// </summary>
+    /// <summary>The character's xp multiplier (1 + xxp/100).</summary>
     [JsonPropertyName("xpm")]
     [JsonInclude]
     public float XPMultiplier { get; protected set; }
@@ -230,12 +212,9 @@ public class Character : Player, IEquatable<Character>
     ///     <see cref="InventorySize" /> (bound by this point). Reproduces the Newtonsoft CharacterConverter enrich.
     /// </summary>
     /// <remarks>
-    ///     A frame that carries no
-    ///     <c>
-    ///         items
-    ///     </c>
-    ///     key leaves <see cref="Inventory" /> null, so the sizing is skipped rather than dereferencing it — there is no
-    ///     inventory to size, and the alternative is a <see cref="NullReferenceException" /> that kills the whole frame.
+    ///     A frame that carries no <c>items</c> key leaves <see cref="Inventory" /> null, so the sizing is skipped rather than
+    ///     dereferencing it — there is no inventory to size, and the alternative is a <see cref="NullReferenceException" />
+    ///     that kills the whole frame.
     /// </remarks>
     public override void OnDeserialized()
     {
@@ -245,12 +224,8 @@ public class Character : Player, IEquatable<Character>
         Inventory?.SetCapacity(InventorySize);
     }
 
-    /// <summary>
-    ///     Sets this character as moving to a point.
-    /// </summary>
-    /// <param name="point">
-    ///     Where to walk to.
-    /// </param>
+    /// <summary>Sets this character as moving to a point.</summary>
+    /// <param name="point">Where to walk to.</param>
     /// <returns>
     ///     The movement block this left the character holding. Returned so a caller needing the move number this walk was
     ///     started with reads it from the same write rather than from a second, later look at the character.
@@ -300,20 +275,13 @@ public class Character : Player, IEquatable<Character>
     ///     Folds an in-progress upgrade or compound's detail onto the inventory slot it belongs to.
     /// </summary>
     /// <remarks>
-    ///     The server sends this on
-    ///     <c>
-    ///         q_data
-    ///     </c>
-    ///     and only there - it names the slot and carries the operation's prediction, and it never restates the inventory. So
-    ///     a consumer that only merges character frames sees the placeholder but never the detail underneath it, which is
-    ///     where the roll's digits live and where they are revealed one at a time as the animation counts down.
+    ///     The server sends this on <c>q_data</c> and only there - it names the slot and carries the operation's prediction,
+    ///     and it never restates the inventory. So a consumer that only merges character frames sees the placeholder but never
+    ///     the detail underneath it, which is where the roll's digits live and where they are revealed one at a time as the
+    ///     animation counts down.
     /// </remarks>
-    /// <param name="inventorySlot">
-    ///     The slot holding the operation's placeholder.
-    /// </param>
-    /// <param name="prediction">
-    ///     The operation's current detail.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the operation's placeholder.</param>
+    /// <param name="prediction">The operation's current detail.</param>
     public void Update(int inventorySlot, Prediction prediction)
     {
         ArgumentNullException.ThrowIfNull(prediction);
@@ -324,15 +292,9 @@ public class Character : Player, IEquatable<Character>
         Inventory?.SetPrediction(inventorySlot, prediction);
     }
 
-    /// <summary>
-    ///     Updates the map information of this entity.
-    /// </summary>
-    /// <param name="data">
-    ///     The new map information.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     data
-    /// </exception>
+    /// <summary>Updates the map information of this entity.</summary>
+    /// <param name="data">The new map information.</param>
+    /// <exception cref="ArgumentNullException">data</exception>
     public void UpdateLocation(NewMapData data)
     {
         ArgumentNullException.ThrowIfNull(data);

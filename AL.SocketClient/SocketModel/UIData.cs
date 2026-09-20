@@ -19,15 +19,7 @@ public sealed class UIData
     public string? Name { get; init; }
 
     /// <summary>
-    ///     Player-to-player transfers name their two ends here rather than in
-    ///     <c>
-    ///         From
-    ///     </c>
-    ///     /
-    ///     <c>
-    ///         To
-    ///     </c>
-    ///     .
+    ///     Player-to-player transfers name their two ends here rather than in <c>From</c> / <c>To</c> .
     /// </summary>
     public string? Receiver { get; init; }
 

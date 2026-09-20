@@ -1,5 +1,6 @@
 #region
 using System.Text;
+using System.Text.Json.Nodes;
 using AL.APIClient;
 using AL.Data;
 using AL.Data.Achievements;
@@ -16,7 +17,6 @@ using AL.Data.Sets;
 using AL.Data.Skills;
 using AL.Data.Titles;
 using AL.MemberGenerator.Extensions;
-using System.Text.Json.Nodes;
 #endregion
 
 namespace AL.MemberGenerator;

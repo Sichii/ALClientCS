@@ -12,14 +12,10 @@ namespace AL.Pathfinding.Model;
 /// </summary>
 public readonly struct Reach
 {
-    /// <summary>
-    ///     The rectangle the range is measured from.
-    /// </summary>
+    /// <summary>The rectangle the range is measured from.</summary>
     public Rectangle Band { get; }
 
-    /// <summary>
-    ///     How far outside the band still counts.
-    /// </summary>
+    /// <summary>How far outside the band still counts.</summary>
     public float Range { get; }
 
     /// <summary>
@@ -31,9 +27,7 @@ public readonly struct Reach
         Range = range;
     }
 
-    /// <summary>
-    ///     A circular reach about a point.
-    /// </summary>
+    /// <summary>A circular reach about a point.</summary>
     public static Reach Circle(float x, float y, float radius)
         => new(
             new Rectangle(
@@ -48,9 +42,7 @@ public readonly struct Reach
     /// </summary>
     public float Distance(float x, float y) => Band.EdgeToCenterDistance(new ValuePoint(x, y));
 
-    /// <summary>
-    ///     Whether (x, y) is inside the reach.
-    /// </summary>
+    /// <summary>Whether (x, y) is inside the reach.</summary>
     public bool Contains(float x, float y) => Distance(x, y) <= Range;
 
     /// <summary>

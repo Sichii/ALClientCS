@@ -6,9 +6,7 @@ using AL.Core.Geometry;
 
 namespace AL.Data.Maps;
 
-/// <summary>
-///     Represents a special zone on a map.
-/// </summary>
+/// <summary>Represents a special zone on a map.</summary>
 public sealed record GZone
 {
     /// <summary>
@@ -16,9 +14,7 @@ public sealed record GZone
     /// </summary>
     public DropType Drop { get; init; }
 
-    /// <summary>
-    ///     The type of zone.
-    /// </summary>
+    /// <summary>The type of zone.</summary>
     public ZoneType Type { get; init; }
 
     /// <summary>

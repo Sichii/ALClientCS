@@ -85,30 +85,14 @@ public sealed class GSetTests : GameDataTestBed
     }
 
     /// <summary>
-    ///     <see cref="GSetTier.InEffect" /> is built by hand in
-    ///     <c>
-    ///         GameData.EnrichSets
-    ///     </c>
-    ///     , which fills only <see cref="AttributedRecordBase.Attributes" /> and leaves the ~45 declared stat properties at
-    ///     their default of nought - filling them by hand too would mean fighting the
-    ///     <c>
-    ///         init
-    ///     </c>
-    ///     /
-    ///     <c>
-    ///         protected set
-    ///     </c>
-    ///     accessors <see cref="AttributedRecordBase" /> declares them with, which was tried and rejected as worse than the
-    ///     asymmetry. <see cref="GSetTier.Adds" /> has no such gap: it comes off the wire, and the JSON converter fills both
-    ///     halves of every deserialized <see cref="GSetBonus" />. So the two properties on the same tier answer
-    ///     <c>
-    ///         .For
-    ///     </c>
-    ///     differently for no reason a caller can see by looking at the type. A future consumer reaching for
-    ///     <c>
-    ///         tier.InEffect.For
-    ///     </c>
-    ///     - the obviously named, most natural way to ask - gets a silent nought instead of a compile error or a thrown
+    ///     <see cref="GSetTier.InEffect" /> is built by hand in <c>GameData.EnrichSets</c> , which fills only
+    ///     <see cref="AttributedRecordBase.Attributes" /> and leaves the ~45 declared stat properties at their default of
+    ///     nought - filling them by hand too would mean fighting the <c>init</c> / <c>protected set</c> accessors
+    ///     <see cref="AttributedRecordBase" /> declares them with, which was tried and rejected as worse than the asymmetry.
+    ///     <see cref="GSetTier.Adds" /> has no such gap: it comes off the wire, and the JSON converter fills both halves of
+    ///     every deserialized <see cref="GSetBonus" />. So the two properties on the same tier answer <c>.For</c> differently
+    ///     for no reason a caller can see by looking at the type. A future consumer reaching for <c>tier.InEffect.For</c> -
+    ///     the obviously named, most natural way to ask - gets a silent nought instead of a compile error or a thrown
     ///     exception. Read a set bonus through <see cref="AttributedRecordBase.Attributes" />, always; this test exists to
     ///     fail loudly the day someone forgets that and to explain why when it does.
     /// </summary>
@@ -158,11 +142,8 @@ public sealed class GSetTests : GameDataTestBed
 
     /// <summary>
     ///     The assumption everything else rests on: the wire carries per-tier deltas. If the appengine ever starts serving
-    ///     what the game server folds for itself,
-    ///     <c>
-    ///         EnrichSets
-    ///     </c>
-    ///     would double every bonus - and silently, because a summed table is still a well-formed one.
+    ///     what the game server folds for itself, <c>EnrichSets</c> would double every bonus - and silently, because a summed
+    ///     table is still a well-formed one.
     /// </summary>
     [Test]
     public async Task TheShippedTableIsRawRatherThanRolledUp()

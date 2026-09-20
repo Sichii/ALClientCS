@@ -17,9 +17,7 @@ public sealed record GMapMonster
     ///     <br />
     ///     If you're familiar with the original form of this data, it's boundary(if present) + boundaries(if present).
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyList<InscribedBoundary> Boundaries { get; init; } = new List<InscribedBoundary>();
 
@@ -32,9 +30,7 @@ public sealed record GMapMonster
     /// <summary>
     ///     This monster's data from <see cref="GameData.Monsters" />
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public GMonster? Data { get; internal set; }
 
@@ -50,9 +46,7 @@ public sealed record GMapMonster
     /// </summary>
     public bool Grow { get; init; }
 
-    /// <summary>
-    ///     The name of this monster.
-    /// </summary>
+    /// <summary>The name of this monster.</summary>
     [JsonPropertyName("type")]
     public string Name { get; init; } = null!;
 
@@ -63,12 +57,9 @@ public sealed record GMapMonster
     public int Radius { get; init; }
 
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . If populated, standing anywhere inside this rectangle makes every monster from this entry drop what it was doing
-    ///     and come for you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds per instance, and high
-    ///     enough bling against cuteness can cancel it (node/server.js:12432).
+    ///     <b>NULLABLE</b> . If populated, standing anywhere inside this rectangle makes every monster from this entry drop
+    ///     what it was doing and come for you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds per
+    ///     instance, and high enough bling against cuteness can cancel it (node/server.js:12432).
     /// </summary>
     [JsonPropertyName("rage")]
     public MapRectangle? RageRect { get; init; }

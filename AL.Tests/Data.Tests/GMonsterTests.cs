@@ -12,8 +12,8 @@ public class GMonsterTests
 {
     /// <summary>
     ///     The cave monsters arrive with the abilities key present and set to null. Every reader indexes the dictionary
-    ///     without a null check, so the record must keep an empty one rather than let the deserializer write null over
-    ///     the default.
+    ///     without a null check, so the record must keep an empty one rather than let the deserializer write null over the
+    ///     default.
     /// </summary>
     [Test]
     public void AnAbilitiesKeySetToNullReadsAsNoAbilities()

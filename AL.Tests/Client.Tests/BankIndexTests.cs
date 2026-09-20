@@ -18,50 +18,23 @@ namespace AL.Tests.Client.Tests;
 
 /// <summary>
 ///     FindOptimalBankIndex is public, and the contract of its explicit-slot branch is what any bank-organize routine
-///     builds on. The explicit-slot tests need neither a socket nor game data: that branch returns before it reads
-///     either. The stacking tests read an item's stack size off the committed snapshot.
+///     builds on. The explicit-slot tests need neither a socket nor game data: that branch returns before it reads either.
+///     The stacking tests read an item's stack size off the committed snapshot.
 /// </summary>
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public class BankIndexTests
 {
     private const BankPack PACK = BankPack.Items0;
 
-    [Before(Class)]
-    public static void EnsureGameData()
-    {
-        //from the committed snapshot so no credentials are needed, the way ProjectileMitigationTests does it
-        if (GameData.Version == 0)
-            GameData.Populate(Fixture.GameDataJson);
-    }
-
-    [Test]
-    public void APileWhoseDataDiffersIsNotOfferedAsAStackTarget()
-    {
-        //the server stacks two cxjars only when their data agrees (js/old_common_functions.js:396). A name-only match
-        //handed the store sentinel to a pack whose one cxjar held another appearance, and in a full pack the server
-        //answered storage_full on every trip while the vault had room elsewhere
-        var client = ClientHolding(Item("cxjar", "makeawish"));
-
-        client.FindOptimalBankIndex(Indexed("cxjar", "ikissyou"), PACK)
-              .Should()
-              .Be((PACK, 1));
-    }
-
-    [Test]
-    public void APileWhoseDataAgreesIsOfferedAsAStackTarget()
-    {
-        var client = ClientHolding(Item("cxjar", "makeawish"));
-
-        client.FindOptimalBankIndex(Indexed("cxjar", "makeawish"), PACK)
-              .Should()
-              .Be((PACK, -1));
-    }
-
     [Test]
     public void ALockedPileIsNotOfferedAsAStackTarget()
     {
         //can_stack refuses a locked pile outright (js/old_common_functions.js:398)
-        var client = ClientHolding(Item("hpot0") with { LockType = ItemLockType.Locked });
+        var client = ClientHolding(
+            Item("hpot0") with
+            {
+                LockType = ItemLockType.Locked
+            });
 
         client.FindOptimalBankIndex(Indexed("hpot0"), PACK)
               .Should()
@@ -88,6 +61,29 @@ public class BankIndexTests
         client.FindOptimalBankIndex(Indexed("cscroll0"), BankPack.Items7, 0)
               .Should()
               .BeNull();
+    }
+
+    [Test]
+    public void APileWhoseDataAgreesIsOfferedAsAStackTarget()
+    {
+        var client = ClientHolding(Item("cxjar", "makeawish"));
+
+        client.FindOptimalBankIndex(Indexed("cxjar", "makeawish"), PACK)
+              .Should()
+              .Be((PACK, -1));
+    }
+
+    [Test]
+    public void APileWhoseDataDiffersIsNotOfferedAsAStackTarget()
+    {
+        //the server stacks two cxjars only when their data agrees (js/old_common_functions.js:396). A name-only match
+        //handed the store sentinel to a pack whose one cxjar held another appearance, and in a full pack the server
+        //answered storage_full on every trip while the vault had room elsewhere
+        var client = ClientHolding(Item("cxjar", "makeawish"));
+
+        client.FindOptimalBankIndex(Indexed("cxjar", "ikissyou"), PACK)
+              .Should()
+              .Be((PACK, 1));
     }
 
     [Test]
@@ -137,6 +133,14 @@ public class BankIndexTests
         return client;
     }
 
+    [Before(Class)]
+    public static void EnsureGameData()
+    {
+        //from the committed snapshot so no credentials are needed, the way ProjectileMitigationTests does it
+        if (GameData.Version == 0)
+            GameData.Populate(Fixture.GameDataJson);
+    }
+
     private static InventoryIndexer Indexed(string name, string? data = null)
         => new()
         {
@@ -171,16 +175,16 @@ public class BankIndexTests
     {
         public AuthUser Auth => throw new NotSupportedException();
 
+        public Task DeleteMailAsync(Mail mail) => throw new NotSupportedException();
+
         public IAsyncEnumerable<Mail> GetMailAsync() => throw new NotSupportedException();
 
         public IAsyncEnumerable<MerchantInfo> GetMerchantsAsync() => throw new NotSupportedException();
 
-        public Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false) => throw new NotSupportedException();
+        public Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false)
+            => throw new NotSupportedException();
 
         public Task ReadMailAsync(Mail mail) => throw new NotSupportedException();
-
-
-        public Task DeleteMailAsync(Mail mail) => throw new NotSupportedException();
 
         public Task RenewAuth() => throw new NotSupportedException();
     }

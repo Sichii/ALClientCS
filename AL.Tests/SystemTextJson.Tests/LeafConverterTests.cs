@@ -70,41 +70,6 @@ public sealed class LeafConverterTests
                       .Be(AfkState.Active);
     }
 
-    /// <summary>
-    ///     <see cref="AfkConverter" /> is named for a field it no longer reads; <c>rip</c> is what is left on it.
-    /// </summary>
-    [Test]
-    public void Rip_NullFalse_StringTrue_BoolPassThrough()
-    {
-        var options = Opts(new AfkConverter());
-
-        JsonSerializer.Deserialize<bool>("null", options)
-                      .Should()
-                      .BeFalse();
-
-        JsonSerializer.Deserialize<bool>("\"angelwings\"", options)
-                      .Should()
-                      .BeTrue();
-
-        JsonSerializer.Deserialize<bool>("true", options)
-                      .Should()
-                      .BeTrue();
-    }
-
-    [Test]
-    public void Rip_Number_CoercesToBool()
-    {
-        var options = Opts(new AfkConverter());
-
-        JsonSerializer.Deserialize<bool>("1", options)
-                      .Should()
-                      .BeTrue();
-
-        JsonSerializer.Deserialize<bool>("0", options)
-                      .Should()
-                      .BeFalse();
-    }
-
     [Test]
     public void ArrayOrSingle_Null_Single_Array()
     {
@@ -175,6 +140,41 @@ public sealed class LeafConverterTests
         point.Y
              .Should()
              .Be(4);
+    }
+
+    /// <summary>
+    ///     <see cref="AfkConverter" /> is named for a field it no longer reads; <c>rip</c> is what is left on it.
+    /// </summary>
+    [Test]
+    public void Rip_NullFalse_StringTrue_BoolPassThrough()
+    {
+        var options = Opts(new AfkConverter());
+
+        JsonSerializer.Deserialize<bool>("null", options)
+                      .Should()
+                      .BeFalse();
+
+        JsonSerializer.Deserialize<bool>("\"angelwings\"", options)
+                      .Should()
+                      .BeTrue();
+
+        JsonSerializer.Deserialize<bool>("true", options)
+                      .Should()
+                      .BeTrue();
+    }
+
+    [Test]
+    public void Rip_Number_CoercesToBool()
+    {
+        var options = Opts(new AfkConverter());
+
+        JsonSerializer.Deserialize<bool>("1", options)
+                      .Should()
+                      .BeTrue();
+
+        JsonSerializer.Deserialize<bool>("0", options)
+                      .Should()
+                      .BeFalse();
     }
 
     /// <summary>

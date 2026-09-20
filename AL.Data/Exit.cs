@@ -33,12 +33,9 @@ public record Exit : ICircle, ILocation
 
     /// <summary>
     ///     The rectangle the server measures the character against. For a door, the door's box on its own spawn grown by the
-    ///     character's box; for a transporter, a point. See
-    ///     <c>
-    ///         GameData.DoorReachBand
-    ///     </c>
-    ///     . A record holding a collection compares it by reference, so do not lean on an <see cref="Exit" />'s synthesized
-    ///     equality; the point, location and circle overloads below are the ones to use.
+    ///     character's box; for a transporter, a point. See <c>GameData.DoorReachBand</c> . A record holding a collection
+    ///     compares it by reference, so do not lean on an <see cref="Exit" />'s synthesized equality; the point, location and
+    ///     circle overloads below are the ones to use.
     /// </summary>
     public Rectangle ReachBand { get; init; }
 
@@ -48,9 +45,7 @@ public record Exit : ICircle, ILocation
     /// </summary>
     public float ReachRange { get; init; }
 
-    /// <summary>
-    ///     The location this exit leads to.
-    /// </summary>
+    /// <summary>The location this exit leads to.</summary>
     public ILocation ToLocation { get; init; } = null!;
 
     /// <summary>
@@ -58,9 +53,7 @@ public record Exit : ICircle, ILocation
     /// </summary>
     public int ToSpawnIndex { get; init; }
 
-    /// <summary>
-    ///     The type of exit. (door, npc)
-    /// </summary>
+    /// <summary>The type of exit. (door, npc)</summary>
     public ExitType Type { get; init; }
 
     /// <summary>

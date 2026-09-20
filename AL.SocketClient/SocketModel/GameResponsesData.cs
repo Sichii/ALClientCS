@@ -19,27 +19,13 @@ public sealed record GameResponseData : IOptionalObject
 {
     /// <summary>
     ///     The account's full cosmetics unlock dictionary, sent as a wholesale replacement rather than a delta by
-    ///     <c>
-    ///         cx_new
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         cx_sent
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         cx_received
-    ///     </c>
-    ///     (node/server.js:7243, :7984, :7991).
+    ///     <c>cx_new</c> , <c>cx_sent</c> and <c>cx_received</c> (node/server.js:7243, :7984, :7991).
     ///     <br />
     ///     Wholesale is load-bearing: a send decrements the sender's count and deletes the key at zero
     ///     (node/server.js:7966-7969) before shipping the whole object, so merging would put the traded-away cosmetic straight
     ///     back.
     ///     <br />
-    ///     Named for its wire key rather than matching <see cref="StartData.OwnedCosmetics" />, which is the same
-    ///     <c>
-    ///         acx
-    ///     </c>
+    ///     Named for its wire key rather than matching <see cref="StartData.OwnedCosmetics" />, which is the same <c>acx</c>
     ///     field under a spelled-out name.
     /// </summary>
     [JsonPropertyName("acx")]
@@ -53,11 +39,7 @@ public sealed record GameResponseData : IOptionalObject
     public int? BankSlot { get; init; }
 
     /// <summary>
-    ///     A client-event tag. The server sends either
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     or a name, so this is a string either way.
+    ///     A client-event tag. The server sends either <c>true</c> or a name, so this is a string either way.
     /// </summary>
     [JsonPropertyName("cevent")]
     public string? CEvent { get; init; }
@@ -67,15 +49,11 @@ public sealed record GameResponseData : IOptionalObject
     /// </summary>
     public float Chance { get; init; }
 
-    /// <summary>
-    ///     A traveler's reply to a cave talk request.
-    /// </summary>
+    /// <summary>A traveler's reply to a cave talk request.</summary>
     [JsonPropertyName("chat")]
     public CaveChat? Chat { get; init; }
 
-    /// <summary>
-    ///     Whether the monster hunt was turned in.
-    /// </summary>
+    /// <summary>Whether the monster hunt was turned in.</summary>
     [JsonPropertyName("completed")]
     public bool Completed { get; init; }
 
@@ -108,20 +86,17 @@ public sealed record GameResponseData : IOptionalObject
 
     /// <summary>
     ///     On a correlated tavern info reply, the percentage of a win's profit the house keeps; see
-    ///     <see cref="TavernData.Edge" />, which is the same number off the uncorrelated tavern event. On a correlated
-    ///     dice settlement it is instead the gold the house took out of that one bet, already subtracted from the
-    ///     payout - a different unit under the same name, so read it as a percentage only on the tavern info reply.
-    ///     Zero on every other frame.
+    ///     <see cref="TavernData.Edge" />, which is the same number off the uncorrelated tavern event. On a correlated dice
+    ///     settlement it is instead the gold the house took out of that one bet, already subtracted from the payout - a
+    ///     different unit under the same name, so read it as a percentage only on the tavern info reply. Zero on every other
+    ///     frame.
     /// </summary>
     [JsonPropertyName("edge")]
     public float Edge { get; init; }
 
     /// <summary>
-    ///     Whether the operation failed. Set by every
-    ///     <c>
-    ///         fail_response
-    ///     </c>
-    ///     , so it is the one universal failure discriminator; the failing operation is named by <see cref="Place" />.
+    ///     Whether the operation failed. Set by every <c>fail_response</c> , so it is the one universal failure discriminator;
+    ///     the failing operation is named by <see cref="Place" />.
     /// </summary>
     [JsonPropertyName("failed")]
     public bool Failed { get; init; }
@@ -138,30 +113,16 @@ public sealed record GameResponseData : IOptionalObject
     public float Grace { get; init; }
 
     /// <summary>
-    ///     The server this character now calls home, sent on
-    ///     <c>
-    ///         home_set
-    ///     </c>
-    ///     (node/server.js:5293) as
-    ///     <c>
-    ///         region + server_name
-    ///     </c>
-    ///     . Null on every other frame.
+    ///     The server this character now calls home, sent on <c>home_set</c> (node/server.js:5293) as
+    ///     <c>region + server_name</c> . Null on every other frame.
     /// </summary>
     [JsonPropertyName("home")]
     public string? Home { get; init; }
 
     /// <summary>
-    ///     How many hours a pending operation still has to run. Two frames set it: the locksmith's
-    ///     <c>
-    ///         locksmith_unsealing
-    ///     </c>
-    ///     (node/server.js:6317), and the set-home cooldown's
-    ///     <c>
-    ///         sh_time
-    ///     </c>
-    ///     (node/server.js:5288), which is <see cref="GameResponseType.SetHomeCooldown" />.
-    ///     It reads zero on every other frame.
+    ///     How many hours a pending operation still has to run. Two frames set it: the locksmith's <c>locksmith_unsealing</c>
+    ///     (node/server.js:6317), and the set-home cooldown's <c>sh_time</c> (node/server.js:5288), which is
+    ///     <see cref="GameResponseType.SetHomeCooldown" />. It reads zero on every other frame.
     /// </summary>
     [JsonPropertyName("hours")]
     public float Hours { get; init; }
@@ -186,9 +147,7 @@ public sealed record GameResponseData : IOptionalObject
     [JsonPropertyName("inv")]
     public int? InventorySlot { get; init; }
 
-    /// <summary>
-    ///     The item you calculated chance for.
-    /// </summary>
+    /// <summary>The item you calculated chance for.</summary>
     public ResponseItem? Item { get; init; } = null!;
 
     /// <summary>
@@ -234,8 +193,8 @@ public sealed record GameResponseData : IOptionalObject
     public string? Name { get; init; }
 
     /// <summary>
-    ///     What a settled wager changed the character's gold by, on a correlated slots settlement: <see cref="Payout" />
-    ///     less <see cref="Cost" />, so it is negative on a loss and equals minus the stake when nothing was won.
+    ///     What a settled wager changed the character's gold by, on a correlated slots settlement: <see cref="Payout" /> less
+    ///     <see cref="Cost" />, so it is negative on a loss and equals minus the stake when nothing was won.
     /// </summary>
     /// <remarks>
     ///     Read this rather than differencing the character's gold. The server applies the payout before it sends the
@@ -243,12 +202,6 @@ public sealed record GameResponseData : IOptionalObject
     /// </remarks>
     [JsonPropertyName("net")]
     public long Net { get; init; }
-
-    /// <summary>
-    ///     The projectile ids of a multi-target skill, one per target, in the same order as <see cref="Targets" />.
-    /// </summary>
-    [JsonPropertyName("pids")]
-    public string[]? Pids { get; init; }
 
     /// <summary>
     ///     Bank pack key echoed by unlock success (<c>bank_new_pack</c>), e.g. <c>items3</c>.
@@ -263,46 +216,42 @@ public sealed record GameResponseData : IOptionalObject
     public long Payout { get; init; }
 
     /// <summary>
+    ///     The projectile ids of a multi-target skill, one per target, in the same order as <see cref="Targets" />.
+    /// </summary>
+    [JsonPropertyName("pids")]
+    public string[]? Pids { get; init; }
+
+    /// <summary>
     ///     Extra information about the response. Often the name of a skill or action.
     /// </summary>
     public string? Place { get; init; }
 
-    /// <summary>
-    ///     The quantity of the item bought or sent.
-    /// </summary>
+    /// <summary>The quantity of the item bought or sent.</summary>
     [JsonPropertyName("q")]
     public int Quantity { get; init; } = 1;
 
-    /// <summary>
-    ///     The reason you are unable to enter the bank.
-    /// </summary>
+    /// <summary>The reason you are unable to enter the bank.</summary>
     public string? Reason { get; init; }
 
     /// <summary>
-    ///     The correlation token this frame's emit supplied, echoed back verbatim. Null on every frame the server
-    ///     produced on its own, and on every handler that does not support correlation.
+    ///     The correlation token this frame's emit supplied, echoed back verbatim. Null on every frame the server produced on
+    ///     its own, and on every handler that does not support correlation.
     ///     <br />
-    ///     An awaiting method that supplied one may match on it alone; the shape-matching predicates elsewhere in this
-    ///     record exist for the emits that cannot.
+    ///     An awaiting method that supplied one may match on it alone; the shape-matching predicates elsewhere in this record
+    ///     exist for the emits that cannot.
     /// </summary>
     [JsonPropertyName("request_id")]
     public string? RequestId { get; init; }
 
-    /// <summary>
-    ///     The type of the response.
-    /// </summary>
+    /// <summary>The type of the response.</summary>
     [JsonPropertyName("response")]
     public GameResponseType ResponseType { get; init; }
 
-    /// <summary>
-    ///     The name of the skill the cooldown is for.
-    /// </summary>
+    /// <summary>The name of the skill the cooldown is for.</summary>
     [JsonPropertyName("skill")]
     public string? SkillName { get; init; }
 
-    /// <summary>
-    ///     The slot the bought item went into.
-    /// </summary>
+    /// <summary>The slot the bought item went into.</summary>
     [JsonPropertyName("num")]
     public int SlotNum { get; init; }
 
@@ -312,9 +261,7 @@ public sealed record GameResponseData : IOptionalObject
     [JsonPropertyName("stale")]
     public bool Stale { get; init; }
 
-    /// <summary>
-    ///     The attribute a stat scroll granted.
-    /// </summary>
+    /// <summary>The attribute a stat scroll granted.</summary>
     [JsonPropertyName("stat_type")]
     public ALAttribute StatType { get; init; }
 
@@ -325,9 +272,7 @@ public sealed record GameResponseData : IOptionalObject
     [JsonPropertyName("success")]
     public bool Success { get; init; }
 
-    /// <summary>
-    ///     TODO: something to do with seashells
-    /// </summary>
+    /// <summary>TODO: something to do with seashells</summary>
     public string? Suffix { get; init; }
 
     /// <summary>

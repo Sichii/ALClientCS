@@ -14,38 +14,38 @@ namespace AL.Tests.Data.Tests;
 public class GEventEncountersTests
 {
     private const string DREAMS = """
-        {
-          "name": "Cave of Many Dreams",
-          "type": "daily",
-          "duration": 1440,
-          "encounters": [
-            {
-              "id": "e01",
-              "name": "Dice in a Tin Cup",
-              "actor": "dice_operator",
-              "group": "mixed",
-              "kind": "dice",
-              "text": "Pick a bet.",
-              "options": [
-                { "id": "small", "label": "Bet 2,000 shared gold", "effect": "dice", "cost": 2000, "win": 4000, "offer": true },
-                { "id": "die", "label": "Bet 6 Amber for a Loaded Die", "effect": "die", "amber": 6 },
-                { "id": "leave", "label": "Walk on", "effect": "leave" }
-              ]
-            },
-            {
-              "id": "e30",
-              "name": "A Tool Left Behind",
-              "actor": "smith",
-              "group": "left",
-              "kind": "tool",
-              "options": [
-                { "id": "use", "label": "Use the tool", "effect": "use_tool", "needs": "tool" },
-                { "id": "leave", "label": "Leave it", "effect": "leave" }
-              ]
-            }
-          ]
-        }
-        """;
+                                  {
+                                    "name": "Cave of Many Dreams",
+                                    "type": "daily",
+                                    "duration": 1440,
+                                    "encounters": [
+                                      {
+                                        "id": "e01",
+                                        "name": "Dice in a Tin Cup",
+                                        "actor": "dice_operator",
+                                        "group": "mixed",
+                                        "kind": "dice",
+                                        "text": "Pick a bet.",
+                                        "options": [
+                                          { "id": "small", "label": "Bet 2,000 shared gold", "effect": "dice", "cost": 2000, "win": 4000, "offer": true },
+                                          { "id": "die", "label": "Bet 6 Amber for a Loaded Die", "effect": "die", "amber": 6 },
+                                          { "id": "leave", "label": "Walk on", "effect": "leave" }
+                                        ]
+                                      },
+                                      {
+                                        "id": "e30",
+                                        "name": "A Tool Left Behind",
+                                        "actor": "smith",
+                                        "group": "left",
+                                        "kind": "tool",
+                                        "options": [
+                                          { "id": "use", "label": "Use the tool", "effect": "use_tool", "needs": "tool" },
+                                          { "id": "leave", "label": "Leave it", "effect": "leave" }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                  """;
 
     [Test]
     public void AnEventWithoutEncountersHasNone()

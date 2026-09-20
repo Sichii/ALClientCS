@@ -11,11 +11,7 @@ namespace AL.Core.Geometry;
 public readonly struct Point : IPoint, IEquatable<Point>
 {
     /// <summary>
-    ///     This represents an invalid value since the default value of a point
-    ///     <c>
-    ///         (0, 0)
-    ///     </c>
-    ///     is a used value.
+    ///     This represents an invalid value since the default value of a point <c>(0, 0)</c> is a used value.
     /// </summary>
     public static readonly Point None = new(float.MaxValue, float.MaxValue);
 
@@ -29,12 +25,8 @@ public readonly struct Point : IPoint, IEquatable<Point>
     /// <summary>
     ///     Initializes a new instance of the <see cref="Point" /> struct.
     /// </summary>
-    /// <param name="x">
-    ///     The x coordinate.
-    /// </param>
-    /// <param name="y">
-    ///     The y coordinate.
-    /// </param>
+    /// <param name="x">The x coordinate.</param>
+    /// <param name="y">The y coordinate.</param>
     public Point(float x, float y)
     {
         X = x;

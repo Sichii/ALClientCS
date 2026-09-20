@@ -16,15 +16,11 @@ public sealed record Server
     [JsonPropertyName("address")]
     public string Address { get; init; } = null!;
 
-    /// <summary>
-    ///     The server identifier.
-    /// </summary>
+    /// <summary>The server identifier.</summary>
     [JsonPropertyName("name")]
     public ServerId Identifier { get; set; }
 
-    /// <summary>
-    ///     The server's "SR_" prefixed unique id.
-    /// </summary>
+    /// <summary>The server's "SR_" prefixed unique id.</summary>
     public string Key { get; init; } = null!;
 
     /// <summary>
@@ -33,13 +29,9 @@ public sealed record Server
     [JsonPropertyName("path")]
     public string Path { get; init; } = null!;
 
-    /// <summary>
-    ///     The number of players currently on this server.
-    /// </summary>
+    /// <summary>The number of players currently on this server.</summary>
     public int Players { get; init; }
 
-    /// <summary>
-    ///     The region this server is for.
-    /// </summary>
+    /// <summary>The region this server is for.</summary>
     public ServerRegion Region { get; set; }
 }

@@ -35,18 +35,10 @@ public sealed record Line : ILine
     /// <summary>
     ///     Initializes a new instance of the <see cref="Line" /> class.
     /// </summary>
-    /// <param name="point1">
-    ///     A point
-    /// </param>
-    /// <param name="point2">
-    ///     Another point.
-    /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point2
-    /// </exception>
+    /// <param name="point1">A point</param>
+    /// <param name="point2">Another point.</param>
+    /// <exception cref="System.ArgumentNullException">point1</exception>
+    /// <exception cref="System.ArgumentNullException">point2</exception>
     public Line(IPoint point1, IPoint point2)
     {
         Point1 = point1 ?? throw new ArgumentNullException(nameof(point1));

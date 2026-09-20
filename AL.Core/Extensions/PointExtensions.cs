@@ -70,9 +70,7 @@ public static class PointExtensions
             return dx * dx + dy * dy;
         }
 
-        /// <summary>
-        ///     Calculates the midpoint between two points.
-        /// </summary>
+        /// <summary>Calculates the midpoint between two points.</summary>
         public Point MidPoint<T2>(T2 other) where T2: IPoint, allows ref struct => new((point.X + other.X) / 2, (point.Y + other.Y) / 2);
 
         /// <summary>
@@ -101,20 +99,14 @@ public static class PointExtensions
     /// <param name="point">
     ///     The point who's relation to another point you want to know.
     /// </param>
-    /// <param name="other">
-    ///     The other point
-    /// </param>
+    /// <param name="other">The other point</param>
     /// <returns>
     ///     <see cref="float" />
     ///     <br />
     ///     The angle of <paramref name="point" /> from the <paramref name="other" />.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static float AngularRelationTo(this IPoint point, IPoint other)
     {
         ArgumentNullException.ThrowIfNull(point);
@@ -133,20 +125,14 @@ public static class PointExtensions
     /// <param name="point">
     ///     The point who's relation to another point you want to know.
     /// </param>
-    /// <param name="other">
-    ///     The other point
-    /// </param>
+    /// <param name="other">The other point</param>
     /// <returns>
     ///     <see cref="Direction" />
     ///     <br />
     ///     The local direction of <paramref name="point" /> from the <paramref name="other" />.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static Direction DirectionalRelationTo(this IPoint point, IPoint other)
     {
         ArgumentNullException.ThrowIfNull(point);
@@ -177,29 +163,17 @@ public static class PointExtensions
         return direction;
     }
 
-    /// <summary>
-    ///     Moves an point towards another at a given speed.
-    /// </summary>
-    /// <param name="p1">
-    ///     The starting point.
-    /// </param>
-    /// <param name="p2">
-    ///     The end point.
-    /// </param>
-    /// <param name="maxDistance">
-    ///     The max distance to translate by.
-    /// </param>
+    /// <summary>Moves an point towards another at a given speed.</summary>
+    /// <param name="p1">The starting point.</param>
+    /// <param name="p2">The end point.</param>
+    /// <param name="maxDistance">The max distance to translate by.</param>
     /// <returns>
     ///     <see cref="Geometry.Point" />
     ///     <br />
     ///     A new point.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static Point OffsetTowards(this IPoint p1, IPoint p2, float maxDistance)
     {
         ArgumentNullException.ThrowIfNull(p1);

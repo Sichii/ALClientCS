@@ -18,6 +18,7 @@ public sealed class TriangleMesh
     ///     The uniform grid in CSR form: CellStart[c]..CellStart[c+1] index into <see cref="CellTriangles" />.
     /// </summary>
     private readonly int[] CellStart;
+
     private readonly int[] CellTriangles;
     private readonly int GridColumns;
     private readonly int GridMinX;
@@ -28,13 +29,12 @@ public sealed class TriangleMesh
     ///     The vertex adjacency in CSR form: VertexEdgeStart[v]..VertexEdgeStart[v+1] index into <see cref="VertexEdgeTo" />.
     /// </summary>
     private readonly int[] VertexEdgeStart;
+
     private readonly int[] VertexEdgeTo;
 
     private readonly int[] VertexTriangle;
 
-    /// <summary>
-    ///     Three vertex indices per triangle.
-    /// </summary>
+    /// <summary>Three vertex indices per triangle.</summary>
     public int[] Corners { get; }
 
     /// <summary>
@@ -42,14 +42,10 @@ public sealed class TriangleMesh
     /// </summary>
     public int[] Neighbours { get; }
 
-    /// <summary>
-    ///     The unique vertices, in map coordinates.
-    /// </summary>
+    /// <summary>The unique vertices, in map coordinates.</summary>
     public Point[] Vertices { get; }
 
-    /// <summary>
-    ///     How many triangles the mesh has.
-    /// </summary>
+    /// <summary>How many triangles the mesh has.</summary>
     public int TriangleCount => Corners.Length / 3;
 
     /// <summary>
@@ -238,9 +234,7 @@ public sealed class TriangleMesh
         row1 = Math.Clamp(((int)MathF.Ceiling(maxY) - GridMinY) / CONSTANTS.MESH_GRID_CELL, 0, GridRows - 1);
     }
 
-    /// <summary>
-    ///     The mean of the triangle's corners.
-    /// </summary>
+    /// <summary>The mean of the triangle's corners.</summary>
     public (float X, float Y) Centroid(int triangle)
     {
         var a = Vertices[Corners[triangle * 3]];
@@ -463,9 +457,7 @@ public sealed class TriangleMesh
         return -1;
     }
 
-    /// <summary>
-    ///     A triangle the vertex belongs to.
-    /// </summary>
+    /// <summary>A triangle the vertex belongs to.</summary>
     public int TriangleOfVertex(int vertex) => VertexTriangle[vertex];
 
     /// <summary>

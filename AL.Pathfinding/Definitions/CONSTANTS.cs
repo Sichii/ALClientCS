@@ -50,11 +50,11 @@ public static class CONSTANTS
     ///     What a door into the bank costs instead of <see cref="TRANSPORT_HEURISTIC" />.
     /// </summary>
     /// <remarks>
-    ///     Entering the bank is the dearest map change there is: the server bills a mount beside the door, four doors'
-    ///     worth, and the client then waits for the bank data before it can move. The door also opens from up to 150 units
-    ///     along main's street, so at the flat price a round trip through it undercut walking past. 200 puts the round trip
-    ///     past anything the door's reach can save. A trip that ends inside the bank has no other way in, so it pays the
-    ///     same whatever the number.
+    ///     Entering the bank is the dearest map change there is: the server bills a mount beside the door, four doors' worth,
+    ///     and the client then waits for the bank data before it can move. The door also opens from up to 150 units along
+    ///     main's street, so at the flat price a round trip through it undercut walking past. 200 puts the round trip past
+    ///     anything the door's reach can save. A trip that ends inside the bank has no other way in, so it pays the same
+    ///     whatever the number.
     /// </remarks>
     public const float BANK_DOOR_COST = 200f;
 
@@ -79,9 +79,7 @@ public static class CONSTANTS
     /// </summary>
     public const int MESH_GRID_CELL = 64;
 
-    /// <summary>
-    ///     The default values of a player bounding base.
-    /// </summary>
+    /// <summary>The default values of a player bounding base.</summary>
     public static readonly BoundingBase DEFAULT_BOUNDING_BASE = new(8, 7, 2);
 
     /// <summary>

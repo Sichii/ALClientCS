@@ -11,9 +11,9 @@ namespace AL.Client.Helpers;
 internal static class DoorWait
 {
     /// <summary>
-    ///     Completes with the landing, or throws <see cref="TimeoutException" />. <paramref name="crossing" /> is raised
-    ///     while the extended wait runs and lowered when it ends either way: for as long as it is up, the server owes the
-    ///     character a move to the bank from wherever it stands.
+    ///     Completes with the landing, or throws <see cref="TimeoutException" />. <paramref name="crossing" /> is raised while
+    ///     the extended wait runs and lowered when it ends either way: for as long as it is up, the server owes the character
+    ///     a move to the bank from wherever it stands.
     /// </summary>
     internal static async Task<T> ForLandingAsync<T>(
         Task<T> landed,

@@ -7,9 +7,9 @@ using AL.Core.Definitions;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads the server's <c>afk</c> field into <see cref="AfkState" />. The field is absent, a bool, or one of two
-///     names, and the names are the reason this is not a bool: they say what is driving the character rather than
-///     whether anyone is at the keyboard.
+///     Reads the server's <c>afk</c> field into <see cref="AfkState" />. The field is absent, a bool, or one of two names,
+///     and the names are the reason this is not a bool: they say what is driving the character rather than whether anyone
+///     is at the keyboard.
 /// </summary>
 public sealed class AfkStateConverter : JsonConverter<AfkState>
 {

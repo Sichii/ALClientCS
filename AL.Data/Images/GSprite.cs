@@ -15,9 +15,7 @@ namespace AL.Data.Images;
 /// </remarks>
 public sealed record GSprite
 {
-    /// <summary>
-    ///     How many skins across the sheet is.
-    /// </summary>
+    /// <summary>How many skins across the sheet is.</summary>
     public int Columns { get; init; }
 
     /// <summary>
@@ -27,11 +25,8 @@ public sealed record GSprite
 
     /// <summary>
     ///     How many animation frames sit across one cell, for an animated hat or makeup sheet. Zero for a sheet that states
-    ///     none, which the client cuts three across (js/game.js load_game:
-    ///     <c>
-    ///         s_def.frames || 3
-    ///     </c>
-    ///     ). Every other kind of sheet has a fixed frame grid and ignores this.
+    ///     none, which the client cuts three across (js/game.js load_game: <c>s_def.frames || 3</c> ). Every other kind of
+    ///     sheet has a fixed frame grid and ignores this.
     /// </summary>
     public int Frames { get; init; }
 
@@ -40,25 +35,16 @@ public sealed record GSprite
     /// </summary>
     public IReadOnlyList<IReadOnlyList<string?>> Matrix { get; init; } = [];
 
-    /// <summary>
-    ///     How many skins down the sheet is.
-    /// </summary>
+    /// <summary>How many skins down the sheet is.</summary>
     public int Rows { get; init; }
 
     /// <summary>
     ///     Which of the six body sizes every name in <see cref="Matrix" /> is drawn at, or null for a sheet that states none -
-    ///     which the game reads as
-    ///     <c>
-    ///         normal
-    ///     </c>
-    ///     .
+    ///     which the game reads as <c>normal</c> .
     /// </summary>
     /// <remarks>
     ///     What this decides is where a head sits on a body: the client shifts the head, hair and hat placements by a per-size
-    ///     amount (js/html.js:5877), and picks which of a head's three skin sheets to draw from by the same key (
-    ///     <c>
-    ///         :5901
-    ///     </c>
+    ///     amount (js/html.js:5877), and picks which of a head's three skin sheets to draw from by the same key ( <c>:5901</c>
     ///     ). Two sizes have no skin sheet at all, so a body at one of those draws no skin layer rather than a wrongly-sized
     ///     one.
     /// </remarks>
@@ -75,20 +61,10 @@ public sealed record GSprite
     ///     the game types as nothing - most of them.
     /// </summary>
     /// <remarks>
-    ///     The server substitutes
-    ///     <c>
-    ///         full
-    ///     </c>
-    ///     for the absence while building its name-to-type table (js/old_common_functions.js:191), and
-    ///     <c>
-    ///         full
-    ///     </c>
-    ///     is a type its own
-    ///     <c>
-    ///         cxtype_to_slot
-    ///     </c>
-    ///     map has no entry for. Keeping the absence as null rather than baking that placeholder in leaves the two
-    ///     distinguishable: a caller can tell a sheet nothing may be worn from off an untyped one it simply has not handled.
+    ///     The server substitutes <c>full</c> for the absence while building its name-to-type table
+    ///     (js/old_common_functions.js:191), and <c>full</c> is a type its own <c>cxtype_to_slot</c> map has no entry for.
+    ///     Keeping the absence as null rather than baking that placeholder in leaves the two distinguishable: a caller can
+    ///     tell a sheet nothing may be worn from off an untyped one it simply has not handled.
     /// </remarks>
     public string? Type { get; init; }
 

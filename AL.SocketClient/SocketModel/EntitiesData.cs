@@ -20,14 +20,10 @@ public sealed record EntitiesData
 
     public string Map { get; init; } = null!;
 
-    /// <summary>
-    ///     The monsters you can see.
-    /// </summary>
+    /// <summary>The monsters you can see.</summary>
     public IReadOnlyList<Monster> Monsters { get; init; } = new List<Monster>();
 
-    /// <summary>
-    ///     The players you can see
-    /// </summary>
+    /// <summary>The players you can see</summary>
     public IReadOnlyList<Player> Players { get; init; } = new List<Player>();
 
     /// <summary>

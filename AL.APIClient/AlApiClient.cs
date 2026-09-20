@@ -38,6 +38,7 @@ public sealed class AlApiClient : IAlApiClient
     ///     Each client owns its cookie jar, so several accounts can be logged in side by side.
     /// </summary>
     private readonly IRestClient Client;
+
     private readonly string CookieDomain;
     private readonly SemaphoreSlim Sync;
 
@@ -60,6 +61,28 @@ public sealed class AlApiClient : IAlApiClient
         BaseUrl = baseUrl;
         CookieDomain = new Uri(baseUrl).Host;
         Sync = new SemaphoreSlim(1, 1);
+    }
+
+    public async Task DeleteMailAsync(Mail mail)
+    {
+        ArgumentNullException.ThrowIfNull(mail);
+
+        Logger.Info($"Deleting mail {mail.Id}");
+
+        //unlike read_mail, the server takes this id exactly as pull_mail sent it rather than reconstructing it:
+        //delete_mail_api calls get(args.mid) directly, where read_mail_api rebuilds "ML_" + args.mail itself
+        //(api.js) - so mail.Id is passed whole here, the opposite of ReadMailAsync's strip just above
+        var request = new APIRequest(
+            Method.Post,
+            APIMethod.DeleteMail,
+            new
+            {
+                mid = mail.Id
+            },
+            Auth,
+            CookieDomain);
+
+        await Client.ExecutePostAsync(request);
     }
 
     public async IAsyncEnumerable<Mail> GetMailAsync()
@@ -151,9 +174,7 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">
-    ///     mail
-    /// </exception>
+    /// <exception cref="ArgumentNullException">mail</exception>
     public async Task ReadMailAsync(Mail mail)
     {
         ArgumentNullException.ThrowIfNull(mail);
@@ -168,29 +189,6 @@ public sealed class AlApiClient : IAlApiClient
             new
             {
                 mail = mail.Id.StartsWith("ML_", StringComparison.Ordinal) ? mail.Id["ML_".Length..] : mail.Id
-            },
-            Auth,
-            CookieDomain);
-
-        await Client.ExecutePostAsync(request);
-    }
-
-
-    public async Task DeleteMailAsync(Mail mail)
-    {
-        ArgumentNullException.ThrowIfNull(mail);
-
-        Logger.Info($"Deleting mail {mail.Id}");
-
-        //unlike read_mail, the server takes this id exactly as pull_mail sent it rather than reconstructing it:
-        //delete_mail_api calls get(args.mid) directly, where read_mail_api rebuilds "ML_" + args.mail itself
-        //(api.js) - so mail.Id is passed whole here, the opposite of ReadMailAsync's strip just above
-        var request = new APIRequest(
-            Method.Post,
-            APIMethod.DeleteMail,
-            new
-            {
-                mid = mail.Id
             },
             Auth,
             CookieDomain);
@@ -257,11 +255,7 @@ public sealed class AlApiClient : IAlApiClient
     ///     A json string of the "G" data.
     /// </returns>
     /// <summary>
-    ///     Fetches
-    ///     <c>
-    ///         data.js
-    ///     </c>
-    ///     , once per host for the life of the process.
+    ///     Fetches <c>data.js</c> , once per host for the life of the process.
     /// </summary>
     /// <remarks>
     ///     The body is multiple megabytes and the server can spend minutes sending it, so a second caller downloading it again
@@ -272,15 +266,9 @@ public sealed class AlApiClient : IAlApiClient
         => GameDataCache.GetOrAdd(baseUrl, url => new Lazy<Task<string>>(() => FetchGameDataAsync(url)))
                         .Value;
 
-    /// <summary>
-    ///     Asynchronously logs in to the API.
-    /// </summary>
-    /// <param name="email">
-    ///     The user's email.
-    /// </param>
-    /// <param name="password">
-    ///     The user's password.
-    /// </param>
+    /// <summary>Asynchronously logs in to the API.</summary>
+    /// <param name="email">The user's email.</param>
+    /// <param name="password">The user's password.</param>
     /// <param name="baseUrl">
     ///     The host to log into. Defaults to the public game host.
     /// </param>
@@ -289,18 +277,10 @@ public sealed class AlApiClient : IAlApiClient
     ///     <br />
     ///     An ALAPIClient that can be used to fetch user-specific information.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     email
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     password
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to log in. No response from server.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to log in. {reason}
-    /// </exception>
+    /// <exception cref="ArgumentNullException">email</exception>
+    /// <exception cref="ArgumentNullException">password</exception>
+    /// <exception cref="InvalidOperationException">Failed to log in. No response from server.</exception>
+    /// <exception cref="InvalidOperationException">Failed to log in. {reason}</exception>
     public static async Task<AlApiClient> LoginAsync(string email, string password, string baseUrl = DEFAULT_BASE_URL)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -359,15 +339,8 @@ public sealed class AlApiClient : IAlApiClient
     ///     Unwraps an api response into the notification array the payload actually lives in.
     /// </summary>
     /// <remarks>
-    ///     Every response is an object of the form
-    ///     <c>
-    ///         { success|failed, reason?, infs:[...] }
-    ///     </c>
-    ///     . Handlers push their real payload into
-    ///     <c>
-    ///         infs
-    ///     </c>
-    ///     and return only a status on the envelope.
+    ///     Every response is an object of the form <c>{ success|failed, reason?, infs:[...] }</c> . Handlers push their real
+    ///     payload into <c>infs</c> and return only a status on the envelope.
     /// </remarks>
     private static JsonArray ReadNotifications(RestResponse response)
     {

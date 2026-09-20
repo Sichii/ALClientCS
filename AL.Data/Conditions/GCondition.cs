@@ -31,9 +31,7 @@ public sealed record GCondition : AttributedRecordBase
     /// </summary>
     public bool Blocked { get; init; }
 
-    /// <summary>
-    ///     Whether or not this condition is a buff.
-    /// </summary>
+    /// <summary>Whether or not this condition is a buff.</summary>
     public bool Buff { get; init; }
 
     /// <summary>
@@ -129,12 +127,9 @@ public sealed record GCondition : AttributedRecordBase
     public int SetSpeed { get; init; }
 
     /// <summary>
-    ///     If populated, the name of this condition's icon art in
-    ///     <c>
-    ///         G.positions
-    ///     </c>
-    ///     . The browser client draws a condition's icon through the item pipeline by this name (js/html.js:439), preferring a
-    ///     skin carried on the live condition itself where the wire sends one.
+    ///     If populated, the name of this condition's icon art in <c>G.positions</c> . The browser client draws a condition's
+    ///     icon through the item pipeline by this name (js/html.js:439), preferring a skin carried on the live condition
+    ///     itself where the wire sends one.
     /// </summary>
     public string? Skin { get; init; }
 

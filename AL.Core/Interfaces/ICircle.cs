@@ -5,8 +5,6 @@ namespace AL.Core.Interfaces;
 /// </summary>
 public interface ICircle : IPoint, IEquatable<ICircle>
 {
-    /// <summary>
-    ///     The distance from the center to the edge.
-    /// </summary>
+    /// <summary>The distance from the center to the edge.</summary>
     float Radius { get; }
 }

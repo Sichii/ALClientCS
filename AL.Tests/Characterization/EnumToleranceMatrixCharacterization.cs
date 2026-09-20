@@ -21,25 +21,11 @@ namespace AL.Tests.Characterization;
 /// </summary>
 /// <remarks>
 ///     The enum set is discovered by reflection over the three assemblies that declare tolerant enums, so the matrix
-///     tracks the code rather than a hand list. Deserialization goes through
-///     <c>
-///         TestJson.Data
-///     </c>
-///     , i.e. the production
-///     <c>
-///         ALJson.Options
-///     </c>
-///     , so these results are the ones the live client actually produces. Dictionary-key position is a distinct code path
-///     (resolved through
-///     <c>
-///         ReadAsPropertyName
-///     </c>
-///     ) whose tolerance differs from value position in the pinned baseline - a naked
-///     <c>
-///         Dictionary&lt;TEnum,int&gt;
-///     </c>
-///     never reached the value converter there, so an unknown key killed the payload. That difference is the point of
-///     pinning it.
+///     tracks the code rather than a hand list. Deserialization goes through <c>TestJson.Data</c> , i.e. the production
+///     <c>ALJson.Options</c> , so these results are the ones the live client actually produces. Dictionary-key position is
+///     a distinct code path (resolved through <c>ReadAsPropertyName</c> ) whose tolerance differs from value position in
+///     the pinned baseline - a naked <c>Dictionary&lt;TEnum,int&gt;</c> never reached the value converter there, so an
+///     unknown key killed the payload. That difference is the point of pinning it.
 /// </remarks>
 public sealed class EnumToleranceMatrixCharacterization
 {
@@ -194,6 +180,7 @@ public sealed class EnumToleranceMatrixCharacterization
               .Should()
               .BeEquivalentTo(
                   ExpectedDivergenceCounts.ToList(),
+
                   //the cells themselves, not just the tallies: a class that moved is only actionable once you can
                   //see which enum moved it
                   $"the accepted divergence classes moved:\n{string.Join("\n", byClass.Select(pair => $"{pair.Key}={pair.Value.Count}\n  {string.Join("\n  ", pair.Value)}"))}");
@@ -214,21 +201,10 @@ public sealed class EnumToleranceMatrixCharacterization
     ///     <br />
     ///     Class 4 is the volatile one, and the only class that moves without any converter changing. Members are positional,
     ///     so inserting one renumbers every member after it and hands the number the numeric probe feeds to whichever member
-    ///     now owns it. Its four cells are
-    ///     <c>
-    ///         UIDataType.Stomp
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         ALSocketEmitType.Loaded
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         Condition.DamageReceived
-    ///     </c>
-    ///     in both value and key position. The classifier only lands a cell here once both halves are proven to carry the
-    ///     same decimal, so a move is a rename rather than a regression: raise the count rather than reaching for the fixture,
-    ///     which is the pre-migration baseline and stays frozen.
+    ///     now owns it. Its four cells are <c>UIDataType.Stomp</c> , <c>ALSocketEmitType.Loaded</c> and
+    ///     <c>Condition.DamageReceived</c> in both value and key position. The classifier only lands a cell here once both
+    ///     halves are proven to carry the same decimal, so a move is a rename rather than a regression: raise the count rather
+    ///     than reaching for the fixture, which is the pre-migration baseline and stays frozen.
     /// </remarks>
     private static readonly IReadOnlyDictionary<string, int> ExpectedDivergenceCounts = new Dictionary<string, int>(StringComparer.Ordinal)
     {
@@ -284,14 +260,8 @@ public sealed class EnumToleranceMatrixCharacterization
 
     /// <summary>
     ///     Whether two cells report the same parsed value under different names. A value cell is written
-    ///     <c>
-    ///         {value} = {decimal}
-    ///     </c>
-    ///     , so the half after the last
-    ///     <c>
-    ///         =
-    ///     </c>
-    ///     is what the converter actually produced and the half before it is only how that number spells itself today.
+    ///     <c>{value} = {decimal}</c> , so the half after the last <c>=</c> is what the converter actually produced and the
+    ///     half before it is only how that number spells itself today.
     /// </summary>
     /// <remarks>
     ///     Deliberately refuses to fire on a cell that threw on either side: a throw carries no decimal, and reading one out

@@ -238,9 +238,7 @@ internal sealed class PortalGraph
     ///     route is never empty and a caller always finds where it arrived at the last leg; a walk stops inside an end's reach
     ///     rather than on its centre, and this one has no distance left to walk.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     No end can be reached.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">No end can be reached.</exception>
     public IReadOnlyList<PathEdge> FindPath<T>(ILocation start, IEnumerable<T> ends, PathOptions options) where T: ILocation, ICircle
     {
         if (!Meshes.TryGetValue(start.Map, out var startMesh))

@@ -37,23 +37,13 @@ public sealed record GSet
     public IReadOnlyList<GSetTier> Tiers { get; internal set; } = [];
 
     /// <summary>
-    ///     The tier objects as they arrive, keyed by the count as a string - the wire files them beside
-    ///     <c>
-    ///         name
-    ///     </c>
-    ///     and
-    ///     <c>
-    ///         items
-    ///     </c>
-    ///     rather than under a container of their own, so there is nothing for a declared property to bind.
+    ///     The tier objects as they arrive, keyed by the count as a string - the wire files them beside <c>name</c> and
+    ///     <c>items</c> rather than under a container of their own, so there is nothing for a declared property to bind.
     /// </summary>
     /// <remarks>
-    ///     Cleared to null by
-    ///     <c>
-    ///         GameData.EnrichSets
-    ///     </c>
-    ///     once <see cref="Tiers" /> is built, which is what keeps raw JSON off the game-data explorer: a null field is absent
-    ///     and draws nothing. It is also what makes the pass safe to run over a set twice.
+    ///     Cleared to null by <c>GameData.EnrichSets</c> once <see cref="Tiers" /> is built, which is what keeps raw JSON off
+    ///     the game-data explorer: a null field is absent and draws nothing. It is also what makes the pass safe to run over a
+    ///     set twice.
     /// </remarks>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? WireTiers { get; set; }

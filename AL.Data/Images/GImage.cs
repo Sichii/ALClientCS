@@ -10,22 +10,14 @@ namespace AL.Data.Images;
 /// </remarks>
 public sealed record GImage
 {
-    /// <summary>
-    ///     The file's height in pixels.
-    /// </summary>
+    /// <summary>The file's height in pixels.</summary>
     public int Height { get; init; }
 
     /// <summary>
-    ///     The file's format, as the game writes it. Everything currently shipped is
-    ///     <c>
-    ///         png
-    ///     </c>
-    ///     .
+    ///     The file's format, as the game writes it. Everything currently shipped is <c>png</c> .
     /// </summary>
     public string Type { get; init; } = string.Empty;
 
-    /// <summary>
-    ///     The file's width in pixels.
-    /// </summary>
+    /// <summary>The file's width in pixels.</summary>
     public int Width { get; init; }
 }

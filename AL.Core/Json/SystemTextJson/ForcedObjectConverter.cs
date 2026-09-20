@@ -13,33 +13,12 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Binds a type marked <see cref="JsonForcedObjectAttribute" /> which System.Text.Json would otherwise treat as a
-///     collection because it also implements <see cref="IEnumerable" /> — the geometry containers (e.g.
-///     <c>
-///         GGeometry
-///     </c>
-///     ) that implement
-///     <c>
-///         IRectangle : IEnumerable&lt;IPoint&gt;
-///     </c>
-///     for bounding-box convenience yet serialize as a named object. It reads the named object and sets each member from
-///     the native attributes (
-///     <c>
-///         [JsonPropertyName]
-///     </c>
-///     renames,
-///     <c>
-///         [JsonIgnore]
-///     </c>
-///     ,
-///     <c>
-///         [JsonInclude]
-///     </c>
-///     for non-public setters and fields), deserializing each value through the options so nested converters still apply.
-///     The positional
-///     <c>
-///         [JsonArrayIndex]
-///     </c>
-///     shapes (GDoor/GTile) are handled by <see cref="ArrayToObjectConverter{T}" /> instead.
+///     collection because it also implements <see cref="IEnumerable" /> — the geometry containers (e.g. <c>GGeometry</c> )
+///     that implement <c>IRectangle : IEnumerable&lt;IPoint&gt;</c> for bounding-box convenience yet serialize as a named
+///     object. It reads the named object and sets each member from the native attributes ( <c>[JsonPropertyName]</c>
+///     renames, <c>[JsonIgnore]</c> , <c>[JsonInclude]</c> for non-public setters and fields), deserializing each value
+///     through the options so nested converters still apply. The positional <c>[JsonArrayIndex]</c> shapes (GDoor/GTile)
+///     are handled by <see cref="ArrayToObjectConverter{T}" /> instead.
 /// </summary>
 public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
 {
@@ -182,16 +161,9 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
 
 /// <summary>
 ///     Applies <see cref="ForcedObjectConverter{T}" /> to a type that carries <see cref="JsonForcedObjectAttribute" /> (on
-///     itself or an implemented interface such as
-///     <c>
-///         IRectangle
-///     </c>
-///     ), implements <see cref="IEnumerable" />, exposes a parameterless constructor, and is not a positional
-///     <c>
-///         [JsonArrayIndex]
-///     </c>
-///     type. Registered last, so the specific converters (attributed, array-to-object, map-rectangle, …) claim their types
-///     first.
+///     itself or an implemented interface such as <c>IRectangle</c> ), implements <see cref="IEnumerable" />, exposes a
+///     parameterless constructor, and is not a positional <c>[JsonArrayIndex]</c> type. Registered last, so the specific
+///     converters (attributed, array-to-object, map-rectangle, …) claim their types first.
 /// </summary>
 public sealed class ForcedObjectConverterFactory : JsonConverterFactory
 {

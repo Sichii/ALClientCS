@@ -11,9 +11,7 @@ namespace AL.SocketClient.Model;
 /// </summary>
 public sealed record AnniversaryStatus
 {
-    /// <summary>
-    ///     The reason that says the kiss pays.
-    /// </summary>
+    /// <summary>The reason that says the kiss pays.</summary>
     public const string READY = "ready";
 
     /// <summary>

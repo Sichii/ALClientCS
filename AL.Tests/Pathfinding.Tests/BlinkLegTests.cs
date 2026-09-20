@@ -54,8 +54,96 @@ public class BlinkLegTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     Town and blink compete on cost alone. To spawn 0 of the current map a recall at about 180 beats a cast at 400,
-    ///     and a cast priced under the recall wins instead.
+    ///     Over the recorded corpus with blink on: a blink stays on its map, carries the distance it covers, and is followed
+    ///     by a door or transporter or is the last leg, since nothing walks out of a landing. No run of walks between two
+    ///     other legs is dearer than the cast, because such a run is one walk edge of the search and the clamp would have
+    ///     charged the cast for it.
+    /// </summary>
+    [Test]
+    [Arguments(400f)]
+    [Arguments(1000f)]
+    public async Task EveryRouteOnTheCorpusIsShapedForTheCast(float blinkCost)
+    {
+        var json = await File.ReadAllTextAsync(Path.Combine("Fixtures", "pathfinding", "old-paths.json"));
+        var corpus = JsonSerializer.Deserialize<Corpus>(json)!;
+
+        var options = new PathOptions
+        {
+            BlinkCost = blinkCost
+        };
+
+        var blinks = 0;
+
+        foreach (var recorded in corpus.Paths)
+        {
+            var start = new Location(recorded.Start.Map, recorded.Start.X, recorded.Start.Y);
+            var end = new Destination(new Location(recorded.End.Map, recorded.End.X, recorded.End.Y), recorded.Radius);
+            IReadOnlyList<PathEdge> path;
+
+            try
+            {
+                path = Pathfinder.FindPath(start, [end], options);
+            } catch (InvalidOperationException)
+            {
+                //no route is the search's contract for a pair between two instances, so the trip is simply not in the sample
+                continue;
+            }
+
+            var walked = 0f;
+
+            for (var index = 0; index < path.Count; index++)
+            {
+                var edge = path[index];
+
+                if (edge.Type == EdgeType.Walk)
+                {
+                    walked += edge.Cost;
+
+                    //a unit of slack: the run is read off the funnelled polyline, the clamp off the search's own cost
+                    walked.Should()
+                          .BeLessThanOrEqualTo(
+                              blinkCost + 1f,
+                              $"route #{recorded.Id} at {blinkCost}: a walk run at leg {index} outgrew the cast");
+
+                    continue;
+                }
+
+                walked = 0f;
+
+                if (edge.Type != EdgeType.Blink)
+                    continue;
+
+                blinks++;
+
+                edge.Start
+                    .Map
+                    .Should()
+                    .Be(edge.End.Map, $"route #{recorded.Id} at {blinkCost}: a blink stays on its map");
+
+                edge.Cost
+                    .Should()
+                    .BeGreaterThan(0f, $"route #{recorded.Id} at {blinkCost}: a blink carries the distance it covers");
+
+                if (index < (path.Count - 1))
+                    path[index + 1]
+                        .Type
+                        .Should()
+                        .BeOneOf(
+                            [
+                                EdgeType.Door,
+                                EdgeType.Transport
+                            ],
+                            $"route #{recorded.Id} at {blinkCost}: nothing walks out of a landing");
+            }
+        }
+
+        blinks.Should()
+              .BeGreaterThan(0, "the corpus holds trips long enough to cast on");
+    }
+
+    /// <summary>
+    ///     Town and blink compete on cost alone. To spawn 0 of the current map a recall at about 180 beats a cast at 400, and
+    ///     a cast priced under the recall wins instead.
     /// </summary>
     [Test]
     public void TownAndBlinkArePricedAgainstEachOther()
@@ -109,88 +197,11 @@ public class BlinkLegTests : PathfindingTestBed
 
         bridged.Should()
                .ContainSingle()
-               .Which.Type.Should()
+               .Which
+               .Type
+               .Should()
                .Be(EdgeType.Blink);
     }
-
-    /// <summary>
-    ///     Over the recorded corpus with blink on: a blink stays on its map, carries the distance it covers, and is followed
-    ///     by a door or transporter or is the last leg, since nothing walks out of a landing. No run of walks between two
-    ///     other legs is dearer than the cast, because such a run is one walk edge of the search and the clamp would have
-    ///     charged the cast for it.
-    /// </summary>
-    [Test]
-    [Arguments(400f)]
-    [Arguments(1000f)]
-    public async Task EveryRouteOnTheCorpusIsShapedForTheCast(float blinkCost)
-    {
-        var json = await File.ReadAllTextAsync(Path.Combine("Fixtures", "pathfinding", "old-paths.json"));
-        var corpus = JsonSerializer.Deserialize<Corpus>(json)!;
-
-        var options = new PathOptions
-        {
-            BlinkCost = blinkCost
-        };
-
-        var blinks = 0;
-
-        foreach (var recorded in corpus.Paths)
-        {
-            var start = new Location(recorded.Start.Map, recorded.Start.X, recorded.Start.Y);
-            var end = new Destination(new Location(recorded.End.Map, recorded.End.X, recorded.End.Y), recorded.Radius);
-            IReadOnlyList<PathEdge> path;
-
-            try
-            {
-                path = Pathfinder.FindPath(start, [end], options);
-            } catch (InvalidOperationException)
-            {
-                //no route is the search's contract for a pair between two instances, so the trip is simply not in the sample
-                continue;
-            }
-
-            var walked = 0f;
-
-            for (var index = 0; index < path.Count; index++)
-            {
-                var edge = path[index];
-
-                if (edge.Type == EdgeType.Walk)
-                {
-                    walked += edge.Cost;
-
-                    //a unit of slack: the run is read off the funnelled polyline, the clamp off the search's own cost
-                    walked.Should()
-                          .BeLessThanOrEqualTo(blinkCost + 1f, $"route #{recorded.Id} at {blinkCost}: a walk run at leg {index} outgrew the cast");
-
-                    continue;
-                }
-
-                walked = 0f;
-
-                if (edge.Type != EdgeType.Blink)
-                    continue;
-
-                blinks++;
-
-                edge.Start.Map.Should()
-                    .Be(edge.End.Map, $"route #{recorded.Id} at {blinkCost}: a blink stays on its map");
-
-                edge.Cost.Should()
-                    .BeGreaterThan(0f, $"route #{recorded.Id} at {blinkCost}: a blink carries the distance it covers");
-
-                if (index < (path.Count - 1))
-                    path[index + 1]
-                        .Type.Should()
-                        .BeOneOf([EdgeType.Door, EdgeType.Transport], $"route #{recorded.Id} at {blinkCost}: nothing walks out of a landing");
-            }
-        }
-
-        blinks.Should()
-              .BeGreaterThan(0, "the corpus holds trips long enough to cast on");
-    }
-
-    private sealed record Spot(string Map, float X, float Y);
 
     private sealed record Case(
         int Id,
@@ -199,4 +210,6 @@ public class BlinkLegTests : PathfindingTestBed
         float Radius);
 
     private sealed record Corpus(List<Case> Paths);
+
+    private sealed record Spot(string Map, float X, float Y);
 }

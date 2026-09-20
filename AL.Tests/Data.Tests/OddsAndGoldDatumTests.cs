@@ -14,8 +14,8 @@ namespace AL.Tests.Data.Tests;
 public class OddsAndGoldDatumTests
 {
     /// <summary>
-    ///     A row is keyed by the item's grade and, inside it, by the level being reached - the server's own indexing. A
-    ///     grade or a level the payload leaves out reads as no entry rather than a chance of nothing.
+    ///     A row is keyed by the item's grade and, inside it, by the level being reached - the server's own indexing. A grade
+    ///     or a level the payload leaves out reads as no entry rather than a chance of nothing.
     /// </summary>
     [Test]
     public void CompoundRowsBindByGradeThenByLevelReached()
@@ -49,30 +49,8 @@ public class OddsAndGoldDatumTests
     }
 
     /// <summary>
-    ///     The upgrade track runs to +12 where the compound one stops at +10; the shape is otherwise the same.
-    /// </summary>
-    [Test]
-    public void UpgradeRowsBindByGradeThenByLevelReached()
-    {
-        var upgrades = TestJson.Data<UpgradesDatum>("""{"1":{"12":0.1}}""")!;
-        upgrades.BuildLookupTable();
-
-        upgrades.Grade1[12]
-                .Should()
-                .Be(0.1);
-
-        upgrades.ChanceOf(1, 12)
-                .Should()
-                .Be(0.1);
-
-        upgrades["0"]
-            .Should()
-            .BeNull();
-    }
-
-    /// <summary>
-    ///     Gold binds by monster, and a monster the payload does not price is absent from the lookup rather than priced
-    ///     at nothing - the table leaves out the instance-only monsters, and a zero would read as a real figure.
+    ///     Gold binds by monster, and a monster the payload does not price is absent from the lookup rather than priced at
+    ///     nothing - the table leaves out the instance-only monsters, and a zero would read as a real figure.
     /// </summary>
     [Test]
     public void MonsterGoldBindsByMonsterAndLeavesUnpricedOnesOut()
@@ -95,5 +73,27 @@ public class OddsAndGoldDatumTests
         gold.Entries
             .Should()
             .HaveCount(2);
+    }
+
+    /// <summary>
+    ///     The upgrade track runs to +12 where the compound one stops at +10; the shape is otherwise the same.
+    /// </summary>
+    [Test]
+    public void UpgradeRowsBindByGradeThenByLevelReached()
+    {
+        var upgrades = TestJson.Data<UpgradesDatum>("""{"1":{"12":0.1}}""")!;
+        upgrades.BuildLookupTable();
+
+        upgrades.Grade1[12]
+                .Should()
+                .Be(0.1);
+
+        upgrades.ChanceOf(1, 12)
+                .Should()
+                .Be(0.1);
+
+        upgrades["0"]
+            .Should()
+            .BeNull();
     }
 }

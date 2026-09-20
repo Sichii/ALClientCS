@@ -26,9 +26,7 @@ public record GSlots
     /// </summary>
     public long Gold { get; init; }
 
-    /// <summary>
-    ///     The winning outcomes, richest first.
-    /// </summary>
+    /// <summary>The winning outcomes, richest first.</summary>
     public IReadOnlyList<GSlotsPrize> Prizes { get; init; } = [];
 
     /// <summary>

@@ -28,14 +28,7 @@ public class ClientTests
     /// <summary>
     ///     Why <see cref="EntityBase.AcceptMovement" /> takes a character frame wholesale where
     ///     <see cref="EntityBase.Update(EntityBase)" /> gates an entities frame on <see cref="EntityBase.PresentFields" />.
-    ///     The server sends a key only where its player object has one (
-    ///     <c>
-    ///         player_to_client
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         node/server.js:778
-    ///     </c>
+    ///     The server sends a key only where its player object has one ( <c>player_to_client</c> , <c>node/server.js:778</c>
     ///     ), and a player object has no walking keys at all until its first move of the session - so a login or reconnect
     ///     frame carries the position and the map and none of the walk. Gated, such a frame would leave a persistent character
     ///     still walking to the destination of a leg on the server it just left.
@@ -75,12 +68,8 @@ public class ClientTests
     }
 
     /// <summary>
-    ///     A cosmetic response with no
-    ///     <c>
-    ///         acx
-    ///     </c>
-    ///     is a shape the server does not send. The handler leaves the last known inventory alone rather than emptying it, so
-    ///     the null has to survive deserialization as a null.
+    ///     A cosmetic response with no <c>acx</c> is a shape the server does not send. The handler leaves the last known
+    ///     inventory alone rather than emptying it, so the null has to survive deserialization as a null.
     /// </summary>
     [Test]
     public void ACosmeticResponseWithoutAcxDeserializesToNull()
@@ -98,11 +87,7 @@ public class ClientTests
     /// <summary>
     ///     The other half of the exclusion above: a character frame's position still reaches the live character, through the
     ///     choke point instead of the merge. Pinned on <see cref="EntityBase.AcceptMovement" /> directly because the call site
-    ///     (
-    ///     <c>
-    ///         ALClient.OnCharacterAsync
-    ///     </c>
-    ///     ) needs a live socket connection.
+    ///     ( <c>ALClient.OnCharacterAsync</c> ) needs a live socket connection.
     /// </summary>
     [Test]
     public void AcceptMovementTakesTheFrameAsSent()
@@ -191,27 +176,9 @@ public class ClientTests
     }
 
     /// <summary>
-    ///     All three cosmetic responses carry
-    ///     <c>
-    ///         player.p.acx
-    ///     </c>
-    ///     whole -
-    ///     <c>
-    ///         cx_new
-    ///     </c>
-    ///     at node/server.js:7243,
-    ///     <c>
-    ///         cx_received
-    ///     </c>
-    ///     at :7984 and
-    ///     <c>
-    ///         cx_sent
-    ///     </c>
-    ///     at :7991 - never a delta, which is why the handler assigns rather than merges. The wire names are the risk here:
-    ///     nothing but the enum's own wire-name mapping turns
-    ///     <c>
-    ///         cx_sent
-    ///     </c>
+    ///     All three cosmetic responses carry <c>player.p.acx</c> whole - <c>cx_new</c> at node/server.js:7243,
+    ///     <c>cx_received</c> at :7984 and <c>cx_sent</c> at :7991 - never a delta, which is why the handler assigns rather
+    ///     than merges. The wire names are the risk here: nothing but the enum's own wire-name mapping turns <c>cx_sent</c>
     ///     into <see cref="GameResponseType.CosmeticSent" />, so a broken mapping would leave the handler silently never
     ///     firing.
     /// </summary>
@@ -280,21 +247,10 @@ public class ClientTests
     }
 
     /// <summary>
-    ///     A character frame reaches
-    ///     <c>
-    ///         OnCharacterAsync
-    ///     </c>
-    ///     by three routes - the
-    ///     <c>
-    ///         player
-    ///     </c>
-    ///     subscription, the
-    ///     <c>
-    ///         start
-    ///     </c>
-    ///     frame, and the character nested inside the welcome - and only the first two are a root deserialize. The nested one
-    ///     is the route worth pinning: presence is captured by the converter the attributed factory produces, and the factory
-    ///     has to still claim a member of an outer object it is not itself claiming.
+    ///     A character frame reaches <c>OnCharacterAsync</c> by three routes - the <c>player</c> subscription, the
+    ///     <c>start</c> frame, and the character nested inside the welcome - and only the first two are a root deserialize.
+    ///     The nested one is the route worth pinning: presence is captured by the converter the attributed factory produces,
+    ///     and the factory has to still claim a member of an outer object it is not itself claiming.
     /// </summary>
     [Test]
     public void PresenceIsCapturedOnACharacterNestedInsideAWelcome()
@@ -367,17 +323,10 @@ public class ClientTests
     /// <summary>
     ///     No member of the movement block is assignable by the shallow merge, so that every write to one goes through the
     ///     single locked path on <see cref="EntityBase" />. What excludes them today is the accessor rather than the
-    ///     attribute: the merge reflects
-    ///     <c>
-    ///         typeof(Character)
-    ///     </c>
-    ///     , and a private setter declared on <see cref="EntityBase" /> is not inherited, so
-    ///     <c>
-    ///         CanWrite
-    ///     </c>
-    ///     already reads false from there. <see cref="ShallowMergeIgnoreAttribute" /> is the guard for the two cases the
-    ///     accessor cannot cover - a block property declared on <see cref="Character" /> itself, and a setter someone later
-    ///     widens back.
+    ///     attribute: the merge reflects <c>typeof(Character)</c> , and a private setter declared on <see cref="EntityBase" />
+    ///     is not inherited, so <c>CanWrite</c> already reads false from there. <see cref="ShallowMergeIgnoreAttribute" /> is
+    ///     the guard for the two cases the accessor cannot cover - a block property declared on <see cref="Character" />
+    ///     itself, and a setter someone later widens back.
     /// </summary>
     /// <remarks>
     ///     The merge's selection rule is restated here rather than called, because a wrong rule asked about itself agrees with

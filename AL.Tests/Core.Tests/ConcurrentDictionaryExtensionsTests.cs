@@ -110,10 +110,7 @@ public class ConcurrentDictionaryExtensionsTests
     /// <summary>
     ///     The walk has to tolerate the map growing and shrinking under it, which is what a socket write landing mid-tick
     ///     does. Driven from inside the predicate rather than from a second thread: a racing writer proves the same thing only
-    ///     some of the time, and the two-second version of this cost a core and broke
-    ///     <c>
-    ///         ClientTests.ShallowMergeIntoTest
-    ///     </c>
+    ///     some of the time, and the two-second version of this cost a core and broke <c>ClientTests.ShallowMergeIntoTest</c>
     ///     's wall-clock budget alongside it.
     /// </summary>
     [Test]

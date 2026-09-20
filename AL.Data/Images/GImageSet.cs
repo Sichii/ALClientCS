@@ -10,9 +10,7 @@ namespace AL.Data.Images;
 /// </summary>
 public sealed record GImageSet
 {
-    /// <summary>
-    ///     How many icons across the sheet is.
-    /// </summary>
+    /// <summary>How many icons across the sheet is.</summary>
     public int Columns { get; init; }
 
     /// <summary>
@@ -20,14 +18,10 @@ public sealed record GImageSet
     /// </summary>
     public string File { get; init; } = string.Empty;
 
-    /// <summary>
-    ///     How many icons down the sheet is.
-    /// </summary>
+    /// <summary>How many icons down the sheet is.</summary>
     public int Rows { get; init; }
 
-    /// <summary>
-    ///     One icon's side, in pixels.
-    /// </summary>
+    /// <summary>One icon's side, in pixels.</summary>
     public int Size { get; init; }
 
     /// <summary>

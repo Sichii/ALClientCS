@@ -7,12 +7,9 @@ namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
 ///     The two chat payloads. Both bind by exact member name case-insensitively, so the only field that could silently
-///     miss is the one whose wire name is not its member name - and that is
-///     <c>
-///         p
-///     </c>
-///     , the flag separating player chat from the pvp arena, the Grinch and cyberland's mainframe. A false reading there
-///     is invisible: a consumer keeping only player chat would show nothing at all and look exactly like a quiet server.
+///     miss is the one whose wire name is not its member name - and that is <c>p</c> , the flag separating player chat
+///     from the pvp arena, the Grinch and cyberland's mainframe. A false reading there is invisible: a consumer keeping
+///     only player chat would show nothing at all and look exactly like a quiet server.
 /// </summary>
 public class ChatDataTests
 {

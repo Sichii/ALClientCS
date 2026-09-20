@@ -78,11 +78,7 @@ public sealed record GMonsterAbility : AttributedRecordBase
     ///     when the ability takes none of them.
     /// </summary>
     /// <remarks>
-    ///     The private backing field carries the
-    ///     <c>
-    ///         amount
-    ///     </c>
-    ///     wire key, so this accessor must not claim it too.
+    ///     The private backing field carries the <c>amount</c> wire key, so this accessor must not claim it too.
     /// </remarks>
     [JsonIgnore]
     public float Amount => _amount ?? _damage ?? _heal ?? 0f;

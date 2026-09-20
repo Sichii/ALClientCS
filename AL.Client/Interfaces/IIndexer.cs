@@ -9,13 +9,9 @@ namespace AL.Client.Interfaces;
 /// </summary>
 public interface IIndexer<out T> where T: ISimpleItem
 {
-    /// <summary>
-    ///     The index the item is at within it's collection.
-    /// </summary>
+    /// <summary>The index the item is at within it's collection.</summary>
     int Index { get; }
 
-    /// <summary>
-    ///     The item itself.
-    /// </summary>
+    /// <summary>The item itself.</summary>
     T Item { get; }
 }

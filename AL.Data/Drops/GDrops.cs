@@ -5,9 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace AL.Data.Drops;
 
-/// <summary>
-///     The game's drop tables.
-/// </summary>
+/// <summary>The game's drop tables.</summary>
 /// <remarks>
 ///     Every key of the wire object is reachable: <see cref="Gold" />, <see cref="Monsters" />, <see cref="Maps" />
 ///     <see cref="Konami" /> and <see cref="MonstersHomeServer" /> by name, and every remaining table - one per drop id an
@@ -22,9 +20,7 @@ public sealed record GDrops
     [JsonPropertyName("gold")]
     public GGoldDrop Gold { get; init; } = new();
 
-    /// <summary>
-    ///     What the konami code rolls on.
-    /// </summary>
+    /// <summary>What the konami code rolls on.</summary>
     [JsonPropertyName("konami")]
     public IReadOnlyList<GDrop> Konami { get; init; } = [];
 
@@ -55,50 +51,28 @@ public sealed record GDrops
     /// <summary>
     ///     Every other table, keyed by the drop id the server rolls it under: what an exchange or an opened chest hands back.
     ///     The id is an item's name for most of them, an item's name plus its level for the one exchangeable that takes
-    ///     levels, and neither for the rest -
-    ///     <c>
-    ///         xN
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         f1
-    ///     </c>
-    ///     ,
-    ///     <c>
-    ///         skins
-    ///     </c>
-    ///     and their like name no item at all, which is why this stays reachable rather than being folded entirely into
+    ///     levels, and neither for the rest - <c>xN</c> , <c>f1</c> , <c>skins</c> and their like name no item at all, which
+    ///     is why this stays reachable rather than being folded entirely into
     ///     <see cref="AL.Data.Items.GItem.ExchangeRewards" />.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Tables { get; internal set; }
         = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     The wire's remaining keys, held as they arrived until
-    ///     <c>
-    ///         GameData.EnrichDrops
-    ///     </c>
-    ///     turns them into <see cref="Tables" />. Anything the game adds to this object lands here rather than being
-    ///     discarded.
+    ///     The wire's remaining keys, held as they arrived until <c>GameData.EnrichDrops</c> turns them into
+    ///     <see cref="Tables" />. Anything the game adds to this object lands here rather than being discarded.
     /// </summary>
     [JsonExtensionData]
     public IDictionary<string, JsonElement>? Unbound { get; init; }
 }
 
 /// <summary>
-///     The constants in the gold reward for a kill:
-///     <c>
+///     The constants in the gold reward for a kill: <c>
 ///         round(1 + gold * (BASE + rand() * RANDOM)) * level * mult
-///     </c>
-///     (node/server.js:2119), then two independent jackpots at :2247. The monster's own
-///     <c>
-///         gold
-///     </c>
-///     is not in the game data - it reaches a client only as the start frame's base_gold table.
+///     </c> (node/server.js:2119), then two independent jackpots at :2247. The monster's own <c>gold</c> is not in the
+///     game data - it reaches a client only as the start frame's base_gold table.
 /// </summary>
 public sealed record GGoldDrop
 {

@@ -8,15 +8,10 @@ namespace AL.Tests.SocketClient.Tests;
 
 /// <summary>
 ///     Phase 9 - emit surface coverage. <see cref="AL.SocketClient.ALSocketClient" /> sends an emit as
-///     <c>
-///         EnumHelper.ToString(emitType).ToLowerInvariant()
-///     </c>
-///     , so a member only reaches the right handler if that lowercased name equals the server's exact
-///     <c>
-///         socket.on
-///     </c>
-///     name. This pins every member added by the emit-surface and endpoint-coverage passes, along with the older members
-///     that gained a method alongside them, to its handler in node/server.js.
+///     <c>EnumHelper.ToString(emitType).ToLowerInvariant()</c> , so a member only reaches the right handler if that
+///     lowercased name equals the server's exact <c>socket.on</c> name. This pins every member added by the emit-surface
+///     and endpoint-coverage passes, along with the older members that gained a method alongside them, to its handler in
+///     node/server.js.
 /// </summary>
 public class EmitTypeWireNameTests
 {
@@ -62,7 +57,6 @@ public class EmitTypeWireNameTests
     [Arguments(ALSocketEmitType.Locksmith, "locksmith")]
     [Arguments(ALSocketEmitType.Signup, "signup")]
     [Arguments(ALSocketEmitType.Tavern, "tavern")]
-
     public void EmitTypeSerializesToServerHandlerName(ALSocketEmitType emitType, string wireName)
         => EnumHelper.ToString(emitType)
                      .ToLowerInvariant()

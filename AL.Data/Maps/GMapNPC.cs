@@ -12,19 +12,14 @@ namespace AL.Data.Maps;
 public sealed record GMapNPC
 {
     /// <summary>
-    ///     <b>
-    ///         NULLABLE
-    ///     </b>
-    ///     . If populated, this is the area in which this NPC roams.
+    ///     <b>NULLABLE</b> . If populated, this is the area in which this NPC roams.
     /// </summary>
     public MapRectangle? Boundary { get; init; }
 
     /// <summary>
     ///     This NPC's data from <see cref="GameData.NPCs" />.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public GNPC? Data { get; internal set; }
 
@@ -39,9 +34,7 @@ public sealed record GMapNPC
     ///     <br />
     ///     If you're familiar with the original form of this data, it's _position(if present) + _positions(if present).
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyList<Location> Locations { get; init; } = new List<Location>();
 
@@ -55,11 +48,7 @@ public sealed record GMapNPC
     ///     The name of this NPC as displayed on the GUI. Sometimes different than the Id.
     /// </summary>
     /// <remarks>
-    ///     The private backing field carries the
-    ///     <c>
-    ///         name
-    ///     </c>
-    ///     wire key, so this accessor must not claim it too.
+    ///     The private backing field carries the <c>name</c> wire key, so this accessor must not claim it too.
     /// </remarks>
     [JsonIgnore]
     public string Name => _name ?? Id;

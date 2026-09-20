@@ -12,9 +12,7 @@ namespace AL.Client.Model;
 /// <seealso cref="IIndexer{T}" />
 public sealed record BankIndexer : IIndexer<Item>
 {
-    /// <summary>
-    ///     The bank this item is located in.
-    /// </summary>
+    /// <summary>The bank this item is located in.</summary>
     public BankPack BankPack { get; init; }
 
     public int Index { get; init; }

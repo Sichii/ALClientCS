@@ -6,24 +6,12 @@ namespace AL.SocketClient.Model;
 ///     assigns them all at once under one lock and hands them out together here.
 /// </summary>
 /// <remarks>
-///     <c>
-///         Map
-///     </c>
-///     and
-///     <c>
-///         In
-///     </c>
-///     are in here because a position without the map it is on is meaningless:
-///     <c>
-///         DistanceWithInstanceCheck
-///     </c>
-///     answers <see cref="float.MaxValue" /> when the two disagree, and one frame of that evicts everything in vision at
-///     once.
+///     <c>Map</c> and <c>In</c> are in here because a position without the map it is on is meaningless:
+///     <c>DistanceWithInstanceCheck</c> answers <see cref="float.MaxValue" /> when the two disagree, and one frame of that
+///     evicts everything in vision at once.
 ///     <br />
-///     <c>
-///         Speed
-///     </c>
-///     is deliberately not part of this. A stale speed makes one step slightly wrong, which is not a coherence break.
+///     <c>Speed</c> is deliberately not part of this. A stale speed makes one step slightly wrong, which is not a
+///     coherence break.
 /// </remarks>
 /// <seealso cref="EntityBase.Movement" />
 public readonly record struct MovementBlock(

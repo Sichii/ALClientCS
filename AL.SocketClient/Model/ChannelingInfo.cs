@@ -9,9 +9,7 @@ namespace AL.SocketClient.Model;
 /// </summary>
 public sealed record ChannelingInfo
 {
-    /// <summary>
-    ///     The remaining MS needed to complete channeling.
-    /// </summary>
+    /// <summary>The remaining MS needed to complete channeling.</summary>
     [JsonPropertyName("ms")]
     public float RemainingMS { get; init; }
 }

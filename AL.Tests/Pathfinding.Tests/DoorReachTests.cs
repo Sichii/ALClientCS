@@ -32,11 +32,8 @@ public class DoorReachTests : PathfindingTestBed
     ///     Being inside is not enough, and a suite that only checked that stayed green while every door in the game refused to
     ///     open. The walk stops on the edge of a reach circle, and the server has the character a few units behind where the
     ///     client reckons it by the time the emit lands, so a model that clears the limit by nothing clears it by nothing in
-    ///     practice either. Just under the 5.6 units
-    ///     <c>
-    ///         CONSTANTS.RANGE_SHAVE
-    ///     </c>
-    ///     leaves on a door, so returning that shave to the 2.5% it replaced fails here.
+    ///     practice either. Just under the 5.6 units <c>CONSTANTS.RANGE_SHAVE</c> leaves on a door, so returning that shave to
+    ///     the 2.5% it replaced fails here.
     /// </remarks>
     private const float REQUIRED_MARGIN = 5f;
 
@@ -45,6 +42,7 @@ public class DoorReachTests : PathfindingTestBed
     ///     CONSTANTS would agree with it whatever it said.
     /// </summary>
     private const float SERVER_CHARACTER_WIDTH = 26f;
+
     private const float SERVER_CHARACTER_HEIGHT = 36f;
 
     /// <summary>

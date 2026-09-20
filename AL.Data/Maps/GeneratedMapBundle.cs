@@ -14,9 +14,7 @@ namespace AL.Data.Maps;
 /// </summary>
 public sealed record GeneratedMapBundle
 {
-    /// <summary>
-    ///     The most floors one run carries.
-    /// </summary>
+    /// <summary>The most floors one run carries.</summary>
     public const int MAX_FLOORS = 8;
 
     /// <summary>
@@ -30,22 +28,26 @@ public sealed record GeneratedMapBundle
     /// </summary>
     public IReadOnlyList<GeneratedFloor> Manifest { get; init; } = [];
 
-    /// <summary>
-    ///     The run every floor here belongs to.
-    /// </summary>
+    /// <summary>The run every floor here belongs to.</summary>
     public string Run { get; init; } = null!;
 
-    /// <summary>
-    ///     The map key a generated floor is filed under.
-    /// </summary>
+    private static void Check(string run, GeneratedFloor floor)
+    {
+        var generated = floor.Definition?.Generated;
+
+        if (generated is null || (generated.Run != run) || (floor.Key != FloorKey(run, generated.Floor)))
+            throw new InvalidOperationException($"Generated floor {floor.Key} does not belong to run {run}.");
+    }
+
+    /// <summary>The map key a generated floor is filed under.</summary>
     public static string FloorKey(string run, int floor) => $"zone_{run}_{floor}";
 
     /// <summary>
     ///     Deserializes the joined chunk text and checks every floor against the run.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    ///     The text is not a bundle, carries no floors or too many, or names a floor under a key that does not spell its
-    ///     own run and floor number.
+    ///     The text is not a bundle, carries no floors or too many, or names a floor under a key that does not spell its own
+    ///     run and floor number.
     /// </exception>
     public static GeneratedMapBundle Parse(string json)
     {
@@ -68,14 +70,6 @@ public sealed record GeneratedMapBundle
 
         return bundle;
     }
-
-    private static void Check(string run, GeneratedFloor floor)
-    {
-        var generated = floor.Definition?.Generated;
-
-        if ((generated is null) || (generated.Run != run) || (floor.Key != FloorKey(run, generated.Floor)))
-            throw new InvalidOperationException($"Generated floor {floor.Key} does not belong to run {run}.");
-    }
 }
 
 /// <summary>
@@ -83,9 +77,7 @@ public sealed record GeneratedMapBundle
 /// </summary>
 public sealed record GeneratedFloor
 {
-    /// <summary>
-    ///     The floor's map record.
-    /// </summary>
+    /// <summary>The floor's map record.</summary>
     public GMap Definition { get; init; } = null!;
 
     /// <summary>
@@ -93,8 +85,6 @@ public sealed record GeneratedFloor
     /// </summary>
     public GGeometry? Geometry { get; init; }
 
-    /// <summary>
-    ///     The map key the floor is filed under.
-    /// </summary>
+    /// <summary>The map key the floor is filed under.</summary>
     public string Key { get; init; } = null!;
 }

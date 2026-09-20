@@ -6,9 +6,7 @@ using AL.SocketClient.Model;
 
 namespace AL.SocketClient.Interfaces;
 
-/// <summary>
-///     Represents an item in the inventory.
-/// </summary>
+/// <summary>Represents an item in the inventory.</summary>
 /// <seealso cref="ICommonItem" />
 public interface IInventoryItem : ICommonItem
 {
@@ -16,6 +14,11 @@ public interface IInventoryItem : ICommonItem
     ///     The progress this item has toward's it's achievement.
     /// </summary>
     float AchievementProgress { get; init; }
+
+    /// <summary>
+    ///     Item-specific payload: on a cxjar, the appearance inside it. Two cxjars with different data never stack.
+    /// </summary>
+    string? Data { get; init; }
 
     /// <summary>
     ///     The date/time this item expires. (it will disappear)
@@ -39,28 +42,19 @@ public interface IInventoryItem : ICommonItem
     /// </summary>
     string? GiveawayFrom { get; init; }
 
-    /// <summary>
-    ///     The type of lock on the item.
-    /// </summary>
+    /// <summary>The type of lock on the item.</summary>
     ItemLockType LockType { get; init; }
 
-    /// <summary>
-    ///     A list of possible prefixes for this item.
-    /// </summary>
+    /// <summary>A list of possible prefixes for this item.</summary>
     IReadOnlyList<string> PossiblePrefixes { get; init; }
-
-    /// <summary>
-    ///     This item is volatile until this date, if you die to another player you may lose it.
-    /// </summary>
-    string? Volatile { get; init; }
-
-    /// <summary>
-    ///     Item-specific payload: on a cxjar, the appearance inside it. Two cxjars with different data never stack.
-    /// </summary>
-    string? Data { get; init; }
 
     /// <summary>
     ///     The title (shiny, glitched, ...) on the item, if any. Two piles with different titles never stack.
     /// </summary>
     Prediction? Prediction { get; init; }
+
+    /// <summary>
+    ///     This item is volatile until this date, if you die to another player you may lose it.
+    /// </summary>
+    string? Volatile { get; init; }
 }

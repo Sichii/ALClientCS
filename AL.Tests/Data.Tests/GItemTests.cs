@@ -12,9 +12,7 @@ namespace AL.Tests.Data.Tests;
 /// </summary>
 public class GItemTests : GameDataTestBed
 {
-    /// <summary>
-    ///     A single-class lock, the common case.
-    /// </summary>
+    /// <summary>A single-class lock, the common case.</summary>
     [Test]
     public void AClassLockedItemNamesItsClass()
     {

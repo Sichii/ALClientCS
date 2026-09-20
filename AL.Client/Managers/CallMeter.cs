@@ -5,18 +5,14 @@ using AL.SocketClient.Definitions;
 
 namespace AL.Client.Managers;
 
-/// <summary>
-///     Represents one row of a call-budget breakdown.
-/// </summary>
+/// <summary>Represents one row of a call-budget breakdown.</summary>
 /// <param name="Name">
 ///     A source label, or an emit type, depending on which grouping the row came from.
 /// </param>
 /// <param name="Cost">
 ///     The summed cost of every emit in this row, by <see cref="CallCost.Of" />.
 /// </param>
-/// <param name="Emits">
-///     How many emits this row's cost was summed from.
-/// </param>
+/// <param name="Emits">How many emits this row's cost was summed from.</param>
 public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 {
     /// <summary>
@@ -31,20 +27,14 @@ public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 ///     Represents the call meter's window: what it cost, and how that cost breaks down.
 /// </summary>
 /// <param name="ServerCost">
-///     The server's own accrued cost for this window, from the last
-///     <c>
-///         player
-///     </c>
-///     frame. Authoritative. <paramref name="Cost" /> is the same bill worked out from the emits and should agree with it
-///     to within a frame; where the two part for long, a row in <see cref="CallCost" /> has drifted from the server, not
-///     the meter.
+///     The server's own accrued cost for this window, from the last <c>player</c> frame. Authoritative.
+///     <paramref name="Cost" /> is the same bill worked out from the emits and should agree with it to within a frame;
+///     where the two part for long, a row in <see cref="CallCost" /> has drifted from the server, not the meter.
 /// </param>
 /// <param name="Cost">
 ///     What the emits in the window cost, by <see cref="CallCost.Of" />, dated the way the server dates them.
 /// </param>
-/// <param name="Emits">
-///     How many emits the window covers.
-/// </param>
+/// <param name="Emits">How many emits the window covers.</param>
 /// <param name="BySource">
 ///     The window's cost broken down by whatever <see cref="CallMeter.SourceResolver" /> named the caller.
 /// </param>
@@ -84,11 +74,7 @@ public sealed class CallMeter
 
     /// <summary>
     ///     Names whatever is making the call. Runs inline on the emit, so it wants to be a field read rather than a lookup;
-    ///     returning null (or leaving this unset) files the emit under
-    ///     <c>
-    ///         (unattributed)
-    ///     </c>
-    ///     .
+    ///     returning null (or leaving this unset) files the emit under <c>(unattributed)</c> .
     /// </summary>
     public Func<string?>? SourceResolver { get; set; }
 
@@ -140,9 +126,7 @@ public sealed class CallMeter
     /// <summary>
     ///     Groups a window of entries into rows, one per key, each summing its group's cost.
     /// </summary>
-    /// <param name="window">
-    ///     The entries to group into rows.
-    /// </param>
+    /// <param name="window">The entries to group into rows.</param>
     /// <param name="key">
     ///     What to group each entry by - the row's <see cref="CallBudgetRow.Name" />.
     /// </param>
@@ -201,11 +185,7 @@ public sealed class CallMeter
     ///     Takes a snapshot of the window as it stands, against the server's own cost.
     /// </summary>
     /// <param name="serverCost">
-    ///     The character's live
-    ///     <c>
-    ///         cc
-    ///     </c>
-    ///     , passed in rather than read here so this stays independent of any entity.
+    ///     The character's live <c>cc</c> , passed in rather than read here so this stays independent of any entity.
     /// </param>
     public CallBudgetSnapshot Snapshot(double serverCost)
     {

@@ -47,14 +47,10 @@ public sealed record HitData
     /// </summary>
     public float DReturn { get; init; }
 
-    /// <summary>
-    ///     The amount of damage this hit did.
-    /// </summary>
+    /// <summary>The amount of damage this hit did.</summary>
     public int Damage { get; init; }
 
-    /// <summary>
-    ///     If populated, the type of damage this hit dealt.
-    /// </summary>
+    /// <summary>If populated, the type of damage this hit dealt.</summary>
     [JsonPropertyName("damage_type")]
     public DamageType? DamageType { get; init; }
 
@@ -81,9 +77,7 @@ public sealed record HitData
     [JsonPropertyName("hid")]
     public string HitId { get; init; } = null!;
 
-    /// <summary>
-    ///     The ID of the entity that got hit.
-    /// </summary>
+    /// <summary>The ID of the entity that got hit.</summary>
     public string Id { get; init; } = null!;
 
     /// <summary>
@@ -145,9 +139,7 @@ public sealed record HitData
     /// </summary>
     public bool Sneak { get; init; }
 
-    /// <summary>
-    ///     The source of this hit. Generally a skill name.
-    /// </summary>
+    /// <summary>The source of this hit. Generally a skill name.</summary>
     public string Source { get; init; } = null!;
 
     /// <summary>

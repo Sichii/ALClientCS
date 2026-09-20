@@ -15,50 +15,16 @@ namespace AL.Core.Json;
 ///     matching, number-from-string coercion, and non-HTML-escaping output.
 /// </summary>
 /// <remarks>
-///     Binding comes entirely from the models' own System.Text.Json attributes —
-///     <c>
-///         [JsonPropertyName]
-///     </c>
-///     for renames,
-///     <c>
-///         [JsonInclude]
-///     </c>
-///     for non-public setters and fields,
-///     <c>
-///         [JsonIgnore]
-///     </c>
-///     for exclusions. A member with a non-public setter and no
-///     <c>
-///         [JsonInclude]
-///     </c>
-///     (e.g.
-///     <c>
-///         EntityBase.In
-///     </c>
-///     ) stays unbound by construction, which is why the transitional resolver modifier could be removed outright rather
-///     than reproduced. The converters are registered here as type-matched factories/instances —
-///     <see cref="AttributedObjectConverterFactory" /> for every <see cref="AL.Core.Interfaces.IAttributed" />, and
-///     factories keyed on the AL-local markers (
-///     <c>
-///         [JsonStringOrObject]
-///     </c>
-///     ,
-///     <c>
-///         [JsonArrayIndex]
-///     </c>
-///     ,
-///     <c>
-///         [JsonForcedObject]
-///     </c>
-///     ) that carry a parameter a System.Text.Json
-///     <c>
-///         [JsonConverter]
-///     </c>
-///     attribute cannot. Tolerant enums need no marker — they carry
-///     <c>
+///     Binding comes entirely from the models' own System.Text.Json attributes — <c>[JsonPropertyName]</c> for renames,
+///     <c>[JsonInclude]</c> for non-public setters and fields, <c>[JsonIgnore]</c> for exclusions. A member with a
+///     non-public setter and no <c>[JsonInclude]</c> (e.g. <c>EntityBase.In</c> ) stays unbound by construction, which is
+///     why the transitional resolver modifier could be removed outright rather than reproduced. The converters are
+///     registered here as type-matched factories/instances — <see cref="AttributedObjectConverterFactory" /> for every
+///     <see cref="AL.Core.Interfaces.IAttributed" />, and factories keyed on the AL-local markers (
+///     <c>[JsonStringOrObject]</c> , <c>[JsonArrayIndex]</c> , <c>[JsonForcedObject]</c> ) that carry a parameter a
+///     System.Text.Json <c>[JsonConverter]</c> attribute cannot. Tolerant enums need no marker — they carry <c>
 ///         [JsonConverter(typeof(TolerantStringEnumConverterFactory))]
-///     </c>
-///     directly, and registering that factory here would make every enum tolerant. The self-recursive socket/REST
+///     </c> directly, and registering that factory here would make every enum tolerant. The self-recursive socket/REST
 ///     converters (event/boss, disappear, trade history, bank, login) register from their own assemblies at the transport
 ///     cutover, since AL.Core cannot reference their types.
 /// </remarks>

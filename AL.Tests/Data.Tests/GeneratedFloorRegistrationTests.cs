@@ -8,8 +8,8 @@ namespace AL.Tests.Data.Tests;
 
 /// <summary>
 ///     A dungeon run's floors are filed into the map and geometry tables while the run lasts, enriched the way G's own
-///     maps are on load, and taken out again afterwards. The manifest files a floor's record before its geometry
-///     arrives, so a stair on a delivered floor can already resolve the spawn it lands on.
+///     maps are on load, and taken out again afterwards. The manifest files a floor's record before its geometry arrives,
+///     so a stair on a delivered floor can already resolve the spawn it lands on.
 /// </summary>
 public class GeneratedFloorRegistrationTests : GameDataTestBed
 {
@@ -22,14 +22,13 @@ public class GeneratedFloorRegistrationTests : GameDataTestBed
     {
         try
         {
-            GameData.RegisterGeneratedFloors(GeneratedMapBundle.Parse(Bundle(deliverFloor1: false)));
+            GameData.RegisterGeneratedFloors(GeneratedMapBundle.Parse(Bundle(false)));
 
-            GameData.Maps[FLOOR_1]!
-                    .Geomertry
+            GameData.Maps[FLOOR_1]!.Geomertry
                     .Should()
                     .BeNull();
 
-            GameData.RegisterGeneratedFloors(GeneratedMapBundle.Parse(Bundle(deliverFloor1: true)));
+            GameData.RegisterGeneratedFloors(GeneratedMapBundle.Parse(Bundle(true)));
 
             var floor1 = GameData.Maps[FLOOR_1]!;
 
@@ -44,89 +43,6 @@ public class GeneratedFloorRegistrationTests : GameDataTestBed
         {
             GameData.UnregisterGeneratedRun(RUN);
         }
-    }
-
-    [Test]
-    public void RegisteringABundleFilesItsFloorsAndTakesThemOutAgain()
-    {
-        var mapsBefore = GameData.Maps.Entries.Count;
-        var geometryBefore = GameData.Geometry.Entries.Count;
-
-        try
-        {
-            GameData.RegisterGeneratedFloors(GeneratedMapBundle.Parse(Bundle(deliverFloor1: false)));
-
-            var floor0 = GameData.Maps[FLOOR_0]!;
-
-            floor0.Accessor
-                  .Should()
-                  .Be(FLOOR_0);
-
-            floor0.Generated!
-                  .Run
-                  .Should()
-                  .Be(RUN);
-
-            var geometry = GameData.Geometry[FLOOR_0]!;
-
-            floor0.Geomertry
-                  .Should()
-                  .BeSameAs(geometry);
-
-            //the border walls every map gets on load, on top of the one line the floor itself carries
-            geometry.VerticalLines
-                    .Count
-                    .Should()
-                    .Be(3);
-
-            geometry.HorizontalLines
-                    .Count
-                    .Should()
-                    .Be(2);
-
-            //both doors resolve: the stair through the manifest entry, the exit through main
-            floor0.Exits
-                  .Should()
-                  .HaveCount(2);
-
-            floor0.Exits
-                  .Should()
-                  .Contain(exit => exit.ToLocation.Map == FLOOR_1)
-                  .And
-                  .Contain(exit => exit.ToLocation.Map == "main");
-
-            GameData.Maps[FLOOR_1]!
-                    .Accessor
-                    .Should()
-                    .Be(FLOOR_1);
-        } finally
-        {
-            GameData.UnregisterGeneratedRun(RUN);
-        }
-
-        GameData.Maps[FLOOR_0]
-                .Should()
-                .BeNull();
-
-        GameData.Maps[FLOOR_1]
-                .Should()
-                .BeNull();
-
-        GameData.Geometry[FLOOR_0]
-                .Should()
-                .BeNull();
-
-        GameData.Maps
-                .Entries
-                .Count
-                .Should()
-                .Be(mapsBefore);
-
-        GameData.Geometry
-                .Entries
-                .Count
-                .Should()
-                .Be(geometryBefore);
     }
 
     private static string Bundle(bool deliverFloor1)
@@ -169,5 +85,86 @@ public class GeneratedFloorRegistrationTests : GameDataTestBed
         return deliverFloor1
             ? $$"""{ "run": "{{RUN}}", "floors": [{{floor1}}], "manifest": [] }"""
             : $$"""{ "run": "{{RUN}}", "floors": [{{floor0}}], "manifest": [{{floor1}}] }""";
+    }
+
+    [Test]
+    public void RegisteringABundleFilesItsFloorsAndTakesThemOutAgain()
+    {
+        var mapsBefore = GameData.Maps.Entries.Count;
+        var geometryBefore = GameData.Geometry.Entries.Count;
+
+        try
+        {
+            GameData.RegisterGeneratedFloors(GeneratedMapBundle.Parse(Bundle(false)));
+
+            var floor0 = GameData.Maps[FLOOR_0]!;
+
+            floor0.Accessor
+                  .Should()
+                  .Be(FLOOR_0);
+
+            floor0.Generated!.Run
+                  .Should()
+                  .Be(RUN);
+
+            var geometry = GameData.Geometry[FLOOR_0]!;
+
+            floor0.Geomertry
+                  .Should()
+                  .BeSameAs(geometry);
+
+            //the border walls every map gets on load, on top of the one line the floor itself carries
+            geometry.VerticalLines
+                    .Count
+                    .Should()
+                    .Be(3);
+
+            geometry.HorizontalLines
+                    .Count
+                    .Should()
+                    .Be(2);
+
+            //both doors resolve: the stair through the manifest entry, the exit through main
+            floor0.Exits
+                  .Should()
+                  .HaveCount(2);
+
+            floor0.Exits
+                  .Should()
+                  .Contain(exit => exit.ToLocation.Map == FLOOR_1)
+                  .And
+                  .Contain(exit => exit.ToLocation.Map == "main");
+
+            GameData.Maps[FLOOR_1]!.Accessor
+                    .Should()
+                    .Be(FLOOR_1);
+        } finally
+        {
+            GameData.UnregisterGeneratedRun(RUN);
+        }
+
+        GameData.Maps[FLOOR_0]
+                .Should()
+                .BeNull();
+
+        GameData.Maps[FLOOR_1]
+                .Should()
+                .BeNull();
+
+        GameData.Geometry[FLOOR_0]
+                .Should()
+                .BeNull();
+
+        GameData.Maps
+                .Entries
+                .Count
+                .Should()
+                .Be(mapsBefore);
+
+        GameData.Geometry
+                .Entries
+                .Count
+                .Should()
+                .Be(geometryBefore);
     }
 }

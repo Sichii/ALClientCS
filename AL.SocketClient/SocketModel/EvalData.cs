@@ -19,8 +19,7 @@ namespace AL.SocketClient.SocketModel;
 [JsonStringOrObject(nameof(Code))]
 public sealed record EvalData : IOptionalObject
 {
-    /// <summary>
-    ///     The code to be eval'd and executed.
+    /// <summary>The code to be eval'd and executed.
     ///     <br />
     /// </summary>
     public string? Code { get; set; } = null!;

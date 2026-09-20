@@ -47,21 +47,13 @@ public static class LocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">
-    ///     A location.
-    /// </param>
-    /// <param name="l2">
-    ///     Another location.
-    /// </param>
+    /// <param name="l1">A location.</param>
+    /// <param name="l2">Another location.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.AngularRelationTo" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">l1</exception>
+    /// <exception cref="System.ArgumentNullException">l2</exception>
     public static float AngularRelationTo(this ILocation l1, ILocation l2)
     {
         ArgumentNullException.ThrowIfNull(l1);
@@ -76,21 +68,13 @@ public static class LocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">
-    ///     A location.
-    /// </param>
-    /// <param name="l2">
-    ///     Another location.
-    /// </param>
+    /// <param name="l1">A location.</param>
+    /// <param name="l2">Another location.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.DirectionalRelationTo" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">l1</exception>
+    /// <exception cref="System.ArgumentNullException">l2</exception>
     public static Direction DirectionalRelationTo(this ILocation l1, ILocation l2)
     {
         ArgumentNullException.ThrowIfNull(l1);
@@ -105,24 +89,14 @@ public static class LocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">
-    ///     A location.
-    /// </param>
-    /// <param name="l2">
-    ///     Another location.
-    /// </param>
-    /// <param name="maxDistance">
-    ///     The max distance to translate by.
-    /// </param>
+    /// <param name="l1">A location.</param>
+    /// <param name="l2">Another location.</param>
+    /// <param name="maxDistance">The max distance to translate by.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">l1</exception>
+    /// <exception cref="System.ArgumentNullException">l2</exception>
     public static Point OffsetTowards(this ILocation l1, ILocation l2, float maxDistance)
     {
         ArgumentNullException.ThrowIfNull(l1);

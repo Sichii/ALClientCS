@@ -15,21 +15,15 @@ public record MailResponse
     /// </summary>
     public string? Cursor { get; init; }
 
-    /// <summary>
-    ///     Whether or not there is a <see cref="Cursor" />.
-    /// </summary>
+    /// <summary>Whether or not there is a <see cref="Cursor" />.</summary>
     public bool Cursored { get; init; }
 
-    /// <summary>
-    ///     A list of mails in your inbox.
-    /// </summary>
+    /// <summary>A list of mails in your inbox.</summary>
 
     // ReSharper disable once ReturnTypeCanBeEnumerable.Global
     [JsonPropertyName("mail")]
     public IReadOnlyList<Mail> Mail { get; init; } = new List<Mail>();
 
-    /// <summary>
-    ///     Whether or not there is more mail.
-    /// </summary>
+    /// <summary>Whether or not there is more mail.</summary>
     public bool More { get; init; }
 }

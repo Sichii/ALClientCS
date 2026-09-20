@@ -9,9 +9,7 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record DeathData
 {
-    /// <summary>
-    ///     The id of the entity that died.
-    /// </summary>
+    /// <summary>The id of the entity that died.</summary>
     public string Id { get; init; } = null!;
 
     /// <summary>
