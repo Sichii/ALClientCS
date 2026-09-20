@@ -95,6 +95,18 @@ public sealed record GameResponseData : IOptionalObject
     public float Edge { get; init; }
 
     /// <summary>
+    ///     What an <c>equip_batch</c> did with each of the equips it was given, in the order the emit listed them
+    ///     (node/server.js:7316). Null on every other frame.
+    /// </summary>
+    /// <remarks>
+    ///     This is what tells one batch's answer from another's. <c>equip_batch</c> echoes no <see cref="RequestId" /> and is
+    ///     answered whether it was taken or refused, so a character swapping gear on two slots at once has nothing else to
+    ///     match its own answer on.
+    /// </remarks>
+    [JsonPropertyName("slots")]
+    public EquipBatchEntry[]? EquipBatchEntries { get; init; }
+
+    /// <summary>
     ///     Whether the operation failed. Set by every <c>fail_response</c> , so it is the one universal failure discriminator;
     ///     the failing operation is named by <see cref="Place" />.
     /// </summary>

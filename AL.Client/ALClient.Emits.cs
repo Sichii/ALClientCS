@@ -5,6 +5,7 @@ using AL.Client.Helpers;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
 using AL.SocketClient.Definitions;
+using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using Chaos.Extensions.Common;
 #endregion
@@ -362,27 +363,20 @@ public abstract partial class ALClient
 
     #region Inventory
     /// <summary>
-    ///     Equips up to 15 items in a single call (node/server.js:6989). A null slot lets the server pick the item's default
-    ///     slot. Directly supports the weapon-swap pattern.
-    /// </summary>
-    /// <summary>
-    ///     Equips up to 15 items in a single call (node/server.js:7057). A null slot lets the server pick the item's default
+    ///     Equips up to 15 items in a single call (node/server.js:7256). A null slot lets the server pick the item's default
     ///     slot. Directly supports the weapon-swap pattern.
     /// </summary>
     /// <remarks>
-    ///     The server applies the entries in order and stops at the first one it refuses, keeping everything it applied before
-    ///     that - so the batch is not atomic, and the last entry landing is what proves the whole of it did. That is the
-    ///     confirmation awaited here.
+    ///     The server applies the entries in order and stops at the first one it refuses, keeping everything it applied
+    ///     before that - so the batch is not atomic.
     ///     <br />
-    ///     The failure arm is not a <c>fail_response</c> , which is the trap: a refused entry is answered with a
-    ///     <c>success_response</c> carrying the reason as a string inside its <c>slots</c> array, so the universal
-    ///     <c>failed</c> discriminator is never set for it. What separates the two is ordering. The handler resends the
-    ///     character frame before it answers (node/server.js:7115), so reaching that answer without the frame having satisfied
-    ///     the slot check means the server stopped partway.
-    ///     <br />
-    ///     A batch whose last entry names no slot cannot be confirmed, since the server picks that slot from the item's own
-    ///     type; it is emitted and not awaited.
+    ///     Its answer is a <c>success_response</c> either way, which is the trap: the universal <c>failed</c> discriminator
+    ///     is never set for a refused entry. What separates the two is
+    ///     <see cref="GameResponseData.EquipBatchEntries" /> , which also says which batch the answer belongs to.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to equip {count} items. ({reason})
+    /// </exception>
     public async Task EquipBatchAsync(IEnumerable<(int InventorySlot, Slot? Slot)> equips)
     {
         var batch = equips.ToArray();
@@ -397,30 +391,7 @@ public abstract partial class ALClient
                            })
                            .ToArray();
 
-        var last = batch[^1];
-        var item = last.InventorySlot >= 0 ? Character.Inventory[last.InventorySlot] : null;
-
-        if (item is null || last.Slot is not { } slot)
-        {
-            await Socket.EmitAsync(ALSocketEmitType.EquipBatch, payload);
-            ChargeBatch(batch.Length);
-
-            return;
-        }
-
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using var characterCallback = Socket.On<CharacterData>(
-            ALSocketMessageType.Character,
-            data =>
-            {
-                var slotItem = data.Slots[slot];
-
-                if ((slotItem != null) && slotItem.Name.EqualsI(item.Name) && (slotItem.Level == item.Level))
-                    source.TrySetResult(Expectation.Success);
-
-                return TaskCache.FALSE;
-            });
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
@@ -428,8 +399,17 @@ public abstract partial class ALClient
             {
                 //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
                 //tolerating a null argument
-                if ("equip_batch".EqualsI(data.Place!))
-                    source.TrySetResult($"Failed to equip {batch.Length} items. (the server refused one of them)");
+                if (!"equip_batch".EqualsI(data.Place!) || !AnswersEquipBatch(data.EquipBatchEntries, batch))
+                    return TaskCache.FALSE;
+
+                var answered = data.EquipBatchEntries!;
+                var last = answered[^1];
+
+                if (last.ContainsData)
+                    source.TrySetResult(Expectation.Success);
+                else
+                    source.TrySetResult(
+                        $"Failed to equip {batch.Length} items. (the server refused entry {answered.Length} - {last.Refusal})");
 
                 return TaskCache.FALSE;
             });
@@ -439,6 +419,28 @@ public abstract partial class ALClient
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="answered" /> is the answer to <paramref name="batch" /> rather than to another batch the
+    ///     same character has in flight, judged on the inventory slots the server echoed back.
+    /// </summary>
+    /// <remarks>
+    ///     A batch refused on its very first entry echoes no slot to match on, so two in flight can both claim that one
+    ///     answer. That needs a real refusal to land inside another batch's flight, and the loser reads a refusal where it
+    ///     used to read one anyway.
+    /// </remarks>
+    internal static bool AnswersEquipBatch(EquipBatchEntry[]? answered, (int InventorySlot, Slot? Slot)[] batch)
+    {
+        if (answered is not { Length: > 0 } || (answered.Length > batch.Length))
+            return false;
+
+        for (var i = 0; i < answered.Length; i++)
+            if (answered[i].ContainsData && (answered[i].InventorySlot != batch[i].InventorySlot))
+                return false;
+
+        //the server stops where it refuses, so an answer short of the whole batch has to end in a refusal
+        return (answered.Length == batch.Length) || !answered[^1].ContainsData;
     }
 
     /// <summary>
