@@ -4098,8 +4098,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         //a start already inside one of its ends is answered with a zero-length walk, skipped above - an arrival rather
         //than a failure, and the one case that repeats: a mover standing on its destination re-plans every tick, and
-        //every one of those plans is correctly empty. 5,297 lines of it in one night's log
-        if ((edgesWalked == 0) && !ends.Any(end => start.DistanceWithMapCheck(end) <= end.Radius))
+        //every one of those plans is correctly empty. 5,297 lines of it in one night's log. A walk cancelled before
+        //its first leg - a tracking walk re-aiming at a roaming target - is neither: it never looked for a path
+        if ((edgesWalked == 0) && (cancellationToken is not { IsCancellationRequested: true })
+            && !ends.Any(end => start.DistanceWithMapCheck(end) <= end.Radius))
             Logger.Debug($"No path walked from {start} to {string.Join(", ", ends.Select(end => end.ToString()))}.");
     }
 
