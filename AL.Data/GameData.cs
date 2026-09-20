@@ -1092,9 +1092,12 @@ public record GameData
 
         //the payload only began carrying these three tables at version 16846, and the frozen fixture carries the two
         //odds tables and not the gold one: a section the payload lacks reads as an empty table rather than a null root
+        // ReSharper disable NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         Compounds ??= new CompoundsDatum();
         MonsterGold ??= new MonsterGoldDatum();
         Upgrades ??= new UpgradesDatum();
+
+        // ReSharper restore NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
 
         Achievements.BuildLookupTable();
         Classes.BuildLookupTable();

@@ -314,7 +314,7 @@ public class JsonConverterTests
         obj.Should()
            .NotBeNull();
 
-        var round = obj!.BossInfo["anniversary"];
+        var round = obj.BossInfo["anniversary"];
 
         round.Live
              .Should()

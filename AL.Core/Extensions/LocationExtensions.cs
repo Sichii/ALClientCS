@@ -30,8 +30,10 @@ public static class LocationExtensions
 
             //the annotation says non-null, but a default-constructed ValueLocation carries a null map and EqualsI
             //throws on a null receiver
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             return location.Map is not null && other.Map is not null && location.Map.EqualsI(other.Map);
+
+            // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         }
 
         /// <summary>

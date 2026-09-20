@@ -33,6 +33,7 @@ public sealed record GeneratedMapBundle
 
     private static void Check(string run, GeneratedFloor floor)
     {
+        // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         var generated = floor.Definition?.Generated;
 
         if (generated is null || (generated.Run != run) || (floor.Key != FloorKey(run, generated.Floor)))

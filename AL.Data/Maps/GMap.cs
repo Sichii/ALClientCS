@@ -203,5 +203,12 @@ public sealed record GMap
 
     public bool Equals(GMap? other) => other is not null && Accessor.EqualsI(other.Accessor);
 
-    public override int GetHashCode() => HashCode.Combine(Name.GetHashCode(), Key.GetHashCode());
+    /// <summary>
+    ///     Hashes on <see cref="Accessor" />, the member <see cref="Equals(GMap)" /> compares, so maps that compare equal hash
+    ///     equally. It previously combined <see cref="Name" /> and <see cref="Key" />, which identify neither.
+    /// </summary>
+
+    //Accessor takes its value after deserialization, so it cannot be readonly
+    // ReSharper disable once NonReadonlyMemberInGetHashCode
+    public override int GetHashCode() => Accessor.GetHashCode(StringComparison.OrdinalIgnoreCase);
 }

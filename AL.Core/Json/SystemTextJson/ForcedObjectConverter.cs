@@ -31,9 +31,11 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
     ///     converter is applied to that member only and never leaks onto a same-typed sibling. Per-T costs nothing.
     /// </summary>
 
-    // ReSharper disable once StaticMemberInGenericType
+    // ReSharper disable StaticMemberInGenericType
     private static readonly ConditionalWeakTable<JsonSerializerOptions, ConcurrentDictionary<JsonConverter, JsonSerializerOptions>>
         MemberOptionsCache = new();
+
+    // ReSharper restore StaticMemberInGenericType
 
     public override bool HandleNull => true;
 

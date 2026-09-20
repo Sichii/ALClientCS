@@ -19,9 +19,9 @@ public class PlayerTeamTests
         player.Should()
               .NotBeNull();
 
-        player!.Team
-               .Should()
-               .Be("A");
+        player.Team
+              .Should()
+              .Be("A");
     }
 
     [Test]
@@ -32,9 +32,9 @@ public class PlayerTeamTests
         player.Should()
               .NotBeNull();
 
-        player!.Team
-               .Should()
-               .BeNull();
+        player.Team
+              .Should()
+              .BeNull();
     }
 
     [Test]

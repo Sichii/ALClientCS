@@ -24,6 +24,8 @@ public sealed record GMonster : AttributedRecordBase
     public IReadOnlyDictionary<string, GMonsterAbility> Abilities
     {
         get;
+
+        // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         init => field = value ?? new Dictionary<string, GMonsterAbility>();
     } = new Dictionary<string, GMonsterAbility>();
 

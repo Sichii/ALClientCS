@@ -43,12 +43,15 @@ public sealed record TrackerData
     [JsonPropertyName("max")]
     public JsonObject Max { get; init; } = new();
 
-    /// <summary>Lifetime kill counts by monster type.</summary>
+    /// <summary>
+    ///     Kill counts by monster type as of the last snapshot. The lifetime total is this plus <see cref="MonstersDiff" />,
+    ///     which is how the server and the game's own client both work it out.
+    /// </summary>
     [JsonPropertyName("monsters")]
     public JsonObject Monsters { get; init; } = new();
 
     /// <summary>
-    ///     Kill counts by monster type since the last snapshot.
+    ///     Kill counts by monster type since the last snapshot. These are not counted in <see cref="Monsters" /> yet.
     /// </summary>
     [JsonPropertyName("monsters_diff")]
     public JsonObject MonstersDiff { get; init; } = new();

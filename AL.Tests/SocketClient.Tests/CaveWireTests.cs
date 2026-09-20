@@ -23,9 +23,9 @@ public class CaveWireTests
         data.Should()
             .NotBeNull();
 
-        data!.ChestType
-             .Should()
-             .Be(ChestType.CaveChest);
+        data.ChestType
+            .Should()
+            .Be(ChestType.CaveChest);
     }
 
     [Test]
@@ -36,9 +36,9 @@ public class CaveWireTests
         data.Should()
             .NotBeNull();
 
-        data!.ResponseType
-             .Should()
-             .Be(GameResponseType.SealClosed);
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.SealClosed);
 
         data.Failed
             .Should()
@@ -53,8 +53,8 @@ public class CaveWireTests
         data.Should()
             .NotBeNull();
 
-        data!.UIDataType
-             .Should()
-             .Be(UIDataType.CaveEnter);
+        data.UIDataType
+            .Should()
+            .Be(UIDataType.CaveEnter);
     }
 }

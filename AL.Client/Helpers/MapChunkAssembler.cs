@@ -35,6 +35,7 @@ internal sealed partial class MapChunkAssembler
     {
         ArgumentNullException.ThrowIfNull(chunk);
 
+        // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         if (chunk.Run is null
             || !RunPattern()
                 .IsMatch(chunk.Run)
@@ -46,6 +47,8 @@ internal sealed partial class MapChunkAssembler
 
             throw new InvalidOperationException($"Invalid map chunk {chunk.Index}/{chunk.Count} for run {chunk.Run}.");
         }
+
+        // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 
         if (chunk.Index == 0)
         {

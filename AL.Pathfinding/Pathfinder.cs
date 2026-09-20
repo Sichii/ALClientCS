@@ -117,6 +117,8 @@ public static class Pathfinder
     ///     null name. Callers ask this to find out whether a mesh can answer at all before they trust what it says, and a
     ///     character holds no map until its first new_map.
     /// </summary>
+
+    // ReSharper disable once InconsistentlySynchronizedField
     public static NavMesh? GetNavMesh(string? name) => name is not null && Meshes.TryGetValue(name, out var mesh) ? mesh : null;
 
     /// <summary>
@@ -124,6 +126,7 @@ public static class Pathfinder
     /// </summary>
     private static PortalGraph GraphFor(string map)
     {
+        // ReSharper disable once InconsistentlySynchronizedField
         if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))
             return run.Graph;
 

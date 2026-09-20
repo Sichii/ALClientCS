@@ -661,9 +661,11 @@ public class WallCrossingTests : PathfindingTestBed
 
             //moving onto the line, or along it. The server compares exactly here, so a tolerance would restate a
             //different rule than the one under test
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            // ReSharper disable CompareOfFloatsByEqualityOperator
             if ((on == x1) && (((a <= y1) && (b >= y1)) || ((on == x0) && (y0 <= a) && (y1 > a))))
                 return false;
+
+            // ReSharper restore CompareOfFloatsByEqualityOperator
 
             if (minx > on)
                 continue;
@@ -685,9 +687,11 @@ public class WallCrossingTests : PathfindingTestBed
             double a = Math.Min(line.Start, line.End);
             double b = Math.Max(line.Start, line.End);
 
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            // ReSharper disable CompareOfFloatsByEqualityOperator
             if ((on == y1) && (((a <= x1) && (b >= x1)) || ((on == y0) && (x0 <= a) && (x1 > a))))
                 return false;
+
+            // ReSharper restore CompareOfFloatsByEqualityOperator
 
             if (miny > on)
                 continue;
