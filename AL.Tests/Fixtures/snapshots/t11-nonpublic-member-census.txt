@@ -85,6 +85,7 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Code
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	CodeCost	cc
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Courage	courage
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	EmptySlots	esize
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Encouragement	encouragement
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	ExtraRange	xrange
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Fear	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	GoldMultiplier	goldm

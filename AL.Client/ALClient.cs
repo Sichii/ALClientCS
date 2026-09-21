@@ -728,10 +728,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data == null)
             return false;
 
-        if (!string.IsNullOrEmpty(data.SharedCooldown))
-            skillName = data.SharedCooldown;
+        var cooldownKey = data.CooldownKey(skillName);
 
-        return !Cooldowns.TryGetValue(skillName, out var cooldown) || cooldown.CanUse();
+        return !Cooldowns.TryGetValue(cooldownKey, out var cooldown) || cooldown.CanUse();
     }
 
     /// <summary>Checks if a target is within trade range</summary>
@@ -957,7 +956,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //(node/server.js:12266 → stop_call :15796), and until that lands every other server answers the login with
         //"ingame" (:10911). Ordinarily sub-second, but a sync in flight at the drop defers it to the next sync_loop
         //pass, 24s later (:15861, :15907). Retried rather than surfaced: past the disconnect above there is no
-        //socket to fall back to, so a refusal that clears itself otherwise strands the character
+        //socket to fall back to, so a refusal that clears itself otherwise strands the character.
+        //a seat left online by a crash rather than by an orderly drop has no backstop any more: the server retired
+        //both the cron that cleared a stuck record after 30 minutes and the takeover of one gone stale for 120, so
+        //the only thing that frees it is the owning server's own release path
         for (var attempt = 1;; attempt++)
         {
             //a fresh one rather than the old one reconnected: ALSocketClient disposes its inner socket on disconnect
@@ -5732,6 +5734,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 SetCooldown(skillName);
         } else if ((match = RegexCache.POT_TIMEOUT.Match(data.Code)).Success)
         {
+            //the two names the eval covers, whichever of the four was used: a drink and a regen tick both come back
+            //as pot_timeout. Both route through the potion cooldown group, so on current data this writes one timer
             const string? USE_HP = "use_hp";
             const string? USE_MP = "use_mp";
             var cooldownStr = match.Groups[1].Value;
@@ -5946,7 +5950,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var cooldownInfo = new CooldownInfo(Math.Max(0f, timeoutMs));
         cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
 
-        Cooldowns.AddOrUpdate(data.SkillName, cooldownInfo, (_, _) => cooldownInfo);
+        //a group still has to be applied: the server resolves share before it emits, never the group, so a frame
+        //naming use_hp is the whole potion set going down
+        var cooldownKey = GameData.Skills[data.SkillName]
+                                  ?.CooldownKey(data.SkillName)
+                          ?? data.SkillName;
+
+        Cooldowns.AddOrUpdate(cooldownKey, cooldownInfo, (_, _) => cooldownInfo);
 
         return TaskCache.FALSE;
     }
@@ -6260,6 +6270,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data == null)
             return;
 
+        //resolved before the share hop below rewrites skillName, because a group is a property of the skill that was
+        //used rather than of the one it borrows its length from
+        var cooldownKey = data.CooldownKey(skillName);
+
         if (!string.IsNullOrEmpty(data.SharedCooldown))
         {
             skillName = data.SharedCooldown;
@@ -6277,7 +6291,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             var cooldownInfo = new CooldownInfo(cooldownMs.Value * cooldownMultiplier);
             cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
 
-            Cooldowns.AddOrUpdate(skillName, cooldownInfo, (_, _) => cooldownInfo);
+            Cooldowns.AddOrUpdate(cooldownKey, cooldownInfo, (_, _) => cooldownInfo);
         }
     }
 

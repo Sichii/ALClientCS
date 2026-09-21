@@ -1735,6 +1735,9 @@ public class ItemsDatum : DatumBase<GItem>
     [JsonPropertyName("wattire")]
     public GItem Wattire { get; init; } = null!;
 
+    [JsonPropertyName("waxe")]
+    public GItem Waxe { get; init; } = null!;
+
     [JsonPropertyName("waybill")]
     public GItem Waybill { get; init; } = null!;
 

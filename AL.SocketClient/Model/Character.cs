@@ -107,6 +107,18 @@ public class Character : Player, IEquatable<Character>
     public int EmptySlots { get; protected set; }
 
     /// <summary>
+    ///     The account-wide reward bonuses this character is earning, or null on a server that reports none.
+    /// </summary>
+    /// <remarks>
+    ///     Not folded into <see cref="GoldMultiplier" /> , <see cref="XPMultiplier" /> or <see cref="LuckMultiplier" /> ,
+    ///     which carry gear and party effects alone. Use <see cref="EffectiveGoldMultiplier" /> and its two neighbours for
+    ///     the figure a reward actually lands on.
+    /// </remarks>
+    [JsonPropertyName("encouragement")]
+    [JsonInclude]
+    public EncouragementStatus? Encouragement { get; protected set; }
+
+    /// <summary>
     ///     A lag allowance the server spends on your behalf: one budget per character, shared by every skill including attack.
     ///     It starts at 25 and refills 5 per second back to that cap, unconditionally - attacking does not hold it back.
     ///     <br />
@@ -200,6 +212,33 @@ public class Character : Player, IEquatable<Character>
     [JsonPropertyName("xpm")]
     [JsonInclude]
     public float XPMultiplier { get; protected set; }
+
+    /// <summary>
+    ///     <see cref="GoldMultiplier" /> with the encouragement bonuses folded in, which is the rate gold from a monster this
+    ///     character killed alone lands at.
+    /// </summary>
+    [JsonIgnore]
+    public float EffectiveGoldMultiplier => GoldMultiplier * (Encouragement?.Totals.Gold ?? 1f);
+
+    /// <summary>
+    ///     <see cref="LuckMultiplier" /> with the encouragement bonuses folded in.
+    /// </summary>
+    /// <remarks>
+    ///     The bonus luck buys a second, separate drop roll rather than raising the odds on the first, and that roll skips the
+    ///     global, home-server and konami tables. Close enough for an estimate, wrong for anything that models a table.
+    /// </remarks>
+    [JsonIgnore]
+    public float EffectiveLuckMultiplier => LuckMultiplier * (Encouragement?.Totals.Luck ?? 1f);
+
+    /// <summary>
+    ///     <see cref="XPMultiplier" /> with the encouragement bonuses folded in.
+    /// </summary>
+    /// <remarks>
+    ///     The New Player share of this stops at level 80, and the server clamps its extra so it cannot carry a character past
+    ///     that level in one kill.
+    /// </remarks>
+    [JsonIgnore]
+    public float EffectiveXPMultiplier => XPMultiplier * (Encouragement?.Totals.Xp ?? 1f);
 
     public virtual bool Equals(Character? other) => base.Equals(other);
 

@@ -66,6 +66,18 @@ public sealed record GSkill : AttributedRecordBase
     public int CooldownMS { get; private set; }
 
     /// <summary>
+    ///     If populated, the name of the lockout every skill carrying the same value shares. Using any one of them makes all
+    ///     of them unavailable, over and above whatever <see cref="SharedCooldown" /> pairs up.
+    /// </summary>
+    /// <remarks>
+    ///     <c>potion</c> is the only group the server defines, and it holds all four of <c>use_hp</c>, <c>use_mp</c>,
+    ///     <c>regen_hp</c> and <c>regen_mp</c>: an ordinary potion locks the set for 2 seconds and a regeneration ability for
+    ///     4. The group says which timers move together, never how long for - that still comes from the skill that was used.
+    /// </remarks>
+    [JsonPropertyName("cooldown_group")]
+    public string? CooldownGroup { get; init; }
+
+    /// <summary>
     ///     Used with <see cref="SharedCooldown" />. This is the multiplier applied to the shared cooldown to get this skill's
     ///     cooldown.
     /// </summary>
@@ -229,6 +241,20 @@ public sealed record GSkill : AttributedRecordBase
     /// </summary>
     [JsonPropertyName("share")]
     public string? SharedCooldown { get; init; }
+
+    /// <summary>
+    ///     The name this skill's cooldown is tracked under, given the name it was looked up by.
+    /// </summary>
+    /// <remarks>
+    ///     <see cref="CooldownGroup" /> wins over <see cref="SharedCooldown" /> because it is the wider net: the four potion
+    ///     and regeneration abilities pair up two at a time under <c>share</c> , but all four lock together. This answers
+    ///     where the timer lives, never how long it runs - a shared cooldown still takes its length from the skill named by
+    ///     <see cref="SharedCooldown" /> .
+    /// </remarks>
+    /// <param name="skillName">
+    ///     The name this skill was found under, returned unchanged when it is in no group and shares with nothing.
+    /// </param>
+    public string CooldownKey(string skillName) => CooldownGroup ?? SharedCooldown ?? skillName;
 
     /// <summary>
     ///     What this skill may be aimed at: a monster, a player, or either. Absent means the skill takes no target at all, and

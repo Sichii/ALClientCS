@@ -37,6 +37,31 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </summary>
     public float Intensity { get; init; }
 
+    /// <summary>
+    ///     If populated, the Unix time in milliseconds at which an encouragement bonus stops paying altogether.
+    /// </summary>
+    /// <remarks>
+    ///     Lone Wolf carries none, because it ends when a second character logs in rather than on a clock.
+    /// </remarks>
+    [JsonPropertyName("expires")]
+    public long? Expires { get; init; }
+
+    /// <summary>
+    ///     If populated, this encouragement bonus's share of the gold multiplier.
+    /// </summary>
+    /// <remarks>
+    ///     Reading the character's <see cref="Character.Encouragement" /> is the better way to get a rate: the totals there
+    ///     are already multiplied out across every active bonus.
+    /// </remarks>
+    [JsonPropertyName("gold_multiplier")]
+    public float? GoldMultiplier { get; init; }
+
+    /// <summary>
+    ///     If populated, this encouragement bonus's share of the luck multiplier.
+    /// </summary>
+    [JsonPropertyName("luck_multiplier")]
+    public float? LuckMultiplier { get; init; }
+
     public bool IsCompensated { get; private set; }
 
     /// <summary>
@@ -104,6 +129,21 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public string? ServerKey { get; init; }
 
     /// <summary>
+    ///     If populated, which ten-day step of the New Player bonus the account is on, counting from 1.
+    /// </summary>
+    /// <remarks>
+    ///     Each step pays less than the one before, so this changing is a rate cut rather than a cosmetic detail.
+    /// </remarks>
+    [JsonPropertyName("phase")]
+    public int? Phase { get; init; }
+
+    /// <summary>
+    ///     If populated, the Unix time in milliseconds at which the New Player bonus drops to its next <see cref="Phase" /> .
+    /// </summary>
+    [JsonPropertyName("phase_ends")]
+    public long? PhaseEnds { get; init; }
+
+    /// <summary>
     ///     If populated, the Id of the merchant who cast this <see cref="AL.Core.Definitions.Condition.MLuck" />.
     /// </summary>
     [JsonPropertyName("f")]
@@ -115,6 +155,28 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     If false, this <see cref="AL.Core.Definitions.Condition.MLuck" /> can be overwritten by any other merchant.
     /// </summary>
     public bool Strong { get; init; }
+
+    /// <summary>
+    ///     If populated, the Unix time in milliseconds this condition really ends at, which outlives <see cref="DurationMs" />
+    ///     .
+    /// </summary>
+    /// <remarks>
+    ///     Realm Fatigue is the one that carries it. Activity on another realm pushes this out while the condition is already
+    ///     running, and coming home does not clear it, so counting <see cref="DurationMs" /> down from when it first appeared
+    ///     finishes early.
+    /// </remarks>
+    [JsonPropertyName("until")]
+    public long? Until { get; init; }
+
+    /// <summary>
+    ///     If populated, this encouragement bonus's share of the experience multiplier.
+    /// </summary>
+    /// <remarks>
+    ///     The New Player bonus writes 1 here once any character on the account has reached level 80, while still paying its
+    ///     gold and luck shares.
+    /// </remarks>
+    [JsonPropertyName("xp_multiplier")]
+    public float? XpMultiplier { get; init; }
 
     string IMutable.Id => string.Empty;
 

@@ -29,4 +29,21 @@ public sealed record GameMessageData : IOptionalObject
 
     /// <summary>The game error/log message.</summary>
     public string Message { get; init; } = null!;
+
+    /// <summary>
+    ///     If populated, the translation key behind <see cref="Message" /> , such as <c>server.game_log.gold</c> .
+    /// </summary>
+    /// <remarks>
+    ///     Match on this rather than on the rendered text. The server renders <see cref="Message" /> in the account's own
+    ///     language and rewords it freely between deploys; the key survives both. Absent on the frames the server still builds
+    ///     by hand, so a matcher needs the text as a fallback.
+    /// </remarks>
+    [JsonPropertyName("phrase")]
+    public string? Phrase { get; init; }
+
+    /// <summary>
+    ///     If populated, the values substituted into <see cref="Phrase" /> - an amount, an item name, a character name.
+    /// </summary>
+    [JsonPropertyName("phrase_args")]
+    public IReadOnlyDictionary<string, string>? PhraseArgs { get; init; }
 }

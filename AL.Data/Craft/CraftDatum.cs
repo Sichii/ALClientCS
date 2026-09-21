@@ -21,6 +21,9 @@ public class CraftDatum : DatumBase<Recipe>
     [JsonPropertyName("basketofeggs")]
     public Recipe Basketofeggs { get; init; } = null!;
 
+    [JsonPropertyName("bataxe")]
+    public Recipe Bataxe { get; init; } = null!;
+
     [JsonPropertyName("beastmantle")]
     public Recipe Beastmantle { get; init; } = null!;
 

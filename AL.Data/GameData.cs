@@ -83,7 +83,7 @@ public record GameData
     ///     The game-data version the data members were last generated against. AL.MemberGenerator emits the stamp as generated
     ///     output (dataMembers/version.txt); paste it here when refreshing the datums.
     /// </summary>
-    public const int KNOWN_VERSION = 16846;
+    public const int KNOWN_VERSION = 17139;
 
     /// <summary>
     ///     What a monster with no entry in the dimensions table is squared off at before its size multiplier.
@@ -238,6 +238,42 @@ public record GameData
 
     [JsonIgnore]
     public static int ShellsToGold => Multipliers.ShellsToGold;
+
+    /// <summary>
+    ///     Folds every map's composed scenery into its wall lines, the way the game does while it processes a map.
+    /// </summary>
+    private static void AddAnimatableWalls()
+    {
+        foreach (var map in Maps.Values.DistinctBy(map => map.Accessor))
+            AddAnimatableWalls(map);
+    }
+
+    /// <summary>
+    ///     Turns one map's scenery collision boxes into wall lines and appends them to its geometry.
+    /// </summary>
+    /// <remarks>
+    ///     The game does this in <c>process_map</c> rather than shipping the lines in <c>G.geometry</c> , so a client reading
+    ///     the geometry raw walks straight through the dungeon gate's pillars on <c>main</c> and gets corrected back.
+    ///     Duplicates and overlaps are left to <see cref="FixLines(GGeometry)" /> , which runs after this and merges them
+    ///     anyway.
+    /// </remarks>
+    private static void AddAnimatableWalls(GMap map)
+    {
+        if (map.Animatables.Count == 0)
+            return;
+
+        if (Geometry[map.Accessor] is not { } mapGeometry)
+            return;
+
+        var horizontalLines = (List<StraightLine>)mapGeometry.HorizontalLines;
+        var verticalLines = (List<StraightLine>)mapGeometry.VerticalLines;
+
+        foreach (var line in map.Animatables.Values.SelectMany(animatable => animatable.CollisionLines()))
+            if (line.IsVertical)
+                verticalLines.Add(line);
+            else
+                horizontalLines.Add(line);
+    }
 
     private static void AddBorderWalls()
     {
@@ -1120,7 +1156,8 @@ public record GameData
         Tokens.BuildLookupTable();
         Upgrades.BuildLookupTable();
 
-        //fix line data (merge lines, set isX for x lines)
+        //fix line data (merge lines, set isX for x lines). scenery first, so its boxes go through the same merge
+        AddAnimatableWalls();
         AddBorderWalls();
         FixLines();
 

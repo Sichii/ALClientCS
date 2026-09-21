@@ -16,6 +16,15 @@ public sealed record GMap
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
+    ///     Composed scenery placed on the map, keyed by name. Empty for nearly every map.
+    /// </summary>
+    /// <remarks>
+    ///     Read for <see cref="GAnimatable.Collision" /> alone, which <see cref="GameData.AddAnimatableWalls(GMap)" /> folds
+    ///     into the map's geometry. Everything else here is art.
+    /// </remarks>
+    public IReadOnlyDictionary<string, GAnimatable> Animatables { get; init; } = new Dictionary<string, GAnimatable>();
+
+    /// <summary>
     ///     If true, the server builds no walkable-area map for this one, so no position is out of bounds and no move can be
     ///     jailed for landing off it (node/server_functions.js:4010).
     /// </summary>
@@ -199,7 +208,7 @@ public sealed record GMap
     /// </summary>
     public IReadOnlyList<GZone> Zones { get; init; } = new List<GZone>();
 
-    //unmapped: quirks, animatables (obj), machines (obj[]), ref (obj), old_monsters (obj[])
+    //unmapped: quirks, machines (obj[]), ref (obj), old_monsters (obj[])
 
     public bool Equals(GMap? other) => other is not null && Accessor.EqualsI(other.Accessor);
 

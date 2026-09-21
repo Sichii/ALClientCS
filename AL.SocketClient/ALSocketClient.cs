@@ -30,6 +30,21 @@ namespace AL.SocketClient;
 public sealed class ALSocketClient : IALSocketClient
 {
     /// <summary>
+    ///     The query string every socket connects with. The server reads it once, off the handshake, and a character whose
+    ///     socket opened without it stays refused for the life of that connection.
+    /// </summary>
+    /// <remarks>
+    ///     <c>map_protocol</c> is the dungeon's client-version gate and <c>no_graphics</c> asks for a headless subset of a
+    ///     generated floor. Both are separate from the same-named fields on the <c>auth</c> emit, which the server reads from
+    ///     the frame rather than the handshake.
+    /// </remarks>
+    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY =
+    [
+        new("map_protocol", "1"),
+        new("no_graphics", "1")
+    ];
+
+    /// <summary>
     ///     How long a frame may sit behind the one in front before that is worth a line.
     /// </summary>
     /// <remarks>
@@ -137,7 +152,13 @@ public sealed class ALSocketClient : IALSocketClient
             Reconnection = false,
 
             //null is the machine's own connection, which is what all but a routed character uses
-            Proxy = Proxy
+            Proxy = Proxy,
+
+            //handshake query, read once when the socket connects and never again. map_protocol=1 is what admits this
+            //client to a generated dungeon floor: without it the server refuses the whole party with
+            //bring_party_to_keeper and throws client_update_required on a floor transfer. no_graphics=1 trims a floor's
+            //delivery to its collision lines, which is all the pathfinder uses, instead of tiles and sprite placements
+            Query = HANDSHAKE_QUERY
         };
 
         //the engine.io mount path is per-server config, not the socket.io default. the server
