@@ -236,4 +236,66 @@ public class HitDataTests
            .Should()
            .BeNull();
     }
+
+    /// <summary>
+    ///     The avoid shape is the only one that carries a point. The target outran the shot, so the blow landed on open ground
+    ///     and the client shouts over that spot rather than over whoever got away.
+    /// </summary>
+    [Test]
+    public void TheAvoidShapeCarriesThePointTheShotWasAimedAt()
+    {
+        //server.js:3544 - damage is an explicit 0 and x/y are the action's, not the target's
+        const string HIT = @"{ ""pid"":""wMhQBT"", ""hid"":""attackerId"", ""id"":""targetId"", ""damage"":0, ""avoid"":true,
+                               ""source"":""attack"", ""x"":-115.5, ""y"":-284, ""map"":""main"", ""in"":""main"" }";
+
+        var obj = TestJson.Socket<HitData>(HIT);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Avoid
+           .Should()
+           .BeTrue();
+
+        obj.X
+           .Should()
+           .Be(-115.5f);
+
+        obj.Y
+           .Should()
+           .Be(-284f);
+    }
+
+    /// <summary>
+    ///     Which shield ate the blow, which is what the reaction over the target is coloured by. Absent on every hit that did
+    ///     not land on one.
+    /// </summary>
+    [Test]
+    public void AShieldedHitNamesWhichShieldAteIt()
+    {
+        //server.js:3903 and :3930 - the only two spellings
+        var mshield = TestJson.Socket<HitData>(
+            @"{ ""hid"":""a"", ""id"":""b"", ""damage"":40, ""mp_damage"":12, ""shield_reaction"":""mshield"" }");
+
+        mshield.Should()
+               .NotBeNull();
+
+        mshield.ShieldReaction
+               .Should()
+               .Be("mshield");
+
+        var aether = TestJson.Socket<HitData>(
+            @"{ ""hid"":""a"", ""id"":""b"", ""damage"":40, ""mp_restored"":18, ""shield_reaction"":""aether_shield"" }");
+
+        aether.Should()
+              .NotBeNull();
+
+        aether.ShieldReaction
+              .Should()
+              .Be("aether_shield");
+
+        TestJson.Socket<HitData>(@"{ ""hid"":""a"", ""id"":""b"", ""damage"":40 }") !.ShieldReaction
+                .Should()
+                .BeNull();
+    }
 }

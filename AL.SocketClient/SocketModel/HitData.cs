@@ -135,6 +135,12 @@ public sealed record HitData
     public float Reflect { get; init; }
 
     /// <summary>
+    ///     If populated, the shield that absorbed part of this hit: <c>mshield</c> or <c>aether_shield</c>.
+    /// </summary>
+    [JsonPropertyName("shield_reaction")]
+    public string? ShieldReaction { get; init; }
+
+    /// <summary>
     ///     Whether or not this hit was from a rogue's sneak attack.
     /// </summary>
     public bool Sneak { get; init; }
@@ -156,4 +162,15 @@ public sealed record HitData
     ///     Whether or not the target was stunned by this hit.
     /// </summary>
     public bool Stun { get; init; }
+
+    /// <summary>
+    ///     If populated, the x coordinate the shot that landed this hit was aimed at. Sent on an avoided hit alone, where the
+    ///     target outran the projectile and the blow landed on open ground.
+    /// </summary>
+    public float? X { get; init; }
+
+    /// <summary>
+    ///     If populated, the y coordinate the shot that landed this hit was aimed at, paired with <see cref="X" />.
+    /// </summary>
+    public float? Y { get; init; }
 }

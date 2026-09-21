@@ -198,4 +198,58 @@ public class EntityMergeTests
             .Should()
             .Be(320f);
     }
+
+    /// <summary>
+    ///     A squad logs in side by side and parties up afterwards, so the first sighting of a squadmate carries no party. A
+    ///     watcher that reads <see cref="Player.PartyLeader" /> off the tracked entity would never see one form.
+    /// </summary>
+    [Test]
+    public void APartyFormedAfterTheFirstSightingReachesTheTrackedPlayer()
+    {
+        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
+        var later = TestJson.Socket<Player>(@"{ ""id"":""a"", ""party"":""Sichi"" }")!;
+
+        tracked.Update(later);
+
+        tracked.PartyLeader
+               .Should()
+               .Be("Sichi");
+    }
+
+    /// <summary>
+    ///     The server restates the whole player object, so a frame without <c>party</c> is the party having ended.
+    /// </summary>
+    [Test]
+    public void APartyThatEndedClearsOnTheFrameThatOmitsIt()
+    {
+        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"", ""party"":""Sichi"" }")!;
+        var later = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
+
+        tracked.Update(later);
+
+        tracked.PartyLeader
+               .Should()
+               .BeNull();
+    }
+
+    /// <summary>
+    ///     A player first sighted mid-arrival kept <see cref="Player.Teleporting" /> for the rest of the session, so the flag
+    ///     rode every frame and the arrival never played again.
+    /// </summary>
+    [Test]
+    public void AnArrivalFlagClearsOnTheFrameThatDropsIt()
+    {
+        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"", ""tp"":true }")!;
+        var later = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
+
+        tracked.Teleporting
+               .Should()
+               .BeTrue();
+
+        tracked.Update(later);
+
+        tracked.Teleporting
+               .Should()
+               .BeFalse();
+    }
 }

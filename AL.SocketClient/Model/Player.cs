@@ -181,11 +181,18 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
 
             Age = other.Age;
             Code = other.Code;
+
+            //a party forms and breaks while a player is already in vision, and the server restates the whole player
+            //object every time - so an absent leader is the party having ended rather than the frame not mentioning it
+            PartyLeader = other.PartyLeader;
             PDPS = other.PDPS;
             RIP = other.RIP;
             Slots = other.Slots;
             Stand = other.Stand;
             Team = other.Team;
+
+            //the arrival flag is what a watcher fades a teleport in behind, and it only clears on a later frame
+            Teleporting = other.Teleporting;
         }
 
         base.Update(other);

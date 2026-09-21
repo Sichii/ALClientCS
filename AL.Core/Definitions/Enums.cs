@@ -1372,7 +1372,104 @@ public enum UIDataType
     ///     The daily dungeon's entry animation on the party being pulled through the gate. Presentation only.
     /// </summary>
     [EnumMember(Value = "cave_enter")]
-    CaveEnter
+    CaveEnter,
+
+    //append here, never insert - the implicit numbering below is pinned by the tolerance matrix the same
+    //way the block above it is, and the numeric-string fallback resolves against it
+
+    /// <summary>
+    ///     Warrior Cleave. <c>Name</c> is the warrior, <c>Ids</c> everything the swing reached.
+    /// </summary>
+    Cleave,
+
+    /// <summary>
+    ///     A monster dropping its target, one frame per monster. <c>Cause</c> is why.
+    /// </summary>
+    Disengage,
+
+    /// <summary>
+    ///     Warrior Agitate. <c>Name</c> is the warrior, <c>Ids</c> everything it pulled.
+    /// </summary>
+    Agitate,
+
+    /// <summary>
+    ///     Rogue Shadowstrike. <c>Name</c> is the rogue, <c>Ids</c> everything the strike reached.
+    /// </summary>
+    ShadowStrike,
+
+    /// <summary>
+    ///     Ranger Hunter's Mark. <c>Name</c> is the ranger, <c>Id</c> the marked entity.
+    /// </summary>
+    HuntersMark,
+
+    [EnumMember(Value = "level_up")]
+    LevelUp,
+
+    /// <summary>
+    ///     A monster's own level moving, on the server's jittered timer rather than on anything a player did.
+    /// </summary>
+    MLevel,
+
+    /// <summary>
+    ///     A monster regaining health. <c>Heal</c> is how much.
+    /// </summary>
+    MHeal,
+
+    Magiport,
+
+    [EnumMember(Value = "4fingers")]
+    FourFingers,
+
+    Reflection,
+
+    [EnumMember(Value = "poisoned_resist")]
+    PoisonedResist,
+
+    [EnumMember(Value = "frozen_resist")]
+    FrozenResist,
+
+    [EnumMember(Value = "deepfreezed_resist")]
+    DeepFreezedResist,
+
+    [EnumMember(Value = "burned_resist")]
+    BurnedResist,
+
+    [EnumMember(Value = "stunned_resist")]
+    StunnedResist,
+
+    Alchemy,
+    MCourage,
+    MFrenzy,
+
+    /// <summary>A cosmetic handed from one player to another.</summary>
+    [EnumMember(Value = "cx_sent")]
+    CxSent,
+
+    /// <summary>
+    ///     A sale between two players, naming both ends in <c>Seller</c> and <c>Buyer</c> .
+    /// </summary>
+    [EnumMember(Value = "+$$")]
+    PlayerTrade,
+
+    /// <summary>A purchase from the secondhands NPC.</summary>
+    [EnumMember(Value = "+$p")]
+    SecondhandsBuy,
+
+    /// <summary>A purchase from the lost-and-found NPC.</summary>
+    [EnumMember(Value = "+$f")]
+    LostAndFoundBuy,
+
+    /// <summary>A sale off a merchant's own stand.</summary>
+    [EnumMember(Value = "+M")]
+    MerchantSale,
+
+    FanOfKnives,
+    Track,
+
+    /// <summary>A skill refused by a dampening field.</summary>
+    Dampened,
+
+    Throw
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
