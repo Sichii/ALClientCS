@@ -3203,6 +3203,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation<ChestOpenedData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        //the reason the server refused, so the decision below can tell a chest that is gone from one that is merely
+        //out of reach for a moment
+        string? refusal = null;
+
         using var chestOpenedCallback = Socket.On<ChestOpenedData>(
             ALSocketMessageType.ChestOpened,
             data =>
@@ -3212,6 +3216,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         source.TrySetResult($"Failed to open chest {chestId}. (no chest)");
                     else
                         source.TrySetResult(data);
+
+                return TaskCache.FALSE;
+            });
+
+        //a refused open answers on game_response and never on chest_opened, so without this arm every refusal burned
+        //the whole network timeout before it was noticed. loot_failed and loot_no_space were already costing that;
+        //cave_paused made it lossy, since the chest was then pruned and a cave chest holds the party's shared purse
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (data.Failed && "open_chest".EqualsI(data.Place ?? string.Empty))
+                {
+                    refusal = data.Reason ?? data.ResponseType.ToString();
+                    source.TrySetResult($"Failed to open chest {chestId}. ({refusal})");
+                }
 
                 return TaskCache.FALSE;
             });
@@ -3230,17 +3250,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             expectation = await source.Task.WithNetworkTimeout();
         } catch (TimeoutException)
         {
-            //loot_failed and loot_no_space answer with a game_response this never listens for, so the timeout is the
-            //only signal either one gives; caught specifically so anything else still surfaces as the bug it is
             Chests.Remove(chestId, out _);
 
             throw;
         }
 
-        //a gone frame prunes itself through OnChestOpened, but any other failure would leave the chest behind
+        //a gone frame prunes itself through OnChestOpened, and any other failure would leave the chest behind - except
+        //a dungeon vote, which freezes the instance and refuses every open for up to a minute. The chest is still
+        //there and still ours, so it is kept for the next sweep
         if (!expectation.IsSuccessful)
-            Chests.Remove(chestId, out _);
-        else
+        {
+            if (!"cave_paused".EqualsI(refusal ?? string.Empty))
+                Chests.Remove(chestId, out _);
+        } else
             ChargeChestOpen(expectation.Result);
 
         return expectation;

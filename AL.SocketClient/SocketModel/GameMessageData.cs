@@ -1,4 +1,5 @@
 #region
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;
@@ -44,6 +45,11 @@ public sealed record GameMessageData : IOptionalObject
     /// <summary>
     ///     If populated, the values substituted into <see cref="Phrase" /> - an amount, an item name, a character name.
     /// </summary>
+    /// <remarks>
+    ///     A value is usually a string, but the server nests a whole phrase reference of its own wherever the substitution
+    ///     is itself translated, as in <c>{"npc": "Ilex", "rival": {"phrase": "server.cave.rival"}}</c> . Typed loosely
+    ///     because narrowing it to strings drops the entire frame the first time one of those arrives.
+    /// </remarks>
     [JsonPropertyName("phrase_args")]
-    public IReadOnlyDictionary<string, string>? PhraseArgs { get; init; }
+    public JsonObject? PhraseArgs { get; init; }
 }

@@ -56,9 +56,12 @@ public sealed record CaveState
     [JsonPropertyName("paused")]
     public bool Paused { get; init; }
 
-    /// <summary>When the pause began.</summary>
+    /// <summary>
+    ///     If populated, the Unix time in milliseconds the pause began at. Null whenever the run is not paused, which is
+    ///     nearly always, so this must stay nullable or every state frame fails to read.
+    /// </summary>
     [JsonPropertyName("paused_at")]
-    public long PausedAt { get; init; }
+    public long? PausedAt { get; init; }
 
     /// <summary>
     ///     Practice bouts a duelist set: bring the named sparring partner down to the marked hp before the deadline.
@@ -143,16 +146,19 @@ public sealed record CaveObjective
     public int Floor { get; init; }
 
     /// <summary>
-    ///     What kind of room: "farm" for a camp, "boss" for a keeper, an encounter's kind otherwise.
+    ///     The room's id, which is what a talk or a purchase names.
+    /// </summary>
+    [JsonPropertyName("id")]
+    public string Id { get; init; } = null!;
+
+    /// <summary>
+    ///     What kind of room the server built, not what happens in it: "fight" for a guard camp, "boss" for a keeper,
+    ///     "encounter" for anything put to a vote, "farm" for a wave camp, "citizen" for a passing traveler. An
+    ///     encounter's own kind is not here; it is on <see cref="CaveChoice.Kind" />, and <see cref="Name" /> carries the
+    ///     encounter's title, which identifies it before the vote opens.
     /// </summary>
     [JsonPropertyName("kind")]
     public string Kind { get; init; } = null!;
-
-    /// <summary>
-    ///     The map the room is on, when the floor number alone does not say.
-    /// </summary>
-    [JsonPropertyName("map")]
-    public string? Map { get; init; }
 
     [JsonPropertyName("name")]
     public string Name { get; init; } = null!;
@@ -269,6 +275,13 @@ public sealed record CaveChoice
 
     [JsonPropertyName("id")]
     public string Id { get; init; } = null!;
+
+    /// <summary>
+    ///     The encounter's own kind: "rescue", "dice", "merchant" and the like. The room the vote belongs to reports
+    ///     "encounter" and nothing finer, so this is the only place the kind is spelled out.
+    /// </summary>
+    [JsonPropertyName("kind")]
+    public string? Kind { get; init; }
 
     /// <summary>The replies on offer.</summary>
     [JsonPropertyName("options")]
@@ -430,6 +443,13 @@ public sealed record CaveVisit
     [JsonPropertyName("resets")]
     public long Resets { get; init; }
 
+    /// <summary>
+    ///     A run this character walked out of and can still walk back into, or null. Populated while the visit is spent, so it
+    ///     is the only thing that says the day is not over.
+    /// </summary>
+    [JsonPropertyName("resume")]
+    public CaveResume? Resume { get; init; }
+
     [JsonPropertyName("server_time")]
     public long ServerTime { get; init; }
 
@@ -438,6 +458,28 @@ public sealed record CaveVisit
     /// </summary>
     [JsonPropertyName("unlimited")]
     public bool Unlimited { get; init; }
+}
+
+/// <summary>
+///     An interrupted run this character can return to. Re-entering is the ordinary pull-in at the keeper, sent by this
+///     character for itself rather than by the party's first.
+/// </summary>
+public sealed record CaveResume
+{
+    /// <summary>
+    ///     Time left on the run's clock, absent when the run is on another server.
+    /// </summary>
+    [JsonPropertyName("remaining_ms")]
+    public long? RemainingMs { get; init; }
+
+    [JsonPropertyName("run")]
+    public string Run { get; init; } = null!;
+
+    /// <summary>
+    ///     The server the run is on, without its region prefix. Returning means being logged in there.
+    /// </summary>
+    [JsonPropertyName("server")]
+    public string? Server { get; init; }
 }
 
 /// <summary>

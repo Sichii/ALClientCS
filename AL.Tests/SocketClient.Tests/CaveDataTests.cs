@@ -311,4 +311,132 @@ public class CaveDataTests
             .Should()
             .Be("US II");
     }
+
+    /// <summary>
+    ///     A run the character was dropped out of is reported beside a visit that reads spent, because it is the same visit.
+    ///     It is the only thing on the reply that says the day is not over, and a client reading only <c>available</c> leaves
+    ///     the rest of the run on the floor.
+    /// </summary>
+    [Test]
+    public void TheInfoReplyCarriesARunTheCharacterCanWalkBackInto()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+                """{ "place": "interaction", "visit": { "available": false, "resets": 1789056000000, "home": "US II", "server_time": 1789000000000, "resume": { "run": "6f1e2d3c4b5a69788796a5b4", "server": "US II", "remaining_ms": 900000 } } }""")
+            !;
+
+        data.Visit!.Available
+            .Should()
+            .BeFalse();
+
+        data.Visit.Resume!.Run
+            .Should()
+            .Be("6f1e2d3c4b5a69788796a5b4");
+
+        data.Visit
+            .Resume
+            .RemainingMs
+            .Should()
+            .Be(900000);
+    }
+
+    /// <summary>
+    ///     A run on another server carries no clock, which is what tells the two cases apart: going back to that one means
+    ///     moving the whole roster, so it is not something to walk to the keeper for.
+    /// </summary>
+    [Test]
+    public void ARunOnAnotherServerCarriesNoClock()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+                """{ "place": "interaction", "visit": { "available": false, "resets": 1789056000000, "server_time": 1789000000000, "resume": { "run": "6f1e2d3c4b5a69788796a5b4", "server": "EU I" } } }""")
+            !;
+
+        data.Visit!.Resume!.Server
+            .Should()
+            .Be("EU I");
+
+        data.Visit
+            .Resume
+            .RemainingMs
+            .Should()
+            .BeNull();
+    }
+
+    /// <summary>
+    ///     The room's id is what a talk or a purchase names, and its kind is the room the server built rather than the
+    ///     encounter in it: "encounter" and never "rescue" or "dice". Reading the kind as the encounter's sent the run's
+    ///     target list looking for a monster table under the word "encounter" and finding none.
+    /// </summary>
+    [Test]
+    public void AnObjectiveCarriesItsIdAndTheRoomsOwnKind()
+    {
+        var state = TestJson.Socket<CaveData>(
+            """
+            { "type": "state", "state": { "run": "abc", "floor": 0, "paused_at": null, "objectives": [
+              { "id": "0:1", "name": "The Cornered Rogue", "kind": "encounter", "floor": 0, "required": true, "done": false, "x": 1, "y": 2 }
+            ] } }
+            """)!.State!;
+
+        state.Objectives[0]
+             .Id
+             .Should()
+             .Be("0:1");
+
+        state.Objectives[0]
+             .Kind
+             .Should()
+             .Be("encounter");
+
+        state.Objectives[0]
+             .Name
+             .Should()
+             .Be("The Cornered Rogue");
+    }
+
+    /// <summary>
+    ///     An unpaused run sends <c>paused_at</c> as an explicit null, which is the state almost every frame arrives in. A run
+    ///     of this shape was dropped whole on deserialization for as long as the field was a plain long, and because the state
+    ///     never reached the character the party stood at the entrance for the whole visit with nothing logged beyond the
+    ///     drop. The frame below is a live capture rather than an authored one; every other frame in this file was written
+    ///     with the run already paused, which is exactly how the gap survived.
+    /// </summary>
+    [Test]
+    public void AnUnpausedStateFrameCarriesANullPauseTime()
+    {
+        const string FRAME = """
+                             {
+                               "type": "state",
+                               "state": {
+                                 "run": "1552ab2751329b493e445bb8",
+                                 "expires": 1789997757300,
+                                 "server_time": 1789996335201,
+                                 "remaining_ms": 1422099,
+                                 "paused": false,
+                                 "paused_at": null,
+                                 "level": 81,
+                                 "floor": 0,
+                                 "gold": 0,
+                                 "amber": 0,
+                                 "choice": null,
+                                 "roster": [ { "name": "makiz", "left": false, "disconnected": false } ],
+                                 "doors": [ { "id": 0, "x": 544, "y": 304, "to": "main", "down": false, "locked": false } ]
+                               }
+                             }
+                             """;
+
+        var data = TestJson.Socket<CaveData>(FRAME)!;
+
+        data.State!.Paused
+            .Should()
+            .BeFalse();
+
+        data.State
+            .PausedAt
+            .Should()
+            .BeNull();
+
+        data.State
+            .Run
+            .Should()
+            .Be("1552ab2751329b493e445bb8");
+    }
 }
