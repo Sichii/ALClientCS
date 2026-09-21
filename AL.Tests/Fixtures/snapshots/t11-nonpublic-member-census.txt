@@ -52,8 +52,10 @@ non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Ref
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Resistance	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Speed	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Stat	
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	StatusResistance	stresistance
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Str	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	StunChance	stun
+non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	StunResistance	phresistance
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Vit	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	XP	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedRecordBase	Armor	

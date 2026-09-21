@@ -120,6 +120,25 @@ public class InterfaceAttributeCharacterization
     }
 
     /// <summary>
+    ///     The character frame carries <c>phresistance</c> and <c>stresistance</c> ( <c>node/server.js:869</c> ), and neither
+    ///     key resembles its property's name - a wrong one reads zero forever without failing anything.
+    /// </summary>
+    [Test]
+    public void T12_Character_StunAndStatusResistance_BindFromTheirWireKeys()
+    {
+        var character = TestJson.Socket<Character>(
+            @"{""id"":""me"",""ctype"":""mage"",""isize"":42,""phresistance"":12,""stresistance"":7}")!;
+
+        character.StunResistance
+                 .Should()
+                 .Be(12f);
+
+        character.StatusResistance
+                 .Should()
+                 .Be(7f);
+    }
+
+    /// <summary>
     ///     Same three modifier stats, but read from the real committed <c>conditions.poisoned</c> entry rather than a
     ///     synthetic literal, so the values are genuine wire data.
     /// </summary>

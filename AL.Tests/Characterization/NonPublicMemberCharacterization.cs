@@ -226,7 +226,7 @@ public sealed class NonPublicMemberCharacterization
         // GGeometry/GDoor/GSkill/BossInfo, which are static or boss data rather than an entity frame. The count
         // below moves whenever a frame-reachable setter is added or one moves off an entity type
         frameReachable.Should()
-                      .HaveCount(102);
+                      .HaveCount(104);
 
         // the setters the start, player and entities frames drive away from their defaults. Five of Phase 11's eight
         // Character stats are non-default in the captured start frame; incdmgamp, mcourage and pcourage stay
@@ -234,8 +234,8 @@ public sealed class NonPublicMemberCharacterization
         covered.Should()
                .HaveCount(63, "the start/player/entities frames drive 63 setters away from their defaults");
 
-        // The 37 setters no captured frame exercises to a non-default value. These are the members a
-        // migration reviewer must eyeball by hand — no value assertion can guard them here. The 23
+        // The 41 setters no captured frame exercises to a non-default value. These are the members a
+        // migration reviewer must eyeball by hand — no value assertion can guard them here. The 26
         // AttributedObjectBase stats are attributed setters the frames happen to leave at zero.
         uncovered.Should()
                  .BeEquivalentTo(
@@ -262,7 +262,9 @@ public sealed class NonPublicMemberCharacterization
                      "AttributedObjectBase.PotionsMod",
                      "AttributedObjectBase.Reflection",
                      "AttributedObjectBase.Stat",
+                     "AttributedObjectBase.StatusResistance",
                      "AttributedObjectBase.StunChance",
+                     "AttributedObjectBase.StunResistance",
                      "Character.AggroTargets",
                      "Character.Anniversary",
                      "Character.Bank",

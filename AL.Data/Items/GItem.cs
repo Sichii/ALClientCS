@@ -39,6 +39,16 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
+    ///     If populated, the condition this item holds on every player within 200 of its wearer, as a key into
+    ///     <see cref="GameData.Conditions" />. In PvP it reaches only the wearer's own side.
+    /// </summary>
+    /// <remarks>
+    ///     The item's <c>attr0</c> is how much of the condition's one stat the aura hands out - <c>sanguine</c> gives that
+    ///     much lifesteal ( <c>node/server.js:15011</c> ).
+    /// </remarks>
+    public string? Aura { get; init; }
+
+    /// <summary>
     ///     The item's price in shells if it is a cash-shop item, otherwise zero.
     /// </summary>
     /// <remarks>

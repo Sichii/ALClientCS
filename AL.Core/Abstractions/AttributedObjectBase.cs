@@ -146,12 +146,20 @@ public abstract class AttributedObjectBase : IAttributed
     [JsonInclude]
     public float Stat { get; protected set; }
 
+    [JsonPropertyName("stresistance")]
+    [JsonInclude]
+    public float StatusResistance { get; protected set; }
+
     [JsonInclude]
     public float Str { get; protected set; }
 
     [JsonPropertyName("stun")]
     [JsonInclude]
     public float StunChance { get; protected set; }
+
+    [JsonPropertyName("phresistance")]
+    [JsonInclude]
+    public float StunResistance { get; protected set; }
 
     [JsonInclude]
     public float Vit { get; protected set; }
