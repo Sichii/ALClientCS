@@ -6216,7 +6216,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 //of this pack or a pile can_stack accepts. A pile this refuses in a pack with no empty slot is
                 //storage_full however much room the other packs have, and it was - a cxjar holding one appearance
                 //against a banked cxjar holding another
-                else if (item.CanStackWith(bankedItem))
+                else if (item.CanStackWith(bankedItem, true))
 
                     //-1 allows the item to automatically stack
                     return (bankPackIndex, -1);

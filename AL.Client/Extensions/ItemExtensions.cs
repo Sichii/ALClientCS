@@ -24,8 +24,11 @@ public static class ItemExtensions
     ///     reads data on a cxjar; it is compared on everything here, which never offers a merge the server refuses. A merge
     ///     asked for against a pile that fails this lands as <c>storage_full</c> whenever the pack has no empty slot
     ///     (node/server.js:8919), whatever the rest of the vault holds.
+    ///     <br />
+    ///     <paramref name="ignorePvp" /> drops the PvP mark from the comparison, as <c>can_stack</c>'s <c>ignore_pvp</c> does.
+    ///     A bank deposit wants it: the bank handler deletes <c>v</c> from the item before storing it (node/server.js:9172).
     /// </remarks>
-    public static bool CanStackWith(this IInventoryItem item, IInventoryItem other)
+    public static bool CanStackWith(this IInventoryItem item, IInventoryItem other, bool ignorePvp = false)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(other);
@@ -43,7 +46,7 @@ public static class ItemExtensions
         if (item.Data != other.Data)
             return false;
 
-        if (string.IsNullOrEmpty(item.Volatile) != string.IsNullOrEmpty(other.Volatile))
+        if (!ignorePvp && (string.IsNullOrEmpty(item.Volatile) != string.IsNullOrEmpty(other.Volatile)))
             return false;
 
         return (item.LockType == ItemLockType.None) && (other.LockType == ItemLockType.None);

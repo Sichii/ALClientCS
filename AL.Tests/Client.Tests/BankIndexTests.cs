@@ -74,6 +74,27 @@ public class BankIndexTests
     }
 
     [Test]
+    public void APvpMarkedItemIsOfferedTheUnmarkedPile()
+    {
+        //the bank handler deletes v before it stores anything (node/server.js:9172), so a pile the mark would split in the
+        //bags merges in the vault
+        var client = ClientHolding(Item("hpot0"));
+
+        var marked = new InventoryIndexer
+        {
+            Index = 0,
+            Item = Item("hpot0") with
+            {
+                Volatile = "2026-09-23"
+            }
+        };
+
+        client.FindOptimalBankIndex(marked, PACK)
+              .Should()
+              .Be((PACK, -1));
+    }
+
+    [Test]
     public void APileWhoseDataDiffersIsNotOfferedAsAStackTarget()
     {
         //the server stacks two cxjars only when their data agrees (js/old_common_functions.js:396). A name-only match
