@@ -150,6 +150,20 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public string? SourceId { get; init; }
 
     /// <summary>
+    ///     The number of stacks built up, which only the two stacking conditions carry.
+    /// </summary>
+    /// <remarks>
+    ///     <see cref="AL.Core.Definitions.Condition.Stacked" /> counts a rogue's hits on whatever it is attacking and adds
+    ///     that many points of flat damage to each one, to a ceiling of 2000. Every hit restarts its ten seconds, so it falls
+    ///     off only once the rogue stops. It sits on the target rather than on the rogue, so several rogues share one count.
+    ///     <br />
+    ///     <see cref="AL.Core.Definitions.Condition.Woven" /> costs its target 3 speed a stack, to a ceiling of 20 on a
+    ///     monster and 5 on a player.
+    /// </remarks>
+    [JsonPropertyName("s")]
+    public int Stacks { get; init; }
+
+    /// <summary>
     ///     If true, this <see cref="AL.Core.Definitions.Condition.MLuck" /> was cast by a merchant owned by that user.
     ///     <br />
     ///     If false, this <see cref="AL.Core.Definitions.Condition.MLuck" /> can be overwritten by any other merchant.

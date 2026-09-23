@@ -229,6 +229,18 @@ public abstract partial class ALClient
                 return Task.FromResult(result);
             });
 
+        //a target the handler cannot find in this instance is refused with a bare disappear and no game_response at
+        //all (node/server.js:9646 and :9650), so without this the refusal costs the full network timeout. The entity
+        //is dropped by the standing handler that runs ahead of this one
+        using var disappearCallback = targetId == null
+            ? null
+            : Socket.On<DisappearData>(
+                ALSocketMessageType.Disappear,
+                data => Task.FromResult(
+                    data.Id.EqualsI(targetId)
+                    && data.Reason.EqualsI("not_there")
+                    && source.TrySetResult($"{failurePrefix} (target not there)")));
+
         using var actionCallback = collectActions || (strategy.Kind == SkillCompletionKind.Action)
             ? Socket.On<ActionData>(
                 ALSocketMessageType.Action,
