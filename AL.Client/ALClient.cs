@@ -3964,12 +3964,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             endDestinations,
             options ?? PathOptions.Default,
             null,
-            null,
             cancellationToken);
 
     /// <summary>
+    ///     How far from a leg's planned start the character may stand before the walk waits a round trip for the position to
+    ///     settle.
+    /// </summary>
+    private const float LEG_START_TOLERANCE = 5f;
+
+    /// <summary>
     ///     Asynchronously moves to any number of locations that may or may not require complex pathfinding, with town recall
-    ///     and blink each suppressed on one map.
+    ///     suppressed on one map.
     /// </summary>
     /// <param name="endDestinations">A collection of potential end locations.</param>
     /// <param name="options">
@@ -3981,17 +3986,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     character, which is a fact about standing here rather than about the trip - so it is the map that carries the
     ///     suppression, and leaving it brings the option back.
     /// </param>
-    /// <param name="blinkBlockedOn">
-    ///     The map a blink was just refused on, or null. The server refuses one when it finds nowhere to land the character,
-    ///     and a dampened or dead character cannot cast at all - facts about standing here rather than about the trip, so it
-    ///     is the map that carries the suppression, and leaving it brings the option back.
-    /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <remarks>
+    ///     A refused blink is carried by <see cref="BlinkFailures" /> instead of a parameter, because it is a fact about the
+    ///     map the cast was planned on rather than about the map the character stands on. The two differ: the route that
+    ///     refused one on Spooky Forest re-planned around it, walked back out the door to main, and was then free to plan the
+    ///     same cast again. Two doors per lap, and the call-cost limit disconnects the character inside four seconds.
+    /// </remarks>
     private async Task SmartMoveAsync<T>(
         IEnumerable<T> endDestinations,
         PathOptions options,
         string? townBlockedOn,
-        string? blinkBlockedOn,
         CancellationToken? cancellationToken) where T: ILocation, ICircle
     {
         if (endDestinations.Equals(default))
@@ -4020,7 +4025,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the suppression decided here covers the whole route rather than the map being left: recall off leaves no
         //recall leg anywhere on it. Priced against this character's own speed: the channel is a fixed three seconds,
         //so what it is worth is however far this character would have walked in them. Blink is priced only for a
-        //mage, and not while a refusal on this map is still remembered
+        //mage, and the search drops it map by map for the ones that have lately refused one
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
@@ -4028,18 +4033,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 WalkSpeed = Character.Speed,
                 UseTown = options.UseTown && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
-                BlinkCost = this is Mage && (blinkBlockedOn?.EqualsI(start.Map) != true) && !BlinkRecentlyFailedOn(start.Map)
-                    ? options.BlinkCost
-                    : null
+                BlinkCost = this is Mage ? options.BlinkCost : null,
+                BlinkBlockedMaps = BlinkBlockedMaps()
             });
 
         //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
         //the silent exits below are ordinary, and a caller only ever sees this method return
         var edgesWalked = 0;
-
-        //the start of the leg last walked, for the bend guard below. Null after anything that is not a walk, since
-        //a door or a recall leaves the character somewhere no previous leg leads out of
-        ILocation? bendFrom = null;
 
         await foreach (var edge in path)
         {
@@ -4053,15 +4053,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             try
             {
-                //a leg ends on a dead-reckoned timer, and a move arriving mid-walk is re-aimed from wherever the
-                //server actually is - so an early emit bends the walk from part-way along the previous leg, a line
-                //the search never validated. Standing still for a round trip is what makes the bend impossible
-                if ((edge.Type == EdgeType.Walk) && bendFrom is not null && !Pathfinder.CanMove(bendFrom, edge.End))
+                //a leg ends on a dead-reckoned timer, so its emit can land while the character is still short of the
+                //point the search planned this leg to start from - and the server re-aims the walk from wherever it
+                //has the character, over a line the search never validated. Standing still lets the position settle
+                if ((edge.Type == EdgeType.Walk) && (Character.DistanceWithMapCheck(edge.Start) > LEG_START_TOLERANCE))
                     await Task.Delay(PingManager.LowPercentileOffset * 2, cancellationToken ?? CancellationToken.None);
 
                 await HandlePathConnectorAsync(edge, cancellationToken);
                 edgesWalked++;
-                bendFrom = edge.Type == EdgeType.Walk ? edge.Start : null;
             } catch (OperationCanceledException)
             {
                 break;
@@ -4083,21 +4082,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         ends,
                         options,
                         Character.Map,
-                        blinkBlockedOn,
                         cancellationToken);
                 }
 
-                //a refused cast is carried the same way: this map is walked or recalled across by a search that no
-                //longer prices a cast here, and later maps still blink
+                //a refused cast is carried the same way, except that it is keyed on the map the leg was planned on
+                //rather than the one the character stands on. The two are the same map here, and stay so only while
+                //the re-plan does not leave it
                 else if (edge.Type == EdgeType.Blink)
                 {
-                    BlinkFailures[Character.Map] = Stopwatch.GetTimestamp();
+                    BlinkFailures[edge.End.Map] = Stopwatch.GetTimestamp();
 
                     await SmartMoveAsync(
                         ends,
                         options,
                         townBlockedOn,
-                        Character.Map,
                         cancellationToken);
                 }
 
@@ -4105,14 +4103,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             }
 
             //whatever was targeting the character is gone with the map, so recall is worth planning around again -
-            //and the path in hand was planned without it, so getting the option back means planning again. A refused
-            //cast was a fact about the map left the same way
-            if ((townBlockedOn?.EqualsI(Character.Map) == false) || (blinkBlockedOn?.EqualsI(Character.Map) == false))
+            //and the path in hand was planned without it, so getting the option back means planning again
+            if (townBlockedOn?.EqualsI(Character.Map) == false)
             {
                 await SmartMoveAsync(
                     ends,
                     options,
-                    null,
                     null,
                     cancellationToken);
 
@@ -5102,11 +5098,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private const int BLINK_LANDING_TIMEOUT_MS = 3000;
 
     /// <summary>
-    ///     Whether a cast is still being kept off the table for <paramref name="map" />. The recall's window, for the recall's
+    ///     The maps a cast is still being kept off, or null while there are none. The recall's window, for the recall's
     ///     reason: a lane polling at 10Hz would otherwise re-plan straight onto the cast that was just refused.
     /// </summary>
-    private bool BlinkRecentlyFailedOn(string map)
-        => BlinkFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
+    private IReadOnlySet<string>? BlinkBlockedMaps()
+    {
+        //the usual answer, and this runs on every re-plan a mover makes
+        if (BlinkFailures.IsEmpty)
+            return null;
+
+        HashSet<string>? blocked = null;
+
+        foreach ((var map, var failedAt) in BlinkFailures)
+            if (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY)
+                (blocked ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Add(map);
+
+        return blocked;
+    }
 
     /// <summary>
     ///     One blink leg of a route: stand still until the bar and the cooldown allow the cast, cast, and wait for the

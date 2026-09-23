@@ -78,6 +78,7 @@ internal sealed class PortalGraph
                     continue;
 
                 var index = Nodes.Count;
+                var reach = new Reach(exit.ReachBand, exit.ReachRange);
 
                 Nodes.Add(
                     new Node
@@ -86,8 +87,9 @@ internal sealed class PortalGraph
                         Location = exit,
                         Triangle = triangle,
                         Entry = entry,
+                        BlinkEntry = BlinkLanding(mesh, reach, entry),
                         Exit = exit,
-                        Reach = new Reach(exit.ReachBand, exit.ReachRange)
+                        Reach = reach
                     });
 
                 DeparturesOnMap[map]
@@ -118,6 +120,7 @@ internal sealed class PortalGraph
                 Location = new Location(map.Accessor, spawn),
                 Triangle = triangle,
                 Entry = entry,
+                BlinkEntry = entry,
                 SpawnIndex = spawnIndex
             });
 
@@ -437,6 +440,12 @@ internal sealed class PortalGraph
                 break;
             }
 
+            //a refusal names the map it was refused on, so the price is read per node rather than once per search: a
+            //route that cannot cast on the map in the middle of it still casts on the ones at either end
+            var castCost = options.BlinkBlockedMaps?.Contains(node == startNode ? start.Map : Nodes[node].Location.Map) == true
+                ? float.MaxValue
+                : blinkCost;
+
             if (node < Nodes.Count)
                 for (var i = EdgeStart[node]; i < EdgeStart[node + 1]; i++)
                     Relax(
@@ -445,7 +454,7 @@ internal sealed class PortalGraph
                         cost,
                         townCost,
                         options.UseTown,
-                        blinkCost,
+                        castCost,
                         scratch);
 
             for (var i = 0; i < scratch.SearchEdges.Count; i++)
@@ -456,7 +465,7 @@ internal sealed class PortalGraph
                         cost,
                         townCost,
                         options.UseTown,
-                        blinkCost,
+                        castCost,
                         scratch);
         }
 
@@ -518,8 +527,8 @@ internal sealed class PortalGraph
                             new PathEdge(
                                 EdgeType.Blink,
                                 cursor,
-                                new Location(exit.Location.Map, exit.Entry),
-                                edge.Type == EdgeType.Blink ? cursorPoint.Distance(exit.Entry) : edge.Cost));
+                                new Location(exit.Location.Map, exit.BlinkEntry),
+                                edge.Type == EdgeType.Blink ? cursorPoint.Distance(exit.BlinkEntry) : edge.Cost));
                         MoveCursor(exit);
                     }
 
@@ -765,8 +774,78 @@ internal sealed class PortalGraph
             => HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Map), obj.Spawn);
     }
 
+    /// <summary>
+    ///     The lattice a blink's landing is rounded onto, and the step the server checks around it.
+    /// </summary>
+    private const float BLINK_LATTICE = 10f;
+
+    /// <summary>
+    ///     How far out from an exit's entry a landing is looked for, in lattice steps. Wide enough to cover the door's reach,
+    ///     which runs to <see cref="AL.Core.Definitions.CONSTANTS.DOOR_RANGE" /> edge-to-edge.
+    /// </summary>
+    private const int BLINK_LANDING_RINGS = 12;
+
+    /// <summary>
+    ///     Where a blink aimed at this exit is sent, which is not always the exit's own entry.
+    /// </summary>
+    /// <remarks>
+    ///     The server accepts a landing only where the lattice cell it rounds to and the eight around it are all ground, and
+    ///     it looks no further than three cells along the axes for one itself. An exit's entry is its position pulled onto the
+    ///     edge of the ground, so on some doors every cast aimed at one is refused: Spooky Forest's door to Spooky Town is the
+    ///     one that cost a character, since the only landing near it lies diagonally, which the server's own search never
+    ///     tries. A door opens from anywhere inside its reach, so the landing moves to the nearest cell in there that the
+    ///     server will take.
+    /// </remarks>
+    private static Point BlinkLanding(NavMesh mesh, Reach reach, Point entry)
+    {
+        if (Lands(mesh, entry.X, entry.Y))
+            return entry;
+
+        var originX = MathF.Round(entry.X / BLINK_LATTICE) * BLINK_LATTICE;
+        var originY = MathF.Round(entry.Y / BLINK_LATTICE) * BLINK_LATTICE;
+
+        for (var ring = 1; ring <= BLINK_LANDING_RINGS; ring++)
+            for (var dx = -ring; dx <= ring; dx++)
+                for (var dy = -ring; dy <= ring; dy++)
+                {
+                    if ((Math.Abs(dx) != ring) && (Math.Abs(dy) != ring))
+                        continue;
+
+                    var x = originX + dx * BLINK_LATTICE;
+                    var y = originY + dy * BLINK_LATTICE;
+
+                    if (reach.Contains(x, y) && Lands(mesh, x, y))
+                        return new Point(x, y);
+                }
+
+        //nothing in the reach takes one, so the leg keeps the entry and the refusal it earns is what turns blink off here
+        return entry;
+    }
+
+    /// <summary>
+    ///     Whether the server would land a blink aimed here.
+    /// </summary>
+    private static bool Lands(NavMesh mesh, float x, float y)
+    {
+        var cellX = MathF.Round(x / BLINK_LATTICE) * BLINK_LATTICE;
+        var cellY = MathF.Round(y / BLINK_LATTICE) * BLINK_LATTICE;
+
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dy = -1; dy <= 1; dy++)
+                if (!mesh.IsWalkable(cellX + dx * BLINK_LATTICE, cellY + dy * BLINK_LATTICE))
+                    return false;
+
+        return true;
+    }
+
     private sealed class Node
     {
+        /// <summary>
+        ///     Where a blink aimed at this node lands. The same as <see cref="Entry" /> unless the server would refuse one there;
+        ///     see <see cref="BlinkLanding" />.
+        /// </summary>
+        public required Point BlinkEntry { get; init; }
+
         public required Point Entry { get; init; }
         public Exit? Exit { get; init; }
         public required ILocation Location { get; init; }

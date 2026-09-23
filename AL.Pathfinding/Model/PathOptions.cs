@@ -20,6 +20,12 @@ public sealed record PathOptions
     };
 
     /// <summary>
+    ///     Maps no blink is priced on, or null to price one everywhere. The server refuses a cast it finds nowhere to land,
+    ///     which is a fact about the map rather than about the route, so the rest of the route still casts.
+    /// </summary>
+    public IReadOnlySet<string>? BlinkBlockedMaps { get; init; }
+
+    /// <summary>
     ///     What a blink is worth in walk-distance units, or null for a route with no blink in it. A walk on one map dearer
     ///     than this comes back as one <see cref="AL.Pathfinding.Definitions.EdgeType.Blink" /> leg to the walk's own target,
     ///     charged this much; so does a pair on one map that no walk joins. Town and blink are then priced against each other

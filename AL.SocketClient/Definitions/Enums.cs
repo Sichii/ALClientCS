@@ -141,6 +141,9 @@ public enum GameResponseType
     [EnumMember(Value = "bank_opx")]
     BankOperation,
 
+    [EnumMember(Value = "blink_failed")]
+    BlinkFailed,
+
     [EnumMember(Value = "buy_success")]
     BuySuccess,
 

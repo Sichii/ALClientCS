@@ -5,6 +5,7 @@ using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Model;
+using Chaos.Extensions.Common;
 using FluentAssertions;
 #endregion
 
@@ -201,6 +202,68 @@ public class BlinkLegTests : PathfindingTestBed
                .Type
                .Should()
                .Be(EdgeType.Blink);
+    }
+
+    /// <summary>
+    ///     A blink at a door is aimed somewhere the server will land it. Its test is the ten-unit cell the landing rounds to
+    ///     and the eight around it all being ground; a door's entry is on the edge of the ground, so Spooky Forest's door to
+    ///     Spooky Town refused every cast aimed at it and the character bounced back to main instead. The aim still has to
+    ///     open the door, which is the wider of the two windows at 112 units edge-to-edge.
+    /// </summary>
+    [Test]
+    public void ABlinkAtADoorLandsWhereTheServerAcceptsOne()
+    {
+        var end = new Destination(new Location("spookytown", 265, -1360), 50);
+
+        var path = Pathfinder.FindPath(new Location("main", 1600, -547), [end], BLINK_AT_400);
+
+        var landing = path.Should()
+                          .ContainSingle(edge => (edge.Type == EdgeType.Blink) && edge.End.Map.EqualsI("halloween"))
+                          .Which
+                          .End;
+
+        var mesh = Pathfinder.GetNavMesh("halloween")!;
+
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dy = -1; dy <= 1; dy++)
+                mesh.IsWalkable(landing.X + dx * 10f, landing.Y + dy * 10f)
+                    .Should()
+                    .BeTrue($"the server checks ({dx}, {dy}) of the landing cell");
+    }
+
+    /// <summary>
+    ///     A blocked map loses its cast and keeps the rest of the route's. Spooky Forest is the case that cost a character:
+    ///     its two doors are not joined by any walk, so the route to Spooky Town blinks between them, and the server refuses
+    ///     to land a cast on the far one. Blocking the map has to reprice that leg alone, or the re-plan walks back out to
+    ///     main and is free to choose the same cast again.
+    /// </summary>
+    [Test]
+    public void ABlockedMapLosesItsBlinkAndTheRestOfTheRouteKeepsOne()
+    {
+        var start = new Location("main", 1600, -547);
+        var end = new Destination(new Location("spookytown", 265, -1360), 50);
+
+        var blinked = Pathfinder.FindPath(start, [end], BLINK_AT_400);
+
+        blinked.Should()
+               .Contain(edge => (edge.Type == EdgeType.Blink) && edge.End.Map.EqualsI("halloween"));
+
+        var blocked = Pathfinder.FindPath(
+            start,
+            [end],
+            BLINK_AT_400 with
+            {
+                BlinkBlockedMaps = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "halloween"
+                }
+            });
+
+        blocked.Should()
+               .NotContain(edge => edge.End.Map.EqualsI("halloween"));
+
+        blocked.Should()
+               .Contain(edge => edge.Type == EdgeType.Blink);
     }
 
     private sealed record Case(
