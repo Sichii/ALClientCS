@@ -44,11 +44,15 @@ public class PathParityTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     Whether the corpus only found this route because the old graph walked a key door. Staying inside one copy, or
-    ///     leaving one, needs no key and is still held to the record.
+    ///     Whether the corpus only found this route because the old graph used ground the server will not put a character
+    ///     on. Two kinds: behind a key door, and on a Dungeon World map, which only the dungeon server ever instances - so a
+    ///     route that so much as starts on one is off the table. Staying inside one copy, or leaving one, needs no key and is
+    ///     still held to the record.
     /// </summary>
-    private static bool NeedsAKey(Case recorded)
-        => BehindAKey.Contains(recorded.End.Map) && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase);
+    private static bool TouchesUnreachableGround(Case recorded)
+        => (GameData.Maps[recorded.Start.Map]?.World == WorldType.Dungeon)
+           || (GameData.Maps[recorded.End.Map]?.World == WorldType.Dungeon)
+           || (BehindAKey.Contains(recorded.End.Map) && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase));
 
     [Test]
     public async Task TheNewPathfinderMatchesTheRecordedCorpus()
@@ -83,7 +87,7 @@ public class PathParityTests : PathfindingTestBed
             oldMicros += recorded.Micros;
             oldBytes += recorded.Bytes;
 
-            if (recorded.Found && !found && !NeedsAKey(recorded))
+            if (recorded.Found && !found && !TouchesUnreachableGround(recorded))
                 missing.Add(recorded.Id);
 
             if (!recorded.Found && found)

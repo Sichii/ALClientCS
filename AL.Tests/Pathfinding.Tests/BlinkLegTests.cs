@@ -231,41 +231,6 @@ public class BlinkLegTests : PathfindingTestBed
                     .BeTrue($"the server checks ({dx}, {dy}) of the landing cell");
     }
 
-    /// <summary>
-    ///     A blocked map loses its cast and keeps the rest of the route's. Spooky Forest is the case that cost a character:
-    ///     its two doors are not joined by any walk, so the route to Spooky Town blinks between them, and the server refuses
-    ///     to land a cast on the far one. Blocking the map has to reprice that leg alone, or the re-plan walks back out to
-    ///     main and is free to choose the same cast again.
-    /// </summary>
-    [Test]
-    public void ABlockedMapLosesItsBlinkAndTheRestOfTheRouteKeepsOne()
-    {
-        var start = new Location("main", 1600, -547);
-        var end = new Destination(new Location("spookytown", 265, -1360), 50);
-
-        var blinked = Pathfinder.FindPath(start, [end], BLINK_AT_400);
-
-        blinked.Should()
-               .Contain(edge => (edge.Type == EdgeType.Blink) && edge.End.Map.EqualsI("halloween"));
-
-        var blocked = Pathfinder.FindPath(
-            start,
-            [end],
-            BLINK_AT_400 with
-            {
-                BlinkBlockedMaps = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "halloween"
-                }
-            });
-
-        blocked.Should()
-               .NotContain(edge => edge.End.Map.EqualsI("halloween"));
-
-        blocked.Should()
-               .Contain(edge => edge.Type == EdgeType.Blink);
-    }
-
     private sealed record Case(
         int Id,
         Spot Start,

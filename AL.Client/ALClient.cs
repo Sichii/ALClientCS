@@ -3987,12 +3987,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     suppression, and leaving it brings the option back.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
-    /// <remarks>
-    ///     A refused blink is carried by <see cref="BlinkFailures" /> instead of a parameter, because it is a fact about the
-    ///     map the cast was planned on rather than about the map the character stands on. The two differ: the route that
-    ///     refused one on Spooky Forest re-planned around it, walked back out the door to main, and was then free to plan the
-    ///     same cast again. Two doors per lap, and the call-cost limit disconnects the character inside four seconds.
-    /// </remarks>
     private async Task SmartMoveAsync<T>(
         IEnumerable<T> endDestinations,
         PathOptions options,
@@ -4025,7 +4019,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the suppression decided here covers the whole route rather than the map being left: recall off leaves no
         //recall leg anywhere on it. Priced against this character's own speed: the channel is a fixed three seconds,
         //so what it is worth is however far this character would have walked in them. Blink is priced only for a
-        //mage, and the search drops it map by map for the ones that have lately refused one
+        //mage, since the client ignores the cast for every other class
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
@@ -4033,8 +4027,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 WalkSpeed = Character.Speed,
                 UseTown = options.UseTown && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
-                BlinkCost = this is Mage ? options.BlinkCost : null,
-                BlinkBlockedMaps = BlinkBlockedMaps()
+                BlinkCost = this is Mage ? options.BlinkCost : null
             });
 
         //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
@@ -4085,19 +4078,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         cancellationToken);
                 }
 
-                //a refused cast is carried the same way, except that it is keyed on the map the leg was planned on
-                //rather than the one the character stands on. The two are the same map here, and stay so only while
-                //the re-plan does not leave it
+                //a refused cast drops the cast from the rest of the trip rather than from one map: the refusals that
+                //remain are the character's own - dampened, dead, or a bar the wait gave up on - and every one of
+                //them is as true on the next map as on this one. Without this the re-plan chooses the same cast again
                 else if (edge.Type == EdgeType.Blink)
-                {
-                    BlinkFailures[edge.End.Map] = Stopwatch.GetTimestamp();
-
                     await SmartMoveAsync(
                         ends,
-                        options,
+                        options with
+                        {
+                            BlinkCost = null
+                        },
                         townBlockedOn,
                         cancellationToken);
-                }
 
                 break;
             }
@@ -5082,11 +5074,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         => TownFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
 
     /// <summary>
-    ///     Maps this character has lately been refused a blink on, and when it last was on each.
-    /// </summary>
-    private readonly ConcurrentDictionary<string, long> BlinkFailures = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
     ///     How often the wait at a blink leg re-reads the bar and the cooldown.
     /// </summary>
     private const int BLINK_WAIT_POLL_MS = 250;
@@ -5096,25 +5083,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     moves the character, and the frame then has a round trip to make.
     /// </summary>
     private const int BLINK_LANDING_TIMEOUT_MS = 3000;
-
-    /// <summary>
-    ///     The maps a cast is still being kept off, or null while there are none. The recall's window, for the recall's
-    ///     reason: a lane polling at 10Hz would otherwise re-plan straight onto the cast that was just refused.
-    /// </summary>
-    private IReadOnlySet<string>? BlinkBlockedMaps()
-    {
-        //the usual answer, and this runs on every re-plan a mover makes
-        if (BlinkFailures.IsEmpty)
-            return null;
-
-        HashSet<string>? blocked = null;
-
-        foreach ((var map, var failedAt) in BlinkFailures)
-            if (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY)
-                (blocked ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Add(map);
-
-        return blocked;
-    }
 
     /// <summary>
     ///     One blink leg of a route: stand still until the bar and the cooldown allow the cast, cast, and wait for the
@@ -5168,9 +5136,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var landed = await source.Task.WithTimeout(BLINK_LANDING_TIMEOUT_MS);
         landed.ThrowIfUnsuccessful();
 
-        //a cast that lands says the map takes blinks after all, so an older refusal stops speaking for it; and it is
         //the one line that says a teleport happened, since a mage crossing maps by cast otherwise reads like a walk
-        BlinkFailures.TryRemove(Character.Map, out _);
         Logger.Debug($"Blinked to {edge.End}.");
     }
 

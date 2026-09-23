@@ -1,6 +1,7 @@
 #region
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using AL.Core.Definitions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
 using AL.Data;
@@ -145,6 +146,12 @@ public static class Pathfinder
                            .DistinctBy(kvp => kvp.Value.Accessor)
                            .Where(kvp => !kvp.Value.Ignore)
                            .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
+
+                           //Dungeon World is a server of its own, and its maps are only instanced when the process is
+                           //running as that server - so on an ordinary one they are somewhere nothing can go. Left in,
+                           //the transporter's listing of d_e made an in-and-out hop the cheapest way past a corner on
+                           //main, and the server refused every one of them
+                           .Where(kvp => kvp.Value.World == WorldType.None)
                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         var timer = Stopwatch.StartNew();

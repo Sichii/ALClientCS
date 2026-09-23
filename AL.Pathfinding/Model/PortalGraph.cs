@@ -440,12 +440,6 @@ internal sealed class PortalGraph
                 break;
             }
 
-            //a refusal names the map it was refused on, so the price is read per node rather than once per search: a
-            //route that cannot cast on the map in the middle of it still casts on the ones at either end
-            var castCost = options.BlinkBlockedMaps?.Contains(node == startNode ? start.Map : Nodes[node].Location.Map) == true
-                ? float.MaxValue
-                : blinkCost;
-
             if (node < Nodes.Count)
                 for (var i = EdgeStart[node]; i < EdgeStart[node + 1]; i++)
                     Relax(
@@ -454,7 +448,7 @@ internal sealed class PortalGraph
                         cost,
                         townCost,
                         options.UseTown,
-                        castCost,
+                        blinkCost,
                         scratch);
 
             for (var i = 0; i < scratch.SearchEdges.Count; i++)
@@ -465,7 +459,7 @@ internal sealed class PortalGraph
                         cost,
                         townCost,
                         options.UseTown,
-                        castCost,
+                        blinkCost,
                         scratch);
         }
 
