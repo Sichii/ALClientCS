@@ -611,8 +611,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (string.IsNullOrEmpty(skillName))
             throw new ArgumentNullException(nameof(skillName));
 
+        //the server's is_disabled, which refuses every skill with "disabled"
         if (Character.RIP
+            || Character.Conditions.ContainsKey(Condition.Stunned)
+            || Character.Conditions.ContainsKey(Condition.Fingered)
             || Character.Conditions.ContainsKey(Condition.Stoned)
+            || Character.Conditions.ContainsKey(Condition.Deepfreezed)
+            || Character.Conditions.ContainsKey(Condition.Sleeping)
             || (skillName.EqualsI("blink") && Character.Conditions.ContainsKey(Condition.Dampened))
             || !IsOffCooldown(skillName))
             return false;
