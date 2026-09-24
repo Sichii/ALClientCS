@@ -23,6 +23,13 @@ internal sealed class PortalGraph
     private readonly Dictionary<(string Map, int Spawn), int> ArrivalIndex = new(MapSpawnComparer.Instance);
     private readonly Dictionary<string, List<int>> ArrivalsOnMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<int>> DeparturesOnMap = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     Departures onto a generated floor the server has not sent yet, by that floor. It has a record and spawns but no
+    ///     mesh, so these doors have no arrival node; a search ends through one onto the spawn it lands on.
+    /// </summary>
+    private readonly Dictionary<string, List<int>> DeparturesOntoUnsent = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly int[] EdgeStart;
 
     private readonly IReadOnlyDictionary<string, NavMesh> Meshes;
@@ -62,15 +69,21 @@ internal sealed class PortalGraph
                         continue;
                 }
 
-                if (!meshes.TryGetValue(exit.ToLocation.Map, out var toMesh))
-                    continue;
-
                 var toMap = GameData.Maps[exit.ToLocation.Map];
 
                 if (toMap is null || (exit.ToSpawnIndex < 0) || (exit.ToSpawnIndex >= toMap.Spawns.Count))
                     continue;
 
-                AddArrival(toMesh, toMap, exit.ToSpawnIndex);
+                //the server sends only the floor a character stands on and builds the next when the stairs are first
+                //taken, so the floor below has a record and no mesh until somebody is on it. The stairs are still a
+                //door a route can end through
+                var unsent = !meshes.TryGetValue(exit.ToLocation.Map, out var toMesh);
+
+                if (unsent && toMap.Generated is null)
+                    continue;
+
+                if (!unsent)
+                    AddArrival(toMesh!, toMap, exit.ToSpawnIndex);
 
                 var triangle = mesh.Locate(exit.X, exit.Y, out var entry);
 
@@ -94,6 +107,17 @@ internal sealed class PortalGraph
 
                 DeparturesOnMap[map]
                     .Add(index);
+
+                if (unsent)
+                {
+                    if (!DeparturesOntoUnsent.TryGetValue(exit.ToLocation.Map, out var onto))
+                    {
+                        onto = [];
+                        DeparturesOntoUnsent[exit.ToLocation.Map] = onto;
+                    }
+
+                    onto.Add(index);
+                }
             }
         }
 
@@ -341,6 +365,32 @@ internal sealed class PortalGraph
                             firstEnd + j,
                             EdgeType.Blink,
                             float.MaxValue));
+            }
+        }
+
+        //an end on a floor the server has not sent yet has no ground to walk to, only the spawns its stairs land on: a
+        //door whose landing lies inside the end joins it directly
+        for (var j = 0; j < endList.Count; j++)
+        {
+            if (scratch.EndMesh[j] is not null)
+                continue;
+
+            var end = endList[j];
+            var endPoint = new Point(end.X, end.Y);
+
+            foreach (var departure in NodesOn(DeparturesOntoUnsent, end.Map))
+            {
+                var exit = Nodes[departure].Exit!;
+
+                if (endPoint.Distance(new Point(exit.ToLocation.X, exit.ToLocation.Y)) > end.Radius)
+                    continue;
+
+                scratch.SearchEdges.Add(
+                    new Edge(
+                        departure,
+                        firstEnd + j,
+                        exit.Type == ExitType.Door ? EdgeType.Door : EdgeType.Transport,
+                        CONSTANTS.TRANSPORT_HEURISTIC));
             }
         }
 
@@ -624,6 +674,22 @@ internal sealed class PortalGraph
                 case EdgeType.Door:
                 case EdgeType.Transport:
                 {
+                    //onto a floor not sent yet: the landing is the end itself, and an end is the last node
+                    if (edge.To >= firstEnd)
+                    {
+                        var target = endList[edge.To - firstEnd];
+
+                        result.Add(
+                            new PathEdge(
+                                edge.Type,
+                                Nodes[edge.From].Location,
+                                target,
+                                edge.Cost));
+                        cursor = target;
+
+                        break;
+                    }
+
                     var arrival = Nodes[edge.To];
 
                     result.Add(
