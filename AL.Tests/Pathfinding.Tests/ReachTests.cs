@@ -146,6 +146,10 @@ public class ReachTests
             out cy);
         sink += cx + cy;
 
+        //empties this thread's allocation buffer. Under the full parallel suite the counter below otherwise jumps once
+        //by the buffer's unused remainder partway through the loop, with nothing in the loop allocating
+        GC.Collect();
+
         var before = GC.GetAllocatedBytesForCurrentThread();
 
         for (var i = 0; i < 10_000; i++)

@@ -2891,6 +2891,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>Asynchronously moves to a given point.</summary>
     /// <param name="point">The point to move to.</param>
     /// <param name="token">A token used to cancel this action.</param>
+    /// <param name="skipWallCheck">
+    ///     Specifies whether the leg is sent without first testing it for a wall crossing, leaving the server to accept the
+    ///     move or kill the character for it.
+    /// </param>
     /// <returns>
     ///     <see cref="IPoint" />
     ///     <br />
@@ -2899,7 +2903,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">Failed to move to {point}. ({reason})</exception>
     [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
     [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-    public async Task MoveAsync(IPoint point, CancellationToken? token = null)
+    public async Task MoveAsync(IPoint point, CancellationToken? token = null, bool skipWallCheck = false)
     {
         //the game's own client refuses the move outright while the dungeon is paused for a vote
         if (Character.Cave is { Paused: true })
@@ -3086,7 +3090,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var fromLoc = new Location(currentMap, new Point(from.X, from.Y));
 
         //a map with no mesh cannot answer, and refusing every walk on one would strand the character there
-        if (Pathfinder.GetNavMesh(currentMap) is not null)
+        if (!skipWallCheck && Pathfinder.GetNavMesh(currentMap) is not null)
         {
             //CanMove traces outward from the start's own cell and refuses on the first walled one, so a character the
             //raster puts inside a wall is refused every destination, the ones leading back out included. FillWalls
@@ -3094,7 +3098,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (Pathfinder.IsWall(fromLoc))
                 Logger.Warn($"Walking from {fromLoc} to {goingLoc} unguarded. (the raster has this standing inside a wall)");
             else if (!Pathfinder.CanMove(fromLoc, goingLoc))
-                throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. (leg crosses a wall)");
+                throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. ({WALL_REFUSAL})");
         }
 
         await Socket.EmitAsync(
@@ -4091,6 +4095,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         townBlockedOn,
                         cancellationToken);
 
+                //the planner and the line test disagree about the ground here, so every plan from this spot starts with
+                //the same refused leg and the character never moves again. Sent unchecked, the server either accepts it
+                //or kills the character, and both end the loop
+                else if ((edgesWalked == 0)
+                         && (edge.Type == EdgeType.Walk)
+                         && !Character.Moving
+                         && e.Message.ContainsI(WALL_REFUSAL)
+                         && CountWedged())
+                {
+                    Logger.Warn(
+                        $"Wedged at {Character.ToLocation()}: every route out starts across a wall. Sending the leg to {edge.End} unchecked.");
+
+                    await MoveAsync(edge.End, cancellationToken, true);
+                }
+
                 break;
             }
 
@@ -5072,6 +5091,43 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     private bool TownRecentlyFailedOn(string map)
         => TownFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
+
+    /// <summary>
+    ///     The reason <see cref="MoveAsync" /> gives when it refuses a leg for crossing a wall.
+    /// </summary>
+    private const string WALL_REFUSAL = "leg crosses a wall";
+
+    /// <summary>
+    ///     How many wall refusals in a row, standing on one spot, mark the character as wedged. A lane polls at 10Hz, so this
+    ///     is about a second of standing still.
+    /// </summary>
+    private const int WEDGED_REFUSALS = 10;
+
+    /// <summary>
+    ///     Where the current run of wall refusals started, and how long it is.
+    /// </summary>
+    private (Point At, int Refusals) Wedge;
+
+    /// <summary>
+    ///     Counts a wall refusal at the character's position.
+    /// </summary>
+    /// <returns>
+    ///     true once <see cref="WEDGED_REFUSALS" /> have landed on one spot, which also starts the count again; otherwise,
+    ///     false.
+    /// </returns>
+    private bool CountWedged()
+    {
+        var here = Character.ToPoint();
+
+        Wedge = (Wedge.Refusals > 0) && (Wedge.At.Distance(here) < 1f) ? (Wedge.At, Wedge.Refusals + 1) : (here, 1);
+
+        if (Wedge.Refusals < WEDGED_REFUSALS)
+            return false;
+
+        Wedge = default;
+
+        return true;
+    }
 
     /// <summary>
     ///     How often the wait at a blink leg re-reads the bar and the cooldown.

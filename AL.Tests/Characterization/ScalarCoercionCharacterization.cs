@@ -2,6 +2,7 @@
 using AL.APIClient.Model;
 using AL.SocketClient.SocketModel;
 using FluentAssertions;
+using JetBrains.Annotations;
 using StjJsonException = System.Text.Json.JsonException;
 #endregion
 
@@ -160,8 +161,13 @@ public sealed class ScalarCoercionCharacterization
 
     private sealed record StringBox
     {
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
-        public string V { get; } = null!;
+        public string V
+        {
+            get;
+
+            [UsedImplicitly]
+            set;
+        } = null!;
     }
 
     #region Real production DTOs receiving these shapes

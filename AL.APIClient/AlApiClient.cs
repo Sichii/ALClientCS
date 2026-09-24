@@ -28,6 +28,11 @@ public sealed class AlApiClient : IAlApiClient
     private static readonly ILog Logger = LogManager.GetLogger<AlApiClient>();
 
     /// <summary>
+    ///     The shortest gap between two logins <see cref="PostAsync" /> makes for a dead cookie.
+    /// </summary>
+    private static readonly TimeSpan RENEW_COOLDOWN = TimeSpan.FromMinutes(5);
+
+    /// <summary>
     ///     Keyed by host, so a caller pointed at a different server is not served the public one's tables.
     /// </summary>
     private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> GameDataCache = new();
@@ -43,6 +48,11 @@ public sealed class AlApiClient : IAlApiClient
     private readonly SemaphoreSlim Sync;
 
     private DateTime LastUpdate;
+
+    /// <summary>
+    ///     When <see cref="PostAsync" /> last logged in again for a dead cookie.
+    /// </summary>
+    private DateTime LastRenewal = DateTime.MinValue;
 
     private ServersAndCharactersResponse? ServersAndCharacters;
 
@@ -102,16 +112,7 @@ public sealed class AlApiClient : IAlApiClient
                     cursor = result.Cursor
                 };
 
-            var request = new APIRequest(
-                Method.Post,
-                APIMethod.PullMail,
-                arguments,
-                Auth,
-                CookieDomain);
-
-            var response = await Client.ExecutePostAsync(request);
-
-            result = ReadNotifications(response)
+            result = (await PostAsync(APIMethod.PullMail, arguments))
                 .Deserialize<MailResponse[]>(ApiJson.Options)![0];
 
             foreach (var mail in result.Mail)
@@ -125,16 +126,7 @@ public sealed class AlApiClient : IAlApiClient
     {
         Logger.Info("Fetching merchants");
 
-        var request = new APIRequest(
-            Method.Post,
-            APIMethod.PullMerchants,
-            null,
-            Auth,
-            CookieDomain);
-
-        var response = await Client.ExecutePostAsync(request);
-
-        (var merchantList, _) = ReadNotifications(response)
+        (var merchantList, _) = (await PostAsync(APIMethod.PullMerchants, null))
             .Deserialize<(MerchantList, string)>(ApiJson.Options);
 
         foreach (var merchant in merchantList.Merchants)
@@ -152,16 +144,7 @@ public sealed class AlApiClient : IAlApiClient
 
             Logger.Info("Fetching servers and characters");
 
-            var request = new APIRequest(
-                Method.Post,
-                APIMethod.ServersAndCharacters,
-                null,
-                Auth,
-                CookieDomain);
-
-            var response = await Client.ExecutePostAsync(request);
-
-            ServersAndCharacters = ReadNotifications(response)
+            ServersAndCharacters = (await PostAsync(APIMethod.ServersAndCharacters, null))
                 .Deserialize<ServersAndCharactersResponse[]>(ApiJson.Options)![0];
 
             LastUpdate = DateTime.UtcNow;
@@ -342,6 +325,54 @@ public sealed class AlApiClient : IAlApiClient
     ///     Every response is an object of the form <c>{ success|failed, reason?, infs:[...] }</c> . Handlers push their real
     ///     payload into <c>infs</c> and return only a status on the envelope.
     /// </remarks>
+    /// <summary>
+    ///     Asynchronously posts one api call and unwraps it, logging in again once if the server no longer knows this
+    ///     client's cookie.
+    /// </summary>
+    /// <remarks>
+    ///     A cookie dies while the process holds it: the server keeps 200 cookies per account and clears the whole list when
+    ///     a login would add the next one (<c>get_new_auth</c>), and <c>logout_everywhere</c> clears it outright. Every
+    ///     later call, and every socket login, then fails <c>not_logged_in</c> until something logs in again.
+    /// </remarks>
+    private async Task<JsonArray> PostAsync(APIMethod method, object? arguments)
+    {
+        var response = await Client.ExecutePostAsync(
+            new APIRequest(
+                Method.Post,
+                method,
+                arguments,
+                Auth,
+                CookieDomain));
+
+        if (!IsNotLoggedIn(response))
+            return ReadNotifications(response);
+
+        var now = DateTime.UtcNow;
+
+        //floored so a login that keeps getting refused cannot add a cookie on every call and push the account's
+        //list toward its wipe; a caller inside the floor retries on whatever cookie a concurrent renewal left
+        if ((now - LastRenewal) >= RENEW_COOLDOWN)
+        {
+            LastRenewal = now;
+            await RenewAuth();
+        }
+
+        response = await Client.ExecutePostAsync(
+            new APIRequest(
+                Method.Post,
+                method,
+                arguments,
+                Auth,
+                CookieDomain));
+
+        return ReadNotifications(response);
+    }
+
+    private static bool IsNotLoggedIn(RestResponse response)
+        => response.IsSuccessful
+           && !string.IsNullOrEmpty(response.Content)
+           && response.Content.Contains("\"not_logged_in\"", StringComparison.Ordinal);
+
     private static JsonArray ReadNotifications(RestResponse response)
     {
         if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))

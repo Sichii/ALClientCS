@@ -4,6 +4,7 @@ using AL.Core.Definitions;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using FluentAssertions;
+using JetBrains.Annotations;
 #endregion
 
 namespace AL.Tests.Characterization;
@@ -274,7 +275,13 @@ public class CollectionIdentityCharacterization
     private sealed class SeededListHolder
     {
         [JsonPropertyName("values")]
-        public List<int> Values { get; } =
+        public List<int> Values
+        {
+            get;
+
+            [UsedImplicitly]
+            set;
+        } =
             [
                 1,
                 2,
