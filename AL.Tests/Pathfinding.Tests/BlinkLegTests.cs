@@ -1,6 +1,8 @@
 #region
 using System.Text.Json;
+using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Core.Interfaces;
 using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
@@ -52,7 +54,7 @@ public class BlinkLegTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     A long walk on one map is one blink to the destination object itself, carrying the walked length it replaces.
+    ///     A long walk on one map is one blink to the destination, carrying the walked length it replaces.
     /// </summary>
     [Test]
     public void ALongWalkOnOneMapIsOneBlinkToTheDestination()
@@ -74,13 +76,46 @@ public class BlinkLegTests : PathfindingTestBed
              .Should()
              .Be(start);
 
-        blink.End
-             .Should()
-             .Be(end);
+        ILocation.ToString(blink.End)
+                 .Should()
+                 .Be(ILocation.ToString(end));
 
         blink.Cost
              .Should()
              .BeGreaterThan(400f);
+    }
+
+    /// <summary>
+    ///     A blink to an end with a radius lands inside the radius on the caster's side, not on the end's centre. Where the
+    ///     server would refuse the edge itself, the landing moves further in, so only the side is pinned.
+    /// </summary>
+    [Test]
+    public void ABlinkToAnEndLandsInsideItsRadiusOnTheNearSide()
+    {
+        var start = new Location("main", 0, 0);
+        var end = new Destination(new Location("main", 0, 1400), 350);
+
+        var blink = Pathfinder.FindPath(start, [end], BLINK_AT_400)
+                              .Should()
+                              .ContainSingle()
+                              .Which;
+
+        blink.Type
+             .Should()
+             .Be(EdgeType.Blink);
+
+        var fromEnd = new Point(blink.End.X, blink.End.Y).Distance(new Point(end.X, end.Y));
+
+        fromEnd.Should()
+               .BeLessThanOrEqualTo(350f);
+
+        fromEnd.Should()
+               .BeGreaterThan(0f);
+
+        blink.End
+             .Y
+             .Should()
+             .BeLessThan(end.Y);
     }
 
     /// <summary>

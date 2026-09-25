@@ -1,6 +1,6 @@
 #region
+using System.Reflection;
 using AL.Client.Extensions;
-using AL.Data;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using AL.Tests.Characterization;
@@ -17,14 +17,16 @@ namespace AL.Tests.Client.Tests;
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public class ProjectileMitigationTests
 {
+    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
+
     [Before(Class)]
     public static void EnsureGameData()
-    {
         //same guard as GameDataTestBed, but from the committed snapshot so no credentials are needed. the
         //assertions below survive either data source - a warrior deals physical damage in both
-        if (GameData.Version == 0)
-            GameData.Populate(Fixture.GameDataJson);
-    }
+        => CapturedGameData = Fixture.LoadGameDataIfEmpty();
+
+    [After(Class)]
+    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 
     [Test]
     public void WillDieToProjectilesCountsPierceTwice()

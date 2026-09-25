@@ -1,4 +1,5 @@
 #region
+using System.Reflection;
 using AL.APIClient.Interfaces;
 using AL.APIClient.Model;
 using AL.APIClient.Response;
@@ -6,7 +7,6 @@ using AL.Client;
 using AL.Client.Model;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
-using AL.Data;
 using AL.SocketClient;
 using AL.SocketClient.Model;
 using AL.Tests.Characterization;
@@ -154,13 +154,15 @@ public class BankIndexTests
         return client;
     }
 
+    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
+
     [Before(Class)]
     public static void EnsureGameData()
-    {
         //from the committed snapshot so no credentials are needed, the way ProjectileMitigationTests does it
-        if (GameData.Version == 0)
-            GameData.Populate(Fixture.GameDataJson);
-    }
+        => CapturedGameData = Fixture.LoadGameDataIfEmpty();
+
+    [After(Class)]
+    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 
     private static InventoryIndexer Indexed(string name, string? data = null)
         => new()

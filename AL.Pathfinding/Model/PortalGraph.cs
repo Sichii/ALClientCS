@@ -564,14 +564,16 @@ internal sealed class PortalGraph
                 {
                     if (edge.To >= firstEnd)
                     {
-                        var target = endList[edge.To - firstEnd];
+                        var endIndex = edge.To - firstEnd;
+                        var target = endList[endIndex];
                         var ruler = cursorPoint.Distance(new Point(target.X, target.Y));
+                        var landing = EndLanding(scratch.EndMesh[endIndex]!, target, cursorPoint);
 
                         result.Add(
                             new PathEdge(
                                 EdgeType.Blink,
                                 cursor,
-                                target,
+                                new Location(target.Map, landing),
                                 edge.Type == EdgeType.Blink ? ruler : edge.Cost));
                         cursor = target;
                     } else
@@ -1345,6 +1347,22 @@ internal sealed class PortalGraph
 
         //nothing in the reach takes one, so the leg keeps the entry and the refusal it earns is what turns blink off here
         return entry;
+    }
+
+    /// <summary>
+    ///     Where a blink aimed at a route's end is sent: the edge of the end's radius nearest the caster, pulled in by a
+    ///     lattice step so the server's rounding keeps it inside.
+    /// </summary>
+    /// <remarks>
+    ///     An end is somewhere to be within range of, not a point to stand on: aimed at the centre, a mage headed for an NPC
+    ///     lands on top of it.
+    /// </remarks>
+    private static Point EndLanding(NavMesh mesh, ICircle end, Point from)
+    {
+        var reach = Reach.Circle(end.X, end.Y, Math.Max(0f, end.Radius - BLINK_LATTICE));
+        (var x, var y) = reach.NearEdge(from.X, from.Y);
+
+        return BlinkLanding(mesh, reach, new Point(x, y));
     }
 
     /// <summary>

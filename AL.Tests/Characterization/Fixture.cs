@@ -1,5 +1,7 @@
 #region
+using System.Reflection;
 using System.Text.Json.Nodes;
+using AL.Data;
 using FluentAssertions;
 #endregion
 
@@ -29,6 +31,40 @@ public static class Fixture
 
     /// <summary>Path to the snapshot on disk.</summary>
     public static string GameDataPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "data.json");
+
+    /// <summary>
+    ///     Every mutable static behind <see cref="AL.Data.GameData" />, which a load writes and a restore puts back.
+    /// </summary>
+    private static readonly FieldInfo[] GameDataStatics = typeof(GameData).GetFields(BindingFlags.Static | BindingFlags.NonPublic)
+                                                                          .Where(field => field is { IsLiteral: false, IsInitOnly: false })
+                                                                          .ToArray();
+
+    /// <summary>
+    ///     Loads the snapshot into <see cref="AL.Data.GameData" /> when nothing has loaded it yet, and returns what was there
+    ///     before for <see cref="RestoreGameData" />.
+    /// </summary>
+    /// <remarks>
+    ///     Left loaded, the snapshot stands in for the live data every later <see cref="GameDataTestBed" /> skips loading, and
+    ///     the pathfinder is built on the snapshot's maps rather than the live ones its recorded routes were found on.
+    /// </remarks>
+    public static Dictionary<FieldInfo, object?> LoadGameDataIfEmpty()
+    {
+        var captured = GameDataStatics.ToDictionary(field => field, field => field.GetValue(null));
+
+        if (AL.Data.GameData.Version == 0)
+            AL.Data.GameData.Populate(GameDataJson);
+
+        return captured;
+    }
+
+    /// <summary>
+    ///     Puts back the <see cref="AL.Data.GameData" /> that <see cref="LoadGameDataIfEmpty" /> found.
+    /// </summary>
+    public static void RestoreGameData(Dictionary<FieldInfo, object?> captured)
+    {
+        foreach ((var field, var value) in captured)
+            field.SetValue(null, value);
+    }
 
     /// <summary>
     ///     A single entry from a top-level section, e.g. <c>Entry("items", "fireblade")</c> .
