@@ -55,7 +55,10 @@ public class BlinkCorpusTests : PathfindingTestBed
                  })
             foreach (var setting in corpus.Settings)
             {
-                var clock = setting.ToClock();
+                var clock = setting.ToClock() with
+                {
+                    MinBlinkCost = floor
+                };
                 var recordedFloor = floor == corpus.Floor;
                 var rows = new List<Row>();
 

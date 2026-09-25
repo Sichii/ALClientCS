@@ -20,10 +20,11 @@ public sealed record PathOptions
     };
 
     /// <summary>
-    ///     The shortest walk worth a blink, or null for a route with no blink in it. A cast is priced at the time it takes
-    ///     (the wait for the cooldown, the penalty and the bar, plus the landing) and nothing else. This is a rule, not a
-    ///     price: a cast may replace only a walk at least this long, may not land nearer than this to where the route
-    ///     entered the map, and may not be chained around it by leaving a map and coming back.
+    ///     The shortest walk worth a blink, and the least a cast is priced at, or null for a route with no blink in it. A cast
+    ///     is priced at the time it takes (the wait for the cooldown, the penalty and the bar, plus the landing) when that
+    ///     comes to more, so a recall and a short walk still beat a ready cast that spends the mana for less. A cast may
+    ///     replace only a walk at least this long; the least price is what keeps a short walk from being split into casts by
+    ///     a recall or a door and back.
     /// </summary>
     public float? BlinkCost { get; init; }
 

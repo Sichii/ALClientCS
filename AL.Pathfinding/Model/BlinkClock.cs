@@ -68,23 +68,10 @@ internal readonly struct BlinkClock
     {
         spentMs = 0f;
         after = state;
-        var waitMs = state.BlinkReadyInMs;
+        var waitMs = WaitMs(state);
 
-        if (Tracked)
-        {
-            var need = BlinkMp + Reserve;
-
-            if (need > MaxMp)
-                return false;
-
-            if (state.Mp < need)
-            {
-                if (MpPerSecond <= 0f)
-                    return false;
-
-                waitMs = Math.Max(waitMs, (need - state.Mp) / MpPerSecond * 1000f);
-            }
-        }
+        if (float.IsPositiveInfinity(waitMs))
+            return false;
 
         var cast = Pass(state, waitMs);
 
@@ -97,6 +84,57 @@ internal readonly struct BlinkClock
         spentMs = waitMs + CONSTANTS.BLINK_LANDING_MS;
 
         return true;
+    }
+
+    /// <summary>
+    ///     How long from <paramref name="state" /> until a cast can go out: the cooldown, and the refill a tracked bar needs;
+    ///     infinity when the bar can never hold one.
+    /// </summary>
+    public float WaitMs(TravelState state)
+    {
+        if (!Tracked)
+            return state.BlinkReadyInMs;
+
+        var need = BlinkMp + Reserve;
+
+        if (need > MaxMp)
+            return float.PositiveInfinity;
+
+        if (state.Mp >= need)
+            return state.BlinkReadyInMs;
+
+        if (MpPerSecond <= 0f)
+            return float.PositiveInfinity;
+
+        return Math.Max(state.BlinkReadyInMs, (need - state.Mp) / MpPerSecond * 1000f);
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="a" /> is at least as ready as <paramref name="b" /> now, and at the moment each could next
+    ///     cast: no later, with no more penalty still pending and no less in the bar.
+    /// </summary>
+    /// <remarks>
+    ///     Readiness now is not enough once a cast has a least price: a wait the price absorbs costs nothing, and the penalty
+    ///     that runs down during it leaves the cast after it ready sooner. The moment of the next cast holds both. Walking
+    ///     leaves the penalty and the bar at that moment unchanged, so the comparison holds until one of them casts.
+    /// </remarks>
+    public bool AtLeastAsWellPlaced(TravelState a, TravelState b)
+    {
+        if (!AtLeastAsReady(a, b))
+            return false;
+
+        var waitB = WaitMs(b);
+
+        //b can never cast, so nothing after this point favours it
+        if (float.IsPositiveInfinity(waitB))
+            return true;
+
+        var waitA = WaitMs(a);
+
+        if (Math.Max(0f, a.PenaltyMs - waitA) > Math.Max(0f, b.PenaltyMs - waitB))
+            return false;
+
+        return !Tracked || (Math.Min(MaxMp, a.Mp + MpPerSecond * waitA / 1000f) >= Math.Min(MaxMp, b.Mp + MpPerSecond * waitB / 1000f));
     }
 
     /// <summary>

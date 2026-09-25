@@ -132,6 +132,43 @@ public class BlinkClockTests : GameDataTestBed
     }
 
     /// <summary>
+    ///     Ready now but 3000ms of penalty still pending loses to a cast 2000ms off with 3500ms pending, since 1500ms is all
+    ///     that is left when that one casts: its next cast is ready 2500ms after landing against 4000ms. With 1000ms pending,
+    ///     the ready one wins.
+    /// </summary>
+    [Test]
+    public void AWaitThatRunsThePenaltyDownCanLeaveTheNextCastReadySooner()
+    {
+        var clock = new BlinkClock(UNTRACKED);
+        var readyNow = new TravelState(0f, 3000f, 0f);
+        var waiting = new TravelState(2000f, 3500f, 0f);
+
+        clock.TryBlink(readyNow, out _, out var afterReadyNow);
+        clock.TryBlink(waiting, out _, out var afterWaiting);
+
+        afterReadyNow.BlinkReadyInMs
+                     .Should()
+                     .Be(4000f);
+
+        afterWaiting.BlinkReadyInMs
+                    .Should()
+                    .Be(2500f);
+
+        clock.AtLeastAsWellPlaced(readyNow, waiting)
+             .Should()
+             .BeFalse();
+
+        clock.AtLeastAsWellPlaced(
+                 readyNow with
+                 {
+                     PenaltyMs = 1000f
+                 },
+                 waiting)
+             .Should()
+             .BeTrue();
+    }
+
+    /// <summary>
     ///     One state is at least as ready as another only when neither timer is later and the bar is no lower.
     /// </summary>
     [Test]

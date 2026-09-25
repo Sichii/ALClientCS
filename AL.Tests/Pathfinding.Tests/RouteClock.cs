@@ -6,7 +6,8 @@ using AL.Pathfinding.Model;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     The starting state and pricing inputs one trip is timed under.
+///     The starting state and pricing inputs one trip is timed under. <c>MinBlinkCost</c> is the least a cast is priced at
+///     in walk units, the route's blink floor; zero prices a cast at its time alone.
 /// </summary>
 public sealed record ClockSettings(
     float Speed,
@@ -15,7 +16,8 @@ public sealed record ClockSettings(
     float? MpPerSecond,
     float Mp,
     float MaxMp,
-    float Reserve);
+    float Reserve,
+    float MinBlinkCost = 0f);
 
 /// <summary>
 ///     Times a route under the server's rules, restated here rather than read from the search, so a wrong search cannot
@@ -35,7 +37,7 @@ public static class RouteClock
 
     /// <summary>
     ///     The seconds the route takes, and its price in walk units: those seconds times speed, plus each door leg's own cost
-    ///     and the recall's premium.
+    ///     and the recall's premium, and whatever lifts a cast's time to <see cref="ClockSettings.MinBlinkCost" />.
     /// </summary>
     public static (double Seconds, double Price) Measure(IReadOnlyList<PathEdge> legs, ClockSettings settings)
     {
@@ -104,6 +106,7 @@ public static class RouteClock
                         mp -= BLINK_MP;
 
                     Pass(BLINK_LANDING_MS);
+                    extras += Math.Max(0, settings.MinBlinkCost - (waitMs + BLINK_LANDING_MS) / 1000.0 * settings.Speed);
                     penaltyMs = Math.Min(PENALTY_CAP_MS, penaltyMs + EFFECT_PENALTY_MS);
 
                     break;

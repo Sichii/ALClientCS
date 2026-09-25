@@ -50,11 +50,6 @@ internal sealed class SearchScratch
     public List<int>[] NodeArrivals = [];
 
     /// <summary>
-    ///     Each node's map, as the portal graph's map index.
-    /// </summary>
-    public int[] NodeMap = [];
-
-    /// <summary>
     ///     Where each node's edges start in <see cref="SearchEdges" /> once <see cref="IndexSearchEdges" /> has sorted them.
     /// </summary>
     public int[] SearchEdgeStart = [];
@@ -140,7 +135,6 @@ internal sealed class SearchScratch
             Array.Copy(NodeArrivals, grown, NodeArrivals.Length);
             NodeArrivals = grown;
             SearchEdgeStart = new int[nodes + 1];
-            NodeMap = new int[nodes];
             LowerBound = new float[nodes];
         }
 
@@ -188,27 +182,6 @@ internal sealed class SearchScratch
         ///     The blink cooldown, the pending penalty and the bar on arrival.
         /// </summary>
         public TravelState State;
-
-        /// <summary>
-        ///     The start or arrival node where the route last entered the current map, which the floor measures a cast's landing
-        ///     from; -1 at a departure or an end, and whenever the floor rules are off.
-        /// </summary>
-        public int Anchor;
-
-        /// <summary>
-        ///     The maps the route has been on, one bit per map index; empty whenever the floor rules are off.
-        /// </summary>
-        public UInt128 Visited;
-
-        /// <summary>
-        ///     The maps visited before the route's most recent blink, which the route may not enter again.
-        /// </summary>
-        public UInt128 Closed;
-
-        /// <summary>
-        ///     Whether the current stay on this map is a return to it, which may not blink.
-        /// </summary>
-        public bool Revisit;
 
         /// <summary>
         ///     The arrival this one came from, or -1 for the start.

@@ -142,12 +142,11 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   funnelled at build, town and leave edges, and a blink-only edge wherever no walk joins an arrival to an exit. A search
   adds a virtual start and its ends, runs Dijkstra over arrivals with `PathOptions` pricing recall and blink against the
   walks (a walk at least `BlinkCost` long is offered both walked and cast, the cast priced at its real time from the
-  cooldown, `penalty_cd` and optionally the bar; `BlinkCost` is the shortest walk worth a cast, enforced by floor rules:
-  a cast lands at least that far from where the route entered the map, never on a return to a map, and no door leads
-  back into a map visited before a cast; a node keeps every arrival no other beats on cost, readiness and that history.
-  With blink on, an A* lower bound orders the queue and a pass without the history runs first, its route kept when it
-  obeys the rules), and expands the winner into `PathEdge`s. Any of N ends: the first taken wins. Blink off leaves the
-  route untouched.
+  cooldown, `penalty_cd` and optionally the bar, never under `BlinkCost`; that least price is what keeps a short walk
+  from being split into casts by a recall or a door and back. A node keeps every arrival no other beats on cost and on
+  readiness, both now and at the moment of its next cast, since a wait the least price absorbs lets the penalty run
+  down. With blink on, an A* lower bound orders the queue), and expands the winner into `PathEdge`s. Any of N ends:
+  the first taken wins. Blink off leaves the route untouched.
 
 `PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the `Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
 

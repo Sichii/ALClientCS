@@ -259,8 +259,8 @@ public class BlinkLegTests : PathfindingTestBed
 
     /// <summary>
     ///     389 units of walking from (1891, -47) on main is under the 400 floor. A recall to main's spawn and a cast back from
-    ///     there would take 3.2s against 6.5s on foot, and the cast replaces a walk far over the floor, but it lands 389 units
-    ///     from where the route stood on main, so it is refused and the trip is walked.
+    ///     there would take 3.2s against 6.5s on foot, and the cast replaces a walk far over the floor, but the recall's 216
+    ///     and the cast's 400 come to more than the walk, so the trip is walked.
     /// </summary>
     [Test]
     public void ARecallToSpawnCannotSplitAShortWalkIntoACast()
@@ -340,14 +340,20 @@ public class BlinkLegTests : PathfindingTestBed
     /// <summary>
     ///     Trip 100 leaves duelland by a door 444 units away and blinks twice beyond it. Rested, the first cast goes straight
     ///     to the door. With 10s of penalty pending, a cast there would leave the next one 11.2s off; walking the 7.4s lets
-    ///     the penalty run down first, and the route is faster for it.
+    ///     the penalty run down first, and the route is faster for it. Recall is off: out of duelland it undercuts a first
+    ///     cast priced at the floor.
     /// </summary>
     [Test]
     public async Task WalkingToADoorBeatsBlinkingWhenItLeavesTheNextCastReadySooner()
     {
         var trip = await LoadTripAsync(100);
 
-        var rested = Pathfinder.FindPath(trip.Start, [trip.End], SPEED_60_BLINK);
+        var noTown = SPEED_60_BLINK with
+        {
+            UseTown = false
+        };
+
+        var rested = Pathfinder.FindPath(trip.Start, [trip.End], noTown);
 
         rested[0]
             .Type
@@ -362,7 +368,7 @@ public class BlinkLegTests : PathfindingTestBed
         var pending = Pathfinder.FindPath(
             trip.Start,
             [trip.End],
-            SPEED_60_BLINK with
+            noTown with
             {
                 PenaltyMs = 10000f
             });
@@ -414,8 +420,8 @@ public class BlinkLegTests : PathfindingTestBed
 
     /// <summary>
     ///     A 300 unit walk under a 400 floor is walked, though casts would land in a fraction of the time. Blinking to the
-    ///     tavern door, through it and back, and on to the target would replace two walks over the floor; the first cast
-    ///     closes main, so the door back is refused.
+    ///     tavern door, through it and back, and on to the target would replace two walks over the floor, but two casts at 400
+    ///     each come to more than the walk.
     /// </summary>
     [Test]
     public void AWalkShorterThanTheFloorIsWalked()
