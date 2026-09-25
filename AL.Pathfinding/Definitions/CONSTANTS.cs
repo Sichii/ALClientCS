@@ -13,6 +13,34 @@ public static class CONSTANTS
     public const float TOWN_CHANNEL_SECONDS = 3f;
 
     /// <summary>
+    ///     The <c>penalty_cd</c> a door, transporter or <c>leave</c> adds on landing (<c>transport_player_to</c>,
+    ///     <c>node/server.js</c>).
+    /// </summary>
+    public const float DOOR_PENALTY_MS = 3200f;
+
+    /// <summary>
+    ///     The <c>penalty_cd</c> a blink, magiport or recall adds on landing (<c>transport_player_to</c>,
+    ///     <c>node/server.js</c>).
+    /// </summary>
+    public const float EFFECT_PENALTY_MS = 812f;
+
+    /// <summary>
+    ///     The most <c>penalty_cd</c> the server lets pile up (<c>transport_player_to</c>, <c>node/server.js</c>).
+    /// </summary>
+    public const float PENALTY_CAP_MS = 120000f;
+
+    /// <summary>
+    ///     The most of the pending <c>penalty_cd</c> one cast adds to its skill's next ready time (<c>consume_skill</c>,
+    ///     <c>node/server_functions.js</c>).
+    /// </summary>
+    public const float PENALTY_CHARGE_CAP_MS = 10000f;
+
+    /// <summary>
+    ///     How long a blink takes from the cast to the landing (<c>node/server.js</c>).
+    /// </summary>
+    public const float BLINK_LANDING_MS = 200f;
+
+    /// <summary>
     ///     What the channel is priced at over its raw duration.
     /// </summary>
     /// <remarks>

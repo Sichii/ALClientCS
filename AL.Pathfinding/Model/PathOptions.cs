@@ -1,12 +1,12 @@
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     How a route is priced: whether a recall counts as a move, how fast the character walks, and what a blink is worth.
+///     How a route is priced: whether a recall counts as a move, how fast the character walks, and when and how often it
+///     may blink.
 /// </summary>
 /// <remarks>
 ///     A sealed record rather than a record struct, so a missing argument and <c>new PathOptions()</c> both mean "town
-///     on", and <c>default</c> cannot silently mean "town off". <see cref="BlinkMpReserve" /> is the walker's alone: the
-///     search takes the bar as unlimited and prices every cast at <see cref="BlinkCost" />.
+///     on", and <c>default</c> cannot silently mean "town off".
 /// </remarks>
 public sealed record PathOptions
 {
@@ -20,19 +20,45 @@ public sealed record PathOptions
     };
 
     /// <summary>
-    ///     What a blink is worth in walk-distance units, or null for a route with no blink in it. A walk on one map dearer
-    ///     than this comes back as one <see cref="AL.Pathfinding.Definitions.EdgeType.Blink" /> leg to the walk's own target,
-    ///     charged this much; so does a pair on one map that no walk joins. Town and blink are then priced against each other
-    ///     by the same search. Meant to sit at 400 or above: it stands in for the mana the cast spends, and a cast priced at
-    ///     its real time would be taken everywhere.
+    ///     The shortest walk worth a blink, or null for a route with no blink in it. A cast is priced at the time it takes
+    ///     (the wait for the cooldown, the penalty and the bar, plus the landing) and nothing else. This is a rule, not a
+    ///     price: a cast may replace only a walk at least this long, may not land nearer than this to where the route
+    ///     entered the map, and may not be chained around it by leaving a map and coming back.
     /// </summary>
     public float? BlinkCost { get; init; }
 
     /// <summary>
-    ///     Mana the walker leaves in the bar after a cast. It stands still at a blink leg until the bar holds the skill's cost
-    ///     plus this. Read by the walker only.
+    ///     The mana regained per second, which the search refills the bar at between casts; null leaves the bar untracked and
+    ///     unlimited. Tracking reads <see cref="Mp" /> and <see cref="MaxMp" />, so set both with it: a zero maximum can
+    ///     never hold a cast.
+    /// </summary>
+    public float? BlinkMpPerSecond { get; init; }
+
+    /// <summary>
+    ///     Mana left in the bar after a cast. The walker stands still at a blink leg until the bar holds the skill's cost plus
+    ///     this, and the search, when the bar is tracked, charges the same wait.
     /// </summary>
     public float BlinkMpReserve { get; init; }
+
+    /// <summary>
+    ///     How long until blink may be cast at the start, in milliseconds.
+    /// </summary>
+    public float BlinkReadyInMs { get; init; }
+
+    /// <summary>
+    ///     The largest the bar can hold; read only when <see cref="BlinkMpPerSecond" /> is set.
+    /// </summary>
+    public float MaxMp { get; init; }
+
+    /// <summary>
+    ///     The mana in the bar at the start; read only when <see cref="BlinkMpPerSecond" /> is set.
+    /// </summary>
+    public float Mp { get; init; }
+
+    /// <summary>
+    ///     The <c>penalty_cd</c> still pending at the start, in milliseconds.
+    /// </summary>
+    public float PenaltyMs { get; init; }
 
     /// <summary>
     ///     Whether a recall counts as a move. True prices one from anywhere on the route, the start map and every map the
@@ -41,7 +67,8 @@ public sealed record PathOptions
     public bool UseTown { get; init; } = true;
 
     /// <summary>
-    ///     The character's speed, which prices a recall; nominal when null. The walker overwrites it with the character's own.
+    ///     The character's speed, which prices a recall and a blink; nominal when null. The walker overwrites it with the
+    ///     character's own.
     /// </summary>
     public float? WalkSpeed { get; init; }
 }

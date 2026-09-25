@@ -1,4 +1,5 @@
 #region
+using System.Runtime.InteropServices;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
@@ -19,7 +20,25 @@ namespace AL.Pathfinding.Model;
 /// </summary>
 internal sealed class PortalGraph
 {
+    /// <summary>
+    ///     The most maps one graph can hold: the floor rules keep the maps a route has visited as bits of a
+    ///     <see cref="UInt128" />.
+    /// </summary>
+    private const int MAX_MAPS = 128;
+
     private static readonly List<int> EmptyNodes = [];
+
+    /// <summary>
+    ///     Each map's index, the bit it takes in the floor rules' visited and closed sets.
+    /// </summary>
+    private readonly Dictionary<string, int> MapIndex = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Each node's map, as its <see cref="MapIndex" />.</summary>
+    private readonly int[] NodeMap;
+
+    private readonly int[] ReverseEdges;
+    private readonly int[] ReverseStart;
+
     private readonly Dictionary<(string Map, int Spawn), int> ArrivalIndex = new(MapSpawnComparer.Instance);
     private readonly Dictionary<string, List<int>> ArrivalsOnMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<int>> DeparturesOnMap = new(StringComparer.OrdinalIgnoreCase);
@@ -36,6 +55,13 @@ internal sealed class PortalGraph
     public PortalGraph(IReadOnlyDictionary<string, NavMesh> meshes)
     {
         Meshes = meshes;
+
+        if (meshes.Count > MAX_MAPS)
+            throw new InvalidOperationException(
+                $"The portal graph holds {meshes.Count} maps; the blink floor rules track at most {MAX_MAPS}.");
+
+        foreach (var map in meshes.Keys)
+            MapIndex[map] = MapIndex.Count;
 
         foreach ((var map, var mesh) in meshes)
         {
@@ -98,6 +124,34 @@ internal sealed class PortalGraph
         }
 
         (StaticEdges, EdgeStart) = BuildStaticEdges();
+        (ReverseEdges, ReverseStart) = BuildReverseEdges();
+        NodeMap = new int[Nodes.Count];
+
+        for (var i = 0; i < Nodes.Count; i++)
+            NodeMap[i] = MapIndex[Nodes[i].Location.Map];
+    }
+
+    /// <summary>
+    ///     The static edges into each node, as indices into <see cref="StaticEdges" /> in CSR form by <see cref="Edge.To" />,
+    ///     for the backward search behind the lower bounds.
+    /// </summary>
+    private (int[] Edges, int[] Start) BuildReverseEdges()
+    {
+        var start = new int[Nodes.Count + 1];
+
+        foreach (var edge in StaticEdges)
+            start[edge.To + 1]++;
+
+        for (var i = 1; i < start.Length; i++)
+            start[i] += start[i - 1];
+
+        var edges = new int[StaticEdges.Length];
+        var next = (int[])start.Clone();
+
+        for (var i = 0; i < StaticEdges.Length; i++)
+            edges[next[StaticEdges[i].To]++] = i;
+
+        return (edges, start);
     }
 
     private void AddArrival(NavMesh mesh, GMap map, int spawnIndex)
@@ -250,8 +304,6 @@ internal sealed class PortalGraph
         var scratch = SearchScratch.Rent();
         var townCost = CONSTANTS.TownCost(options.WalkSpeed ?? CONSTANTS.NOMINAL_WALK_SPEED);
 
-        //no cast is worth more than any walk, so a price nothing exceeds is the same as no blink at all
-        var blinkCost = options.BlinkCost ?? float.MaxValue;
         var blinkOn = options.BlinkCost is not null;
         var result = new List<PathEdge>();
 
@@ -423,59 +475,68 @@ internal sealed class PortalGraph
                     EdgeType.Leave,
                     CONSTANTS.TRANSPORT_HEURISTIC));
 
-        //dijkstra over the nodes; the first end settled is the cheapest
-        scratch.NodeCost[startNode] = 0f;
-        scratch.NodeQueue.Enqueue(startNode, 0f);
-        var winner = -1;
+        var nodeCount = firstEnd + endList.Count;
+        scratch.IndexSearchEdges(nodeCount);
 
-        while (scratch.NodeQueue.TryDequeue(out var node, out var cost))
+        Array.Copy(NodeMap, scratch.NodeMap, Nodes.Count);
+        scratch.NodeMap[startNode] = MapIndex[start.Map];
+
+        //an end that resolved nowhere has no edges, so its map is never read
+        for (var j = 0; j < endList.Count; j++)
+            scratch.NodeMap[firstEnd + j] = MapIndex.GetValueOrDefault(endList[j].Map);
+
+        if (blinkOn)
+            ComputeLowerBounds(
+                scratch,
+                startNode,
+                firstEnd,
+                nodeCount,
+                options,
+                townCost);
+
+        //the floor rules only ever remove routes, so a route found without them that obeys them anyway is the cheapest
+        //legal one, and the dearer search that tracks them runs only when it does not
+        var winner = Search(
+            scratch,
+            new ArrivalSearch(
+                this,
+                scratch,
+                options,
+                townCost,
+                startNode,
+                false),
+            options,
+            firstEnd);
+
+        if (blinkOn
+            && (winner >= 0)
+            && !ObeysFloorRules(
+                scratch,
+                winner,
+                startNode,
+                options.BlinkCost!.Value))
         {
-            if (cost > scratch.NodeCost[node])
-                continue;
+            scratch.ResetArrivals(nodeCount);
 
-            if (node >= firstEnd)
-            {
-                winner = node;
-
-                break;
-            }
-
-            if (node < Nodes.Count)
-                for (var i = EdgeStart[node]; i < EdgeStart[node + 1]; i++)
-                    Relax(
-                        StaticEdges[i],
-                        i,
-                        cost,
-                        townCost,
-                        options.UseTown,
-                        blinkCost,
-                        scratch);
-
-            for (var i = 0; i < scratch.SearchEdges.Count; i++)
-                if (scratch.SearchEdges[i].From == node)
-                    Relax(
-                        scratch.SearchEdges[i],
-                        StaticEdges.Length + i,
-                        cost,
-                        townCost,
-                        options.UseTown,
-                        blinkCost,
-                        scratch);
+            winner = Search(
+                scratch,
+                new ArrivalSearch(
+                    this,
+                    scratch,
+                    options,
+                    townCost,
+                    startNode,
+                    true),
+                options,
+                firstEnd);
         }
 
         if (winner < 0)
             throw new InvalidOperationException($"No path from {ILocation.ToString(start)} to any of {endList.Count} end(s).");
 
-        //the chain of nodes from the start to the winner, read back through the parents; each node names the edge that
-        //reached it and whether that edge was cast rather than walked. Its own list, since TryWalk below reuses the
-        //corridor list
-        var chain = scratch.Chain;
-        chain.Clear();
-
-        for (var node = winner; node != startNode; node = scratch.NodeParent[node])
-            chain.Add(node);
-
-        chain.Reverse();
+        //each arrival on the chain names the edge that made it and whether that edge was cast rather than walked. Its own
+        //list, since TryWalk below reuses the corridor list
+        var chain = ReadChain(scratch, winner);
 
         var cursorPoint = startPoint;
         var cursorMesh = startMesh;
@@ -485,15 +546,15 @@ internal sealed class PortalGraph
         //the scratch still holds the start map's search, which the first walk is read from
         var startSearchHeld = true;
 
-        foreach (var node in chain)
+        foreach (var arrivalId in chain)
         {
-            var edgeIndex = scratch.NodeParentEdge[node];
+            var edgeIndex = scratch.Arrivals[arrivalId].EdgeIndex;
             var edge = edgeIndex < StaticEdges.Length ? StaticEdges[edgeIndex] : scratch.SearchEdges[edgeIndex - StaticEdges.Length];
-            var blinked = scratch.NodeBlinked[node];
+            var blinked = scratch.Arrivals[arrivalId].Blinked;
 
             switch (edge.Type)
             {
-                //a walk the search charged at the cast's price, or a pair no walk joins at all: one teleport from
+                //a walk the search chose to cast instead, or a pair no walk joins at all: one teleport from
                 //wherever the cursor stands to the target, carrying the walked length it replaces - or, where there is
                 //no walk, the ruler between the two. no funnel, since the server resolves a landing against the point
                 //asked for rather than walking there. nothing walks out of a landing: an exit's only edges are its
@@ -711,45 +772,515 @@ internal sealed class PortalGraph
     private static List<int> NodesOn(Dictionary<string, List<int>> byMap, string map)
         => byMap.TryGetValue(map, out var nodes) ? nodes : EmptyNodes;
 
-    private static void Relax(
-        in Edge edge,
-        int edgeIndex,
-        float costSoFar,
-        float townCost,
-        bool useTown,
-        float blinkCost,
-        SearchScratch scratch)
+    /// <summary>
+    ///     The character's speed for pricing, nominal when unset or not positive, the same rule
+    ///     <see cref="CONSTANTS.TownCost" /> applies.
+    /// </summary>
+    private static float SpeedOf(PathOptions options) => options.WalkSpeed is > 0f ? options.WalkSpeed.Value : CONSTANTS.NOMINAL_WALK_SPEED;
+
+    /// <summary>
+    ///     The route to <paramref name="winner" /> as arrival ids from the first move to the last, read back through the
+    ///     parents into the scratch's chain list.
+    /// </summary>
+    private static List<int> ReadChain(SearchScratch scratch, int winner)
     {
-        //recall off means no recall anywhere on the route: the static town edges out of every arrival node are the
-        //same move as the one out of the start, and a caller that cannot recall here cannot recall there either
-        if (!useTown && (edge.Type == EdgeType.Town))
-            return;
+        var chain = scratch.Chain;
+        chain.Clear();
 
-        //a pair only a cast joins stays unjoined while blink is off
-        if ((edge.Type == EdgeType.Blink) && (blinkCost >= float.MaxValue))
-            return;
+        for (var arrivalId = winner; scratch.Arrivals[arrivalId].Parent >= 0; arrivalId = scratch.Arrivals[arrivalId].Parent)
+            chain.Add(arrivalId);
 
-        //a blink stands in for a walk on the same map, and the walk edges already join the pairs a cast can reach - so
-        //rather than edges of its own, a walk dearer than the cast is charged the cast instead. the mark rides the node,
-        //so the expansion emits a teleport rather than funnelling the walk
-        var blinked = (edge.Type == EdgeType.Blink) || ((edge.Type == EdgeType.Walk) && (edge.Cost > blinkCost));
+        chain.Reverse();
 
-        var cost = costSoFar
-                   + edge.Type switch
-                   {
-                       EdgeType.Town  => townCost,
-                       _ when blinked => blinkCost,
-                       _              => edge.Cost
-                   };
+        return chain;
+    }
 
-        if (cost >= scratch.NodeCost[edge.To])
-            return;
+    /// <summary>
+    ///     Fills the scratch's lower bounds: per node, the least the rest of any route to an end can be priced, from one
+    ///     backward search over every edge at its cheapest. A walk a cast could replace is priced at the smaller of the walk
+    ///     and a cast's landing alone, a bridged pair at the landing, and doors and recalls at their fixed prices.
+    /// </summary>
+    /// <remarks>
+    ///     A bound that never overestimates and never drops by more than an edge's price between neighbours keeps the first
+    ///     arrival taken at an end the cheapest, and arrivals at one node share it, so no keep-or-drop decision changes.
+    /// </remarks>
+    private void ComputeLowerBounds(
+        SearchScratch scratch,
+        int startNode,
+        int firstEnd,
+        int nodeCount,
+        PathOptions options,
+        float townCost)
+    {
+        var bounds = scratch.LowerBound;
+        var queue = scratch.LowerBoundQueue;
+        var floor = options.BlinkCost ?? float.MaxValue;
+        var landing = CONSTANTS.BLINK_LANDING_MS * SpeedOf(options) / 1000f;
+        var useTown = options.UseTown;
 
-        scratch.NodeCost[edge.To] = cost;
-        scratch.NodeParent[edge.To] = edge.From;
-        scratch.NodeParentEdge[edge.To] = edgeIndex;
-        scratch.NodeBlinked[edge.To] = blinked;
-        scratch.NodeQueue.Enqueue(edge.To, cost);
+        Array.Fill(
+            bounds,
+            float.PositiveInfinity,
+            0,
+            firstEnd);
+
+        Array.Fill(
+            bounds,
+            0f,
+            firstEnd,
+            nodeCount - firstEnd);
+        queue.Clear();
+
+        //the edges into the ends seed the search; the start's own edges are read last, since nothing leads into it
+        foreach (var edge in scratch.SearchEdges)
+        {
+            if ((edge.To < firstEnd) || (edge.From == startNode))
+                continue;
+
+            var bound = Cheapest(edge);
+
+            if (bound < bounds[edge.From])
+            {
+                bounds[edge.From] = bound;
+                queue.Enqueue(edge.From, bound);
+            }
+        }
+
+        while (queue.TryDequeue(out var node, out var bound))
+        {
+            if (bound > bounds[node])
+                continue;
+
+            for (var i = ReverseStart[node]; i < ReverseStart[node + 1]; i++)
+            {
+                var edge = StaticEdges[ReverseEdges[i]];
+                var through = bound + Cheapest(edge);
+
+                if (through < bounds[edge.From])
+                {
+                    bounds[edge.From] = through;
+                    queue.Enqueue(edge.From, through);
+                }
+            }
+        }
+
+        for (var i = scratch.SearchEdgeStart[startNode]; i < scratch.SearchEdgeStart[startNode + 1]; i++)
+        {
+            var edge = scratch.SearchEdges[i];
+            bounds[startNode] = Math.Min(bounds[startNode], Cheapest(edge) + bounds[edge.To]);
+        }
+
+        return;
+
+        float Cheapest(in Edge edge)
+            => edge.Type switch
+            {
+                EdgeType.Walk  => edge.Cost >= floor ? Math.Min(edge.Cost, landing) : edge.Cost,
+                EdgeType.Blink => landing,
+                EdgeType.Town  => useTown ? townCost : float.PositiveInfinity,
+                _              => edge.Cost
+            };
+    }
+
+    /// <summary>
+    ///     The edge an arrival names: a static edge's index, or the static count plus a search edge's.
+    /// </summary>
+    private Edge EdgeAt(SearchScratch scratch, int edgeIndex)
+        => edgeIndex < StaticEdges.Length ? StaticEdges[edgeIndex] : scratch.SearchEdges[edgeIndex - StaticEdges.Length];
+
+    /// <summary>
+    ///     Whether the route to <paramref name="winner" />, found without the floor rules, obeys them anyway: every cast is on
+    ///     a first visit to a map no earlier cast closed and lands at least <paramref name="floor" /> of walking from where
+    ///     the route entered the map, and no door leads back into a closed map. The same rules the full search applies.
+    /// </summary>
+    private bool ObeysFloorRules(
+        SearchScratch scratch,
+        int winner,
+        int startNode,
+        float floor)
+    {
+        var anchor = startNode;
+        var visited = UInt128.One << scratch.NodeMap[startNode];
+        var closed = UInt128.Zero;
+        var revisit = false;
+        var at = startNode;
+
+        foreach (var arrivalId in ReadChain(scratch, winner))
+        {
+            var arrival = scratch.Arrivals[arrivalId];
+            var here = scratch.NodeMap[at];
+
+            if (arrival.Blinked)
+            {
+                if (revisit || ((closed & (UInt128.One << here)) != UInt128.Zero) || (WalkBetween(scratch, anchor, arrival.Node) < floor))
+                    return false;
+
+                closed = visited;
+            } else if (EdgeAt(scratch, arrival.EdgeIndex)
+                           .Type is EdgeType.Door or EdgeType.Transport or EdgeType.Leave)
+            {
+                var map = scratch.NodeMap[arrival.Node];
+                var bit = UInt128.One << map;
+
+                if (map != here)
+                {
+                    if ((closed & bit) != UInt128.Zero)
+                        return false;
+
+                    revisit = (visited & bit) != UInt128.Zero;
+                }
+
+                visited |= bit;
+                anchor = arrival.Node;
+            }
+
+            at = arrival.Node;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Runs one pass of the search from the start, cheapest first, and returns the first arrival taken at an end, or -1
+    ///     when none can be reached.
+    /// </summary>
+    private int Search(
+        SearchScratch scratch,
+        in ArrivalSearch search,
+        PathOptions options,
+        int firstEnd)
+    {
+        search.OfferStart(options);
+
+        while (scratch.ArrivalQueue.TryDequeue(out var arrivalId, out _))
+        {
+            var from = scratch.Arrivals[arrivalId];
+
+            if (from.Dropped)
+                continue;
+
+            if (from.Node >= firstEnd)
+                return arrivalId;
+
+            if (from.Node < Nodes.Count)
+                for (var i = EdgeStart[from.Node]; i < EdgeStart[from.Node + 1]; i++)
+                    search.Relax(
+                        StaticEdges[i],
+                        i,
+                        arrivalId,
+                        from);
+
+            for (var i = scratch.SearchEdgeStart[from.Node]; i < scratch.SearchEdgeStart[from.Node + 1]; i++)
+                search.Relax(
+                    scratch.SearchEdges[i],
+                    StaticEdges.Length + i,
+                    arrivalId,
+                    from);
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    ///     The walk from <paramref name="from" /> to <paramref name="to" /> on one map, or <see cref="float.MaxValue" /> when
+    ///     no walk joins them.
+    /// </summary>
+    private float WalkBetween(SearchScratch scratch, int from, int to)
+    {
+        if (from < Nodes.Count)
+            for (var i = EdgeStart[from]; i < EdgeStart[from + 1]; i++)
+                if ((StaticEdges[i].To == to) && (StaticEdges[i].Type == EdgeType.Walk))
+                    return StaticEdges[i].Cost;
+
+        for (var i = scratch.SearchEdgeStart[from]; i < scratch.SearchEdgeStart[from + 1]; i++)
+            if ((scratch.SearchEdges[i].To == to) && (scratch.SearchEdges[i].Type == EdgeType.Walk))
+                return scratch.SearchEdges[i].Cost;
+
+        return float.MaxValue;
+    }
+
+    /// <summary>
+    ///     One pass of one search: relaxes an edge out of an arrival into the arrivals it makes, applies the floor rules to
+    ///     every cast, and keeps at each node only the arrivals no other one there beats.
+    /// </summary>
+    private readonly struct ArrivalSearch
+    {
+        /// <summary>
+        ///     Whether casts are priced at all; false leaves every state the default and the queue ordered by cost alone.
+        /// </summary>
+        private readonly bool BlinkOn;
+
+        /// <summary>
+        ///     The clock pricing casts; read only while <see cref="BlinkOn" />.
+        /// </summary>
+        private readonly BlinkClock Clock;
+
+        /// <summary>
+        ///     The shortest walk worth a cast, from <see cref="PathOptions.BlinkCost" />.
+        /// </summary>
+        private readonly float Floor;
+
+        private readonly PortalGraph Graph;
+
+        /// <summary>
+        ///     Whether the anchor, visited, closed and revisit rules are tracked and enforced. Rule 1, the walk a cast replaces,
+        ///     holds either way.
+        /// </summary>
+        private readonly bool Rules;
+
+        private readonly SearchScratch Scratch;
+        private readonly float Speed;
+        private readonly int StartNode;
+        private readonly float TownCost;
+        private readonly bool UseTown;
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="ArrivalSearch" /> struct for one pass of one search.
+        /// </summary>
+        /// <param name="graph">
+        ///     The graph searched, whose nodes say which of them can hold an anchor.
+        /// </param>
+        /// <param name="scratch">
+        ///     The calling thread's scratch, holding the arrivals and, with blink on, the lower bounds.
+        /// </param>
+        /// <param name="options">The search's pricing and starting state.</param>
+        /// <param name="townCost">The price of a recall at the character's speed.</param>
+        /// <param name="startNode">The search's virtual start node.</param>
+        /// <param name="rules">
+        ///     Specifies whether the floor rules past the first are tracked; ignored while blink is off.
+        /// </param>
+        public ArrivalSearch(
+            PortalGraph graph,
+            SearchScratch scratch,
+            PathOptions options,
+            float townCost,
+            int startNode,
+            bool rules)
+        {
+            Graph = graph;
+            Scratch = scratch;
+            BlinkOn = options.BlinkCost is not null;
+            Clock = BlinkOn ? new BlinkClock(options) : default;
+            Floor = options.BlinkCost ?? float.MaxValue;
+            Rules = BlinkOn && rules;
+            Speed = SpeedOf(options);
+            StartNode = startNode;
+            TownCost = townCost;
+            UseTown = options.UseTown;
+        }
+
+        /// <summary>Offers the arrival every route starts from.</summary>
+        public void OfferStart(PathOptions options)
+            => Offer(
+                new SearchScratch.Arrival
+                {
+                    Node = StartNode,
+                    State = BlinkOn ? Clock.Start(options) : default,
+                    Parent = -1,
+                    EdgeIndex = -1,
+                    Anchor = Rules ? StartNode : -1,
+                    Visited = Rules ? MapBit(StartNode) : UInt128.Zero
+                });
+
+        /// <summary>
+        ///     Offers the arrivals one edge makes out of <paramref name="origin" />: one per move, and a walk at least the floor
+        ///     long offers both the walk and the cast that replaces it.
+        /// </summary>
+        public void Relax(
+            in Edge edge,
+            int edgeIndex,
+            int fromId,
+            in SearchScratch.Arrival origin)
+        {
+            var next = origin with
+            {
+                Node = edge.To,
+                Parent = fromId,
+                EdgeIndex = edgeIndex,
+                Anchor = AnchorAt(edge.To, origin.Anchor),
+                Blinked = false,
+                Dropped = false
+            };
+
+            switch (edge.Type)
+            {
+                //recall off means no recall anywhere on the route: the static town edges out of every arrival node are
+                //the same move as the one out of the start, and a caller that cannot recall here cannot recall there.
+                //a recall stays on the map, so the anchor stays where the route entered it
+                case EdgeType.Town:
+                {
+                    if (!UseTown)
+                        return;
+
+                    next.Cost = origin.Cost + TownCost;
+
+                    if (BlinkOn)
+                        next.State = BlinkClock.AddPenalty(
+                            Clock.Pass(origin.State, CONSTANTS.TOWN_CHANNEL_SECONDS * 1000f),
+                            CONSTANTS.EFFECT_PENALTY_MS);
+
+                    Offer(next);
+
+                    return;
+                }
+
+                case EdgeType.Door:
+                case EdgeType.Transport:
+                case EdgeType.Leave:
+                {
+                    next.Cost = origin.Cost + edge.Cost;
+
+                    if (BlinkOn)
+                        next.State = BlinkClock.AddPenalty(origin.State, CONSTANTS.DOOR_PENALTY_MS);
+
+                    if (Rules)
+                    {
+                        var map = Scratch.NodeMap[edge.To];
+                        var bit = UInt128.One << map;
+
+                        //a door between two floors of one map continues the same stay
+                        if (map != Scratch.NodeMap[origin.Node])
+                        {
+                            //a map visited before the last cast is closed: coming back would let the cast skip part of
+                            //a walk shorter than the floor
+                            if ((origin.Closed & bit) != UInt128.Zero)
+                                return;
+
+                            next.Revisit = (origin.Visited & bit) != UInt128.Zero;
+                        }
+
+                        next.Visited = origin.Visited | bit;
+                        next.Anchor = edge.To;
+                    }
+
+                    Offer(next);
+
+                    return;
+                }
+
+                case EdgeType.Walk:
+                    next.Cost = origin.Cost + edge.Cost;
+
+                    if (BlinkOn)
+                        next.State = Clock.Pass(origin.State, edge.Cost / Speed * 1000f);
+
+                    Offer(next);
+
+                    //rule 1: a cast may replace only a walk at least the floor long
+                    if (edge.Cost >= Floor)
+                        OfferBlink(edge, next, origin);
+
+                    return;
+
+                //a pair only a cast joins stays unjoined while blink is off
+                case EdgeType.Blink:
+                    OfferBlink(edge, next, origin);
+
+                    return;
+            }
+        }
+
+        /// <summary>
+        ///     The anchor an arrival at <paramref name="node" /> carries. Only the start and an arrival node have a walk or a
+        ///     recall out of them; a departure's only edge is its door, which moves the anchor, and an end is the last node.
+        ///     Storing none there lets arrivals that differ only in a dead anchor beat each other.
+        /// </summary>
+        private int AnchorAt(int node, int anchor)
+            => (node == StartNode) || ((node < Graph.Nodes.Count) && Graph.Nodes[node].Exit is null) ? anchor : -1;
+
+        /// <summary>
+        ///     The bit of <paramref name="node" />'s map in a visited or closed set.
+        /// </summary>
+        private UInt128 MapBit(int node) => UInt128.One << Scratch.NodeMap[node];
+
+        /// <summary>
+        ///     Adds <paramref name="arrival" /> unless an arrival already at its node beats it, and drops every arrival there it
+        ///     beats. Nothing is added at a node no end can be reached from.
+        /// </summary>
+        private void Offer(in SearchScratch.Arrival arrival)
+        {
+            var node = arrival.Node;
+            var lowerBound = BlinkOn ? Scratch.LowerBound[node] : 0f;
+
+            if (float.IsPositiveInfinity(lowerBound))
+                return;
+
+            var live = Scratch.NodeArrivals[node];
+            var arrivals = CollectionsMarshal.AsSpan(Scratch.Arrivals);
+
+            foreach (var id in live)
+                if (Beats(arrivals[id], arrival))
+                    return;
+
+            for (var i = live.Count - 1; i >= 0; i--)
+            {
+                var id = live[i];
+
+                if (!Beats(arrival, arrivals[id]))
+                    continue;
+
+                arrivals[id].Dropped = true;
+                live.RemoveAt(i);
+            }
+
+            var newId = Scratch.Arrivals.Count;
+            Scratch.Arrivals.Add(arrival);
+            live.Add(newId);
+
+            //with blink off the queue is ordered by cost alone, so routes are exactly what they were before the bound
+            Scratch.ArrivalQueue.Enqueue(newId, arrival.Cost + lowerBound);
+        }
+
+        /// <summary>
+        ///     Offers the cast along <paramref name="edge" />, priced at the time it takes in walk units at the character's speed;
+        ///     nothing when blink is off, a floor rule forbids it, or the bar can never pay for it.
+        /// </summary>
+        /// <param name="edge">
+        ///     The walk the cast replaces, or the pair it bridges.
+        /// </param>
+        /// <param name="next">
+        ///     The walked arrival along the same edge, which the cast differs from only in price, state and closed maps.
+        /// </param>
+        /// <param name="origin">The arrival the cast is made from.</param>
+        private void OfferBlink(in Edge edge, SearchScratch.Arrival next, in SearchScratch.Arrival origin)
+        {
+            if (!BlinkOn)
+                return;
+
+            if (Rules)
+            {
+                //rule 3: no cast on a map closed by an earlier one, nor on a return to a map
+                if (origin.Revisit || ((origin.Closed & MapBit(origin.Node)) != UInt128.Zero))
+                    return;
+
+                //rule 2: nor one landing nearer than the floor to where the route entered the map, which a recall or a
+                //walk to somewhere else first would otherwise split into shorter pieces
+                if (Graph.WalkBetween(Scratch, origin.Anchor, edge.To) < Floor)
+                    return;
+
+                next.Closed = origin.Visited;
+            }
+
+            if (!Clock.TryBlink(origin.State, out var spentMs, out var after))
+                return;
+
+            next.Cost = origin.Cost + spentMs * Speed / 1000f;
+            next.State = after;
+            next.Blinked = true;
+            Offer(next);
+        }
+
+        /// <summary>
+        ///     Whether <paramref name="a" /> makes <paramref name="b" /> at the same node pointless: no dearer, at least as ready,
+        ///     the same anchor and revisit, and no map visited or closed that <paramref name="b" /> has not.
+        /// </summary>
+        private static bool Beats(in SearchScratch.Arrival a, in SearchScratch.Arrival b)
+            => (a.Cost <= b.Cost)
+               && BlinkClock.AtLeastAsReady(a.State, b.State)
+               && (a.Anchor == b.Anchor)
+               && (a.Revisit == b.Revisit)
+               && ((a.Visited & ~b.Visited) == UInt128.Zero)
+               && ((a.Closed & ~b.Closed) == UInt128.Zero);
     }
 
     internal readonly record struct Edge(

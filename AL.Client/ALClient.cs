@@ -4028,7 +4028,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the suppression decided here covers the whole route rather than the map being left: recall off leaves no
         //recall leg anywhere on it. Priced against this character's own speed: the channel is a fixed three seconds,
         //so what it is worth is however far this character would have walked in them. Blink is priced only for a
-        //mage, since the client ignores the cast for every other class
+        //mage, since the client ignores the cast for every other class. The cooldown, pending penalty and mana bar
+        //are read from the character here too, so a re-plan after a leg fails prices blink against where they
+        //stand now, not where they stood when the trip started
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
@@ -4036,7 +4038,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 WalkSpeed = Character.Speed,
                 UseTown = options.UseTown && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
-                BlinkCost = this is Mage ? options.BlinkCost : null
+                BlinkCost = this is Mage ? options.BlinkCost : null,
+                BlinkReadyInMs = Cooldowns.TryGetValue(GameData.Skills.Blink.CooldownKey("blink"), out var blinkCooldown)
+                    ? Math.Max(0f, blinkCooldown.RemainingMS)
+                    : 0f,
+                PenaltyMs = Character.Conditions.TryGetValue(Condition.PenaltyCooldown, out var penalty)
+                    ? Math.Max(0f, penalty.RemainingMs)
+                    : 0f,
+                Mp = Character.MP,
+                MaxMp = Character.MaxMP
             });
 
         //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of

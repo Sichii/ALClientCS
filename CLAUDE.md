@@ -138,7 +138,16 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
 - **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall` are answered from it. The lines carry the local ice golem corridor carve.
 - **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at build. Flat arrays, neighbour ids, a uniform grid for `TriangleAt`. `IsWalkable` and `TryFindNearestWalkable` are containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled; where the two floods disagree, `GameData.CarveCorridors` closes the gap.
 - **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a rectangle band plus a range: a door is the real rounded rectangle the server opens from, a destination a circle).
-- **`PortalGraph`** joins maps: arrival nodes (spawns something lands on), departure nodes (exits), static walk costs funnelled at build, town and leave edges, and a blink-only edge wherever no walk joins an arrival to an exit. A search adds a virtual start and its ends, runs Dijkstra over the nodes with `PathOptions` pricing recall and blink against the walks (a walk dearer than `BlinkCost` is charged the cast and comes back as a `Blink` leg), and expands the winner into `PathEdge`s. Any of N ends: the first settled wins. Blink off leaves the route untouched.
+- **`PortalGraph`** joins maps: arrival nodes (spawns something lands on), departure nodes (exits), static walk costs
+  funnelled at build, town and leave edges, and a blink-only edge wherever no walk joins an arrival to an exit. A search
+  adds a virtual start and its ends, runs Dijkstra over arrivals with `PathOptions` pricing recall and blink against the
+  walks (a walk at least `BlinkCost` long is offered both walked and cast, the cast priced at its real time from the
+  cooldown, `penalty_cd` and optionally the bar; `BlinkCost` is the shortest walk worth a cast, enforced by floor rules:
+  a cast lands at least that far from where the route entered the map, never on a return to a map, and no door leads
+  back into a map visited before a cast; a node keeps every arrival no other beats on cost, readiness and that history.
+  With blink on, an A* lower bound orders the queue and a pass without the history runs first, its route kept when it
+  obeys the rules), and expands the winner into `PathEdge`s. Any of N ends: the first taken wins. Blink off leaves the
+  route untouched.
 
 `PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the `Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
 
