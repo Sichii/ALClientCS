@@ -48,7 +48,7 @@ public sealed record HitData
     public float DReturn { get; init; }
 
     /// <summary>The amount of damage this hit did.</summary>
-    public int Damage { get; init; }
+    public float Damage { get; init; }
 
     /// <summary>If populated, the type of damage this hit dealt.</summary>
     [JsonPropertyName("damage_type")]

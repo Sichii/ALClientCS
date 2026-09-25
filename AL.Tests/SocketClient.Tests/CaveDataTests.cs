@@ -1,5 +1,6 @@
 #region
 using AL.Client.Helpers;
+using AL.Core.Definitions;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
 using FluentAssertions;
@@ -274,6 +275,23 @@ public class CaveDataTests
                .Citizen
                .Should()
                .BeTrue();
+    }
+
+    [Test]
+    public void ARogueCarriesWhatItWields()
+    {
+        //cave_of_many_dreams.js: a rare rogue wields the backstabber in its main hand, an ordinary one a plain dagger
+        var monster = TestJson.Socket<Monster>(
+                """{ "id": "13", "type": "cave_rogue", "x": 1, "y": 2, "hp": 1000, "level": 3, "cave": { "side": "victim", "room": "r3" }, "slots": { "mainhand": { "name": "cave_backstabber", "level": 0 }, "offhand": { "name": "dagger", "level": 0 } } }""")
+            !;
+
+        monster.Slots![Slot.MainHand]!.Name
+               .Should()
+               .Be("cave_backstabber");
+
+        monster.Slots[Slot.OffHand]!.Name
+               .Should()
+               .Be("dagger");
     }
 
     [Test]

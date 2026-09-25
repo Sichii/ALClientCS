@@ -42,6 +42,22 @@ public class HitDataTests
     }
 
     [Test]
+    public void AFractionalDamageDeserializes()
+    {
+        //cave_of_many_dreams.js cave_damage - a phase-0 boss sentinel takes amount * 0.25, unrounded
+        const string HIT = @"{ ""hid"":""ragnah"", ""id"":""3623280"", ""source"":""attack"", ""damage"":436.5 }";
+
+        var obj = TestJson.Socket<HitData>(HIT);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Damage
+           .Should()
+           .Be(436.5f);
+    }
+
+    [Test]
     public void AGoldStealAgainstAPlayerArrivesNegative()
     {
         //server.js:3569 - the victim GAINS the gold, so the key is signed

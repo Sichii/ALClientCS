@@ -1,5 +1,6 @@
 #region
 using System.Text.Json.Serialization;
+using AL.Core.Definitions;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -64,6 +65,13 @@ public class Monster : EntityBase, IEquatable<Monster>
     /// </summary>
     [JsonPropertyName("skin")]
     public string? Skin { get; init; }
+
+    /// <summary>
+    ///     If populated, what this monster is wielding. Sent for the daily dungeon's armed actors only - a guard's blade, the
+    ///     dark mage's staff, a rogue's daggers - and absent for every ordinary monster.
+    /// </summary>
+    [JsonPropertyName("slots")]
+    public IReadOnlyDictionary<Slot, SlotItem?>? Slots { get; init; }
 
     /// <summary>Whether this monster is a placed trap.</summary>
     [JsonPropertyName("trap")]

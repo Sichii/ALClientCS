@@ -299,6 +299,13 @@ public sealed record CaveChoice
     [JsonPropertyName("resolved")]
     public bool Resolved { get; init; }
 
+    /// <summary>
+    ///     If populated, the id of the reply that won, once resolved. <c>fallback</c> when nothing won and
+    ///     <see cref="Fallback" /> applied.
+    /// </summary>
+    [JsonPropertyName("result")]
+    public string? Result { get; init; }
+
     /// <summary>The reply that won, once resolved.</summary>
     [JsonPropertyName("result_label")]
     public string? ResultLabel { get; init; }
