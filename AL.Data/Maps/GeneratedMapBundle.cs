@@ -1,5 +1,6 @@
 #region
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AL.Core.Json;
 using AL.Data.Geometry;
 #endregion
@@ -52,18 +53,26 @@ public sealed record GeneratedMapBundle
     /// </exception>
     public static GeneratedMapBundle Parse(string json)
     {
-        var bundle = JsonSerializer.Deserialize<GeneratedMapBundle>(json, ALJson.Options)
+        var document = JsonNode.Parse(json) as JsonObject
+                       ?? throw new InvalidOperationException("Generated map bundle is not a JSON object.");
+
+        var bundle = document.Deserialize<GeneratedMapBundle>(ALJson.Options)
                      ?? throw new InvalidOperationException("Generated map bundle is not a JSON object.");
 
         if (string.IsNullOrEmpty(bundle.Run) || bundle.Floors.Count is < 1 or > MAX_FLOORS)
             throw new InvalidOperationException($"Generated map bundle for run {bundle.Run} carries {bundle.Floors.Count} floors.");
 
-        foreach (var floor in bundle.Floors)
+        var rawFloors = document["floors"] as JsonArray;
+
+        for (var index = 0; index < bundle.Floors.Count; index++)
         {
+            var floor = bundle.Floors[index];
             Check(bundle.Run, floor);
 
             if (floor.Geometry is null)
                 throw new InvalidOperationException($"Generated floor {floor.Key} carries no geometry.");
+
+            floor.Geometry.Raw = rawFloors?[index]?["geometry"] as JsonObject;
         }
 
         foreach (var entry in bundle.Manifest)

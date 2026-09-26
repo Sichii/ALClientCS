@@ -42,7 +42,8 @@ public class GeneratedMapBundleTests
                    "geometry": {
                      "min_x": 0, "max_x": 400, "min_y": 0, "max_y": 400,
                      "x_lines": [[100, 0, 50]],
-                     "y_lines": []
+                     "y_lines": [],
+                     "placements": [[0, 0, 0, 368, 368]]
                    }
                  }
                ],
@@ -62,6 +63,16 @@ public class GeneratedMapBundleTests
                ]
              }
              """;
+
+    [Test]
+    public void KeepsEachFloorsGeometryAsDelivered()
+    {
+        var bundle = GeneratedMapBundle.Parse(Bundle($"zone_{RUN}_0", 0));
+
+        bundle.Floors[0].Geometry!.Raw!["placements"]
+              .Should()
+              .NotBeNull();
+    }
 
     [Test]
     public void ParsesFloorsAndManifest()

@@ -142,6 +142,7 @@ public sealed class NonPublicMemberCharacterization
                      "AL.Client.Model.CooldownInfo.IsCompensated",
                      "AL.Data.Drops.GDrops.Tables",
                      "AL.Data.Geometry.GGeometry.Accessor",
+                     "AL.Data.Geometry.GGeometry.Raw",
                      "AL.Data.Items.GItem.Accessor",
                      "AL.Data.Items.GItem.ExchangeAtNPC",
                      "AL.Data.Items.GItem.ExchangeRewards",

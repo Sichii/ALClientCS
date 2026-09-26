@@ -1,5 +1,6 @@
 #region
 using System.Collections;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
@@ -18,6 +19,13 @@ public record GGeometry : IRectangle
     /// <summary>The unique accessor for this geometry object.</summary>
     [JsonIgnore]
     public string Accessor { get; internal set; } = null!;
+
+    /// <summary>
+    ///     If populated, the floor's geometry exactly as a generated run delivered it, tile art included. G carries that art
+    ///     for every other map; a generated floor's only copy is the one that arrived over <c>map_chunk</c>.
+    /// </summary>
+    [JsonIgnore]
+    public JsonObject? Raw { get; internal set; }
 
     /// <summary>
     ///     A list of horizontal lines that should be considered as walls.
