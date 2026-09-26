@@ -14,7 +14,8 @@ public class Monster : EntityBase, IEquatable<Monster>
     ///     fight. Null everywhere else.
     /// </summary>
     [JsonPropertyName("cave")]
-    public MonsterCave? Cave { get; init; }
+    [JsonInclude]
+    public MonsterCave? Cave { get; protected set; }
 
     /// <summary>
     ///     Whether kills on this monster count for every attacker, not just the tag holder. Null when the frame did not carry
@@ -71,13 +72,33 @@ public class Monster : EntityBase, IEquatable<Monster>
     ///     dark mage's staff, a rogue's daggers - and absent for every ordinary monster.
     /// </summary>
     [JsonPropertyName("slots")]
-    public IReadOnlyDictionary<Slot, SlotItem?>? Slots { get; init; }
+    [JsonInclude]
+    public IReadOnlyDictionary<Slot, SlotItem?>? Slots { get; protected set; }
 
     /// <summary>Whether this monster is a placed trap.</summary>
     [JsonPropertyName("trap")]
     public bool Trap { get; init; }
 
     public virtual bool Equals(Monster? other) => Name.Equals(other?.Name) && base.Equals(other);
+
+    /// <summary>
+    ///     Merges a later frame into this live monster, its dungeon part included.
+    /// </summary>
+    /// <remarks>
+    ///     A dungeon actor's frame restates its room, side and gear whole every time (<c>monster_to_client</c>), and its side
+    ///     changes mid-sighting: a duel's survivor turns neutral. A frame without <c>cave</c> is a delta that says nothing
+    ///     about either.
+    /// </remarks>
+    public void Update(Monster other)
+    {
+        if (other.Cave is not null)
+        {
+            Cave = other.Cave;
+            Slots = other.Slots;
+        }
+
+        base.Update(other);
+    }
 
     public override bool Equals(object? obj) => Equals(obj as Monster);
 

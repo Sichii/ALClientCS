@@ -116,6 +116,8 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Movi
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Target	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	X	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Y	
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Monster	Cave	cave
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Monster	Slots	slots
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	AFK	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Age	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Player	Channeling	c

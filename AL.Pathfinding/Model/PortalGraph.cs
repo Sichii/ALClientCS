@@ -231,8 +231,7 @@ internal sealed class PortalGraph
             }
 
             //a recall from anywhere the character lands, to the map's town spawn; priced per search. Not on a dungeon
-            //floor: whether the server honours a recall there is not public, and a route promising a cast the server
-            //refuses fails where a longer walk does not
+            //floor, where the server refuses one with cant_escape
             var gMap = GameData.Maps[map];
 
             if ((node.SpawnIndex != 0) && gMap is { Boundless: false, Generated: null } && ArrivalIndex.TryGetValue((map, 0), out var town))
@@ -434,7 +433,10 @@ internal sealed class PortalGraph
 
         var startMap = GameData.Maps[start.Map];
 
-        if (options.UseTown && startMap is { Boundless: false } && ArrivalIndex.TryGetValue((start.Map, 0), out var startTown))
+        //the server refuses a recall anywhere in a run with cant_escape
+        if (options.UseTown
+            && startMap is { Boundless: false, Generated: null }
+            && ArrivalIndex.TryGetValue((start.Map, 0), out var startTown))
             scratch.SearchEdges.Add(
                 new Edge(
                     startNode,

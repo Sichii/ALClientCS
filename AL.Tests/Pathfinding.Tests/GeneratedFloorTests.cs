@@ -61,6 +61,29 @@ public class GeneratedFloorTests : PathfindingTestBed
                 .BeNull();
     }
 
+    /// <summary>
+    ///     The server refuses a recall anywhere in a run with <c>cant_escape</c> (<c>node/server.js</c>'s <c>town</c>
+    ///     handler), so a walk starting on a floor walks even where the recall would have been cheaper.
+    /// </summary>
+    [Test]
+    public void AWalkStartingOnAFloorNeverRecalls()
+    {
+        try
+        {
+            Pathfinder.RegisterGeneratedRun(GeneratedMapBundle.Parse(Bundle()));
+
+            var path = Pathfinder.FindPath(new Location(FLOOR_0, 380, 380), [new Destination(new Location(FLOOR_0, 200, 200), 5)]);
+
+            path.Should()
+                .NotBeEmpty()
+                .And
+                .NotContain(edge => edge.Type == EdgeType.Town);
+        } finally
+        {
+            Pathfinder.UnregisterGeneratedRun(RUN);
+        }
+    }
+
     private static string Bundle()
         => $$"""
              {

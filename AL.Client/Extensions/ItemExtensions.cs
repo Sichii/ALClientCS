@@ -19,8 +19,8 @@ public static class ItemExtensions
     ///     Whether the server would merge <paramref name="item" /> onto <paramref name="other" />.
     /// </summary>
     /// <remarks>
-    ///     Restates <c>can_stack</c> (js/old_common_functions.js:391): a stackable name, the two quantities fitting under the
-    ///     stack size, the same title, the same data, the PvP mark on both or neither, and no lock on either. The server only
+    ///     Restates <c>can_stack</c> (js/old_common_functions.js:407): a stackable name, the two quantities fitting under the
+    ///     stack size, the same title once any title marked stackable ("Cave-found") is dropped, the same data, the PvP mark on both or neither, and no lock on either. The server only
     ///     reads data on a cxjar; it is compared on everything here, which never offers a merge the server refuses. A merge
     ///     asked for against a pile that fails this lands as <c>storage_full</c> whenever the pack has no empty slot
     ///     (node/server.js:8919), whatever the rest of the vault holds.
@@ -40,7 +40,7 @@ public static class ItemExtensions
         if ((stackSize <= 1) || !item.Name.EqualsI(other.Name) || ((item.Quantity + other.Quantity) > stackSize))
             return false;
 
-        if ((item.Prediction?.Title ?? "") != (other.Prediction?.Title ?? ""))
+        if (item.GetStackingTitle() != other.GetStackingTitle())
             return false;
 
         if (item.Data != other.Data)
@@ -50,6 +50,22 @@ public static class ItemExtensions
             return false;
 
         return (item.LockType == ItemLockType.None) && (other.LockType == ItemLockType.None);
+    }
+
+    /// <summary>
+    ///     The item's title as <c>can_stack</c> compares it: null when the item has none, or when its title is one the game
+    ///     marks stackable ("Cave-found") and so never keeps two piles apart.
+    /// </summary>
+    public static string? GetStackingTitle(this IInventoryItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        var title = item.Prediction?.Title;
+
+        if (string.IsNullOrEmpty(title) || GameData.Titles[title] is { Stackable: true })
+            return null;
+
+        return title;
     }
 
     /// <summary>Gets the "G" data for this item.</summary>

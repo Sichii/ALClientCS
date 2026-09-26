@@ -252,4 +252,37 @@ public class EntityMergeTests
                .Should()
                .BeFalse();
     }
+
+    /// <summary>
+    ///     The survivor of a duel turns neutral, and the server restates a dungeon actor's side on every frame. Kept from
+    ///     first sight, the side read as a duelist's for as long as the survivor stayed in view, and the lanes swung at it.
+    /// </summary>
+    [Test]
+    public void ADungeonActorsSideFollowsTheLatestFrame()
+    {
+        var tracked = TestJson.Socket<Monster>(
+                @"{ ""id"":""n1"", ""type"":""cave_npc"", ""cave"":{ ""room"":""r3"", ""side"":""duel_left"" }, ""slots"":{ ""mainhand"":{ ""name"":""blade"", ""level"":0 } } }")
+            !;
+
+        var later = TestJson.Socket<Monster>(
+            @"{ ""id"":""n1"", ""type"":""cave_npc"", ""cave"":{ ""room"":""r3"", ""side"":""neutral"" } }")!;
+        var bare = TestJson.Socket<Monster>(@"{ ""id"":""n1"", ""x"":5, ""y"":5 }")!;
+
+        tracked.Update(later);
+
+        tracked.Cave!.Side
+               .Should()
+               .Be("neutral");
+
+        tracked.Slots
+               .Should()
+               .BeNull();
+
+        //a frame without the key says nothing about it
+        tracked.Update(bare);
+
+        tracked.Cave!.Side
+               .Should()
+               .Be("neutral");
+    }
 }

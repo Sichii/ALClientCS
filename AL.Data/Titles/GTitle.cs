@@ -35,4 +35,10 @@ public sealed record GTitle : AttributedRecordBase
     ///     If populated, how the title is come by - upgrading, exchanging, an achievement, or plain chance.
     /// </summary>
     public string? Source { get; init; }
+
+    /// <summary>
+    ///     Whether the title only records where the item came from, so a titled item stacks with an untitled one of the same
+    ///     name - "Cave-found".
+    /// </summary>
+    public bool Stackable { get; init; }
 }
