@@ -933,6 +933,9 @@ public record GameData
 
                 var spawnAreas = (List<InscribedBoundary>)mData.SpawnAreas;
                 spawnAreas.AddRange(monster.Boundaries);
+
+                if (monster.Roam)
+                    mData.SpawnRoams = true;
             }
         }
     }

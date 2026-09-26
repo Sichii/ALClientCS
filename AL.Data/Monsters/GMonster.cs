@@ -210,6 +210,18 @@ public sealed record GMonster : AttributedRecordBase
     public IReadOnlyList<InscribedBoundary> SpawnAreas { get; internal set; } = new List<InscribedBoundary>();
 
     /// <summary>
+    ///     Whether any of this monster's spawn entries sets <see cref="Roam" />.
+    /// </summary>
+    /// <remarks>Enriched property</remarks>
+    public bool SpawnRoams { get; internal set; }
+
+    /// <summary>
+    ///     Whether this monster roams anywhere on its map, from either its own flag or a spawn entry's (node/server.js:14269).
+    /// </summary>
+    [JsonIgnore]
+    public bool Roams => Roam || SpawnRoams;
+
+    /// <summary>
     ///     <b>NULLABLE</b> . If populated, this monster spawns other monsters while it has a target, next to that target.
     ///     <br />
     ///     Each entry is the delay in milliseconds and the name of the monster spawned on it (node/server.js:12795).

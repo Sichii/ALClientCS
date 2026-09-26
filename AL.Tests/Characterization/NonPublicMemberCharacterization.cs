@@ -157,6 +157,7 @@ public sealed class NonPublicMemberCharacterization
                      "AL.Data.Maps.GMapNPC.Data",
                      "AL.Data.Monsters.GMonster.Accessor",
                      "AL.Data.Monsters.GMonster.SpawnAreas",
+                     "AL.Data.Monsters.GMonster.SpawnRoams",
                      "AL.Data.NPCs.GNPC.Locations",
                      "AL.Data.Recipe.NPC",
                      "AL.Data.Sets.GSet.Accessor",
