@@ -144,6 +144,7 @@ public sealed class NonPublicMemberCharacterization
                      "AL.Data.Geometry.GGeometry.Accessor",
                      "AL.Data.Geometry.GGeometry.Raw",
                      "AL.Data.Items.GItem.Accessor",
+                     "AL.Data.Items.GItem.Bonuses",
                      "AL.Data.Items.GItem.ExchangeAtNPC",
                      "AL.Data.Items.GItem.ExchangeRewards",
                      "AL.Data.Items.GItem.ObtainType",

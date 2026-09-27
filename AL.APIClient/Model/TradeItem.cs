@@ -40,4 +40,7 @@ public sealed record TradeItem : ITradeItem
 
     [JsonPropertyName("stat_type")]
     public ALAttribute StatType { get; init; }
+
+    /// <inheritdoc />
+    public TradeWant? Want { get; init; }
 }

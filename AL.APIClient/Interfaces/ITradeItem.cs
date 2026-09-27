@@ -1,3 +1,7 @@
+#region
+using AL.APIClient.Model;
+#endregion
+
 namespace AL.APIClient.Interfaces;
 
 /// <summary>Represents an item for trade or sale.</summary>
@@ -26,4 +30,10 @@ public interface ITradeItem : ICommonItem
 
     /// <summary>The price of this item to buy.</summary>
     long Price { get; init; }
+
+    /// <summary>
+    ///     If populated, the item this slot is offered in exchange for. Such a slot carries no price: it is taken with a swap,
+    ///     never bought.
+    /// </summary>
+    TradeWant? Want { get; init; }
 }

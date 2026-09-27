@@ -1,4 +1,5 @@
 #region
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
 using AL.Core.Definitions;
@@ -47,6 +48,18 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     much lifesteal ( <c>node/server.js:15011</c> ).
     /// </remarks>
     public string? Aura { get; init; }
+
+    /// <summary>
+    ///     The stats this item adds on top of its own for one class or on one map, keyed by the class's or the map's key -
+    ///     <c>rogue</c> , <c>cave</c> . Empty for most items.
+    /// </summary>
+    /// <remarks>
+    ///     The server asks both on every stat pass, with the wearer's class and the map they stand on (
+    ///     <c>node/server.js:1459</c> ), and adds a match into the item before anything else is worked out (
+    ///     <c>js/progression/stats.js:19-30</c> ). A bonus that names a class the item is locked away from is never reached.
+    /// </remarks>
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, GItemBonus> Bonuses { get; internal set; } = new Dictionary<string, GItemBonus>();
 
     /// <summary>
     ///     The item's price in shells if it is a cash-shop item, otherwise zero.
@@ -278,6 +291,17 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// </summary>
     [JsonPropertyName("wtype")]
     public WeaponType WeaponType { get; init; }
+
+    /// <summary>
+    ///     Every key no declared member binds, as it arrived. <see cref="Bonuses" /> is built from it: the wire files a bonus
+    ///     under the class's or the map's own name, beside the item's stats, so there is no fixed key to declare.
+    /// </summary>
+    /// <remarks>
+    ///     Cleared to null by <c>GameData.EnrichItems</c> once <see cref="Bonuses" /> is built, which keeps raw JSON off the
+    ///     game-data explorer.
+    /// </remarks>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? WireExtras { get; set; }
 
     /// <summary>
     ///     Recovers the scroll's target stat when the server sends its name in the numeric <c>stat</c> slot. The

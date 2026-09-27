@@ -601,7 +601,26 @@ public enum GameResponseType
     TavernUnavailable,
 
     [EnumMember(Value = "not_in_tavern")]
-    NotInTavern
+    NotInTavern,
+
+    /// <summary>
+    ///     A trade offer whose wanted item the server will not accept: an unknown name, a placeholder, or a title that does
+    ///     not exist.
+    /// </summary>
+    [EnumMember(Value = "trade_offer_invalid")]
+    TradeOfferInvalid,
+
+    /// <summary>
+    ///     A swap whose given item does not satisfy the offer, or is no longer the item the client chose.
+    /// </summary>
+    [EnumMember(Value = "trade_swap_match")]
+    TradeSwapMatch,
+
+    /// <summary>
+    ///     A swap the offering merchant has no bag space to receive.
+    /// </summary>
+    [EnumMember(Value = "trade_swap_space")]
+    TradeSwapSpace
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
@@ -849,5 +868,8 @@ public enum ALSocketEmitType
     Harakiri,
     Locksmith,
     Signup,
-    Tavern
+    Tavern,
+
+    [EnumMember(Value = "trade_swap")]
+    TradeSwap
 }

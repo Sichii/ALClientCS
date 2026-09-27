@@ -576,7 +576,8 @@ public enum ArmorSet
     MPX,
     Legends,
     Homecoming,
-    Oathkeeper
+    Oathkeeper,
+    Watchers
 }
 
 /// <summary>
@@ -801,7 +802,11 @@ public enum Condition
     XPower,
     XShotted,
     Young,
-    Zap
+    Zap,
+    Exposed,
+    Frenzied,
+    Stonebreak,
+    Sundered
 }
 
 /// <summary>

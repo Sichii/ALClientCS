@@ -64,6 +64,9 @@ public class SetsDatum : DatumBase<GSet>
     [JsonPropertyName("wanderers")]
     public GSet Wanderers { get; init; } = null!;
 
+    [JsonPropertyName("watchers")]
+    public GSet Watchers { get; init; } = null!;
+
     [JsonPropertyName("wt3")]
     public GSet Wt3 { get; init; } = null!;
 

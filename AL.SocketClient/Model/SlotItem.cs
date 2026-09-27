@@ -1,6 +1,7 @@
 #region
 using System.Text.Json.Serialization;
 using AL.APIClient.Interfaces;
+using AL.APIClient.Model;
 using AL.Core.Definitions;
 using AL.SocketClient.Interfaces;
 using StjConverters = AL.Core.Json.SystemTextJson;
@@ -118,4 +119,7 @@ public record SlotItem : ITradeItem, IInventoryItem
 
     [JsonPropertyName("v")]
     public string? Volatile { get; init; }
+
+    /// <inheritdoc />
+    public TradeWant? Want { get; init; }
 }

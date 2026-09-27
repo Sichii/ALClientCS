@@ -49,6 +49,9 @@ public class DimensionsDatum : DatumBase<IReadOnlyList<float>>
     [JsonPropertyName("cgoo")]
     public IReadOnlyList<float> Cgoo { get; init; } = null!;
 
+    [JsonPropertyName("chestx")]
+    public IReadOnlyList<float> Chestx { get; init; } = null!;
+
     [JsonPropertyName("crabx")]
     public IReadOnlyList<float> Crabx { get; init; } = null!;
 
@@ -141,6 +144,9 @@ public class DimensionsDatum : DatumBase<IReadOnlyList<float>>
 
     [JsonPropertyName("kitty4")]
     public IReadOnlyList<float> Kitty4 { get; init; } = null!;
+
+    [JsonPropertyName("manyeye")]
+    public IReadOnlyList<float> Manyeye { get; init; } = null!;
 
     [JsonPropertyName("mechagnome")]
     public IReadOnlyList<float> Mechagnome { get; init; } = null!;

@@ -38,6 +38,13 @@ public sealed record Item : IInventoryItem
     [JsonConverter(typeof(StjConverters.LenientDateTimeConverter))]
     public DateTime? Expires { get; init; }
 
+    /// <summary>
+    ///     Whether the item carries the <c>b</c> flag. The game's own client treats it like a lock, leaving such an item out
+    ///     of exchanges, crafts and trade offers.
+    /// </summary>
+    [JsonPropertyName("b")]
+    public bool Blocked { get; init; }
+
     public float Extra { get; init; }
 
     public float Gift { get; init; }

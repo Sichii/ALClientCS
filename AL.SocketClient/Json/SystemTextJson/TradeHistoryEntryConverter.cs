@@ -29,10 +29,21 @@ public sealed class TradeHistoryEntryConverter : JsonConverter<TradeHistoryEntry
                 .Deserialize<TradeItem>(options)!,
 
             //giveaways send a JSON null price (null node -> null). Deserialize (not GetValue<long>) so a
-            //stringified price coerces via NumberHandling, matching Newtonsoft's lenient Value<long?>()
-            Price = array[3] is { } price ? price.Deserialize<long?>(options) : null
+            //stringified price coerces via NumberHandling, matching Newtonsoft's lenient Value<long?>(). Anything
+            //else - a swap's fourth element, whose shape no published source shows - reads as no price rather than
+            //failing the whole history
+            Price = (array.Count > 3) && array[3] is { } price && IsPrice(price) ? price.Deserialize<long?>(options) : null,
+            Received = (array.Count > 4) && array[4] is JsonObject received ? received.Deserialize<TradeItem>(options) : null
         };
     }
+
+    private static bool IsPrice(JsonNode node)
+        => node.GetValueKind() switch
+        {
+            JsonValueKind.Number => true,
+            JsonValueKind.String => long.TryParse(node.GetValue<string>(), out _),
+            _                    => false
+        };
 
     public override void Write(Utf8JsonWriter writer, TradeHistoryEntry value, JsonSerializerOptions options)
         => throw new NotSupportedException();

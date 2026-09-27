@@ -4,6 +4,7 @@ using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Core.Definitions;
 using AL.Core.Helpers;
+using AL.Data;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Model;
 using AL.SocketClient.SocketModel;
@@ -631,6 +632,82 @@ public abstract partial class ALClient
                 id = sellerId,
                 slot,
                 rid
+            });
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
+    ///     Takes a trade offer on another player's stand, giving the item in <paramref name="inventorySlot" /> for the item
+    ///     the slot holds. Throws where the server refuses: out of range, the offer gone or replaced, the item not what the
+    ///     offer wants, or the merchant out of room.
+    /// </summary>
+    /// <remarks>
+    ///     The emit names the item as this client saw it, the way the game's own stand does, so a bag reordered in between is
+    ///     refused rather than giving a different item. The name, level, stack, title and scroll stat are what is sent, keyed
+    ///     the way a bag item arrives; the server's comparison is not in any published source. Every answer is a
+    ///     <c>game_response</c> whose place is <c>trade_swap</c> , and anything but <c>failed</c> is the trade going through.
+    /// </remarks>
+    public async Task SwapWithPlayerAsync(
+        string merchantId,
+        TradeSlot slot,
+        string rid,
+        int inventorySlot)
+    {
+        var item = Character.Inventory[inventorySlot];
+
+        if (item == null)
+            throw new InvalidOperationException($"Failed to trade with {merchantId}. (slot {inventorySlot} empty)");
+
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver
+                if (!"trade_swap".EqualsI(data.Place!))
+                    return TaskCache.FALSE;
+
+                source.TrySetResult(
+                    data.Failed
+                        ? $"Failed to trade {item.Name} with {merchantId}. ({data.Reason ?? data.ResponseType.ToString()})"
+                        : Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        //rebuilt the way the server writes a bag item: a level on anything that levels, even at 0, and a stack count on
+        //anything that stacks, even at 1. Keys the item does not carry are left out rather than sent as null
+        var data = GameData.Items[item.Name];
+
+        var given = new Dictionary<string, object>
+        {
+            ["name"] = item.Name
+        };
+
+        if (data is { UpgradeModifiers: not null } or { CompoundModifiers: not null } || (item.Level > 0))
+            given["level"] = item.Level;
+
+        if (data is { StackSize: > 1 } || (item.Quantity > 1))
+            given["q"] = item.Quantity;
+
+        if (item.Prediction?.Title is { Length: > 0 } title)
+            given["p"] = title;
+
+        if (item.StatType != ALAttribute.None)
+            given["stat_type"] = EnumHelper.ToString(item.StatType);
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.TradeSwap,
+            new
+            {
+                slot,
+                id = merchantId,
+                rid,
+                num = inventorySlot,
+                item = given
             });
 
         var expectation = await source.Task.WithNetworkTimeout();

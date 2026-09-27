@@ -76,11 +76,17 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("energized")]
     public GCondition Energized { get; init; } = null!;
 
+    [JsonPropertyName("exposed")]
+    public GCondition Exposed { get; init; } = null!;
+
     [JsonPropertyName("fingered")]
     public GCondition Fingered { get; init; } = null!;
 
     [JsonPropertyName("fishing")]
     public GCondition Fishing { get; init; } = null!;
+
+    [JsonPropertyName("frenzied")]
+    public GCondition Frenzied { get; init; } = null!;
 
     [JsonPropertyName("frozen")]
     public GCondition Frozen { get; init; } = null!;
@@ -232,6 +238,9 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("stack")]
     public GCondition Stack { get; init; } = null!;
 
+    [JsonPropertyName("stonebreak")]
+    public GCondition Stonebreak { get; init; } = null!;
+
     [JsonPropertyName("stoned")]
     public GCondition Stoned { get; init; } = null!;
 
@@ -240,6 +249,9 @@ public class ConditionsDatum : DatumBase<GCondition>
 
     [JsonPropertyName("sugarrush")]
     public GCondition Sugarrush { get; init; } = null!;
+
+    [JsonPropertyName("sundered")]
+    public GCondition Sundered { get; init; } = null!;
 
     [JsonPropertyName("tangled")]
     public GCondition Tangled { get; init; } = null!;

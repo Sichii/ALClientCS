@@ -2,6 +2,7 @@
 using System.Net;
 using AL.APIClient.Definitions;
 using AL.APIClient.Interfaces;
+using AL.APIClient.Model;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
 using AL.Client.Model;
@@ -398,6 +399,105 @@ public class Merchant : ALClient
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
+    ///     Asynchronously offers an item on the stand in exchange for another item rather than for gold.
+    /// </summary>
+    /// <param name="inventorySlot">The slot in the inventory of the item to offer.</param>
+    /// <param name="tradeSlot">The trade slot to offer it in.</param>
+    /// <param name="want">
+    ///     What the offer asks for. Normalized first by <see cref="NormalizeTradeWant" />, the way the server reads it.
+    /// </param>
+    /// <param name="quantity">How many of a stack to offer.</param>
+    /// <exception cref="InvalidOperationException">
+    ///     Failed to offer item {itemNameOrSlot} for trade. ({reason})
+    /// </exception>
+    public async Task PostTradeOfferAsync(
+        int inventorySlot,
+        TradeSlot tradeSlot,
+        TradeWant want,
+        int quantity = 1)
+    {
+        var item = Character.Inventory[inventorySlot];
+
+        if (item == null)
+            throw new InvalidOperationException($"Failed to offer item {inventorySlot} for trade. (slot empty)");
+
+        if (NormalizeTradeWant(want) is not { } normalized)
+            throw new InvalidOperationException($"Failed to offer item {item.Name} for trade. (cannot ask for {want.Name})");
+
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = data.ResponseType switch
+                {
+                    GameResponseType.SlotOccupied => source.TrySetResult(
+                        $"Failed to offer item {item.Name} for trade. (trade slot occupied)"),
+
+                    //fail_response defaults "place" to the name of the socket method that failed
+                    _ when data.Failed && "equip".EqualsI(data.Place!) => source.TrySetResult(
+                        $"Failed to offer item {item.Name} for trade. ({data.Reason ?? data.ResponseType.ToString()})"),
+                    _ => false
+                };
+
+                return Task.FromResult(result);
+            });
+
+        using var characterCallback = Socket.On<CharacterData>(
+            ALSocketMessageType.Character,
+            data =>
+            {
+                var slotItem = data.Slots[tradeSlot.ToSlot()];
+
+                if (slotItem is { Want: not null } && slotItem.Name.EqualsI(item.Name))
+                    source.TrySetResult(Expectation.Success);
+
+                return TaskCache.FALSE;
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Equip,
+            new
+            {
+                num = inventorySlot,
+                q = quantity,
+                slot = tradeSlot,
+                want = normalized
+            });
+
+        var expectation = await source.Task.WithNetworkTimeout();
+        expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
+    ///     <paramref name="want" /> as the server keeps it, or null for one it refuses outright.
+    /// </summary>
+    /// <remarks>
+    ///     The game's own rule ( <c>trade_want_normalize</c> , <c>js/old_common_functions.js</c> ): the name must be a real
+    ///     item other than the upgrade placeholder, and a title must be a real title. A level is kept only on an item that
+    ///     upgrades or compounds, capped at 12; a quantity only on one that stacks, capped at its stack size.
+    /// </remarks>
+    public static TradeWant? NormalizeTradeWant(TradeWant want)
+    {
+        if (string.IsNullOrEmpty(want.Name) || (want.Name == "placeholder") || GameData.Items[want.Name] is not { } item)
+            return null;
+
+        if (!string.IsNullOrEmpty(want.Title) && GameData.Titles[want.Title] is null)
+            return null;
+
+        var levels = item.UpgradeModifiers is not null || item.CompoundModifiers is not null;
+
+        return new TradeWant
+        {
+            Name = want.Name,
+            Level = levels && want.Level is { } level and > 0 ? Math.Min(12, level) : null,
+            Title = string.IsNullOrEmpty(want.Title) ? null : want.Title,
+            Quantity = item.StackSize > 1 ? Math.Min(item.StackSize, Math.Max(1, want.Quantity ?? 1)) : null
+        };
     }
 
     /// <summary>

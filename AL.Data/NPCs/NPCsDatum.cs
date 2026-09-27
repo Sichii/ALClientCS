@@ -355,6 +355,9 @@ public class NPCsDatum : DatumBase<GNPC>
     [JsonPropertyName("pete")]
     public GNPC Pete { get; init; } = null!;
 
+    [JsonPropertyName("pokerdealer")]
+    public GNPC Pokerdealer { get; init; } = null!;
+
     [JsonPropertyName("pots")]
     public GNPC Pots { get; init; } = null!;
 

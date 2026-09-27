@@ -195,11 +195,20 @@ public class MonsterGoldDatum : DatumBase<int?>
     [JsonPropertyName("kitty4")]
     public int? Kitty4 { get; init; }
 
+    [JsonPropertyName("kobold")]
+    public int? Kobold { get; init; }
+
     [JsonPropertyName("ligerx")]
     public int? Ligerx { get; init; }
 
+    [JsonPropertyName("manyeye")]
+    public int? Manyeye { get; init; }
+
     [JsonPropertyName("mechagnome")]
     public int? Mechagnome { get; init; }
+
+    [JsonPropertyName("mimic")]
+    public int? Mimic { get; init; }
 
     [JsonPropertyName("minimush")]
     public int? Minimush { get; init; }
@@ -236,6 +245,9 @@ public class MonsterGoldDatum : DatumBase<int?>
 
     [JsonPropertyName("osnake")]
     public int? Osnake { get; init; }
+
+    [JsonPropertyName("paledino")]
+    public int? Paledino { get; init; }
 
     [JsonPropertyName("phoenix")]
     public int? Phoenix { get; init; }

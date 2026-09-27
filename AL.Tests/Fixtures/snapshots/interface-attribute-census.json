@@ -72,5 +72,6 @@
   "ITradeItem.GiveawayMins : Single? => (clr:GiveawayMins)",
   "ITradeItem.GiveawayParticipants : IReadOnlyList<String> => (clr:GiveawayParticipants)",
   "ITradeItem.Id : String => (clr:Id)",
-  "ITradeItem.Price : Int64 => (clr:Price)"
+  "ITradeItem.Price : Int64 => (clr:Price)",
+  "ITradeItem.Want : TradeWant => (clr:Want)"
 ]

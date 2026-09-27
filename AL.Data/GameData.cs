@@ -83,7 +83,7 @@ public record GameData
     ///     The game-data version the data members were last generated against. AL.MemberGenerator emits the stamp as generated
     ///     output (dataMembers/version.txt); paste it here when refreshing the datums.
     /// </summary>
-    public const int KNOWN_VERSION = 17139;
+    public const int KNOWN_VERSION = 17397;
 
     /// <summary>
     ///     What a monster with no entry in the dimensions table is squared off at before its size multiplier.
@@ -687,6 +687,45 @@ public record GameData
         Drops.Tables = tables;
     }
 
+    /// <summary>
+    ///     The class and map bonuses among an item's unbound keys: every object filed under a class's or a map's key.
+    /// </summary>
+    /// <remarks>
+    ///     An upgrade or compound line inside a bonus only reaches the stats the bonus also names at its own top level. The
+    ///     server's merge walks the bonus's keys rather than the line's ( <c>adopt_extras</c> , <c>js/progression/stats.js</c>
+    ///     ), so a tiger helmet's rogue crit per level counts because the rogue bonus names crit too.
+    /// </remarks>
+    private static IReadOnlyDictionary<string, GItemBonus> BonusesFor(Dictionary<string, JsonElement> wireExtras)
+    {
+        var bonuses = new Dictionary<string, GItemBonus>(StringComparer.OrdinalIgnoreCase);
+
+        foreach ((var key, var element) in wireExtras)
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+                continue;
+
+            var namesClass = EnumHelper.TryParse(key, out ALClass alClass) && Classes[alClass] is not null;
+
+            if (!namesClass && Maps[key] is null)
+                continue;
+
+            if (element.Deserialize<GItemBonus>(ALJson.Options) is not { } bonus)
+                continue;
+
+            bonuses[key] = bonus with
+            {
+                UpgradeModifiers = ReachedBy(bonus.UpgradeModifiers, bonus),
+                CompoundModifiers = ReachedBy(bonus.CompoundModifiers, bonus)
+            };
+        }
+
+        return bonuses;
+
+        static IReadOnlyDictionary<ALAttribute, float>? ReachedBy(IReadOnlyDictionary<ALAttribute, float>? line, GItemBonus bonus)
+            => line?.Where(entry => bonus.Attributes.ContainsKey(entry.Key))
+                   .ToDictionary(entry => entry.Key, entry => entry.Value);
+    }
+
     private static void EnrichItems()
     {
         Log.Debug("Enriching item metadata");
@@ -724,6 +763,13 @@ public record GameData
 
         foreach (var item in Items.Values.DistinctBy(item => item.Accessor))
         {
+            //guarded, not rebuilt: the wire keys are cleared once read, so a second pass would build nothing
+            if (item.WireExtras is not null)
+            {
+                item.Bonuses = BonusesFor(item.WireExtras);
+                item.WireExtras = null;
+            }
+
             if (item.ObtainableFromNPC == null)
                 if (!string.IsNullOrEmpty(item.NPC))
                 {

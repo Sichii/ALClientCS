@@ -238,11 +238,20 @@ public class MonstersDatum : DatumBase<GMonster>
     [JsonPropertyName("kitty4")]
     public GMonster Kitty4 { get; init; } = null!;
 
+    [JsonPropertyName("kobold")]
+    public GMonster Kobold { get; init; } = null!;
+
     [JsonPropertyName("ligerx")]
     public GMonster Ligerx { get; init; } = null!;
 
+    [JsonPropertyName("manyeye")]
+    public GMonster Manyeye { get; init; } = null!;
+
     [JsonPropertyName("mechagnome")]
     public GMonster Mechagnome { get; init; } = null!;
+
+    [JsonPropertyName("mimic")]
+    public GMonster Mimic { get; init; } = null!;
 
     [JsonPropertyName("minimush")]
     public GMonster Minimush { get; init; } = null!;
@@ -279,6 +288,9 @@ public class MonstersDatum : DatumBase<GMonster>
 
     [JsonPropertyName("osnake")]
     public GMonster Osnake { get; init; } = null!;
+
+    [JsonPropertyName("paledino")]
+    public GMonster Paledino { get; init; } = null!;
 
     [JsonPropertyName("phoenix")]
     public GMonster Phoenix { get; init; } = null!;
