@@ -602,6 +602,15 @@ public record GameData
                 0f), 0f);
 
         var spawn = map.Spawns[spawnId];
+
+        //generated_use_door takes is_door_close's 40 about the landing instead of the world door's 112
+        if (map.Generated is not null)
+            return (new Rectangle(
+                spawn.X,
+                spawn.Y,
+                0f,
+                0f), CONSTANTS.STAIR_RANGE);
+
         var halfWidth = door.Width / 2 + CONSTANTS.CHARACTER_BOX_WIDTH / 2;
         var top = spawn.Y - door.Height;
         var bottom = spawn.Y + CONSTANTS.CHARACTER_BOX_HEIGHT;

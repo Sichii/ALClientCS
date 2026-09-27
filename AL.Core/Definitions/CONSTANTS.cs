@@ -27,6 +27,12 @@ public static class CONSTANTS
     public const float DOOR_RANGE = 112f * RANGE_SHAVE;
 
     /// <summary>
+    ///     How close a stair on a generated floor lets you through: a centre-to-centre radius about the landing the stair
+    ///     names, far tighter than <see cref="DOOR_RANGE" /> .
+    /// </summary>
+    public const float STAIR_RANGE = 40f * RANGE_SHAVE;
+
+    /// <summary>
     ///     The width of a character's sprite box, which the server folds into a door's range check. This is not the collision
     ///     base the nav mesh pads walls with - the server keeps those two apart, and measures a door with this one.
     /// </summary>

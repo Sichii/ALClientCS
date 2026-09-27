@@ -84,6 +84,38 @@ public class GeneratedFloorTests : PathfindingTestBed
         }
     }
 
+    /// <summary>
+    ///     A stair opens only within 40 of the landing it names (<c>is_door_close</c> in <c>js/old_common_functions.js</c>,
+    ///     called from <c>generated_use_door</c>), not at the 112 a world door allows. Given the world door's reach, a walk
+    ///     stopped over a hundred from the landing and the stair refused it with <c>transport_cant_reach</c> every tick.
+    /// </summary>
+    [Test]
+    public void AStairIsTakenFromWhereTheServerOpensIt()
+    {
+        const float SERVER_STAIR_DIST = 40f;
+        const float REQUIRED_MARGIN = 1f;
+
+        try
+        {
+            Pathfinder.RegisterGeneratedRun(GeneratedMapBundle.Parse(Bundle()));
+
+            var path = Pathfinder.FindPath(new Location(FLOOR_0, 50, 200), [new Destination(new Location(FLOOR_1, 300, 200), 20)]);
+            var doorIndex = Array.FindIndex(path.ToArray(), edge => edge.Type == EdgeType.Door);
+
+            doorIndex.Should()
+                     .BePositive();
+
+            var standing = path[doorIndex - 1].End;
+            var fromLanding = MathF.Sqrt(MathF.Pow(standing.X - 360, 2) + MathF.Pow(standing.Y - 200, 2));
+
+            fromLanding.Should()
+                       .BeLessThan(SERVER_STAIR_DIST - REQUIRED_MARGIN);
+        } finally
+        {
+            Pathfinder.UnregisterGeneratedRun(RUN);
+        }
+    }
+
     private static string Bundle()
         => $$"""
              {
