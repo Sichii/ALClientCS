@@ -1,5 +1,6 @@
 #region
 using AL.Core.Helpers;
+using AL.SocketClient;
 using NLog;
 using NLog.Config;
 using NLog.Layouts;
@@ -38,6 +39,20 @@ public static class ALClientSettings
     ///     If you are experiencing innaccuracies with distance or bounding calculations, set it higher.
     /// </summary>
     public static int PositionPollingRate { get; set; } = 30;
+
+    /// <summary>
+    ///     Whether a generated dungeon floor arrives with its tiles and sprite placements. Default true.
+    ///     <br />
+    ///     Set it to false if nothing draws the map, to receive only the floor's collision lines.
+    /// </summary>
+    /// <remarks>
+    ///     Stored on <see cref="ALSocketClient.ReceiveGeneratedMapArt" />, which reads it when a socket connects.
+    /// </remarks>
+    public static bool ReceiveGeneratedMapArt
+    {
+        get => ALSocketClient.ReceiveGeneratedMapArt;
+        set => ALSocketClient.ReceiveGeneratedMapArt = value;
+    }
 
     /// <summary>
     ///     If using <see cref="UseDefaultLoggingConfiguration" />, this will set the minimum logging level for all NLog

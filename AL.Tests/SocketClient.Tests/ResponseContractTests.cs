@@ -451,6 +451,7 @@ public class ResponseContractTests
     [Arguments("cx_sent", GameResponseType.CosmeticSent)]
     [Arguments("cx_received", GameResponseType.CosmeticReceived)]
     [Arguments("send_no_cx", GameResponseType.SendNoCosmetic)]
+    [Arguments("send_diff_owner", GameResponseType.SendDifferentOwner)]
     [Arguments("home_set", GameResponseType.HomeSet)]
     [Arguments("sh_time", GameResponseType.SetHomeCooldown)]
     [Arguments("tavern_not_yet", GameResponseType.TavernNotYet)]

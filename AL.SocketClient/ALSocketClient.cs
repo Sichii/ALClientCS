@@ -38,10 +38,19 @@ public sealed class ALSocketClient : IALSocketClient
     ///     generated floor. Both are separate from the same-named fields on the <c>auth</c> emit, which the server reads from
     ///     the frame rather than the handshake.
     /// </remarks>
-    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY =
+    private static readonly KeyValuePair<string, string>[] HEADLESS_HANDSHAKE_QUERY =
     [
         new("map_protocol", "1"),
         new("no_graphics", "1")
+    ];
+
+    /// <summary>
+    ///     <see cref="HEADLESS_HANDSHAKE_QUERY" /> without <c>no_graphics</c>, for a socket that receives a generated floor's
+    ///     art.
+    /// </summary>
+    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY =
+    [
+        new("map_protocol", "1")
     ];
 
     /// <summary>
@@ -88,6 +97,15 @@ public sealed class ALSocketClient : IALSocketClient
     ///     to false to reach a locally hosted server.
     /// </summary>
     public static bool UseSecureTransport { get; set; } = true;
+
+    /// <summary>
+    ///     Whether a generated floor arrives with its tiles and sprite placements. True by default. Set to false to receive
+    ///     only its collision lines, which is all the pathfinder reads.
+    /// </summary>
+    /// <remarks>
+    ///     Read when a socket connects, so a change reaches the next connection and not an open one.
+    /// </remarks>
+    public static bool ReceiveGeneratedMapArt { get; set; } = true;
 
     /// <summary>
     ///     The proxy this socket dials the game through, or null for the machine's own connection.
@@ -157,8 +175,8 @@ public sealed class ALSocketClient : IALSocketClient
             //handshake query, read once when the socket connects and never again. map_protocol=1 is what admits this
             //client to a generated dungeon floor: without it the server refuses the whole party with
             //bring_party_to_keeper and throws client_update_required on a floor transfer. no_graphics=1 trims a floor's
-            //delivery to its collision lines, which is all the pathfinder uses, instead of tiles and sprite placements
-            Query = HANDSHAKE_QUERY
+            //delivery to its collision lines, instead of tiles and sprite placements
+            Query = ReceiveGeneratedMapArt ? HANDSHAKE_QUERY : HEADLESS_HANDSHAKE_QUERY
         };
 
         //the engine.io mount path is per-server config, not the socket.io default. the server

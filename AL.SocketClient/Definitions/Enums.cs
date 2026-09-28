@@ -503,6 +503,12 @@ public enum GameResponseType
     [EnumMember(Value = "send_no_cx")]
     SendNoCosmetic,
 
+    /// <summary>
+    ///     A cosmetic sent to a character on another account. Items and gold may cross accounts; cosmetics may not.
+    /// </summary>
+    [EnumMember(Value = "send_diff_owner")]
+    SendDifferentOwner,
+
     [EnumMember(Value = "home_set")]
     HomeSet,
 

@@ -1024,6 +1024,51 @@ public abstract partial class ALClient
             });
 
     /// <summary>
+    ///     Asynchronously moves one owned copy of a cosmetic to another character on the same account
+    ///     (node/server.js:8430-8470).
+    /// </summary>
+    /// <param name="toPlayerId">
+    ///     The receiving character, which must be on the same map and within <c>B.dist</c> of this one.
+    /// </param>
+    /// <param name="name">
+    ///     A sprite name, not an <c>acx</c> key. The server maps it back to the owned entry it came from and moves one count
+    ///     of that entry, so naming one member of a bundle moves the whole bundle.
+    /// </param>
+    /// <returns>
+    ///     The server's answer: <see cref="GameResponseType.CosmeticSent" /> on success, otherwise the failure, such as
+    ///     <see cref="GameResponseType.SendNoCosmetic" /> for a cosmetic this character has no unworn copy of.
+    /// </returns>
+    /// <remarks>
+    ///     Anything worn blocks the send, however many copies are owned: the spare count the server checks treats an owned
+    ///     entry as one, then takes one off for every slot wearing it.
+    /// </remarks>
+    public async Task<GameResponseData> SendCosmeticAsync(string toPlayerId, string name)
+    {
+        var source = new TaskCompletionSource<GameResponseData>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                var result = "send".EqualsI(data.Place ?? string.Empty)
+                             && (data.Failed || (data.ResponseType == GameResponseType.CosmeticSent))
+                             && source.TrySetResult(data);
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Send,
+            new
+            {
+                name = toPlayerId,
+                cx = name
+            });
+
+        return await source.Task.WithNetworkTimeout();
+    }
+
+    /// <summary>
     ///     Copies the nearest monster's skin onto this character (node/server.js:11702).
     /// </summary>
     /// <remarks>
