@@ -22,6 +22,13 @@ namespace AL.Data.Images;
 public sealed record GCosmetics
 {
     /// <summary>
+    ///     How far a back cosmetic moves sideways when the character faces left or right, keyed by sprite name. A name absent
+    ///     here moves 3; the backpacks are listed at 1.
+    /// </summary>
+    [JsonPropertyName("back")]
+    public IReadOnlyDictionary<string, double> Back { get; init; } = new Dictionary<string, double>(StringComparer.Ordinal);
+
+    /// <summary>
     ///     The names that stand for several sprites at once, each mapped to its members. A bundle name is not itself wearable
     ///     - the server expands it and keys the members in verbatim, without sending them back through <see cref="Map" />
     ///     (js/old_common_functions.js:279).
@@ -59,7 +66,7 @@ public sealed record GCosmetics
     ///     screen ones.
     /// </summary>
     /// <remarks>
-    ///     These six are where the client starts every placement from (js/html.js:5849-5851, <c>:5917-5920</c> ). They are the
+    ///     These six are where the client starts every placement from (js/html.js:7617-7619, <c>:7697-7701</c> ). They are the
     ///     whole reason a preview drawn from the catalogues alone sits wrong: a hat stacks on the head's placement plus the
     ///     head's own height plus the hair's, and none of those three are in the catalogues below.
     /// </remarks>
@@ -100,6 +107,13 @@ public sealed record GCosmetics
     /// </remarks>
     [JsonPropertyName("head")]
     public IReadOnlyDictionary<string, JsonElement> Head { get; init; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+    /// <summary>
+    ///     How far down one body sprite wears its head, keyed by the body's sprite name. The head, the hair, the hat and
+    ///     everything placed off the head all move down with it.
+    /// </summary>
+    [JsonPropertyName("head_y")]
+    public IReadOnlyDictionary<string, double> HeadY { get; init; } = new Dictionary<string, double>(StringComparer.Ordinal);
 
     /// <summary>
     ///     Retired names, each mapped to the one that replaced it.
