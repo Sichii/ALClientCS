@@ -91,6 +91,10 @@ public static class InventoryExtensions
     /// </param>
     /// <param name="consumedSlot">The slot the exchange took items from.</param>
     /// <param name="consumedCount">How many units that slot lost to the exchange.</param>
+    /// <param name="isPrize">
+    ///     Whether a slot's contents match what the server announced as paid, or <c>null</c> to accept any gain. An exchange
+    ///     runs for seconds, and an item handed over or looted in that time lands in the inventory the same way a prize does.
+    /// </param>
     /// <returns>
     ///     The prize slot with <see cref="Item.Quantity" /> set to the gained count, or <c>null</c> when nothing was added
     ///     (gold-only / empty table).
@@ -106,7 +110,8 @@ public static class InventoryExtensions
         this Inventory after,
         IReadOnlyList<Item?> before,
         int consumedSlot,
-        int consumedCount)
+        int consumedCount,
+        Func<Item, bool>? isPrize = null)
     {
         ArgumentNullException.ThrowIfNull(after);
         ArgumentNullException.ThrowIfNull(before);
@@ -119,6 +124,9 @@ public static class InventoryExtensions
             var afterItem = after[index];
 
             if (afterItem is null)
+                continue;
+
+            if (isPrize is not null && !isPrize(afterItem))
                 continue;
 
             var beforeItem = index < before.Count ? before[index] : null;

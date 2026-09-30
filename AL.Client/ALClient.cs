@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -2699,13 +2700,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>Asynchronously attempts to exchange an item.</summary>
     /// <param name="inventorySlot">The index of the item to exchange.</param>
     /// <returns>
-    ///     <see cref="InventoryIndexer" />
-    ///     <br />
-    ///     The prize received from the exchange, with quantity set to units gained, or <c>null</c> when the table paid only
-    ///     gold / nothing.
+    ///     What the server announced the exchange paid. Empty items and zero gold when it paid nothing, shells or a cx.
     /// </returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public async Task<InventoryIndexer?> ExchangeAsync(int inventorySlot)
+    public async Task<ExchangeResult> ExchangeAsync(int inventorySlot)
     {
         if (inventorySlot >= Character.InventorySize)
             throw new InvalidOperationException("Failed to exchange. (index out of range)");
@@ -2734,7 +2732,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //name/level/qty before the emit — Item references stay readable after ShallowMerge replaces Inventory
         var before = Character.Inventory.ToList();
 
-        var source = new TaskCompletionSource<Expectation<InventoryIndexer?>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var source = new TaskCompletionSource<Expectation<ExchangeResult>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
@@ -2756,6 +2754,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return Task.FromResult(result);
             });
 
+        var payoutLogs = new List<GameMessageData>();
+
+        using var gameLogCallback = Socket.On<GameMessageData>(
+            ALSocketMessageType.GameLog,
+            data =>
+            {
+                payoutLogs.Add(data);
+
+                return TaskCache.FALSE;
+            });
+
         var exchangeStarted = false;
 
         using var characterCallback = Socket.On<CharacterData>(
@@ -2767,9 +2776,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     && data.QueuedActions.Exchange.CurrentMS.IsNear(data.QueuedActions.Exchange.LengthMS, CORE_CONSTANTS.EPSILON))
                     exchangeStarted = true;
 
-                //queue cleared after start: prize is whatever rose above the pre-emit baseline (not Except→First)
-                if (exchangeStarted && (data.QueuedActions?.Exchange == null))
-                    source.TrySetResult(Character.Inventory.FindExchangePrize(before, inventorySlot, consumedCount));
+                //the server logs the payout and sends this frame in the one tick that finishes the exchange
+                //(node/server.js:14542-14552), so only the logs since the previous frame are the exchange's. A stand sale
+                //logs received_gold too, and its own frame follows it
+                if (data.QueuedActions?.Exchange != null)
+                {
+                    payoutLogs.Clear();
+
+                    return TaskCache.FALSE;
+                }
+
+                if (exchangeStarted)
+                    source.TrySetResult(
+                        ReadExchangePayout(
+                            payoutLogs,
+                            before,
+                            inventorySlot,
+                            consumedCount));
 
                 return TaskCache.FALSE;
             });
@@ -2783,6 +2806,118 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             });
 
         return await source.Task.WithTimeout(60000);
+    }
+
+    /// <summary>
+    ///     The <c>game_log</c> phrase for gold paid by an exchange, a stand sale or a trade.
+    /// </summary>
+    private const string RECEIVED_GOLD_PHRASE = "server.game_log.received_gold";
+
+    /// <summary>
+    ///     The <c>game_log</c> phrase for an item an exchange paid, followed by <c>a</c>, <c>an</c> or <c>many</c>. Only an
+    ///     exchange payout sends it (server_functions.js:3973).
+    /// </summary>
+    private const string RECEIVED_ITEM_PHRASE_PREFIX = "server.item.received.";
+
+    /// <summary>
+    ///     Reads what an exchange paid from the payout logs the server sent with the frame that finished it.
+    /// </summary>
+    /// <remarks>
+    ///     The inventory alone cannot say: anything handed over or looted during the exchange's seconds-long wait lands the
+    ///     same way a prize does. The logs name what was paid, and the inventory supplies the item key, level and slot.
+    /// </remarks>
+    private ExchangeResult ReadExchangePayout(
+        IReadOnlyList<GameMessageData> payoutLogs,
+        IReadOnlyList<Item?> before,
+        int consumedSlot,
+        int consumedCount)
+    {
+        var items = new List<InventoryIndexer>();
+        long gold = 0;
+
+        foreach (var log in payoutLogs)
+        {
+            if (log is { Phrase: RECEIVED_GOLD_PHRASE, PhraseArgs: { } goldArgs })
+            {
+                if (goldArgs["amount"]
+                        ?.ToString() is { } amount
+                    && long.TryParse(
+                        amount,
+                        NumberStyles.AllowThousands,
+                        CultureInfo.InvariantCulture,
+                        out var parsed))
+                    gold += parsed;
+
+                continue;
+            }
+
+            if ((log.Phrase?.StartsWithI(RECEIVED_ITEM_PHRASE_PREFIX) != true) || log.PhraseArgs is not { } itemArgs)
+                continue;
+
+            var announcedName = itemArgs["item"]
+                ?.ToString();
+
+            var quantity = itemArgs["quantity"]
+                               ?.GetValue<int>()
+                           ?? 1;
+
+            if (string.IsNullOrEmpty(announcedName))
+                continue;
+
+            var prize = Character.Inventory.FindExchangePrize(
+                before,
+                consumedSlot,
+                consumedCount,
+                candidate => IsAnnouncedItem(candidate, announcedName, quantity));
+
+            if (prize is null)
+            {
+                Logger.Warn($"Exchange paid \"{announcedName}\" x{quantity}, but no inventory slot gained it.");
+
+                continue;
+            }
+
+            items.Add(
+                prize with
+                {
+                    Item = prize.Item with
+                    {
+                        Quantity = quantity
+                    }
+                });
+        }
+
+        return new ExchangeResult(items, gold);
+    }
+
+    /// <summary>
+    ///     Whether an item is the one a payout log named, rendered the way the server names it (server_functions.js:4392).
+    /// </summary>
+    /// <remarks>
+    ///     The log carries the display name, not the item key: title-cased property and <c>+level</c> for a single item, the
+    ///     bare name for a stack.
+    /// </remarks>
+    internal static bool IsAnnouncedItem(Item item, string announcedName, int quantity)
+    {
+        if (item.GetData() is not { } data)
+            return false;
+
+        if (quantity > 1)
+            return data.Name == announcedName;
+
+        var rendered = data.Name;
+
+        if (item.Prediction?.Title is { Length: > 0 } title)
+            rendered = char.ToUpperInvariant(title[0])
+                       + title[1..]
+                           .ToLowerInvariant()
+                       + " "
+                       + rendered;
+
+        if (item.Level > 0)
+            rendered += " +" + item.Level;
+
+        return rendered == announcedName;
     }
 
     /// <summary>

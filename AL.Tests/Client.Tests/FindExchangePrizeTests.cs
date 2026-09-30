@@ -109,6 +109,29 @@ public class FindExchangePrizeTests
              .Be(2);
     }
 
+    [Test]
+    public void AnItemArrivingDuringTheExchangeIsNotThePrize()
+    {
+        //an hpamulet handed over mid-exchange lands in a lower free slot than the t-shirt the roll paid
+        var before = Holding(Stack("troll", 5), null, null);
+        var after = Holding(Stack("troll", 4), Stack("hpamulet", 1), Stack("tshirt0", 1));
+
+        var prize = after.FindExchangePrize(
+            before,
+            0,
+            1,
+            item => item.Name == "tshirt0");
+
+        prize!.Index
+              .Should()
+              .Be(2);
+
+        prize.Item
+             .Name
+             .Should()
+             .Be("tshirt0");
+    }
+
     private static Item Stack(string name, int quantity, int level = 0)
         => new()
         {
