@@ -298,7 +298,8 @@ public abstract class EntityBase : AttributedObjectBase,
 
     public void Update(TimeSpan delta)
     {
-        Conditions.TickAndTryRemoveWhere(delta, condition => condition.RemainingMs <= 0);
+        //a condition sent without "ms" (the encouragement bonuses) has no timer; it lasts until a frame drops it
+        Conditions.TickAndTryRemoveWhere(delta, condition => (condition.DurationMs > 0) && (condition.RemainingMs <= 0));
 
         //the whole read-compute-write is inside the lock, not just the write. A correction landing between the read
         //and the write is otherwise clobbered by a step derived from the position it just replaced, silently
