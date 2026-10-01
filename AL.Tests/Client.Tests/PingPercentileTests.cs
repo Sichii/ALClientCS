@@ -58,10 +58,6 @@ public class PingPercentileTests
     [Test]
     public void AnUnmeasuredWindowReadsAsZero()
     {
-        PingManager.PercentileOf(new TimeSpan?[50], 5d)
-                   .Should()
-                   .Be(TimeSpan.Zero);
-
         PingManager.PercentileOf([], 5d)
                    .Should()
                    .Be(TimeSpan.Zero);
@@ -103,17 +99,7 @@ public class PingPercentileTests
                    .Be(TimeSpan.FromMilliseconds(42));
     }
 
-    /// <summary>
-    ///     The manager's buffer hands out every slot it owns, so the ones no ping has written yet arrive as nulls.
-    /// </summary>
-    private static TimeSpan?[] Window(IEnumerable<double> measuredMs, int size = 50)
-    {
-        var window = new TimeSpan?[size];
-        var index = 0;
-
-        foreach (var ms in measuredMs)
-            window[index++] = TimeSpan.FromMilliseconds(ms);
-
-        return window;
-    }
+    private static TimeSpan[] Window(IEnumerable<double> measuredMs)
+        => measuredMs.Select(TimeSpan.FromMilliseconds)
+                     .ToArray();
 }

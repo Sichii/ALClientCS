@@ -284,6 +284,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public TimeSpan LowPercentileRoundTrip => PingManager.LowPercentileOffset;
 
     /// <summary>
+    ///     The socket round trips this connection measured over the last 200 seconds, one every 4 seconds, oldest first.
+    ///     Empty until the first ping lands.
+    /// </summary>
+    /// <remarks>
+    ///     Exposed for display. <see cref="PingManager.PercentileOf" /> reads any percentile off it.
+    /// </remarks>
+    public IReadOnlyList<TimeSpan> PingHistory => PingManager.History;
+
+    /// <summary>
     ///     Initializes a new instance of the <see cref="ALClient" /> class.
     /// </summary>
     /// <param name="characterName">The name of the character.</param>
