@@ -1,6 +1,7 @@
 #region
 using AL.APIClient.Interfaces;
 using AL.Client.Definitions;
+using AL.Client.Helpers;
 using AL.Core.Definitions;
 using AL.Data;
 using AL.Data.Items;
@@ -83,32 +84,24 @@ public static class ItemExtensions
         return GameData.Items[item.Name];
     }
 
-    /// <summary>Calculates the grade of the item.</summary>
-    /// <param name="item">The item to calculate the grade for.</param>
+    /// <summary>
+    ///     Calculates the grade of the item by the server's rule, <see cref="UpgradeMath.CalculateGrade(IReadOnlyList{int}, int)" />.
+    /// </summary>
+    /// <param name="item">
+    ///     The item to calculate the grade for.
+    /// </param>
     /// <returns>
-    ///     <see cref="Grade" />
-    ///     <br />
-    ///     The grade of the item.
+    ///     The grade of the item, or <see cref="Grade.None" /> when it has no upgrade or compound track.
     /// </returns>
     /// <exception cref="ArgumentNullException">item</exception>
     public static Grade GetGrade(this ICommonItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        var data = item.GetData();
-
-        if (data?.Grades == null)
+        if (!UpgradeMath.TryGetGradeThresholds(item.GetData(), out var thresholds))
             return Grade.None;
 
-        var grade = 0;
-
-        foreach (var level in data.Grades)
-            if (item.Level < level)
-                break;
-            else
-                grade++;
-
-        return (Grade)grade;
+        return (Grade)UpgradeMath.CalculateGrade(thresholds, item.Level);
     }
 
     /// <summary>Checks if the item is compoundable.</summary>

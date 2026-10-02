@@ -3,6 +3,11 @@ namespace AL.Client.Definitions;
 public static class CONSTANTS
 {
     /// <summary>
+    ///     How many matching copies the compound bench takes per attempt.
+    /// </summary>
+    public const int ITEMS_PER_COMPOUND = 3;
+
+    /// <summary>
     ///     What the second-hands NPC charges for an ordinary item, as a multiple of its "g" value.
     /// </summary>
     /// <remarks>
