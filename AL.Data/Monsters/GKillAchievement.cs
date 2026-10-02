@@ -15,9 +15,7 @@ namespace AL.Data.Monsters;
 /// <param name="RewardType">
 ///     What the tier hands out. The server only acts on <c>stat</c>.
 /// </param>
-/// <param name="Attribute">
-///     The attribute this achievement grants, if any.
-/// </param>
+/// <param name="Attribute">The attribute this achievement grants, if any.</param>
 /// <param name="Amount">
 ///     How much of <paramref name="Attribute" /> is added. It only counts while the monster tracker is equipped.
 /// </param>

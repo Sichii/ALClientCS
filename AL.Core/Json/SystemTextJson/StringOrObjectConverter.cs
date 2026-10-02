@@ -55,8 +55,8 @@ public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: clas
 }
 
 /// <summary>
-///     Registers <see cref="StringOrObjectConverter{T}" /> for every type marked <see cref="JsonStringOrObjectAttribute" />,
-///     taking the string property's name from it.
+///     Registers <see cref="StringOrObjectConverter{T}" /> for every type marked
+///     <see cref="JsonStringOrObjectAttribute" />, taking the string property's name from it.
 /// </summary>
 /// <remarks>
 ///     It closes the generic at runtime, so it covers socket and API types without referencing them.

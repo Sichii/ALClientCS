@@ -77,8 +77,8 @@ public static class CONSTANTS
     public const int MAX_UNSTICK_DISTANCE = 24;
 
     /// <summary>
-    ///     How many of the nearest mesh vertices a point outside every triangle tries to reach before settling for the
-    ///     nearest one.
+    ///     How many of the nearest mesh vertices a point outside every triangle tries to reach before settling for the nearest
+    ///     one.
     /// </summary>
     public const int NEAREST_VERTEX_CANDIDATES = 64;
 
@@ -91,36 +91,25 @@ public static class CONSTANTS
     public static readonly BoundingBase DEFAULT_BOUNDING_BASE = new(8, 7, 2);
 
     /// <summary>
-    ///     Determines whether the server takes a <c>leave</c> command from a map.
-    /// </summary>
-    /// <param name="map">
-    ///     The map's key.
-    /// </param>
-    /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if <c>leave</c> works on the map; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
-    /// </returns>
-    /// <remarks>
-    ///     The server also allows solo instances, which only a gm can create.
-    /// </remarks>
-    public static bool CanLeave(string map) => map.EqualsI("jail") || map.EqualsI("cyberland");
-
-    /// <summary>
     ///     Calculates the cost of a town teleport in walk distance: the ground the character would cover on foot while the
     ///     channel runs, times <see cref="TOWN_RISK_PREMIUM" />.
     /// </summary>
     /// <param name="walkSpeed">
     ///     The character's walk speed; zero or less falls back to <see cref="NOMINAL_WALK_SPEED" />.
     /// </param>
-    /// <returns>
-    ///     The cost of the town edge.
-    /// </returns>
+    /// <returns>The cost of the town edge.</returns>
     public static float CalculateTownCost(float walkSpeed)
         => TOWN_CHANNEL_SECONDS * (walkSpeed > 0f ? walkSpeed : NOMINAL_WALK_SPEED) * TOWN_RISK_PREMIUM;
+
+    /// <summary>
+    ///     Determines whether the server takes a <c>leave</c> command from a map.
+    /// </summary>
+    /// <param name="map">The map's key.</param>
+    /// <returns>
+    ///     <c>true</c> if <c>leave</c> works on the map; otherwise, <c>false</c> .
+    /// </returns>
+    /// <remarks>
+    ///     The server also allows solo instances, which only a gm can create.
+    /// </remarks>
+    public static bool CanLeave(string map) => map.EqualsI("jail") || map.EqualsI("cyberland");
 }

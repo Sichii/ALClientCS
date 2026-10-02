@@ -17,18 +17,12 @@ internal sealed partial class MapChunkAssembler
     private string? Run;
     private int Size;
 
-    /// <summary>
-    ///     Adds one chunk to the pending bundle.
-    /// </summary>
-    /// <param name="chunk">
-    ///     The chunk as the server sent it.
-    /// </param>
+    /// <summary>Adds one chunk to the pending bundle.</summary>
+    /// <param name="chunk">The chunk as the server sent it.</param>
     /// <returns>
     ///     The joined bundle text when this chunk completes it, or null while more are due.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     chunk
-    /// </exception>
+    /// <exception cref="ArgumentNullException">chunk</exception>
     /// <exception cref="InvalidOperationException">
     ///     The chunk is malformed, or it does not follow the pending bundle - either way the pending bundle is discarded.
     /// </exception>

@@ -25,8 +25,8 @@ public sealed record Prediction : IOptionalObject
     public bool ContainsData { get; set; }
 
     /// <summary>
-    ///     Whether the roll has been revealed to fail; <c>null</c> while the outcome is still hidden.
-    ///     <see cref="Success" /> is false in both states.
+    ///     Whether the roll has been revealed to fail; <c>null</c> while the outcome is still hidden. <see cref="Success" />
+    ///     is false in both states.
     /// </summary>
     [JsonPropertyName("failure")]
     public bool? Failure { get; init; }

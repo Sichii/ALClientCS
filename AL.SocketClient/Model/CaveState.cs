@@ -154,8 +154,8 @@ public sealed record CaveObjective
     public string Id { get; init; } = null!;
 
     /// <summary>
-    ///     What kind of room the server built: <c>fight</c>, <c>boss</c>, <c>encounter</c>, <c>farm</c> or <c>citizen</c>.
-    ///     An encounter's own kind is on <see cref="CaveChoice.Kind" />; <see cref="Name" /> carries its title.
+    ///     What kind of room the server built: <c>fight</c>, <c>boss</c>, <c>encounter</c>, <c>farm</c> or <c>citizen</c>. An
+    ///     encounter's own kind is on <see cref="CaveChoice.Kind" />; <see cref="Name" /> carries its title.
     /// </summary>
     [JsonPropertyName("kind")]
     public string Kind { get; init; } = null!;
@@ -467,8 +467,8 @@ public sealed record CaveVisit
 }
 
 /// <summary>
-///     Represents an interrupted run this character can return to. Re-entering is the ordinary pull-in at the keeper, sent by
-///     this character for itself rather than by the party's first.
+///     Represents an interrupted run this character can return to. Re-entering is the ordinary pull-in at the keeper, sent
+///     by this character for itself rather than by the party's first.
 /// </summary>
 public sealed record CaveResume
 {
@@ -518,8 +518,8 @@ public sealed record MonsterCave
     public string? Room { get; init; }
 
     /// <summary>
-    ///     The monster's side: <c>neutral</c>, <c>ally</c> or <c>victim</c> can be talked to; <c>enemy</c> and
-    ///     <c>predator</c> fight.
+    ///     The monster's side: <c>neutral</c>, <c>ally</c> or <c>victim</c> can be talked to; <c>enemy</c> and <c>predator</c>
+    ///     fight.
     /// </summary>
     [JsonPropertyName("side")]
     public string? Side { get; init; }

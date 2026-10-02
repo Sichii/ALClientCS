@@ -48,10 +48,7 @@ public sealed class ALSocketClient : IALSocketClient
     ///     <see cref="HEADLESS_HANDSHAKE_QUERY" /> without <c>no_graphics</c>, for a socket that receives a generated floor's
     ///     art.
     /// </summary>
-    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY =
-    [
-        new("map_protocol", "1")
-    ];
+    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY = [new("map_protocol", "1")];
 
     /// <summary>
     ///     The time a frame may wait, or a handler may run, before it is logged. Nothing is dropped past it.
@@ -85,12 +82,6 @@ public sealed class ALSocketClient : IALSocketClient
     public string? LastDisconnectReason { get; private set; }
 
     /// <summary>
-    ///     Whether to connect over TLS. True for the public game host, which sets its auth cookie with the "secure" flag. Set
-    ///     to false to reach a locally hosted server.
-    /// </summary>
-    public static bool UseSecureTransport { get; set; } = true;
-
-    /// <summary>
     ///     Whether a generated floor arrives with its tiles and sprite placements. True by default. Set to false to receive
     ///     only its collision lines, which is all the pathfinder reads.
     /// </summary>
@@ -98,6 +89,12 @@ public sealed class ALSocketClient : IALSocketClient
     ///     Read when a socket connects, so a change reaches the next connection and not an open one.
     /// </remarks>
     public static bool ReceiveGeneratedMapArt { get; set; } = true;
+
+    /// <summary>
+    ///     Whether to connect over TLS. True for the public game host, which sets its auth cookie with the "secure" flag. Set
+    ///     to false to reach a locally hosted server.
+    /// </summary>
+    public static bool UseSecureTransport { get; set; } = true;
 
     /// <summary>
     ///     The proxy this socket dials the game through, or null for the machine's own connection.
@@ -110,9 +107,7 @@ public sealed class ALSocketClient : IALSocketClient
     /// <summary>
     ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
     /// </summary>
-    /// <param name="logger">
-    ///     The prefixed logger to log messages to.
-    /// </param>
+    /// <param name="logger">The prefixed logger to log messages to.</param>
     /// <param name="proxy">
     ///     The proxy to reach the game through, or null for the machine's own connection.
     /// </param>
@@ -137,12 +132,8 @@ public sealed class ALSocketClient : IALSocketClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Socket is already open.
-    /// </exception>
-    /// <exception cref="ObjectDisposedException">
-    ///     The client has already disconnected.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Socket is already open.</exception>
+    /// <exception cref="ObjectDisposedException">The client has already disconnected.</exception>
     public async Task ConnectAsync(Server server)
     {
         if (Connected)
@@ -276,9 +267,7 @@ public sealed class ALSocketClient : IALSocketClient
             .ConfigureAwait(false);
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Socket is null or closed.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
     public async Task EmitAsync<T>(ALSocketEmitType emitType, T data)
     {
         Logger.Trace($"{emitType}, {data}");
@@ -307,9 +296,7 @@ public sealed class ALSocketClient : IALSocketClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    ///     Socket is null or closed.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
     public async Task EmitAsync(ALSocketEmitType emitType)
     {
         Logger.Trace($"{emitType}");
@@ -562,15 +549,9 @@ RAW JSON:
     /// <remarks>
     ///     Frames are handled in arrival order; handled on the socket callback, an older frame could apply after a newer one.
     /// </remarks>
-    /// <param name="messageType">
-    ///     The frame's message type.
-    /// </param>
-    /// <param name="data">
-    ///     The decoded payload.
-    /// </param>
-    /// <param name="eventName">
-    ///     The frame's event name, for logging.
-    /// </param>
+    /// <param name="messageType">The frame's message type.</param>
+    /// <param name="data">The decoded payload.</param>
+    /// <param name="eventName">The frame's event name, for logging.</param>
     /// <returns>
     ///     <c>true</c> if the frame was queued; otherwise, <c>false</c> when nothing subscribes to
     ///     <paramref name="messageType" /> or the queue has closed.

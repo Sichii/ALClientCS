@@ -21,13 +21,6 @@ public record GGeometry : IRectangle
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
-    ///     If populated, the floor's geometry exactly as a generated run delivered it, tile art included. G carries that art
-    ///     for every other map; a generated floor's only copy is the one that arrived over <c>map_chunk</c>.
-    /// </summary>
-    [JsonIgnore]
-    public JsonObject? Raw { get; internal set; }
-
-    /// <summary>
     ///     A list of horizontal lines that should be considered as walls.
     /// </summary>
     [JsonPropertyName("y_lines")]
@@ -49,6 +42,13 @@ public record GGeometry : IRectangle
     /// <summary>Minimum Y coordinate on the map.</summary>
     [JsonPropertyName("min_y")]
     public int MinY { get; init; }
+
+    /// <summary>
+    ///     If populated, the floor's geometry exactly as a generated run delivered it, tile art included. G carries that art
+    ///     for every other map; a generated floor's only copy is the one that arrived over <c>map_chunk</c>.
+    /// </summary>
+    [JsonIgnore]
+    public JsonObject? Raw { get; internal set; }
 
     /// <summary>A list of tiles on this map.</summary>
     public IReadOnlyList<GTile> Tiles { get; init; } = new List<GTile>();

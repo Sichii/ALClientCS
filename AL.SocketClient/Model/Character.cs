@@ -27,8 +27,8 @@ public class Character : Player, IEquatable<Character>
     public int AggroTargets { get; protected set; }
 
     /// <summary>
-    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. The game's
-    ///     own kiss button is enabled on nothing else.
+    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. The game's own
+    ///     kiss button is enabled on nothing else.
     /// </summary>
     [JsonPropertyName("anniversary")]
     [JsonInclude]
@@ -103,8 +103,8 @@ public class Character : Player, IEquatable<Character>
     /// </summary>
     /// <remarks>
     ///     Not folded into <see cref="GoldMultiplier" /> , <see cref="XPMultiplier" /> or <see cref="LuckMultiplier" /> ,
-    ///     which carry gear and party effects alone. Use <see cref="EffectiveGoldMultiplier" /> and its two neighbours for
-    ///     the figure a reward actually lands on.
+    ///     which carry gear and party effects alone. Use <see cref="EffectiveGoldMultiplier" /> and its two neighbours for the
+    ///     figure a reward actually lands on.
     /// </remarks>
     [JsonPropertyName("encouragement")]
     [JsonInclude]
@@ -256,18 +256,12 @@ public class Character : Player, IEquatable<Character>
         Inventory?.SetCapacity(InventorySize);
     }
 
-    /// <summary>
-    ///     Sets this character as moving to a point.
-    /// </summary>
-    /// <param name="point">
-    ///     Where to walk to.
-    /// </param>
+    /// <summary>Sets this character as moving to a point.</summary>
+    /// <param name="point">Where to walk to.</param>
     /// <returns>
     ///     The movement block this left the character holding, including the move number the walk started with.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     point
-    /// </exception>
+    /// <exception cref="ArgumentNullException">point</exception>
     public MovementBlock SetMoving(IPoint point)
     {
         ArgumentNullException.ThrowIfNull(point);
@@ -313,15 +307,9 @@ public class Character : Player, IEquatable<Character>
     /// <summary>
     ///     Folds an in-progress upgrade or compound's detail onto the inventory slot it belongs to.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the operation's placeholder.
-    /// </param>
-    /// <param name="prediction">
-    ///     The operation's current detail.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     prediction
-    /// </exception>
+    /// <param name="inventorySlot">The slot holding the operation's placeholder.</param>
+    /// <param name="prediction">The operation's current detail.</param>
+    /// <exception cref="ArgumentNullException">prediction</exception>
     /// <remarks>
     ///     The server sends this only on <c>q_data</c>, never in a character frame.
     /// </remarks>

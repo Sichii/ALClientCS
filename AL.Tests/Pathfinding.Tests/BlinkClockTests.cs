@@ -18,22 +18,30 @@ public class BlinkClockTests : GameDataTestBed
     };
 
     /// <summary>
-    ///     A rested cast takes the 200ms landing, and leaves the next cast 1000ms off and 812ms of penalty pending.
+    ///     Blink, door, blink, door, blink: 200ms, then a 1000ms wait and 200ms, then a 4012ms wait and 200ms - 5612ms, the
+    ///     same timeline <see cref="RouteClock" /> is held to.
     /// </summary>
     [Test]
-    public void ARestedCastLeavesTheCooldownLessTheLandingAndTheEffectPenalty()
+    public void ADoorBlinkChainWaitsBeforeEachLaterCast()
     {
         var clock = new BlinkClock(UNTRACKED);
+        var state = default(TravelState);
+        var totalMs = 0f;
 
-        clock.TryBlink(default, out var spentMs, out var after)
-             .Should()
-             .BeTrue();
+        for (var cast = 0; cast < 3; cast++)
+        {
+            if (cast > 0)
+                state = BlinkClock.AddPenalty(state, CONSTANTS.DOOR_PENALTY_MS);
 
-        spentMs.Should()
-               .Be(200f);
+            clock.TryBlink(state, out var spentMs, out state)
+                 .Should()
+                 .BeTrue();
 
-        after.Should()
-             .Be(new TravelState(1000f, 812f, 0f));
+            totalMs += spentMs;
+        }
+
+        totalMs.Should()
+               .BeApproximately(5612f, 0.01f);
     }
 
     /// <summary>
@@ -55,6 +63,45 @@ public class BlinkClockTests : GameDataTestBed
         after.PenaltyMs
              .Should()
              .Be(3000f - 200f + 812f);
+    }
+
+    /// <summary>
+    ///     A tracked bar short of a cast that never refills can never cast.
+    /// </summary>
+    [Test]
+    public void ARateOfZeroNeverCasts()
+    {
+        var clock = new BlinkClock(
+            new PathOptions
+            {
+                BlinkCost = 400f,
+                BlinkMpPerSecond = 0f,
+                Mp = 0f,
+                MaxMp = 4000f
+            });
+
+        clock.TryBlink(new TravelState(0f, 0f, 0f), out _, out _)
+             .Should()
+             .BeFalse();
+    }
+
+    /// <summary>
+    ///     A rested cast takes the 200ms landing, and leaves the next cast 1000ms off and 812ms of penalty pending.
+    /// </summary>
+    [Test]
+    public void ARestedCastLeavesTheCooldownLessTheLandingAndTheEffectPenalty()
+    {
+        var clock = new BlinkClock(UNTRACKED);
+
+        clock.TryBlink(default, out var spentMs, out var after)
+             .Should()
+             .BeTrue();
+
+        spentMs.Should()
+               .Be(200f);
+
+        after.Should()
+             .Be(new TravelState(1000f, 812f, 0f));
     }
 
     /// <summary>
@@ -82,53 +129,6 @@ public class BlinkClockTests : GameDataTestBed
         after.Mp
              .Should()
              .BeApproximately(0f + 250f * 0.2f, 0.01f);
-    }
-
-    /// <summary>
-    ///     A tracked bar short of a cast that never refills can never cast.
-    /// </summary>
-    [Test]
-    public void ARateOfZeroNeverCasts()
-    {
-        var clock = new BlinkClock(
-            new PathOptions
-            {
-                BlinkCost = 400f,
-                BlinkMpPerSecond = 0f,
-                Mp = 0f,
-                MaxMp = 4000f
-            });
-
-        clock.TryBlink(new TravelState(0f, 0f, 0f), out _, out _)
-             .Should()
-             .BeFalse();
-    }
-
-    /// <summary>
-    ///     Blink, door, blink, door, blink: 200ms, then a 1000ms wait and 200ms, then a 4012ms wait and 200ms - 5612ms, the
-    ///     same timeline <see cref="RouteClock" /> is held to.
-    /// </summary>
-    [Test]
-    public void ADoorBlinkChainWaitsBeforeEachLaterCast()
-    {
-        var clock = new BlinkClock(UNTRACKED);
-        var state = default(TravelState);
-        var totalMs = 0f;
-
-        for (var cast = 0; cast < 3; cast++)
-        {
-            if (cast > 0)
-                state = BlinkClock.AddPenalty(state, CONSTANTS.DOOR_PENALTY_MS);
-
-            clock.TryBlink(state, out var spentMs, out state)
-                 .Should()
-                 .BeTrue();
-
-            totalMs += spentMs;
-        }
-
-        totalMs.Should()
-               .BeApproximately(5612f, 0.01f);
     }
 
     /// <summary>

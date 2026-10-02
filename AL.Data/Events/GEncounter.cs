@@ -22,8 +22,9 @@ public record GEncounter
 }
 
 /// <summary>
-///     Represents one reply. <see cref="Cost" /> is cave gold and <see cref="Amber" /> is amber, both from the party's purse;
-///     <see cref="Needs" /> names a supply the party must hold; <see cref="Offer" /> marks the reply the actor leads with.
+///     Represents one reply. <see cref="Cost" /> is cave gold and <see cref="Amber" /> is amber, both from the party's
+///     purse; <see cref="Needs" /> names a supply the party must hold; <see cref="Offer" /> marks the reply the actor
+///     leads with.
 /// </summary>
 public record GEncounterOption
 {

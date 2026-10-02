@@ -62,29 +62,6 @@ public class GeneratedFloorTests : PathfindingTestBed
     }
 
     /// <summary>
-    ///     The server refuses a recall anywhere in a run with <c>cant_escape</c> (<c>node/server.js</c>'s <c>town</c>
-    ///     handler), so a walk starting on a floor walks even where the recall would have been cheaper.
-    /// </summary>
-    [Test]
-    public void AWalkStartingOnAFloorNeverRecalls()
-    {
-        try
-        {
-            Pathfinder.RegisterGeneratedRun(GeneratedMapBundle.Parse(Bundle()));
-
-            var path = Pathfinder.FindPath(new Location(FLOOR_0, 380, 380), [new Destination(new Location(FLOOR_0, 200, 200), 5)]);
-
-            path.Should()
-                .NotBeEmpty()
-                .And
-                .NotContain(edge => edge.Type == EdgeType.Town);
-        } finally
-        {
-            Pathfinder.UnregisterGeneratedRun(RUN);
-        }
-    }
-
-    /// <summary>
     ///     A stair opens only within 40 of the landing it names (<c>is_door_close</c> in <c>js/old_common_functions.js</c>,
     ///     called from <c>generated_use_door</c>), not at the 112 a world door allows. Given the world door's reach, a walk
     ///     stopped over a hundred from the landing and the stair refused it with <c>transport_cant_reach</c> every tick.
@@ -110,6 +87,29 @@ public class GeneratedFloorTests : PathfindingTestBed
 
             fromLanding.Should()
                        .BeLessThan(SERVER_STAIR_DIST - REQUIRED_MARGIN);
+        } finally
+        {
+            Pathfinder.UnregisterGeneratedRun(RUN);
+        }
+    }
+
+    /// <summary>
+    ///     The server refuses a recall anywhere in a run with <c>cant_escape</c> (<c>node/server.js</c>'s <c>town</c>
+    ///     handler), so a walk starting on a floor walks even where the recall would have been cheaper.
+    /// </summary>
+    [Test]
+    public void AWalkStartingOnAFloorNeverRecalls()
+    {
+        try
+        {
+            Pathfinder.RegisterGeneratedRun(GeneratedMapBundle.Parse(Bundle()));
+
+            var path = Pathfinder.FindPath(new Location(FLOOR_0, 380, 380), [new Destination(new Location(FLOOR_0, 200, 200), 5)]);
+
+            path.Should()
+                .NotBeEmpty()
+                .And
+                .NotContain(edge => edge.Type == EdgeType.Town);
         } finally
         {
             Pathfinder.UnregisterGeneratedRun(RUN);

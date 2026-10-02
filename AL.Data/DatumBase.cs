@@ -9,16 +9,12 @@ namespace AL.Data;
 /// <summary>
 ///     Provides dictionary-like access to contained properties.
 /// </summary>
-/// <typeparam name="T">
-///     The type of each entry.
-/// </typeparam>
+/// <typeparam name="T">The type of each entry.</typeparam>
 public abstract class DatumBase<T>
 {
     private IReadOnlyDictionary<string, T> LookupCache { get; set; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>
-    ///     Every entry, keyed by name.
-    /// </summary>
+    /// <summary>Every entry, keyed by name.</summary>
     [JsonIgnore]
     public IReadOnlyDictionary<string, T> Entries => LookupCache;
 
@@ -33,12 +29,8 @@ public abstract class DatumBase<T>
     /// <summary>
     ///     Adds an entry by swapping in a copy of the table, so a reader without a lock keeps a consistent one.
     /// </summary>
-    /// <param name="key">
-    ///     The entry's name.
-    /// </param>
-    /// <param name="value">
-    ///     The entry.
-    /// </param>
+    /// <param name="key">The entry's name.</param>
+    /// <param name="value">The entry.</param>
     internal void Add(string key, T value)
         => LookupCache = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase)
         {
@@ -90,9 +82,7 @@ public abstract class DatumBase<T>
     /// <summary>
     ///     Allows using string representation of an enum to access properties.
     /// </summary>
-    /// <param name="enum">
-    ///     An enum value whose name is the property's name.
-    /// </param>
+    /// <param name="enum">An enum value whose name is the property's name.</param>
     [JsonIgnore]
     public T? this[Enum @enum] => this[EnumHelper.ToString(@enum)];
 

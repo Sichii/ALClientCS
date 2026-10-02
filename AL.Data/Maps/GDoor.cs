@@ -68,24 +68,16 @@ public record GDoor : IRectangle
     [JsonArrayIndex(1)]
     public float Y { get; init; }
 
-    /// <summary>
-    ///     The y coordinate of the lower edge.
-    /// </summary>
+    /// <summary>The y coordinate of the lower edge.</summary>
     public float Bottom => Y + Height / 2;
 
-    /// <summary>
-    ///     The x coordinate of the left edge.
-    /// </summary>
+    /// <summary>The x coordinate of the left edge.</summary>
     public float Left => X - Width / 2;
 
-    /// <summary>
-    ///     The x coordinate of the right edge.
-    /// </summary>
+    /// <summary>The x coordinate of the right edge.</summary>
     public float Right => X + Width / 2;
 
-    /// <summary>
-    ///     The y coordinate of the upper edge.
-    /// </summary>
+    /// <summary>The y coordinate of the upper edge.</summary>
     public float Top => Y - Height / 2;
 
     /// <summary>

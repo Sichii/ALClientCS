@@ -28,6 +28,11 @@ internal abstract class PlannerBase
     public IReadOnlyList<OfferingChoice> Offerings { get; }
 
     /// <summary>
+    ///     The passes spent settling failure pity and offering pity. One pass counts neither, since each starts at zero.
+    /// </summary>
+    protected int PityPasses { get; }
+
+    /// <summary>
     ///     Scroll prices indexed by scroll grade. A grade priced at zero, or past the end of the list, is skipped.
     /// </summary>
     public IReadOnlyList<double> ScrollPrices { get; }
@@ -38,37 +43,18 @@ internal abstract class PlannerBase
     protected IReadOnlyList<int> Thresholds { get; }
 
     /// <summary>
-    ///     The passes spent settling failure pity and offering pity. One pass counts neither, since each starts at zero.
-    /// </summary>
-    protected int PityPasses { get; }
-
-    /// <summary>
     ///     Initializes a new instance of the <see cref="PlannerBase" /> class.
     /// </summary>
-    /// <param name="bench">
-    ///     The bench the climb is made on.
-    /// </param>
-    /// <param name="thresholds">
-    ///     The item's thresholds.
-    /// </param>
-    /// <param name="scrollPrices">
-    ///     Scroll prices indexed by scroll grade.
-    /// </param>
-    /// <param name="offerings">
-    ///     The offerings available.
-    /// </param>
+    /// <param name="bench">The bench the climb is made on.</param>
+    /// <param name="thresholds">The item's thresholds.</param>
+    /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
+    /// <param name="offerings">The offerings available.</param>
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     thresholds
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     scrollPrices
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     offerings
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">thresholds</exception>
+    /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
+    /// <exception cref="System.ArgumentNullException">offerings</exception>
     protected PlannerBase(
         Bench bench,
         IReadOnlyList<int> thresholds,
@@ -93,15 +79,33 @@ internal abstract class PlannerBase
     }
 
     /// <summary>
+    ///     Calculates one attempt's chance on this bench, from the grace each staked copy carries.
+    /// </summary>
+    /// <param name="baseChance">The attempt's base chance.</param>
+    /// <param name="newLevel">The level being reached.</param>
+    /// <param name="itemGrade">The item's grade at the level it leaves.</param>
+    /// <param name="scrollGrade">The scroll's grade.</param>
+    /// <param name="offeringGrade">The offering's grade, or null for none.</param>
+    /// <param name="grace">The grace each staked copy carries.</param>
+    /// <param name="ograce">The offering pity counter entering the attempt.</param>
+    /// <returns>The attempt's chance.</returns>
+    protected abstract double CalculateChance(
+        double baseChance,
+        int newLevel,
+        int itemGrade,
+        int scrollGrade,
+        int? offeringGrade,
+        double grace,
+        double ograce);
+
+    /// <summary>
     ///     Finds the cheapest expected climb from <paramref name="startLevel" /> to <paramref name="targetLevel" />.
     /// </summary>
     /// <remarks>
     ///     Every copy is assumed to carry <paramref name="startGrace" />, which is slightly optimistic when the graced copy is
     ///     one of a kind.
     /// </remarks>
-    /// <param name="targetLevel">
-    ///     The level to climb to.
-    /// </param>
+    /// <param name="targetLevel">The level to climb to.</param>
     /// <param name="copyPrice">
     ///     The price of one copy at <paramref name="startLevel" />.
     /// </param>
@@ -259,56 +263,6 @@ internal abstract class PlannerBase
         return new UpgradePlan(steps, baseline, null);
     }
 
-    /// <summary>
-    ///     Tries to get an attempt's base chance from the level it leaves.
-    /// </summary>
-    /// <param name="level">
-    ///     The level the attempt leaves.
-    /// </param>
-    /// <param name="chance">
-    ///     The base chance.
-    /// </param>
-    /// <returns>
-    ///     <c>true</c> if the server's table has a figure for the level; otherwise, <c>false</c>.
-    /// </returns>
-    protected abstract bool TryGetBaseChance(int level, out double chance);
-
-    /// <summary>
-    ///     Calculates one attempt's chance on this bench, from the grace each staked copy carries.
-    /// </summary>
-    /// <param name="baseChance">
-    ///     The attempt's base chance.
-    /// </param>
-    /// <param name="newLevel">
-    ///     The level being reached.
-    /// </param>
-    /// <param name="itemGrade">
-    ///     The item's grade at the level it leaves.
-    /// </param>
-    /// <param name="scrollGrade">
-    ///     The scroll's grade.
-    /// </param>
-    /// <param name="offeringGrade">
-    ///     The offering's grade, or null for none.
-    /// </param>
-    /// <param name="grace">
-    ///     The grace each staked copy carries.
-    /// </param>
-    /// <param name="ograce">
-    ///     The offering pity counter entering the attempt.
-    /// </param>
-    /// <returns>
-    ///     The attempt's chance.
-    /// </returns>
-    protected abstract double CalculateChance(
-        double baseChance,
-        int newLevel,
-        int itemGrade,
-        int scrollGrade,
-        int? offeringGrade,
-        double grace,
-        double ograce);
-
     private Dictionary<long, PartialPlan> FindReachedPlans(
         List<PartialPlan> open,
         int level,
@@ -434,13 +388,19 @@ internal abstract class PlannerBase
     /// <summary>
     ///     Rounds grace to a millionth, so two plans that banked the same grace by different routes share one key.
     /// </summary>
-    /// <param name="grace">
-    ///     The grace.
-    /// </param>
-    /// <returns>
-    ///     The grace in millionths.
-    /// </returns>
+    /// <param name="grace">The grace.</param>
+    /// <returns>The grace in millionths.</returns>
     private static long RoundGrace(double grace) => (long)Math.Round(grace * 1_000_000);
+
+    /// <summary>
+    ///     Tries to get an attempt's base chance from the level it leaves.
+    /// </summary>
+    /// <param name="level">The level the attempt leaves.</param>
+    /// <param name="chance">The base chance.</param>
+    /// <returns>
+    ///     <c>true</c> if the server's table has a figure for the level; otherwise, <c>false</c>.
+    /// </returns>
+    protected abstract bool TryGetBaseChance(int level, out double chance);
 
     /// <summary>
     ///     Represents a plan that has reached one level: its last attempt, the expected cost of one copy by then, and the
@@ -465,9 +425,7 @@ internal abstract class PlannerBase
 /// <param name="ScrollGrades">
 ///     The scroll grades worth trying, indexed by item grade.
 /// </param>
-/// <param name="CopiesPerAttempt">
-///     The copies one attempt consumes.
-/// </param>
+/// <param name="CopiesPerAttempt">The copies one attempt consumes.</param>
 /// <param name="TakesDeposits">
 ///     Whether offerings can be used without a scroll before an attempt to bank grace.
 /// </param>
@@ -572,9 +530,7 @@ internal sealed record Bench(
     /// <param name="ograce">
     ///     The counter entering each level, overwritten in place. Its length sets the climb's.
     /// </param>
-    /// <param name="chances">
-    ///     The plan's chance at each level.
-    /// </param>
+    /// <param name="chances">The plan's chance at each level.</param>
     /// <param name="withOffering">
     ///     Whether the plan spends an offering at each level.
     /// </param>

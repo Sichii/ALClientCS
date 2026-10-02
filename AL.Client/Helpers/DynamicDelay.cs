@@ -30,9 +30,7 @@ public sealed class DynamicDelay
     /// <summary>
     ///     Asynchronously sets a new delay by cancelling the previous delay and setting a new one.
     /// </summary>
-    /// <param name="delay">
-    ///     The new delay.
-    /// </param>
+    /// <param name="delay">The new delay.</param>
     internal async Task SetDelayAsync(TimeSpan delay)
     {
         await using var @lock = await Sync.WaitAsync();
@@ -45,12 +43,8 @@ public sealed class DynamicDelay
     /// <summary>
     ///     Asynchronously waits for the specified amount of time. Change that amount by calling <see cref="SetDelayAsync" />.
     /// </summary>
-    /// <param name="delay">
-    ///     The initial delay to wait for.
-    /// </param>
-    /// <param name="token">
-    ///     A token to cancel the delay.
-    /// </param>
+    /// <param name="delay">The initial delay to wait for.</param>
+    /// <param name="token">A token to cancel the delay.</param>
     internal async Task WaitAsync(TimeSpan delay, CancellationToken? token = null)
     {
         var currentDelay = delay;

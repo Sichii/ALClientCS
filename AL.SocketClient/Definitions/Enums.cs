@@ -23,9 +23,7 @@ public enum GameResponseType
     [EnumMember(Value = "cant_escape")]
     CantEscape,
 
-    /// <summary>
-    ///     The generic <c>data</c> response.
-    /// </summary>
+    /// <summary>The generic <c>data</c> response.</summary>
     [EnumMember(Value = "data")]
     Data,
 
@@ -218,9 +216,7 @@ public enum GameResponseType
     [EnumMember(Value = "seal_closed")]
     SealClosed,
 
-    /// <summary>
-    ///     The generic <c>invalid</c> refusal.
-    /// </summary>
+    /// <summary>The generic <c>invalid</c> refusal.</summary>
     [EnumMember(Value = "invalid")]
     Invalid,
 
@@ -454,8 +450,8 @@ public enum GameResponseType
     LocksmithUnsealComplete,
 
     /// <summary>
-    ///     Sent through <c>success_response</c> with <c>success</c> false and <c>in_progress</c> true, so nothing has
-    ///     happened yet. <c>hours</c> is how long is left.
+    ///     Sent through <c>success_response</c> with <c>success</c> false and <c>in_progress</c> true, so nothing has happened
+    ///     yet. <c>hours</c> is how long is left.
     /// </summary>
     [EnumMember(Value = "locksmith_unsealing")]
     LocksmithUnsealing,
@@ -568,9 +564,10 @@ public enum GameResponseType
     SignedUp,
 
     /// <summary>
-    ///     This and <see cref="MailFailed" /> are the mail emit's two terminal answers. <c>mail_sending</c> is not a member: it
-    ///     only says the send started, so nothing may settle on it.
+    ///     This and <see cref="MailFailed" /> are the mail emit's two terminal answers. <c>mail_sending</c> is not a member:
+    ///     it only says the send started, so nothing may settle on it.
     /// </summary>
+
     //appended at the end, like every other late addition: members carry no explicit values, so inserting
     //above would renumber every later ordinal
     [EnumMember(Value = "mail_sent")]
@@ -590,9 +587,10 @@ public enum GameResponseType
     MailTakeItemFailed,
 
     /// <summary>
-    ///     This and <see cref="NotInTavern" /> are the bet handler's two refusals before any game's own branch: the tavern
-    ///     has no running instance, and the character is not standing in it.
+    ///     This and <see cref="NotInTavern" /> are the bet handler's two refusals before any game's own branch: the tavern has
+    ///     no running instance, and the character is not standing in it.
     /// </summary>
+
     //appended rather than filed beside the other tavern codes, because inserting above would renumber every
     //later ordinal
     [EnumMember(Value = "tavern_unavailable")]
@@ -718,6 +716,7 @@ public enum ALSocketMessageType
     ///     The tavern's info reply and its bet, won and lost broadcasts all share this one event name, so the frame's own
     ///     <c>event</c> field is what tells them apart.
     /// </summary>
+
     //appended for the same ordinal reason as Pm
     Tavern,
 
@@ -729,6 +728,7 @@ public enum ALSocketMessageType
     /// <summary>
     ///     One piece of a generated map bundle. A daily dungeon's floors reach the client this way, not through G.
     /// </summary>
+
     //appended for the same ordinal reason as Pm
     [EnumMember(Value = "map_chunk")]
     MapChunk,
@@ -736,6 +736,7 @@ public enum ALSocketMessageType
     /// <summary>
     ///     The daily dungeon's run state: timer, purse, doors, objectives and the vote in progress.
     /// </summary>
+
     //appended for the same ordinal reason as Pm
     Cave
 }

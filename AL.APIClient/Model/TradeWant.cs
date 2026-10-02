@@ -40,27 +40,12 @@ public sealed record TradeWant
     ///     Determines whether an item with these properties satisfies the offer: the same name, at least the wanted level and
     ///     stack, and the wanted title when one is set.
     /// </summary>
-    /// <param name="name">
-    ///     The item's name.
-    /// </param>
-    /// <param name="level">
-    ///     The item's level.
-    /// </param>
-    /// <param name="title">
-    ///     The item's title, if any.
-    /// </param>
-    /// <param name="quantity">
-    ///     The item's stack size.
-    /// </param>
+    /// <param name="name">The item's name.</param>
+    /// <param name="level">The item's level.</param>
+    /// <param name="title">The item's title, if any.</param>
+    /// <param name="quantity">The item's stack size.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the item satisfies the offer; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the item satisfies the offer; otherwise, <c>false</c> .
     /// </returns>
     /// <remarks>
     ///     A locked or bound item passes this and is still refused; the game's stand leaves those out of the choice before it

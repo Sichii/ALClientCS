@@ -9,7 +9,8 @@ namespace AL.Data.Maps;
 public sealed record GTrap
 {
     /// <summary>
-    ///     <b>NULLABLE</b>. The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance tick.
+    ///     <b>NULLABLE</b>. The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance
+    ///     tick.
     /// </summary>
     public Polygon? Polygon { get; init; }
 

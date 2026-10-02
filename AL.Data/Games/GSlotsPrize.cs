@@ -10,9 +10,7 @@ namespace AL.Data.Games;
 /// <param name="Item">
 ///     The item the outcome is keyed by, which is also the reel symbol it shows three of.
 /// </param>
-/// <param name="Payout">
-///     What the outcome pays, in gold.
-/// </param>
+/// <param name="Payout">What the outcome pays, in gold.</param>
 /// <param name="Weight">
 ///     How many of <see cref="GSlots.Draws" /> land on this outcome.
 /// </param>

@@ -18,8 +18,6 @@ public readonly record struct PathEdge(
     /// <summary>
     ///     Formats the leg as its type, both ends and cost, for logs.
     /// </summary>
-    /// <returns>
-    ///     The leg as one line of text.
-    /// </returns>
+    /// <returns>The leg as one line of text.</returns>
     public override string ToString() => $"{Type} {ILocation.ToString(Start)} -> {ILocation.ToString(End)} ({Cost:F1})";
 }

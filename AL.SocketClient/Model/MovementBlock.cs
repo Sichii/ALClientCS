@@ -19,18 +19,9 @@ public readonly record struct MovementBlock(
     /// <summary>
     ///     Determines whether this leg's direction has a positive component pointing away from <paramref name="other" />.
     /// </summary>
-    /// <param name="other">
-    ///     The entity to compare against.
-    /// </param>
+    /// <param name="other">The entity to compare against.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if this is moving and its leg points away from <paramref name="other" />; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if this is moving and its leg points away from <paramref name="other" />; otherwise, <c>false</c> .
     /// </returns>
     /// <remarks>
     ///     Uses the leg from position to destination rather than <see cref="Angle" />, which can be stale. A leg whose

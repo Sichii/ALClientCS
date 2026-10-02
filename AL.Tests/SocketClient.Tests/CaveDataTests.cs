@@ -245,6 +245,45 @@ public class CaveDataTests
     }
 
     [Test]
+    public void ARogueCarriesWhatItWields()
+    {
+        //cave_of_many_dreams.js: a rare rogue wields the backstabber in its main hand, an ordinary one a plain dagger
+        var monster = TestJson.Socket<Monster>(
+                """{ "id": "13", "type": "cave_rogue", "x": 1, "y": 2, "hp": 1000, "level": 3, "cave": { "side": "victim", "room": "r3" }, "slots": { "mainhand": { "name": "cave_backstabber", "level": 0 }, "offhand": { "name": "dagger", "level": 0 } } }""")
+            !;
+
+        monster.Slots![Slot.MainHand]!.Name
+               .Should()
+               .Be("cave_backstabber");
+
+        monster.Slots[Slot.OffHand]!.Name
+               .Should()
+               .Be("dagger");
+    }
+
+    /// <summary>
+    ///     A run on another server carries no clock, which is what tells the two cases apart: going back to that one means
+    ///     moving the whole roster, so it is not something to walk to the keeper for.
+    /// </summary>
+    [Test]
+    public void ARunOnAnotherServerCarriesNoClock()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+                """{ "place": "interaction", "visit": { "available": false, "resets": 1789056000000, "server_time": 1789000000000, "resume": { "run": "6f1e2d3c4b5a69788796a5b4", "server": "EU I" } } }""")
+            !;
+
+        data.Visit!.Resume!.Server
+            .Should()
+            .Be("EU I");
+
+        data.Visit
+            .Resume
+            .RemainingMs
+            .Should()
+            .BeNull();
+    }
+
+    [Test]
     public void ATalkReplyCarriesTheChat()
     {
         var data = TestJson.Socket<GameResponseData>(
@@ -278,23 +317,6 @@ public class CaveDataTests
     }
 
     [Test]
-    public void ARogueCarriesWhatItWields()
-    {
-        //cave_of_many_dreams.js: a rare rogue wields the backstabber in its main hand, an ordinary one a plain dagger
-        var monster = TestJson.Socket<Monster>(
-                """{ "id": "13", "type": "cave_rogue", "x": 1, "y": 2, "hp": 1000, "level": 3, "cave": { "side": "victim", "room": "r3" }, "slots": { "mainhand": { "name": "cave_backstabber", "level": 0 }, "offhand": { "name": "dagger", "level": 0 } } }""")
-            !;
-
-        monster.Slots![Slot.MainHand]!.Name
-               .Should()
-               .Be("cave_backstabber");
-
-        monster.Slots[Slot.OffHand]!.Name
-               .Should()
-               .Be("dagger");
-    }
-
-    [Test]
     public void AnEndedFrameNeedNotCarryAState()
     {
         var data = TestJson.Socket<CaveData>("""{ "type": "ended" }""")!;
@@ -304,77 +326,6 @@ public class CaveDataTests
             .BeTrue();
 
         data.State
-            .Should()
-            .BeNull();
-    }
-
-    [Test]
-    public void TheInfoReplyCarriesTheVisit()
-    {
-        var data = TestJson.Socket<GameResponseData>(
-                """{ "place": "interaction", "request_id": "abc", "visit": { "available": false, "unlimited": false, "resets": 1789056000000, "home": "US II", "server_time": 1789000000000 } }""")
-            !;
-
-        data.Visit!.Available
-            .Should()
-            .BeFalse();
-
-        data.Visit
-            .Resets
-            .Should()
-            .Be(1789056000000);
-
-        data.Visit
-            .Home
-            .Should()
-            .Be("US II");
-    }
-
-    /// <summary>
-    ///     A run the character was dropped out of is reported beside a visit that reads spent, because it is the same visit.
-    ///     It is the only thing on the reply that says the day is not over, and a client reading only <c>available</c> leaves
-    ///     the rest of the run on the floor.
-    /// </summary>
-    [Test]
-    public void TheInfoReplyCarriesARunTheCharacterCanWalkBackInto()
-    {
-        var data = TestJson.Socket<GameResponseData>(
-                """{ "place": "interaction", "visit": { "available": false, "resets": 1789056000000, "home": "US II", "server_time": 1789000000000, "resume": { "run": "6f1e2d3c4b5a69788796a5b4", "server": "US II", "remaining_ms": 900000 } } }""")
-            !;
-
-        data.Visit!.Available
-            .Should()
-            .BeFalse();
-
-        data.Visit.Resume!.Run
-            .Should()
-            .Be("6f1e2d3c4b5a69788796a5b4");
-
-        data.Visit
-            .Resume
-            .RemainingMs
-            .Should()
-            .Be(900000);
-    }
-
-    /// <summary>
-    ///     A run on another server carries no clock, which is what tells the two cases apart: going back to that one means
-    ///     moving the whole roster, so it is not something to walk to the keeper for.
-    /// </summary>
-    [Test]
-    public void ARunOnAnotherServerCarriesNoClock()
-    {
-        var data = TestJson.Socket<GameResponseData>(
-                """{ "place": "interaction", "visit": { "available": false, "resets": 1789056000000, "server_time": 1789000000000, "resume": { "run": "6f1e2d3c4b5a69788796a5b4", "server": "EU I" } } }""")
-            !;
-
-        data.Visit!.Resume!.Server
-            .Should()
-            .Be("EU I");
-
-        data.Visit
-            .Resume
-            .RemainingMs
             .Should()
             .BeNull();
     }
@@ -456,5 +407,54 @@ public class CaveDataTests
             .Run
             .Should()
             .Be("1552ab2751329b493e445bb8");
+    }
+
+    /// <summary>
+    ///     A run the character was dropped out of is reported beside a visit that reads spent, because it is the same visit.
+    ///     It is the only thing on the reply that says the day is not over, and a client reading only <c>available</c> leaves
+    ///     the rest of the run on the floor.
+    /// </summary>
+    [Test]
+    public void TheInfoReplyCarriesARunTheCharacterCanWalkBackInto()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+                """{ "place": "interaction", "visit": { "available": false, "resets": 1789056000000, "home": "US II", "server_time": 1789000000000, "resume": { "run": "6f1e2d3c4b5a69788796a5b4", "server": "US II", "remaining_ms": 900000 } } }""")
+            !;
+
+        data.Visit!.Available
+            .Should()
+            .BeFalse();
+
+        data.Visit.Resume!.Run
+            .Should()
+            .Be("6f1e2d3c4b5a69788796a5b4");
+
+        data.Visit
+            .Resume
+            .RemainingMs
+            .Should()
+            .Be(900000);
+    }
+
+    [Test]
+    public void TheInfoReplyCarriesTheVisit()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+                """{ "place": "interaction", "request_id": "abc", "visit": { "available": false, "unlimited": false, "resets": 1789056000000, "home": "US II", "server_time": 1789000000000 } }""")
+            !;
+
+        data.Visit!.Available
+            .Should()
+            .BeFalse();
+
+        data.Visit
+            .Resets
+            .Should()
+            .Be(1789056000000);
+
+        data.Visit
+            .Home
+            .Should()
+            .Be("US II");
     }
 }

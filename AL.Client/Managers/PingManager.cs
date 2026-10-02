@@ -55,27 +55,10 @@ public sealed class PingManager : AsyncDeltaLoop
     internal PingManager(ALClient client)
         : base(client) { }
 
-    protected override async Task DoWorkAsync(TimeSpan delta, CancellationToken cancellationToken)
-    {
-        var ts = Stopwatch.GetTimestamp();
-        await Client.PingAsync(Interlocked.Increment(ref PingCount));
-        var elapsed = Stopwatch.GetElapsedTime(ts);
-
-        History =
-        [
-            .. History.TakeLast(WINDOW_SIZE - 1),
-            elapsed
-        ];
-
-        LowPercentileOffset = CalculatePercentile(History, OFFSET_PERCENTILE);
-    }
-
     /// <summary>
     ///     Calculates the round trip at the given percentile of <paramref name="samples" />, by nearest rank.
     /// </summary>
-    /// <param name="samples">
-    ///     The measured round trips, in any order.
-    /// </param>
+    /// <param name="samples">The measured round trips, in any order.</param>
     /// <param name="percentile">
     ///     Where to read in the sorted samples, from 0 to 100, at rank <c>ceil(percentile / 100 * count) - 1</c> clamped into
     ///     the samples.
@@ -83,9 +66,7 @@ public sealed class PingManager : AsyncDeltaLoop
     /// <returns>
     ///     The sample at that rank, or <see cref="TimeSpan.Zero" /> if nothing has been measured yet.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     samples
-    /// </exception>
+    /// <exception cref="ArgumentNullException">samples</exception>
     public static TimeSpan CalculatePercentile(IEnumerable<TimeSpan> samples, double percentile)
     {
         ArgumentNullException.ThrowIfNull(samples);
@@ -99,5 +80,20 @@ public sealed class PingManager : AsyncDeltaLoop
         var rank = (int)Math.Ceiling(percentile / 100d * sorted.Length) - 1;
 
         return sorted[Math.Clamp(rank, 0, sorted.Length - 1)];
+    }
+
+    protected override async Task DoWorkAsync(TimeSpan delta, CancellationToken cancellationToken)
+    {
+        var ts = Stopwatch.GetTimestamp();
+        await Client.PingAsync(Interlocked.Increment(ref PingCount));
+        var elapsed = Stopwatch.GetElapsedTime(ts);
+
+        History =
+        [
+            .. History.TakeLast(WINDOW_SIZE - 1),
+            elapsed
+        ];
+
+        LowPercentileOffset = CalculatePercentile(History, OFFSET_PERCENTILE);
     }
 }

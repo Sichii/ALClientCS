@@ -40,15 +40,11 @@ public readonly ref struct ValueLocation : ILocation, IEquatable<ValueLocation>
     /// <summary>
     ///     Copies any <see cref="ILocation" /> onto the stack.
     /// </summary>
-    /// <param name="location">
-    ///     The location to copy.
-    /// </param>
+    /// <param name="location">The location to copy.</param>
     /// <returns>
     ///     A <see cref="ValueLocation" /> with the same values.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     location
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">location</exception>
     public static ValueLocation From(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);

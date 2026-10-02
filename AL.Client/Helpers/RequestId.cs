@@ -1,6 +1,3 @@
-#region
-#endregion
-
 namespace AL.Client.Helpers;
 
 /// <summary>

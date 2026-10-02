@@ -33,7 +33,8 @@ public sealed class AlApiClient : IAlApiClient
     private static readonly TimeSpan RENEW_COOLDOWN = TimeSpan.FromMinutes(5);
 
     /// <summary>
-    ///     The fetched <c>data.js</c> per host, so a caller pointed at a different server is not served the public one's tables.
+    ///     The fetched <c>data.js</c> per host, so a caller pointed at a different server is not served the public one's
+    ///     tables.
     /// </summary>
     private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> GameDataCache = new();
 
@@ -47,12 +48,12 @@ public sealed class AlApiClient : IAlApiClient
     private readonly string CookieDomain;
     private readonly SemaphoreSlim Sync;
 
-    private DateTime LastUpdate;
-
     /// <summary>
     ///     The time <see cref="PostAsync" /> last logged in again for a dead cookie.
     /// </summary>
     private DateTime LastRenewal = DateTime.MinValue;
+
+    private DateTime LastUpdate;
 
     private ServersAndCharactersResponse? ServersAndCharacters;
 
@@ -110,8 +111,7 @@ public sealed class AlApiClient : IAlApiClient
                     cursor = result.Cursor
                 };
 
-            result = (await PostAsync(APIMethod.PullMail, arguments))
-                .Deserialize<MailResponse[]>(ApiJson.Options)![0];
+            result = (await PostAsync(APIMethod.PullMail, arguments)).Deserialize<MailResponse[]>(ApiJson.Options)![0];
 
             foreach (var mail in result.Mail)
                 yield return mail;
@@ -124,8 +124,7 @@ public sealed class AlApiClient : IAlApiClient
     {
         Logger.Info("Fetching merchants");
 
-        (var merchantList, _) = (await PostAsync(APIMethod.PullMerchants, null))
-            .Deserialize<(MerchantList, string)>(ApiJson.Options);
+        (var merchantList, _) = (await PostAsync(APIMethod.PullMerchants, null)).Deserialize<(MerchantList, string)>(ApiJson.Options);
 
         foreach (var merchant in merchantList.Merchants)
             yield return merchant;
@@ -142,8 +141,8 @@ public sealed class AlApiClient : IAlApiClient
 
             Logger.Info("Fetching servers and characters");
 
-            ServersAndCharacters = (await PostAsync(APIMethod.ServersAndCharacters, null))
-                .Deserialize<ServersAndCharactersResponse[]>(ApiJson.Options)![0];
+            ServersAndCharacters
+                = (await PostAsync(APIMethod.ServersAndCharacters, null)).Deserialize<ServersAndCharactersResponse[]>(ApiJson.Options)![0];
 
             LastUpdate = DateTime.UtcNow;
 
@@ -155,9 +154,7 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">
-    ///     mail
-    /// </exception>
+    /// <exception cref="ArgumentNullException">mail</exception>
     public async Task ReadMailAsync(Mail mail)
     {
         ArgumentNullException.ThrowIfNull(mail);
@@ -190,12 +187,8 @@ public sealed class AlApiClient : IAlApiClient
     ///     Creates a REST client with a raised timeout: <c>data.js</c> is ~2.6MB and the server often trickles it well past
     ///     the 100s default.
     /// </summary>
-    /// <param name="baseUrl">
-    ///     The host the client talks to.
-    /// </param>
-    /// <returns>
-    ///     A REST client for the host.
-    /// </returns>
+    /// <param name="baseUrl">The host the client talks to.</param>
+    /// <returns>A REST client for the host.</returns>
     private static IRestClient CreateRestClient(string baseUrl)
         => new RestClient(
             new RestClientOptions(baseUrl)
@@ -230,15 +223,13 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <summary>
-    ///     Asynchronously fetches the <c>G</c> data json from <c>data.js</c>, once per host for the life of the process.
-    ///     No login is needed.
+    ///     Asynchronously fetches the <c>G</c> data json from <c>data.js</c>, once per host for the life of the process. No
+    ///     login is needed.
     /// </summary>
     /// <param name="baseUrl">
     ///     The host to fetch from. Defaults to the public game host.
     /// </param>
-    /// <returns>
-    ///     The json of the <c>G</c> data.
-    /// </returns>
+    /// <returns>The json of the <c>G</c> data.</returns>
     /// <remarks>
     ///     A failed fetch evicts itself, so a transient failure does not poison every later caller.
     /// </remarks>
@@ -246,27 +237,22 @@ public sealed class AlApiClient : IAlApiClient
         => GameDataCache.GetOrAdd(baseUrl, url => new Lazy<Task<string>>(() => FetchGameDataAsync(url)))
                         .Value;
 
-    /// <summary>
-    ///     Asynchronously logs in to the API.
-    /// </summary>
-    /// <param name="email">
-    ///     The account's email.
-    /// </param>
-    /// <param name="password">
-    ///     The account's password.
-    /// </param>
+    private static bool IsNotLoggedIn(RestResponse response)
+        => response.IsSuccessful
+           && !string.IsNullOrEmpty(response.Content)
+           && response.Content.Contains("\"not_logged_in\"", StringComparison.Ordinal);
+
+    /// <summary>Asynchronously logs in to the API.</summary>
+    /// <param name="email">The account's email.</param>
+    /// <param name="password">The account's password.</param>
     /// <param name="baseUrl">
     ///     The host to log into. Defaults to the public game host.
     /// </param>
     /// <returns>
     ///     A client that can fetch account-specific information.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     email
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     password
-    /// </exception>
+    /// <exception cref="ArgumentNullException">email</exception>
+    /// <exception cref="ArgumentNullException">password</exception>
     /// <exception cref="InvalidOperationException">
     ///     The request failed, the server sent no body, or the login was refused.
     /// </exception>
@@ -324,18 +310,12 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <summary>
-    ///     Asynchronously posts one api call and unwraps it, logging in again once if the server no longer knows this
-    ///     client's cookie.
+    ///     Asynchronously posts one api call and unwraps it, logging in again once if the server no longer knows this client's
+    ///     cookie.
     /// </summary>
-    /// <param name="method">
-    ///     The api method to call.
-    /// </param>
-    /// <param name="arguments">
-    ///     The call's arguments, or null for none.
-    /// </param>
-    /// <returns>
-    ///     The response's <c>infs</c> array.
-    /// </returns>
+    /// <param name="method">The api method to call.</param>
+    /// <param name="arguments">The call's arguments, or null for none.</param>
+    /// <returns>The response's <c>infs</c> array.</returns>
     /// <remarks>
     ///     The server keeps 200 cookies per account and clears them all when a login would add one more;
     ///     <c>logout_everywhere</c> clears them outright. Every later call then fails <c>not_logged_in</c>.
@@ -372,11 +352,6 @@ public sealed class AlApiClient : IAlApiClient
 
         return ReadNotifications(response);
     }
-
-    private static bool IsNotLoggedIn(RestResponse response)
-        => response.IsSuccessful
-           && !string.IsNullOrEmpty(response.Content)
-           && response.Content.Contains("\"not_logged_in\"", StringComparison.Ordinal);
 
     /// <summary>
     ///     Unwraps an api response into the <c>infs</c> array its payload lives in.

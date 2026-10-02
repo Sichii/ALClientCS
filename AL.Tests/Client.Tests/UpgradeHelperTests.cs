@@ -18,8 +18,6 @@ namespace AL.Tests.Client.Tests;
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public sealed class UpgradeHelperTests
 {
-    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
-
     private static readonly IReadOnlyList<double> SCROLL_PRICES =
     [
         1_000,
@@ -28,11 +26,7 @@ public sealed class UpgradeHelperTests
         480_000_000
     ];
 
-    [Before(Class)]
-    public static void EnsureGameData() => CapturedGameData = Fixture.LoadGameDataIfEmpty();
-
-    [After(Class)]
-    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
+    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
 
     [Test]
     public async Task AnItemWithNoGradesPlansAgainstTheServerDefaults()
@@ -160,6 +154,9 @@ public sealed class UpgradeHelperTests
         await Task.CompletedTask;
     }
 
+    [Before(Class)]
+    public static void EnsureGameData() => CapturedGameData = Fixture.LoadGameDataIfEmpty();
+
     private static IReadOnlyList<OfferingChoice> Offerings()
         =>
         [
@@ -167,4 +164,7 @@ public sealed class UpgradeHelperTests
             new("offering", 2, 27_420_000),
             new("offeringx", 3, 242_064_000)
         ];
+
+    [After(Class)]
+    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 }

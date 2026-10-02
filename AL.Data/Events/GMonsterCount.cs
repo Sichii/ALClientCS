@@ -6,8 +6,8 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Events;
 
 /// <summary>
-///     Represents a monster and how many of it: one entry of a camp's pack, or the fight an encounter reply starts. Positional
-///     on the wire, as <c>["cave_rat", 6]</c>.
+///     Represents a monster and how many of it: one entry of a camp's pack, or the fight an encounter reply starts.
+///     Positional on the wire, as <c>["cave_rat", 6]</c>.
 /// </summary>
 [JsonConverter(typeof(GMonsterCountConverter))]
 public sealed record GMonsterCount

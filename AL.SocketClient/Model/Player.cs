@@ -8,9 +8,7 @@ using IJsonOnDeserialized = System.Text.Json.Serialization.IJsonOnDeserialized;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a player. (ymyself or others)
-/// </summary>
+/// <summary>Represents a player. (ymyself or others)</summary>
 /// <seealso cref="EntityBase" />
 /// <seealso cref="ISimplePlayer" />
 /// <seealso cref="IEquatable{T}" />
@@ -90,9 +88,7 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     [JsonInclude]
     public QueuedActionInfo? QueuedActions { get; protected set; }
 
-    /// <summary>
-    ///     Whether or not you are dead.
-    /// </summary>
+    /// <summary>Whether or not you are dead.</summary>
     /// <remarks>
     ///     The server sends <c>true</c> or, once a gravestone cosmetic is chosen, the cosmetic's name.
     /// </remarks>
@@ -120,8 +116,8 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     public Stand Stand { get; protected set; }
 
     /// <summary>
-    ///     If populated, this player's side (<c>A</c> or <c>B</c>) in a team-based PVP event such as the A/B Testing arena
-    ///     or a duel. The server deletes the field the moment the player leaves.
+    ///     If populated, this player's side (<c>A</c> or <c>B</c>) in a team-based PVP event such as the A/B Testing arena or
+    ///     a duel. The server deletes the field the moment the player leaves.
     /// </summary>
     [JsonInclude]
     public string? Team { get; protected set; }

@@ -12,6 +12,23 @@ namespace AL.Tests.SocketClient.Tests;
 public class GameMessageDataTests
 {
     /// <summary>
+    ///     The sites the server has not translated still send a bare string, and a matcher has only the text there.
+    /// </summary>
+    [Test]
+    public void ABareStringStillBindsToTheMessage()
+    {
+        var data = TestJson.Socket<GameMessageData>("\"Wrong passphrase!\"")!;
+
+        data.Message
+            .Should()
+            .Be("Wrong passphrase!");
+
+        data.Phrase
+            .Should()
+            .BeNull();
+    }
+
+    /// <summary>
     ///     A substitution can be a whole phrase reference rather than a string, which the cave's own lines are full of.
     ///     Narrowing the argument bag to strings does not lose the argument, it throws and drops the entire frame - so the
     ///     loose type here is the point of the test.
@@ -41,22 +58,5 @@ public class GameMessageDataTests
         data.PhraseArgs["rival"]!["phrase"]!.GetValue<string>()
             .Should()
             .Be("server.cave.rival");
-    }
-
-    /// <summary>
-    ///     The sites the server has not translated still send a bare string, and a matcher has only the text there.
-    /// </summary>
-    [Test]
-    public void ABareStringStillBindsToTheMessage()
-    {
-        var data = TestJson.Socket<GameMessageData>("\"Wrong passphrase!\"")!;
-
-        data.Message
-            .Should()
-            .Be("Wrong passphrase!");
-
-        data.Phrase
-            .Should()
-            .BeNull();
     }
 }

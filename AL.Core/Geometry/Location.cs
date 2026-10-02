@@ -9,15 +9,9 @@ namespace AL.Core.Geometry;
 /// <summary>
 ///     <inheritdoc cref="ILocation" />
 /// </summary>
-/// <param name="Map">
-///     The map name.
-/// </param>
-/// <param name="X">
-///     The x coordinate.
-/// </param>
-/// <param name="Y">
-///     The y coordinate.
-/// </param>
+/// <param name="Map">The map name.</param>
+/// <param name="X">The x coordinate.</param>
+/// <param name="Y">The y coordinate.</param>
 /// <seealso cref="AL.Core.Interfaces.ILocation" />
 /// <seealso cref="AL.Core.Interfaces.IPoint" />
 public record Location(string Map, float X, float Y) : ILocation
@@ -30,15 +24,9 @@ public record Location(string Map, float X, float Y) : ILocation
     /// <summary>
     ///     Initializes a new instance of the <see cref="Location" /> class.
     /// </summary>
-    /// <param name="map">
-    ///     The map name.
-    /// </param>
-    /// <param name="point">
-    ///     The point.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     point
-    /// </exception>
+    /// <param name="map">The map name.</param>
+    /// <param name="point">The point.</param>
+    /// <exception cref="ArgumentNullException">point</exception>
     public Location(string map, IPoint point)
         : this(
             map,

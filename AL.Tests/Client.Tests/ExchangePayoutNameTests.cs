@@ -13,18 +13,6 @@ namespace AL.Tests.Client.Tests;
 public class ExchangePayoutNameTests : GameDataTestBed
 {
     [Test]
-    public void ASingleItemMatchesItsDisplayName()
-        => ALClient.IsAnnouncedItem(Single("tshirt0"), "T-Shirt (Int)", 1)
-                   .Should()
-                   .BeTrue();
-
-    [Test]
-    public void AnItemHandedOverMidExchangeDoesNotMatch()
-        => ALClient.IsAnnouncedItem(Single("hpamulet"), "T-Shirt (Int)", 1)
-                   .Should()
-                   .BeFalse();
-
-    [Test]
     public void ALevelAndATitleAreRendered()
         => ALClient.IsAnnouncedItem(
                        Single("wattire", 2) with
@@ -40,6 +28,12 @@ public class ExchangePayoutNameTests : GameDataTestBed
                    .BeTrue();
 
     [Test]
+    public void ASingleItemMatchesItsDisplayName()
+        => ALClient.IsAnnouncedItem(Single("tshirt0"), "T-Shirt (Int)", 1)
+                   .Should()
+                   .BeTrue();
+
+    [Test]
     public void AStackIsNamedBare()
         => ALClient.IsAnnouncedItem(
                        Single("cscroll0") with
@@ -50,6 +44,12 @@ public class ExchangePayoutNameTests : GameDataTestBed
                        3)
                    .Should()
                    .BeTrue();
+
+    [Test]
+    public void AnItemHandedOverMidExchangeDoesNotMatch()
+        => ALClient.IsAnnouncedItem(Single("hpamulet"), "T-Shirt (Int)", 1)
+                   .Should()
+                   .BeFalse();
 
     private static Item Single(string name, int level = 0)
         => new()

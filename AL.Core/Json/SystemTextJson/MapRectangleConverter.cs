@@ -20,9 +20,6 @@ public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
     /// </summary>
     public override bool HandleNull => true;
 
-    private static float ReadCoordinate(JsonArray arr, int index, JsonSerializerOptions options)
-        => (index < arr.Count) && arr[index] is { } node ? node.Deserialize<float>(options) : 0f;
-
     public override MapRectangle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var arr = JsonNode.Parse(ref reader)
@@ -53,6 +50,9 @@ public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
             ? new MapRectangle(new Point(val, num1), new Point(num2, num3))
             : new MapRectangle(new Point(num1, num2), new Point(num3, num4), str);
     }
+
+    private static float ReadCoordinate(JsonArray arr, int index, JsonSerializerOptions options)
+        => (index < arr.Count) && arr[index] is { } node ? node.Deserialize<float>(options) : 0f;
 
     public override void Write(Utf8JsonWriter writer, MapRectangle value, JsonSerializerOptions options)
         => throw new NotSupportedException();

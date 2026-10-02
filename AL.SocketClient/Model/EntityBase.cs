@@ -114,9 +114,7 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     public string Id { get; init; } = null!;
 
-    /// <summary>
-    ///     The map or instance this entity is in.
-    /// </summary>
+    /// <summary>The map or instance this entity is in.</summary>
     /// <remarks>
     ///     Only a self <c>player</c> frame carries <c>in</c> per entity. An <c>entities</c> frame carries it once for the
     ///     whole frame, so every entity in one is stamped by hand.
@@ -237,12 +235,10 @@ public abstract class EntityBase : AttributedObjectBase,
     public override int GetHashCode() => Id.GetHashCode();
 
     /// <summary>
-    ///     Records that <paramref name="key" /> was present on the wire. Keys <see cref="Update(EntityBase)" /> does not
-    ///     merge are ignored.
+    ///     Records that <paramref name="key" /> was present on the wire. Keys <see cref="Update(EntityBase)" /> does not merge
+    ///     are ignored.
     /// </summary>
-    /// <param name="key">
-    ///     The wire key.
-    /// </param>
+    /// <param name="key">The wire key.</param>
     public void MarkPresent(string key)
         => PresentFields |= key switch
         {
@@ -336,9 +332,7 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <param name="frame">
     ///     The freshly-deserialized frame to take movement from.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     frame
-    /// </exception>
+    /// <exception cref="ArgumentNullException">frame</exception>
     public void AcceptMovement(EntityBase frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
@@ -378,12 +372,8 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     Seeds a soft property from its game-data default, unless the frame this entity was deserialized from carried it.
     /// </summary>
-    /// <param name="field">
-    ///     The soft property.
-    /// </param>
-    /// <param name="value">
-    ///     Its game-data default.
-    /// </param>
+    /// <param name="field">The soft property.</param>
+    /// <param name="value">Its game-data default.</param>
     /// <remarks>
     ///     The server omits a soft property equal to its default, as the browser's <c>adopt_soft_properties</c> assumes.
     /// </remarks>
@@ -468,18 +458,12 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     Merges the fields of <paramref name="incoming" /> that <paramref name="present" /> lets through onto
     ///     <paramref name="current" />.
     /// </summary>
-    /// <param name="current">
-    ///     The movement block this entity holds.
-    /// </param>
-    /// <param name="incoming">
-    ///     The movement block a server frame carried.
-    /// </param>
+    /// <param name="current">The movement block this entity holds.</param>
+    /// <param name="incoming">The movement block a server frame carried.</param>
     /// <param name="present">
     ///     The fields to take from <paramref name="incoming" />.
     /// </param>
-    /// <returns>
-    ///     The merged movement block.
-    /// </returns>
+    /// <returns>The merged movement block.</returns>
     protected private static MovementBlock MergeMovement(MovementBlock current, MovementBlock incoming, EntityUpdateField present)
     {
         if ((present & EntityUpdateField.Angle) != 0)
@@ -539,12 +523,8 @@ public abstract class EntityBase : AttributedObjectBase,
         return current;
     }
 
-    /// <summary>
-    ///     Reads the movement block as one value.
-    /// </summary>
-    /// <returns>
-    ///     The movement block.
-    /// </returns>
+    /// <summary>Reads the movement block as one value.</summary>
+    /// <returns>The movement block.</returns>
     /// <remarks>
     ///     The caller must hold <see cref="MovementLock" />, as must any caller of <see cref="ApplyMovement" />.
     /// </remarks>
@@ -569,15 +549,9 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame carried.
     /// </summary>
-    /// <param name="new">
-    ///     The freshly-deserialized frame.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     The frame is for a different entity.
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     new
-    /// </exception>
+    /// <param name="new">The freshly-deserialized frame.</param>
+    /// <exception cref="InvalidOperationException">The frame is for a different entity.</exception>
+    /// <exception cref="ArgumentNullException">new</exception>
     public void Update(EntityBase @new)
     {
         ArgumentNullException.ThrowIfNull(@new);
@@ -644,12 +618,8 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     Updates the instanced location of this entity. The instance, the map and the position land together, so no reader
     ///     ever sees the new map at the old position.
     /// </summary>
-    /// <param name="location">
-    ///     An instanced location.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     location
-    /// </exception>
+    /// <param name="location">An instanced location.</param>
+    /// <exception cref="ArgumentNullException">location</exception>
     public void UpdateLocation(IInstancedLocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
@@ -674,12 +644,8 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     Updates the map and position of this entity, as one write.
     /// </summary>
-    /// <param name="location">
-    ///     A location.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     location
-    /// </exception>
+    /// <param name="location">A location.</param>
+    /// <exception cref="ArgumentNullException">location</exception>
     public void UpdateLocation(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);

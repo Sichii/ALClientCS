@@ -20,8 +20,8 @@ namespace AL.Core.Json.SystemTextJson;
 public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum: struct, Enum
 {
     /// <summary>
-    ///     The logger, named from a string because the layout's shortName truncates a closed generic's assembly-qualified
-    ///     name to "0, Culture=neutral, PublicKeyToken=null]]".
+    ///     The logger, named from a string because the layout's shortName truncates a closed generic's assembly-qualified name
+    ///     to "0, Culture=neutral, PublicKeyToken=null]]".
     /// </summary>
     private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumConverter<TEnum>));
 
@@ -44,9 +44,7 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
     /// <summary>
     ///     Parses a name, falling back to a quoted number ("17" reads as the underlying value) and then to the zero member.
     /// </summary>
-    /// <param name="raw">
-    ///     The name as the server sent it.
-    /// </param>
+    /// <param name="raw">The name as the server sent it.</param>
     /// <returns>
     ///     The parsed member, or the zero member if nothing matches.
     /// </returns>
@@ -109,15 +107,9 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
     ///     Without this, a tolerant enum used as a dictionary key (WeaponType in GClass.mainhand, TradeSlot and Slot in
     ///     Character.slots) throws <see cref="NotSupportedException" />.
     /// </remarks>
-    /// <param name="reader">
-    ///     The reader, positioned on the property name.
-    /// </param>
-    /// <param name="typeToConvert">
-    ///     The enum type.
-    /// </param>
-    /// <param name="options">
-    ///     The serializer options.
-    /// </param>
+    /// <param name="reader">The reader, positioned on the property name.</param>
+    /// <param name="typeToConvert">The enum type.</param>
+    /// <param name="options">The serializer options.</param>
     /// <returns>
     ///     The parsed key, or the zero member if nothing matches.
     /// </returns>

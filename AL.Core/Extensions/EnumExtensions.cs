@@ -12,9 +12,7 @@ public static class EnumExtensions
     /// <summary>
     ///     Converts a <see cref="Slot" /> to an <see cref="EquipmentSlot" />.
     /// </summary>
-    /// <param name="slot">
-    ///     The <see cref="Slot" /> to convert.
-    /// </param>
+    /// <param name="slot">The <see cref="Slot" /> to convert.</param>
     /// <returns>
     ///     <see cref="EquipmentSlot" />
     /// </returns>
@@ -23,9 +21,7 @@ public static class EnumExtensions
     /// <summary>
     ///     Converts an <see cref="EquipmentSlot" /> to a <see cref="Slot" />.
     /// </summary>
-    /// <param name="equipmentSlot">
-    ///     The <see cref="EquipmentSlot" /> to convert.
-    /// </param>
+    /// <param name="equipmentSlot">The <see cref="EquipmentSlot" /> to convert.</param>
     /// <returns>
     ///     <see cref="Slot" />
     /// </returns>
@@ -34,9 +30,7 @@ public static class EnumExtensions
     /// <summary>
     ///     Converts an <see cref="TradeSlot" /> to a <see cref="Slot" />.
     /// </summary>
-    /// <param name="tradeSlot">
-    ///     The <see cref="TradeSlot" /> to convert.
-    /// </param>
+    /// <param name="tradeSlot">The <see cref="TradeSlot" /> to convert.</param>
     /// <returns>
     ///     <see cref="Slot" />
     /// </returns>
@@ -45,9 +39,7 @@ public static class EnumExtensions
     /// <summary>
     ///     Converts a <see cref="Slot" /> to an <see cref="TradeSlot" />.
     /// </summary>
-    /// <param name="slot">
-    ///     The <see cref="Slot" /> to convert.
-    /// </param>
+    /// <param name="slot">The <see cref="Slot" /> to convert.</param>
     /// <returns>
     ///     <see cref="TradeSlot" />
     /// </returns>

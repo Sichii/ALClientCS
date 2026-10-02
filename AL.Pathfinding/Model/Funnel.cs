@@ -7,8 +7,8 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Provides the simple stupid funnel, which pulls a corridor of triangles into the shortest polyline through the portals
-///     between them. Every corner it emits is a mesh vertex.
+///     Provides the simple stupid funnel, which pulls a corridor of triangles into the shortest polyline through the
+///     portals between them. Every corner it emits is a mesh vertex.
 /// </summary>
 public static class Funnel
 {
@@ -18,21 +18,28 @@ public static class Funnel
             path.Add(point);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int FindPortalSlot(TriangleMesh mesh, int from, int to)
+    {
+        for (var slot = 0; slot < 3; slot++)
+            if (mesh.Neighbour(from, slot) == to)
+                return slot;
+
+        throw new InvalidOperationException($"Triangles {from} and {to} are not adjacent.");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsSamePoint(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
+
     /// <summary>
     ///     Pulls a corridor of triangles into the shortest polyline from <paramref name="start" /> to <paramref name="end" />.
     /// </summary>
-    /// <param name="mesh">
-    ///     The mesh the corridor runs through.
-    /// </param>
+    /// <param name="mesh">The mesh the corridor runs through.</param>
     /// <param name="corridor">
     ///     Triangle ids from the one containing the start to the one containing the end, each adjacent to the next.
     /// </param>
-    /// <param name="start">
-    ///     The start of the path.
-    /// </param>
-    /// <param name="end">
-    ///     The end of the path.
-    /// </param>
+    /// <param name="start">The start of the path.</param>
+    /// <param name="end">The end of the path.</param>
     /// <param name="path">
     ///     The list the polyline is written into, cleared first.
     /// </param>
@@ -173,19 +180,6 @@ public static class Funnel
             if (rightsArray is not null)
                 ArrayPool<Point>.Shared.Return(rightsArray);
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsSamePoint(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int FindPortalSlot(TriangleMesh mesh, int from, int to)
-    {
-        for (var slot = 0; slot < 3; slot++)
-            if (mesh.Neighbour(from, slot) == to)
-                return slot;
-
-        throw new InvalidOperationException($"Triangles {from} and {to} are not adjacent.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

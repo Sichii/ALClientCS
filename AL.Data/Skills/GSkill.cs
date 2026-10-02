@@ -16,8 +16,8 @@ namespace AL.Data.Skills;
 public sealed record GSkill : AttributedRecordBase
 {
     /// <summary>
-    ///     A label on the skill's effect: <c>heal</c> for the two heals, <c>rate</c> for alchemy. Nothing in the server or
-    ///     the official client reads it.
+    ///     A label on the skill's effect: <c>heal</c> for the two heals, <c>rate</c> for alchemy. Nothing in the server or the
+    ///     official client reads it.
     /// </summary>
     public string? Action { get; init; }
 
@@ -58,14 +58,6 @@ public sealed record GSkill : AttributedRecordBase
     public string? Consume { get; init; }
 
     /// <summary>
-    ///     The cooldown of this skill in milliseconds. The four long channelled skills spell it <c>reuse_cooldown</c>
-    ///     instead; the server takes whichever is set and so does this.
-    /// </summary>
-    [JsonPropertyName("cooldown")]
-    [JsonInclude]
-    public int CooldownMS { get; private set; }
-
-    /// <summary>
     ///     If populated, the name of the lockout every skill carrying the same value shares. Using any one of them makes all
     ///     of them unavailable, over and above whatever <see cref="SharedCooldown" /> pairs up.
     /// </summary>
@@ -75,6 +67,14 @@ public sealed record GSkill : AttributedRecordBase
     /// </remarks>
     [JsonPropertyName("cooldown_group")]
     public string? CooldownGroup { get; init; }
+
+    /// <summary>
+    ///     The cooldown of this skill in milliseconds. The four long channelled skills spell it <c>reuse_cooldown</c> instead;
+    ///     the server takes whichever is set and so does this.
+    /// </summary>
+    [JsonPropertyName("cooldown")]
+    [JsonInclude]
+    public int CooldownMS { get; private set; }
 
     /// <summary>
     ///     Used with <see cref="SharedCooldown" />. This is the multiplier applied to the shared cooldown to get this skill's
@@ -238,28 +238,6 @@ public sealed record GSkill : AttributedRecordBase
     public string? SharedCooldown { get; init; }
 
     /// <summary>
-    ///     Gets the name this skill's cooldown is tracked under, given the name it was looked up by.
-    /// </summary>
-    /// <remarks>
-    ///     <see cref="CooldownGroup" /> wins over <see cref="SharedCooldown" />, being the wider of the two.
-    /// </remarks>
-    /// <param name="skillName">
-    ///     The name this skill was found under.
-    /// </param>
-    /// <returns>
-    ///     The <see cref="CooldownGroup" />, else the <see cref="SharedCooldown" />, else <paramref name="skillName" />.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     skillName
-    /// </exception>
-    public string GetCooldownKey(string skillName)
-    {
-        ArgumentNullException.ThrowIfNull(skillName);
-
-        return CooldownGroup ?? SharedCooldown ?? skillName;
-    }
-
-    /// <summary>
     ///     If populated, the name of this skill's icon art in <c>G.positions</c>, read the same way an item's icon is.
     /// </summary>
     /// <remarks>
@@ -300,4 +278,22 @@ public sealed record GSkill : AttributedRecordBase
     [JsonPropertyName("wtype")]
     [JsonConverter(typeof(StjConverters.ArrayOrSingleConverter<WeaponType>))]
     public IReadOnlyList<WeaponType>? WeaponTypes { get; init; }
+
+    /// <summary>
+    ///     Gets the name this skill's cooldown is tracked under, given the name it was looked up by.
+    /// </summary>
+    /// <remarks>
+    ///     <see cref="CooldownGroup" /> wins over <see cref="SharedCooldown" />, being the wider of the two.
+    /// </remarks>
+    /// <param name="skillName">The name this skill was found under.</param>
+    /// <returns>
+    ///     The <see cref="CooldownGroup" />, else the <see cref="SharedCooldown" />, else <paramref name="skillName" />.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">skillName</exception>
+    public string GetCooldownKey(string skillName)
+    {
+        ArgumentNullException.ThrowIfNull(skillName);
+
+        return CooldownGroup ?? SharedCooldown ?? skillName;
+    }
 }

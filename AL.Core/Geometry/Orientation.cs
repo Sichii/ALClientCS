@@ -11,15 +11,9 @@ namespace AL.Core.Geometry;
 /// <summary>
 ///     <inheritdoc cref="IOriented" />
 /// </summary>
-/// <param name="X">
-///     The x coordinate.
-/// </param>
-/// <param name="Y">
-///     The y coordinate.
-/// </param>
-/// <param name="Direction">
-///     The direction the object is oriented towards.
-/// </param>
+/// <param name="X">The x coordinate.</param>
+/// <param name="Y">The y coordinate.</param>
+/// <param name="Direction">The direction the object is oriented towards.</param>
 /// <seealso cref="AL.Core.Interfaces.IOriented" />
 /// <seealso cref="AL.Core.Interfaces.IPoint" />
 public record Orientation(

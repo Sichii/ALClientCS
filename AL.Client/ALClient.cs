@@ -63,6 +63,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     The monsters a killing hit removed, kept until the death frame names them, since that frame carries only the id.
     /// </summary>
+
     //ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
     private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
 
@@ -117,8 +118,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyList<string> Friends { get; private set; }
 
     /// <summary>
-    ///     The server this character calls home, as <c>region + server_name</c>. Populated from <c>start</c> and rewritten
-    ///     on <c>home_set</c>, never on a <c>player</c> frame.
+    ///     The server this character calls home, as <c>region + server_name</c>. Populated from <c>start</c> and rewritten on
+    ///     <c>home_set</c>, never on a <c>player</c> frame.
     /// </summary>
     public string? Home { get; private set; }
 
@@ -205,14 +206,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>The name of the character this client is for.</summary>
     public string Name { get; }
 
-    /// <summary>
-    ///     A collection of the players being kept track of.
-    /// </summary>
+    /// <summary>A collection of the players being kept track of.</summary>
     public ConcurrentDictionary<string, Player> Players { get; }
 
-    /// <summary>
-    ///     A collection of projectiles being kept track of.
-    /// </summary>
+    /// <summary>A collection of projectiles being kept track of.</summary>
     public ConcurrentDictionary<string, ActionData> Projectiles { get; }
 
     /// <summary>
@@ -235,8 +232,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public TimeSpan LowPercentileRoundTrip => PingManager.LowPercentileOffset;
 
     /// <summary>
-    ///     The socket round trips this connection measured over the last 200 seconds, one every 4 seconds, oldest first.
-    ///     Empty until the first ping lands.
+    ///     The socket round trips this connection measured over the last 200 seconds, one every 4 seconds, oldest first. Empty
+    ///     until the first ping lands.
     /// </summary>
     /// <remarks>
     ///     <see cref="PingManager.CalculatePercentile" /> reads any percentile off it.
@@ -341,8 +338,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public event EventHandler<InviteData>? OnPartyInvite;
 
     /// <summary>
-    ///     An event fired when another character requests to join your party, the counterpart of
-    ///     <see cref="OnPartyInvite" />.
+    ///     An event fired when another character requests to join your party, the counterpart of <see cref="OnPartyInvite" />.
     /// </summary>
     public event EventHandler<RequestData>? OnPartyRequest;
 
@@ -780,8 +776,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <c>true</c> if the character is within range of one of the NPC's placements; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    ///     Measured against the game data's placements, because <see cref="Players" /> keys an NPC by its display name, not
-    ///     by this id.
+    ///     Measured against the game data's placements, because <see cref="Players" /> keys an NPC by its display name, not by
+    ///     this id.
     /// </remarks>
     /// <exception cref="ArgumentNullException">npcId</exception>
     /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
@@ -842,12 +838,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously moves this character to another server without rebuilding the client. The socket is replaced and
     ///     <see cref="OnReconnected" /> is raised, the same as after an automatic reconnect.
     /// </summary>
-    /// <param name="region">
-    ///     The region to move to.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier within the region to move to.
-    /// </param>
+    /// <param name="region">The region to move to.</param>
+    /// <param name="identifier">The identifier within the region to move to.</param>
     /// <remarks>
     ///     A genuine drop landing during the swap is not guarded: <see cref="ReconnectAsync" /> takes no lock, so the last
     ///     writer of <see cref="Socket" /> decides the server. A login still refused after every retry throws, leaving
@@ -932,30 +924,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously builds a character client of the requested type and logs it in.
     /// </summary>
-    /// <typeparam name="T">
-    ///     The character client type.
-    /// </typeparam>
-    /// <param name="characterName">
-    ///     The name of the character.
-    /// </param>
-    /// <param name="region">
-    ///     The region to connect to.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier within the region to connect to.
-    /// </param>
-    /// <param name="apiClient">
-    ///     An API client implementation.
-    /// </param>
+    /// <typeparam name="T">The character client type.</typeparam>
+    /// <param name="characterName">The name of the character.</param>
+    /// <param name="region">The region to connect to.</param>
+    /// <param name="identifier">The identifier within the region to connect to.</param>
+    /// <param name="apiClient">An API client implementation.</param>
     /// <param name="createClientFunc">
     ///     Constructs the client from the character name, the API client and the socket client.
     /// </param>
     /// <param name="proxy">
     ///     The proxy every socket of this character connects through, or null for the machine's own connection.
     /// </param>
-    /// <returns>
-    ///     The logged in client.
-    /// </returns>
+    /// <returns>The logged in client.</returns>
     /// <exception cref="ArgumentNullException">characterName</exception>
     /// <exception cref="ArgumentNullException">apiClient</exception>
     protected private static async Task<T> StartClientAsync<T>(
@@ -1759,15 +1739,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously buys an item through <c>sbuy</c>, the handler both second-hand pools share.
     /// </summary>
-    /// <param name="item">
-    ///     The item to buy.
-    /// </param>
+    /// <param name="item">The item to buy.</param>
     /// <param name="lostAndFound">
     ///     Specifies whether to buy from the lost and found rather than Ponty, sent as <c>data.f</c>.
     /// </param>
-    /// <returns>
-    ///     Information about the item that was bought.
-    /// </returns>
+    /// <returns>Information about the item that was bought.</returns>
     /// <remarks>
     ///     The emit carries a <c>request_id</c>, which moves every refusal onto <c>game_response</c> at the pool's own place.
     /// </remarks>
@@ -2327,8 +2303,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Information about the item and it's index in the bank.
     /// </returns>
     /// <remarks>
-    ///     Naming an occupied slot is a swap: the server writes the displaced item back into
-    ///     <paramref name="inventorySlot" />, and the returned indexer describes only the deposited half.
+    ///     Naming an occupied slot is a swap: the server writes the displaced item back into <paramref name="inventorySlot" />
+    ///     , and the returned indexer describes only the deposited half.
     /// </remarks>
     /// <exception cref="ArgumentException">
     ///     If specifying bankSlot), must also specify bankPack.
@@ -2677,18 +2653,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="payoutLogs">
     ///     The <c>game_log</c> frames received since the previous character frame.
     /// </param>
-    /// <param name="before">
-    ///     The inventory as it stood before the exchange.
-    /// </param>
-    /// <param name="consumedSlot">
-    ///     The inventory slot of the exchanged item.
-    /// </param>
+    /// <param name="before">The inventory as it stood before the exchange.</param>
+    /// <param name="consumedSlot">The inventory slot of the exchanged item.</param>
     /// <param name="consumedCount">
     ///     How many of the exchanged item the exchange consumed.
     /// </param>
-    /// <returns>
-    ///     The items and gold the exchange paid.
-    /// </returns>
+    /// <returns>The items and gold the exchange paid.</returns>
     private ExchangeResult ReadExchangePayout(
         IReadOnlyList<GameMessageData> payoutLogs,
         IReadOnlyList<Item?> before,
@@ -2762,16 +2732,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Determines whether an item is the one a payout log named, rendered the way the server names it.
     /// </summary>
-    /// <param name="item">
-    ///     The inventory item to test.
-    /// </param>
+    /// <param name="item">The inventory item to test.</param>
     /// <param name="announcedName">
     ///     The display name the log carried: title-cased property and <c>+level</c> for a single item, the bare name for a
     ///     stack.
     /// </param>
-    /// <param name="quantity">
-    ///     The quantity the log carried.
-    /// </param>
+    /// <param name="quantity">The quantity the log carried.</param>
     /// <returns>
     ///     <c>true</c> if the item renders as the announced name; otherwise, <c>false</c>.
     /// </returns>
@@ -3020,11 +2986,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                             $"Correcting position: frame says moving={data.Moving} going=({data.GoingX:N0}, {data.GoingY:N0}), "
                             + $"leg wants {point.ToPoint()}, {elapsed.TotalMilliseconds:N0}ms in "
                             + $"(grace {(PingManager.LowPercentileOffset * 4).TotalMilliseconds:N0}ms). "
-
                             + $"We think {Character.Distance(point):N1} left at speed {Character.Speed:N0}, "
                             + $"{CalculateRemainingDelay().TotalMilliseconds:N0}ms on the clock, "
                             + $"fastPing {PingManager.LowPercentileOffset.TotalMilliseconds:N0}ms. "
-
                             + $"move_num {data.MoveNum} vs {moveNumAtEmit} at emit, abs={data.ABS}, mapChanged={mapChanged} "
                             + $"({(mapChanged || data.ABS || (data.MoveNum > moveNumAtEmit) ? "believed" : "position repaired")})");
 
@@ -3247,9 +3211,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Charges the opener for the whole party's share of the chest, beyond the solo open the emit hook already priced.
     /// </summary>
-    /// <param name="opened">
-    ///     The chest frame, which says who received what.
-    /// </param>
+    /// <param name="opened">The chest frame, which says who received what.</param>
     private void ChargeChestOpen(ChestOpenedData opened)
     {
         var looters = opened.Items
@@ -3491,8 +3453,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously fetches the monster/drop tracker snapshot. Requires the tracker item; without it the
-    ///     server replies nothing and this call times out.
+    ///     Asynchronously fetches the monster/drop tracker snapshot. Requires the tracker item; without it the server replies
+    ///     nothing and this call times out.
     /// </summary>
     /// <returns>
     ///     <see cref="TrackerData" />
@@ -4087,7 +4049,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         }
 
         //a start already inside one of its ends is an arrival, and a cancelled walk never looked for a path
-        if ((edgesWalked == 0) && (cancellationToken is not { IsCancellationRequested: true })
+        if ((edgesWalked == 0)
+            && cancellationToken is not { IsCancellationRequested: true }
             && !ends.Any(end => start.DistanceWithMapCheck(end) <= end.Radius))
             Logger.Debug($"No path walked from {start} to {string.Join(", ", ends.Select(end => end.ToString()))}.");
     }
@@ -4470,8 +4433,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The instance id we landed in, read off the new map frame.
     /// </returns>
     /// <remarks>
-    ///     Uses <c>enter</c>, not <c>transport</c>, which refuses a dungeon payload. Refused from further than 120 units of the
-    ///     dungeon's fixed reference point.
+    ///     Uses <c>enter</c>, not <c>transport</c>, which refuses a dungeon payload. Refused from further than 120 units of
+    ///     the dungeon's fixed reference point.
     /// </remarks>
     /// <exception cref="ArgumentNullException">place</exception>
     /// <exception cref="DungeonEntryException">The server refused the entry.</exception>
@@ -4946,9 +4909,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Invokes <see cref="BeforeEscape" /> when the character cannot escape.
     /// </summary>
-    /// <param name="token">
-    ///     A token used to cancel the hook.
-    /// </param>
+    /// <param name="token">A token used to cancel the hook.</param>
     /// <returns>
     ///     The hook's task, or a completed task when there is nothing to fix.
     /// </returns>
@@ -4985,17 +4946,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private readonly ConcurrentDictionary<string, long> TownFailures = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     How long a failed recall keeps recall out of route planning on the map it failed on. Its causes, too many targets or
-    ///     a hit inside the channel, outlast the attempt.
+    ///     How long a failed recall keeps recall out of route planning on the map it failed on. Its causes, too many targets
+    ///     or a hit inside the channel, outlast the attempt.
     /// </summary>
     private static readonly TimeSpan TOWN_FAILURE_MEMORY = TimeSpan.FromSeconds(20);
 
     /// <summary>
     ///     Determines whether a recall failed on a map within <see cref="TOWN_FAILURE_MEMORY" />.
     /// </summary>
-    /// <param name="map">
-    ///     The map to check.
-    /// </param>
+    /// <param name="map">The map to check.</param>
     /// <returns>
     ///     <c>true</c> if a recall failed there recently; otherwise, <c>false</c>.
     /// </returns>
@@ -5040,15 +4999,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously walks one blink leg of a route: stands still until mana and the cooldown allow the cast, casts, and
     ///     waits for the landing.
     /// </summary>
-    /// <param name="edge">
-    ///     The blink leg.
-    /// </param>
-    /// <param name="mpReserve">
-    ///     The mana to keep beyond the cast's own cost.
-    /// </param>
-    /// <param name="token">
-    ///     A token used to cancel the wait.
-    /// </param>
+    /// <param name="edge">The blink leg.</param>
+    /// <param name="mpReserve">The mana to keep beyond the cast's own cost.</param>
+    /// <param name="token">A token used to cancel the wait.</param>
     /// <remarks>
     ///     Dampened and death are refused rather than waited out, since standing still clears neither. A cast the server
     ///     accepts lands as a <c>new_map</c> frame with the blink's effect.
@@ -5515,9 +5468,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Handles a tavern frame, raising <see cref="OnTavern" />.
     /// </summary>
-    /// <param name="data">
-    ///     The frame as the server sent it.
-    /// </param>
+    /// <param name="data">The frame as the server sent it.</param>
     /// <returns>
     ///     <c>false</c>, so the frame still reaches <see cref="RequestTavernInfoAsync" />'s own handler.
     /// </returns>
@@ -5838,9 +5789,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Handles a skill timeout frame, filing the cooldown it carries against the named skill.
     /// </summary>
-    /// <param name="data">
-    ///     The frame as the server sent it.
-    /// </param>
+    /// <param name="data">The frame as the server sent it.</param>
     /// <returns>
     ///     <c>false</c>, so the frame reaches every other handler.
     /// </returns>
@@ -5959,31 +5908,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously subscribes, emits, and awaits the first matching message.
     /// </summary>
-    /// <typeparam name="T">
-    ///     The message's data type.
-    /// </typeparam>
-    /// <param name="messageType">
-    ///     The message to await.
-    /// </param>
-    /// <param name="emitType">
-    ///     The emit to send.
-    /// </param>
-    /// <param name="emitData">
-    ///     The emit's payload, if any.
-    /// </param>
+    /// <typeparam name="T">The message's data type.</typeparam>
+    /// <param name="messageType">The message to await.</param>
+    /// <param name="emitType">The emit to send.</param>
+    /// <param name="emitData">The emit's payload, if any.</param>
     /// <param name="handled">
     ///     Specifies whether the message chain stops at this subscriber, which only a request that owns its message type may
     ///     do.
     /// </param>
-    /// <param name="timeoutMS">
-    ///     The timeout, or null for the network timeout.
-    /// </param>
-    /// <param name="caller">
-    ///     The calling member, named in a timeout.
-    /// </param>
-    /// <returns>
-    ///     The first matching message.
-    /// </returns>
+    /// <param name="timeoutMS">The timeout, or null for the network timeout.</param>
+    /// <param name="caller">The calling member, named in a timeout.</param>
+    /// <returns>The first matching message.</returns>
     private async Task<Expectation<T>> RequestAsync<T>(
         ALSocketMessageType messageType,
         ALSocketEmitType emitType,
@@ -6015,18 +5950,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Asynchronously consumes a potion or regen. The server acknowledges it with an <c>eval</c> carrying the shared pot
     ///     cooldown, and refuses it with a failed <c>game_response</c>.
     /// </summary>
-    /// <param name="emitType">
-    ///     The emit to send.
-    /// </param>
-    /// <param name="emitData">
-    ///     The emit's payload.
-    /// </param>
-    /// <param name="description">
-    ///     The item's name in a failure.
-    /// </param>
-    /// <param name="caller">
-    ///     The calling member, named in a timeout.
-    /// </param>
+    /// <param name="emitType">The emit to send.</param>
+    /// <param name="emitData">The emit's payload.</param>
+    /// <param name="description">The item's name in a failure.</param>
+    /// <param name="caller">The calling member, named in a timeout.</param>
     /// <exception cref="InvalidOperationException">Failed to use {description}. ({reason})</exception>
     private async Task ConsumeAsync(
         ALSocketEmitType emitType,
@@ -6094,12 +6021,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Determines whether two slots hold the same thing, across two frames, by name, level and quantity.
     /// </summary>
-    /// <param name="slot">
-    ///     The slot as one frame has it.
-    /// </param>
-    /// <param name="expected">
-    ///     The slot as the other frame has it.
-    /// </param>
+    /// <param name="slot">The slot as one frame has it.</param>
+    /// <param name="expected">The slot as the other frame has it.</param>
     /// <returns>
     ///     <c>true</c> if both are empty or both hold the same item; otherwise, <c>false</c>.
     /// </returns>
@@ -6116,12 +6039,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Finds a bank slot for an inventory item: validates an explicit pack and slot, otherwise prefers stacking onto an
     ///     existing stack, else the first empty slot in an accessible pack. Requires <see cref="Bank" /> to be populated.
     /// </summary>
-    /// <param name="indexedInventoryItem">
-    ///     The inventory item to bank.
-    /// </param>
-    /// <param name="bankPack">
-    ///     If specified, the only pack to look in.
-    /// </param>
+    /// <param name="indexedInventoryItem">The inventory item to bank.</param>
+    /// <param name="bankPack">If specified, the only pack to look in.</param>
     /// <param name="bankSlot">
     ///     If specified with <paramref name="bankPack" />, the slot to validate; <c>-1</c> lets the server pick.
     /// </param>
@@ -6329,7 +6248,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously waits for bank data to be populated after entering a bank map.
     /// </summary>
-    /// <exception cref="TimeoutException">The bank frame did not arrive within the network timeout.</exception>
+    /// <exception cref="TimeoutException">
+    ///     The bank frame did not arrive within the network timeout.
+    /// </exception>
     public async Task WaitForBankAsync()
     {
         //check if bank is already populated

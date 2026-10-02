@@ -13,9 +13,7 @@ public static class CircleExtensions
         /// <summary>
         ///     Calculates the distance from the edge of this circle to a point, zero when the point is inside.
         /// </summary>
-        /// <param name="other">
-        ///     A point.
-        /// </param>
+        /// <param name="other">A point.</param>
         /// <returns>
         ///     The distance from this circle's edge to the point.
         /// </returns>
@@ -25,27 +23,17 @@ public static class CircleExtensions
         /// <summary>
         ///     Calculates the distance between the edges of two circles, zero when they overlap.
         /// </summary>
-        /// <param name="other">
-        ///     Another circle.
-        /// </param>
-        /// <returns>
-        ///     The distance between the two circles' edges.
-        /// </returns>
+        /// <param name="other">Another circle.</param>
+        /// <returns>The distance between the two circles' edges.</returns>
         public float EdgeToEdgeDistance<T2>(T2 other) where T2: ICircle, allows ref struct
             => MathF.Max(0f, circle.Distance(other) - circle.Radius - other.Radius);
 
         /// <summary>
         ///     Lazily generates points spaced evenly around the circumference.
         /// </summary>
-        /// <param name="numberOfPoints">
-        ///     The number of points to generate.
-        /// </param>
-        /// <param name="startingAngle">
-        ///     The angle in degrees of the first point.
-        /// </param>
-        /// <returns>
-        ///     The points around the circumference.
-        /// </returns>
+        /// <param name="numberOfPoints">The number of points to generate.</param>
+        /// <param name="startingAngle">The angle in degrees of the first point.</param>
+        /// <returns>The points around the circumference.</returns>
         public IEnumerable<Point> GenerateCircumferencePoints(float numberOfPoints, float startingAngle = 0f)
             => GenerateCircumference(
                 circle.X,
@@ -65,12 +53,8 @@ public static class CircleExtensions
         /// <summary>
         ///     Lazily generates points inside the circle on a grid of <paramref name="numberOfSteps" /> per diameter.
         /// </summary>
-        /// <param name="numberOfSteps">
-        ///     The number of grid steps across the diameter.
-        /// </param>
-        /// <returns>
-        ///     The points inside the circle.
-        /// </returns>
+        /// <param name="numberOfSteps">The number of grid steps across the diameter.</param>
+        /// <returns>The points inside the circle.</returns>
         public IEnumerable<Point> Points(float numberOfSteps)
             => GenerateInnerPoints(
                 circle.X,
@@ -79,62 +63,18 @@ public static class CircleExtensions
                 numberOfSteps);
     }
 
-    /// <summary>
-    ///     Generates the points for <c>GenerateCircumferencePoints</c>, which cannot be an iterator itself because an
-    ///     extension member with a ref struct receiver cannot be one.
-    /// </summary>
-    /// <param name="x">
-    ///     The centre's x coordinate.
-    /// </param>
-    /// <param name="y">
-    ///     The centre's y coordinate.
-    /// </param>
-    /// <param name="radius">
-    ///     The radius.
-    /// </param>
-    /// <param name="numberOfPoints">
-    ///     The number of points to generate.
-    /// </param>
-    /// <param name="startingAngle">
-    ///     The angle in degrees of the first point.
-    /// </param>
-    /// <returns>
-    ///     The points around the circumference.
-    /// </returns>
-    private static IEnumerable<Point> GenerateCircumference(
-        float x,
-        float y,
-        float radius,
-        float numberOfPoints,
-        float startingAngle)
-    {
-        var center = new Point(x, y);
-        var anglePerPoint = 360 / numberOfPoints;
-
-        for (var traversedAngle = 0f; traversedAngle.IsLess(360, CONSTANTS.EPSILON); traversedAngle += anglePerPoint)
-            yield return center.AngularOffset(startingAngle + traversedAngle, radius);
-    }
-
     //kept on the interface: Contains has the same shape on rectangles, polygons and triangles
 
     /// <summary>
     ///     Determines whether this circle fully encompasses another circle.
     /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="other">
-    ///     Another circle.
-    /// </param>
+    /// <param name="circle">This circle.</param>
+    /// <param name="other">Another circle.</param>
     /// <returns>
     ///     <c>true</c> if this circle fully encompasses the other (or edges touch); otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">circle</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static bool Contains(this ICircle circle, ICircle other)
     {
         ArgumentNullException.ThrowIfNull(circle);
@@ -147,21 +87,13 @@ public static class CircleExtensions
     /// <summary>
     ///     Determines whether this circle contains the given point.
     /// </summary>
-    /// <param name="circle">
-    ///     This circle.
-    /// </param>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
+    /// <param name="circle">This circle.</param>
+    /// <param name="point">A point.</param>
     /// <returns>
     ///     <c>true</c> if this circle contains the point, otherwise <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     circle
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">circle</exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
     public static bool Contains(this ICircle circle, IPoint point)
     {
         ArgumentNullException.ThrowIfNull(circle);
@@ -169,6 +101,30 @@ public static class CircleExtensions
         ArgumentNullException.ThrowIfNull(point);
 
         return point.Distance(circle) < circle.Radius;
+    }
+
+    /// <summary>
+    ///     Generates the points for <c>GenerateCircumferencePoints</c>, which cannot be an iterator itself because an
+    ///     extension member with a ref struct receiver cannot be one.
+    /// </summary>
+    /// <param name="x">The centre's x coordinate.</param>
+    /// <param name="y">The centre's y coordinate.</param>
+    /// <param name="radius">The radius.</param>
+    /// <param name="numberOfPoints">The number of points to generate.</param>
+    /// <param name="startingAngle">The angle in degrees of the first point.</param>
+    /// <returns>The points around the circumference.</returns>
+    private static IEnumerable<Point> GenerateCircumference(
+        float x,
+        float y,
+        float radius,
+        float numberOfPoints,
+        float startingAngle)
+    {
+        var center = new Point(x, y);
+        var anglePerPoint = 360 / numberOfPoints;
+
+        for (var traversedAngle = 0f; traversedAngle.IsLess(360, CONSTANTS.EPSILON); traversedAngle += anglePerPoint)
+            yield return center.AngularOffset(startingAngle + traversedAngle, radius);
     }
 
     private static IEnumerable<Point> GenerateInnerPoints(

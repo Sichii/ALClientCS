@@ -415,45 +415,6 @@ public class GameDataLoadCharacterization
     }
 
     /// <summary>
-    ///     A class bonus and a map bonus both land in <see cref="AL.Data.Items.GItem.Bonuses" />, with an upgrade line kept
-    ///     only for the stats the bonus also names, and the item's plain stats and upgrade line untouched.
-    /// </summary>
-    [Test]
-    public void T1_ItemBonuses_BindByClassAndMap()
-    {
-        var helmet = GameData.Items["tigerhelmet"]!;
-        var rogue = helmet.Bonuses["rogue"];
-
-        rogue.Attributes[ALAttribute.Crit]
-             .Should()
-             .Be(2);
-
-        rogue.UpgradeModifiers
-             .Should()
-             .BeEquivalentTo(
-                 new Dictionary<ALAttribute, float>
-                 {
-                     [ALAttribute.Crit] = 0.25f
-                 });
-
-        helmet.UpgradeModifiers!.Should()
-              .NotContainKey(ALAttribute.Crit);
-
-        helmet.WireExtras
-              .Should()
-              .BeNull();
-
-        GameData.Items["iceskates"]!.Bonuses["winterland"]
-                .Attributes[ALAttribute.Speed]
-                .Should()
-                .Be(25);
-
-        GameData.Items["hpot0"]!.Bonuses
-                .Should()
-                .BeEmpty();
-    }
-
-    /// <summary>
     ///     ExchangeAtNPC is enriched for every item carrying an exchange count, which is what makes the exchange errand able
     ///     to walk anywhere for one. The counts are asserted rather than a null check because the direction that matters is
     ///     the reverse one: the field was previously filled in from an NPC's token, which reached four items, and narrowing it
@@ -554,6 +515,45 @@ public class GameDataLoadCharacterization
                 .Count
                 .Should()
                 .Be(760);
+    }
+
+    /// <summary>
+    ///     A class bonus and a map bonus both land in <see cref="AL.Data.Items.GItem.Bonuses" />, with an upgrade line kept
+    ///     only for the stats the bonus also names, and the item's plain stats and upgrade line untouched.
+    /// </summary>
+    [Test]
+    public void T1_ItemBonuses_BindByClassAndMap()
+    {
+        var helmet = GameData.Items["tigerhelmet"]!;
+        var rogue = helmet.Bonuses["rogue"];
+
+        rogue.Attributes[ALAttribute.Crit]
+             .Should()
+             .Be(2);
+
+        rogue.UpgradeModifiers
+             .Should()
+             .BeEquivalentTo(
+                 new Dictionary<ALAttribute, float>
+                 {
+                     [ALAttribute.Crit] = 0.25f
+                 });
+
+        helmet.UpgradeModifiers!.Should()
+              .NotContainKey(ALAttribute.Crit);
+
+        helmet.WireExtras
+              .Should()
+              .BeNull();
+
+        GameData.Items["iceskates"]!.Bonuses["winterland"]
+                .Attributes[ALAttribute.Speed]
+                .Should()
+                .Be(25);
+
+        GameData.Items["hpot0"]!.Bonuses
+                .Should()
+                .BeEmpty();
     }
 
     [Test]

@@ -22,8 +22,6 @@ public interface IPingCompensated : IMutable
     ///     <br />
     ///     We want to be closer to the truth, but not overcompensate.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///     Object already compensated.
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Object already compensated.</exception>
     void CompensateOnce(TimeSpan offset);
 }

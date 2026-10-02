@@ -13,15 +13,11 @@ public static class LineExtensions
     /// <summary>
     ///     <inheritdoc cref="PointExtensions.RayTraceTo" />
     /// </summary>
-    /// <param name="line">
-    ///     The line to generate points for.
-    /// </param>
+    /// <param name="line">The line to generate points for.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.RayTraceTo" />
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     line
-    /// </exception>
+    /// <exception cref="ArgumentNullException">line</exception>
     public static IEnumerable<Point> Points(this ILine line)
     {
         ArgumentNullException.ThrowIfNull(line);

@@ -23,9 +23,7 @@ internal sealed class UpgradeFrontier
     /// <param name="planner">
     ///     The planner whose item, bench and prices every build is planned with.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     planner
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">planner</exception>
     public UpgradeFrontier(PlannerBase planner)
     {
         ArgumentNullException.ThrowIfNull(planner);
@@ -34,76 +32,12 @@ internal sealed class UpgradeFrontier
     }
 
     /// <summary>
-    ///     Generates the builds that no other build beats on both copies and gold.
-    /// </summary>
-    /// <param name="targetLevel">
-    ///     The level every build has to reach.
-    /// </param>
-    /// <param name="copyPrice">
-    ///     An extra copy price to plan at, so the build priced at it is among the results.
-    /// </param>
-    /// <param name="startLevel">
-    ///     The level a copy starts at.
-    /// </param>
-    /// <param name="startGrace">
-    ///     The grace each staked copy already carries.
-    /// </param>
-    /// <returns>
-    ///     The builds, fewest copies first so gold falls down the list, or none when the target is unreachable.
-    /// </returns>
-    public IReadOnlyList<UpgradeBuild> Generate(
-        int targetLevel,
-        double copyPrice = 0,
-        int startLevel = 0,
-        double startGrace = 0)
-    {
-        var buildsBySteps = new Dictionary<string, UpgradeBuild>(StringComparer.Ordinal);
-
-        foreach (var price in GetCopyPrices(copyPrice))
-        {
-            var plan = Planner.FindCheapestPlan(
-                targetLevel,
-                price,
-                startLevel,
-                startGrace);
-
-            //unreachable at one price is unreachable at every price
-            if (!TryGetPlannedSteps(plan, out var steps))
-                return [];
-
-            var key = string.Join('|', steps.Select(step => $"{step.ScrollGrade}:{step.Offering}:{step.Deposits}"));
-
-            if (!buildsBySteps.ContainsKey(key))
-                buildsBySteps[key] = CreateBuild(steps);
-        }
-
-        //keep a build only if it costs less gold than every build with fewer copies
-        var builds = new List<UpgradeBuild>();
-
-        foreach (var build in buildsBySteps.Values
-                                           .OrderBy(build => build.Copies)
-                                           .ThenBy(build => build.Gold))
-            if ((builds.Count == 0) || (build.Gold < builds[^1].Gold))
-                builds.Add(build);
-
-        return builds;
-    }
-
-    /// <summary>
     ///     Calculates a build's expected cost at each level, at the given copy price.
     /// </summary>
-    /// <param name="steps">
-    ///     The build's steps.
-    /// </param>
-    /// <param name="copiesPerAttempt">
-    ///     The copies one attempt consumes.
-    /// </param>
-    /// <param name="copyPrice">
-    ///     The price of one copy.
-    /// </param>
-    /// <param name="scrollPrices">
-    ///     Scroll prices indexed by scroll grade.
-    /// </param>
+    /// <param name="steps">The build's steps.</param>
+    /// <param name="copiesPerAttempt">The copies one attempt consumes.</param>
+    /// <param name="copyPrice">The price of one copy.</param>
+    /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
     /// <param name="offerings">
     ///     The offerings available. The cheapest prices the deposits.
     /// </param>
@@ -147,6 +81,56 @@ internal sealed class UpgradeFrontier
                 Planner.ScrollPrices,
                 Planner.Offerings)[^1],
             steps);
+
+    /// <summary>
+    ///     Generates the builds that no other build beats on both copies and gold.
+    /// </summary>
+    /// <param name="targetLevel">The level every build has to reach.</param>
+    /// <param name="copyPrice">
+    ///     An extra copy price to plan at, so the build priced at it is among the results.
+    /// </param>
+    /// <param name="startLevel">The level a copy starts at.</param>
+    /// <param name="startGrace">The grace each staked copy already carries.</param>
+    /// <returns>
+    ///     The builds, fewest copies first so gold falls down the list, or none when the target is unreachable.
+    /// </returns>
+    public IReadOnlyList<UpgradeBuild> Generate(
+        int targetLevel,
+        double copyPrice = 0,
+        int startLevel = 0,
+        double startGrace = 0)
+    {
+        var buildsBySteps = new Dictionary<string, UpgradeBuild>(StringComparer.Ordinal);
+
+        foreach (var price in GetCopyPrices(copyPrice))
+        {
+            var plan = Planner.FindCheapestPlan(
+                targetLevel,
+                price,
+                startLevel,
+                startGrace);
+
+            //unreachable at one price is unreachable at every price
+            if (!TryGetPlannedSteps(plan, out var steps))
+                return [];
+
+            var key = string.Join('|', steps.Select(step => $"{step.ScrollGrade}:{step.Offering}:{step.Deposits}"));
+
+            if (!buildsBySteps.ContainsKey(key))
+                buildsBySteps[key] = CreateBuild(steps);
+        }
+
+        //keep a build only if it costs less gold than every build with fewer copies
+        var builds = new List<UpgradeBuild>();
+
+        foreach (var build in buildsBySteps.Values
+                                           .OrderBy(build => build.Copies)
+                                           .ThenBy(build => build.Gold))
+            if ((builds.Count == 0) || (build.Gold < builds[^1].Gold))
+                builds.Add(build);
+
+        return builds;
+    }
 
     private static IEnumerable<double> GetCopyPrices(double copyPrice)
     {

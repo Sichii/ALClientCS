@@ -18,8 +18,8 @@ public sealed record GZone
     public ZoneType Type { get; init; }
 
     /// <summary>
-    ///     A polygon representing the bounds of the zone. You work it from beside it: the server checks a point 24 units away in
-    ///     each of the four directions.
+    ///     A polygon representing the bounds of the zone. You work it from beside it: the server checks a point 24 units away
+    ///     in each of the four directions.
     /// </summary>
     [JsonPropertyName("polygon")]
     public Polygon Vertices { get; init; } = null!;

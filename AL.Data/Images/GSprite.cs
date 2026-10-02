@@ -23,8 +23,8 @@ public sealed record GSprite
     public string File { get; init; } = string.Empty;
 
     /// <summary>
-    ///     The number of animation frames across one cell of an animated hat or makeup sheet. Zero when the sheet states
-    ///     none, which the game's client reads as three.
+    ///     The number of animation frames across one cell of an animated hat or makeup sheet. Zero when the sheet states none,
+    ///     which the game's client reads as three.
     /// </summary>
     public int Frames { get; init; }
 
@@ -37,8 +37,8 @@ public sealed record GSprite
     public int Rows { get; init; }
 
     /// <summary>
-    ///     If populated, the body size every name in <see cref="Matrix" /> is drawn at. The game reads a null as
-    ///     <c>normal</c>.
+    ///     If populated, the body size every name in <see cref="Matrix" /> is drawn at. The game reads a null as <c>normal</c>
+    ///     .
     /// </summary>
     /// <remarks>
     ///     The size decides where a head sits on the body, and which of a head's skin sheets is drawn.

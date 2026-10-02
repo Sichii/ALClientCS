@@ -56,9 +56,10 @@ public class PingPercentileTests
     }
 
     [Test]
-    public void AnUnmeasuredWindowReadsAsZero() => PingManager.CalculatePercentile([], 5d)
-                                                              .Should()
-                                                              .Be(TimeSpan.Zero);
+    public void AnUnmeasuredWindowReadsAsZero()
+        => PingManager.CalculatePercentile([], 5d)
+                      .Should()
+                      .Be(TimeSpan.Zero);
 
     [Test]
     public void OneFreakFastSampleDoesNotDragThePercentile()

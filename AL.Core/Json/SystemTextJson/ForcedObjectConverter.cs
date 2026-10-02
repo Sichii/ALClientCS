@@ -24,8 +24,8 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
     private static readonly (string WireName, Type MemberType, JsonConverter? Converter, Action<T, object?> Set)[] Members = BuildMembers();
 
     /// <summary>
-    ///     The options per outer options instance and member converter, each carrying that one converter so it applies to
-    ///     its own member only.
+    ///     The options per outer options instance and member converter, each carrying that one converter so it applies to its
+    ///     own member only.
     /// </summary>
 
     // ReSharper disable StaticMemberInGenericType
@@ -101,9 +101,7 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
     ///     A converter without a public parameterless constructor throws <see cref="MissingMethodException" /> out of the
     ///     static <see cref="Members" /> initializer.
     /// </remarks>
-    /// <param name="member">
-    ///     The property or field.
-    /// </param>
+    /// <param name="member">The property or field.</param>
     /// <returns>
     ///     The converter, or <c>null</c> if the member names none.
     /// </returns>
@@ -133,15 +131,9 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
     /// <summary>
     ///     Gets the node under <paramref name="wireName" />, matching keys case-insensitively as the shared options do.
     /// </summary>
-    /// <param name="obj">
-    ///     The object to search.
-    /// </param>
-    /// <param name="wireName">
-    ///     The key to find.
-    /// </param>
-    /// <param name="node">
-    ///     The node under the key, if found.
-    /// </param>
+    /// <param name="obj">The object to search.</param>
+    /// <param name="wireName">The key to find.</param>
+    /// <param name="node">The node under the key, if found.</param>
     /// <returns>
     ///     <c>true</c> if the key is present; otherwise, <c>false</c>.
     /// </returns>
@@ -196,6 +188,14 @@ public sealed class ForcedObjectConverterFactory : JsonConverterFactory
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         => (JsonConverter)Activator.CreateInstance(typeof(ForcedObjectConverter<>).MakeGenericType(typeToConvert))!;
 
+    private static bool HasArrayIndex(Type type)
+    {
+        const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
+        return type.GetMembers(FLAGS)
+                   .Any(member => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null);
+    }
+
     private static bool IsConvertible(Type typeToConvert)
         => !typeToConvert.IsAbstract
            && typeof(IEnumerable).IsAssignableFrom(typeToConvert)
@@ -206,9 +206,7 @@ public sealed class ForcedObjectConverterFactory : JsonConverterFactory
     /// <summary>
     ///     Determines whether <see cref="JsonForcedObjectAttribute" /> sits on the type or on an interface it implements.
     /// </summary>
-    /// <param name="type">
-    ///     The type to test.
-    /// </param>
+    /// <param name="type">The type to test.</param>
     /// <returns>
     ///     <c>true</c> if the type or one of its interfaces carries the attribute; otherwise, <c>false</c>.
     /// </returns>
@@ -216,12 +214,4 @@ public sealed class ForcedObjectConverterFactory : JsonConverterFactory
         => type.GetCustomAttribute<JsonForcedObjectAttribute>() is not null
            || type.GetInterfaces()
                   .Any(contract => contract.GetCustomAttribute<JsonForcedObjectAttribute>() is not null);
-
-    private static bool HasArrayIndex(Type type)
-    {
-        const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-
-        return type.GetMembers(FLAGS)
-                   .Any(member => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null);
-    }
 }

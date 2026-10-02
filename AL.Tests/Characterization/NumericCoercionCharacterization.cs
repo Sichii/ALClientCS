@@ -49,8 +49,8 @@ public class NumericCoercionCharacterization
 
     /// <summary>
     ///     Deserializes an item the way <see cref="ItemsDatum" /> does - through the shared options, which route every
-    ///     <c>IAttributed</c> type into <see cref="AttributedObjectConverter{T}" />, so the <c>grade</c> coercion under
-    ///     test runs on the production lenient path and not the throwing shared one.
+    ///     <c>IAttributed</c> type into <see cref="AttributedObjectConverter{T}" />, so the <c>grade</c> coercion under test
+    ///     runs on the production lenient path and not the throwing shared one.
     /// </summary>
     private static GItem DeserializeItem(JsonObject wire) => TestJson.Data<GItem>(wire.ToJsonString())!;
 

@@ -10,9 +10,7 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 public sealed record TavernData
 {
-    /// <summary>
-    ///     The bet's direction, <c>up</c> or <c>down</c>.
-    /// </summary>
+    /// <summary>The bet's direction, <c>up</c> or <c>down</c>.</summary>
     [JsonPropertyName("dir")]
     public string? Direction { get; init; }
 
@@ -24,8 +22,8 @@ public sealed record TavernData
     public float Edge { get; init; }
 
     /// <summary>
-    ///     The kind of frame: <c>info</c> is the reply to a query, and <c>bet</c>, <c>won</c> and <c>lost</c> are broadcast
-    ///     to everyone in the tavern.
+    ///     The kind of frame: <c>info</c> is the reply to a query, and <c>bet</c>, <c>won</c> and <c>lost</c> are broadcast to
+    ///     everyone in the tavern.
     /// </summary>
     /// <remarks>
     ///     Null on the raw bet record the roulette handler echoes to the bettor, which has a <c>state</c> instead. Keep the

@@ -17,9 +17,7 @@ public sealed record GMapMonster
     ///     <br />
     ///     If you're familiar with the original form of this data, it's boundary(if present) + boundaries(if present).
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyList<InscribedBoundary> Boundaries { get; init; } = new List<InscribedBoundary>();
 
@@ -32,9 +30,7 @@ public sealed record GMapMonster
     /// <summary>
     ///     This monster's data from <see cref="GameData.Monsters" />
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public GMonster? Data { get; internal set; }
 

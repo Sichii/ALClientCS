@@ -13,8 +13,8 @@ namespace AL.Core.Json;
 ///     Provides the System.Text.Json options shared by the socket transport, the REST client and the game-data loader.
 /// </summary>
 /// <remarks>
-///     Tolerant enums carry <see cref="TolerantStringEnumConverterFactory" /> on the enum itself, since registering it here
-///     would make every enum tolerant. Converters for socket and REST types register from their own assemblies.
+///     Tolerant enums carry <see cref="TolerantStringEnumConverterFactory" /> on the enum itself, since registering it
+///     here would make every enum tolerant. Converters for socket and REST types register from their own assemblies.
 /// </remarks>
 public static class ALJson
 {

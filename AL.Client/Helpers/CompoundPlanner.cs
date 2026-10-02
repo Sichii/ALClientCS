@@ -31,15 +31,9 @@ internal sealed class CompoundPlanner : PlannerBase
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     thresholds
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     scrollPrices
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     offerings
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">thresholds</exception>
+    /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
+    /// <exception cref="System.ArgumentNullException">offerings</exception>
     public CompoundPlanner(
         IReadOnlyList<int> thresholds,
         IReadOnlyList<double> scrollPrices,
@@ -53,14 +47,6 @@ internal sealed class CompoundPlanner : PlannerBase
             offerings,
             countPity)
         => ItemName = itemName;
-
-    /// <inheritdoc />
-    protected override bool TryGetBaseChance(int level, out double chance)
-        => UpgradeMath.TryGetCompoundBaseChance(
-            Thresholds,
-            level,
-            out chance,
-            ItemName);
 
     /// <inheritdoc />
     protected override double CalculateChance(
@@ -80,4 +66,12 @@ internal sealed class CompoundPlanner : PlannerBase
                           CONSTANTS.ITEMS_PER_COMPOUND * grace,
                           ograce)
                       .Chance;
+
+    /// <inheritdoc />
+    protected override bool TryGetBaseChance(int level, out double chance)
+        => UpgradeMath.TryGetCompoundBaseChance(
+            Thresholds,
+            level,
+            out chance,
+            ItemName);
 }

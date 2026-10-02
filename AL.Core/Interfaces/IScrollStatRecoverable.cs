@@ -12,8 +12,6 @@ public interface IScrollStatRecoverable
     /// <summary>
     ///     Records the scroll stat named by a non-numeric <c>stat</c> wire value.
     /// </summary>
-    /// <param name="statName">
-    ///     The scroll stat's name.
-    /// </param>
+    /// <param name="statName">The scroll stat's name.</param>
     void RecoverScrollStat(string statName);
 }

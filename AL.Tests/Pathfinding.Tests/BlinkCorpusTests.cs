@@ -33,157 +33,6 @@ public class BlinkCorpusTests : PathfindingTestBed
     private const double TIE_SECONDS = 0.001;
     private const float WIDER_FLOOR = 1000f;
 
-    [Test]
-    public async Task TheTimedSearchKeepsTheGatesOnTheRecordedCorpus()
-    {
-        var json = await File.ReadAllTextAsync(Path.Combine("Fixtures", "pathfinding", "blink-paths.json"));
-        var corpus = JsonSerializer.Deserialize<BlinkCorpus>(json)!;
-
-        //steady state before timing: warmed on 20 or 200 trips, the first setting still timed two to three times the rest
-        foreach (var warm in corpus.Trips)
-            TimedFind(warm, OptionsFor(corpus.Settings[0], corpus.Floor));
-
-        var missing = new List<string>();
-        var floorBreaks = new List<string>();
-        var dearer = new List<string>();
-        var shortBlinks = new List<string>();
-
-        foreach (var floor in new[]
-                 {
-                     corpus.Floor,
-                     WIDER_FLOOR
-                 })
-            foreach (var setting in corpus.Settings)
-            {
-                var clock = setting.ToClock() with
-                {
-                    MinBlinkCost = floor
-                };
-                var recordedFloor = floor == corpus.Floor;
-                var rows = new List<Row>();
-
-                foreach (var trip in corpus.Trips)
-                {
-                    var recorded = trip.Results.First(result => result.Setting == setting.Name);
-                    (var found, var path, var micros) = TimedFind(trip, OptionsFor(setting, floor));
-                    var label = $"#{trip.Id} floor {floor:F0} {setting.Name}";
-
-                    if (!found)
-                    {
-                        if (recorded.Found)
-                            missing.Add(label);
-
-                        continue;
-                    }
-
-                    var measured = RouteClock.Measure(path, clock);
-                    var newBreak = FloorBreak(path, floor);
-
-                    if (newBreak is not null)
-                        floorBreaks.Add($"{label} {newBreak}");
-
-                    foreach (var blink in path.Where(edge => (edge.Type == EdgeType.Blink) && (edge.Cost < floor)))
-                        if (!NoWalkJoins(blink))
-                            shortBlinks.Add(
-                                $"{label} {ILocation.ToString(blink.Start)} -> {ILocation.ToString(blink.End)} {blink.Cost:F0}");
-
-                    var row = new Row(
-                        trip.Id,
-                        measured.Seconds,
-                        path.Count(edge => edge.Type == EdgeType.Blink),
-                        micros,
-                        newBreak is not null);
-
-                    if (recordedFloor && recorded.Found)
-                    {
-                        var oldPath = recorded.Legs
-                                              .Select(leg => leg.ToPathEdge())
-                                              .ToList();
-                        var oldMeasured = RouteClock.Measure(oldPath, clock);
-                        var oldBreaks = FloorBreak(oldPath, floor) is not null;
-                        var slack = PRICE_SLACK_PER_LEG * Math.Max(oldPath.Count, path.Count);
-
-                        if (!oldBreaks && (measured.Price > (oldMeasured.Price + slack)))
-                            dearer.Add($"{label} old {oldMeasured.Price:F1} new {measured.Price:F1}");
-
-                        row = row with
-                        {
-                            Old = new OldRoute(
-                                oldMeasured.Seconds,
-                                oldPath.Count(edge => edge.Type == EdgeType.Blink),
-                                recorded.Micros,
-                                oldBreaks)
-                        };
-                    }
-
-                    rows.Add(row);
-                }
-
-                Console.WriteLine(recordedFloor ? ReportAgainstRecording(setting, floor, rows) : Report(setting, floor, rows));
-            }
-
-        Console.WriteLine($"BLINK optimized={IsOptimized()}");
-
-        missing.Should()
-               .BeEmpty("every trip the recorded search routed is still routed: {0}", string.Join("; ", missing.Take(10)));
-
-        floorBreaks.Should()
-                   .BeEmpty(
-                       "a map's stretch from first arrival to last exit that holds a cast walks at least the floor: {0}",
-                       string.Join("; ", floorBreaks.Take(10)));
-
-        dearer.Should()
-              .BeEmpty("no route is priced above a recorded one that keeps the floor: {0}", string.Join("; ", dearer.Take(10)));
-
-        shortBlinks.Should()
-                   .BeEmpty("a cast under the floor bridges a pair no walk joins: {0}", string.Join("; ", shortBlinks.Take(10)));
-    }
-
-    /// <summary>
-    ///     Trip 368's detour: a 273 walk across the cave split into two casts by the door to main and straight back. Each cast
-    ///     replaces a walk over 400, so only the check across the round trip catches it.
-    /// </summary>
-    [Test]
-    public void TheFloorCheckCatchesADoorRoundTrip()
-    {
-        var start = new Location("cave", 43, -1165);
-        var end = new Location("cave", -226, -1118);
-        var toMain = GameData.Maps["cave"]!.Exits.First(exit => exit.ToLocation.Map == "main");
-        var back = GameData.Maps["main"]!.Exits.First(exit => exit.ToLocation.Map == "cave");
-
-        PathEdge[] path =
-        [
-            new(
-                EdgeType.Blink,
-                start,
-                new Location("cave", toMain.X, toMain.Y),
-                1340),
-            new(
-                EdgeType.Door,
-                toMain,
-                toMain.ToLocation,
-                CONSTANTS.TRANSPORT_HEURISTIC),
-            new(
-                EdgeType.Door,
-                back,
-                back.ToLocation,
-                CONSTANTS.TRANSPORT_HEURISTIC),
-            new(
-                EdgeType.Blink,
-                back.ToLocation,
-                end,
-                1737)
-        ];
-
-        FloorBreak(path, 400f)
-            .Should()
-            .StartWith("cave walk");
-
-        FloorBreak(path, 250f)
-            .Should()
-            .BeNull();
-    }
-
     /// <summary>
     ///     Checks the floor across detours. For each map, the route's first stop on it and its last are taken; when they are
     ///     two or more hops apart and any hop between them is a blink, the walk on that one map between the two must be at
@@ -355,6 +204,157 @@ public class BlinkCorpusTests : PathfindingTestBed
             location.X,
             location.Y,
             isExit);
+
+    /// <summary>
+    ///     Trip 368's detour: a 273 walk across the cave split into two casts by the door to main and straight back. Each cast
+    ///     replaces a walk over 400, so only the check across the round trip catches it.
+    /// </summary>
+    [Test]
+    public void TheFloorCheckCatchesADoorRoundTrip()
+    {
+        var start = new Location("cave", 43, -1165);
+        var end = new Location("cave", -226, -1118);
+        var toMain = GameData.Maps["cave"]!.Exits.First(exit => exit.ToLocation.Map == "main");
+        var back = GameData.Maps["main"]!.Exits.First(exit => exit.ToLocation.Map == "cave");
+
+        PathEdge[] path =
+        [
+            new(
+                EdgeType.Blink,
+                start,
+                new Location("cave", toMain.X, toMain.Y),
+                1340),
+            new(
+                EdgeType.Door,
+                toMain,
+                toMain.ToLocation,
+                CONSTANTS.TRANSPORT_HEURISTIC),
+            new(
+                EdgeType.Door,
+                back,
+                back.ToLocation,
+                CONSTANTS.TRANSPORT_HEURISTIC),
+            new(
+                EdgeType.Blink,
+                back.ToLocation,
+                end,
+                1737)
+        ];
+
+        FloorBreak(path, 400f)
+            .Should()
+            .StartWith("cave walk");
+
+        FloorBreak(path, 250f)
+            .Should()
+            .BeNull();
+    }
+
+    [Test]
+    public async Task TheTimedSearchKeepsTheGatesOnTheRecordedCorpus()
+    {
+        var json = await File.ReadAllTextAsync(Path.Combine("Fixtures", "pathfinding", "blink-paths.json"));
+        var corpus = JsonSerializer.Deserialize<BlinkCorpus>(json)!;
+
+        //steady state before timing: warmed on 20 or 200 trips, the first setting still timed two to three times the rest
+        foreach (var warm in corpus.Trips)
+            TimedFind(warm, OptionsFor(corpus.Settings[0], corpus.Floor));
+
+        var missing = new List<string>();
+        var floorBreaks = new List<string>();
+        var dearer = new List<string>();
+        var shortBlinks = new List<string>();
+
+        foreach (var floor in new[]
+                 {
+                     corpus.Floor,
+                     WIDER_FLOOR
+                 })
+            foreach (var setting in corpus.Settings)
+            {
+                var clock = setting.ToClock() with
+                {
+                    MinBlinkCost = floor
+                };
+                var recordedFloor = floor == corpus.Floor;
+                var rows = new List<Row>();
+
+                foreach (var trip in corpus.Trips)
+                {
+                    var recorded = trip.Results.First(result => result.Setting == setting.Name);
+                    (var found, var path, var micros) = TimedFind(trip, OptionsFor(setting, floor));
+                    var label = $"#{trip.Id} floor {floor:F0} {setting.Name}";
+
+                    if (!found)
+                    {
+                        if (recorded.Found)
+                            missing.Add(label);
+
+                        continue;
+                    }
+
+                    var measured = RouteClock.Measure(path, clock);
+                    var newBreak = FloorBreak(path, floor);
+
+                    if (newBreak is not null)
+                        floorBreaks.Add($"{label} {newBreak}");
+
+                    foreach (var blink in path.Where(edge => (edge.Type == EdgeType.Blink) && (edge.Cost < floor)))
+                        if (!NoWalkJoins(blink))
+                            shortBlinks.Add(
+                                $"{label} {ILocation.ToString(blink.Start)} -> {ILocation.ToString(blink.End)} {blink.Cost:F0}");
+
+                    var row = new Row(
+                        trip.Id,
+                        measured.Seconds,
+                        path.Count(edge => edge.Type == EdgeType.Blink),
+                        micros,
+                        newBreak is not null);
+
+                    if (recordedFloor && recorded.Found)
+                    {
+                        var oldPath = recorded.Legs
+                                              .Select(leg => leg.ToPathEdge())
+                                              .ToList();
+                        var oldMeasured = RouteClock.Measure(oldPath, clock);
+                        var oldBreaks = FloorBreak(oldPath, floor) is not null;
+                        var slack = PRICE_SLACK_PER_LEG * Math.Max(oldPath.Count, path.Count);
+
+                        if (!oldBreaks && (measured.Price > (oldMeasured.Price + slack)))
+                            dearer.Add($"{label} old {oldMeasured.Price:F1} new {measured.Price:F1}");
+
+                        row = row with
+                        {
+                            Old = new OldRoute(
+                                oldMeasured.Seconds,
+                                oldPath.Count(edge => edge.Type == EdgeType.Blink),
+                                recorded.Micros,
+                                oldBreaks)
+                        };
+                    }
+
+                    rows.Add(row);
+                }
+
+                Console.WriteLine(recordedFloor ? ReportAgainstRecording(setting, floor, rows) : Report(setting, floor, rows));
+            }
+
+        Console.WriteLine($"BLINK optimized={IsOptimized()}");
+
+        missing.Should()
+               .BeEmpty("every trip the recorded search routed is still routed: {0}", string.Join("; ", missing.Take(10)));
+
+        floorBreaks.Should()
+                   .BeEmpty(
+                       "a map's stretch from first arrival to last exit that holds a cast walks at least the floor: {0}",
+                       string.Join("; ", floorBreaks.Take(10)));
+
+        dearer.Should()
+              .BeEmpty("no route is priced above a recorded one that keeps the floor: {0}", string.Join("; ", dearer.Take(10)));
+
+        shortBlinks.Should()
+                   .BeEmpty("a cast under the floor bridges a pair no walk joins: {0}", string.Join("; ", shortBlinks.Take(10)));
+    }
 
     /// <summary>
     ///     Searches best of <see cref="RUNS" />, as the recording did, and reports the fastest time in microseconds.

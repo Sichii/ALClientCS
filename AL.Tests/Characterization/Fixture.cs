@@ -21,6 +21,13 @@ public static class Fixture
 
     private static readonly Lazy<JsonObject> ParsedGameData = new(() => JsonNode.Parse(RawGameData.Value)!.AsObject());
 
+    /// <summary>
+    ///     Every mutable static behind <see cref="AL.Data.GameData" />, which a load writes and a restore puts back.
+    /// </summary>
+    private static readonly FieldInfo[] GameDataStatics = typeof(GameData).GetFields(BindingFlags.Static | BindingFlags.NonPublic)
+                                                                          .Where(field => field is { IsLiteral: false, IsInitOnly: false })
+                                                                          .ToArray();
+
     /// <summary>The whole snapshot, parsed.</summary>
     public static JsonObject GameData => ParsedGameData.Value;
 
@@ -33,11 +40,10 @@ public static class Fixture
     public static string GameDataPath => Path.Combine(AppContext.BaseDirectory, "Fixtures", "data.json");
 
     /// <summary>
-    ///     Every mutable static behind <see cref="AL.Data.GameData" />, which a load writes and a restore puts back.
+    ///     A single entry from a top-level section, e.g. <c>Entry("items", "fireblade")</c> .
     /// </summary>
-    private static readonly FieldInfo[] GameDataStatics = typeof(GameData).GetFields(BindingFlags.Static | BindingFlags.NonPublic)
-                                                                          .Where(field => field is { IsLiteral: false, IsInitOnly: false })
-                                                                          .ToArray();
+    public static JsonNode Entry(string section, string key)
+        => Section(section)[key] ?? throw new InvalidOperationException($@"Snapshot has no ""{section}.{key}"".");
 
     /// <summary>
     ///     Loads the snapshot into <see cref="AL.Data.GameData" /> when nothing has loaded it yet, and returns what was there
@@ -57,21 +63,6 @@ public static class Fixture
         return captured;
     }
 
-    /// <summary>
-    ///     Puts back the <see cref="AL.Data.GameData" /> that <see cref="LoadGameDataIfEmpty" /> found.
-    /// </summary>
-    public static void RestoreGameData(Dictionary<FieldInfo, object?> captured)
-    {
-        foreach ((var field, var value) in captured)
-            field.SetValue(null, value);
-    }
-
-    /// <summary>
-    ///     A single entry from a top-level section, e.g. <c>Entry("items", "fireblade")</c> .
-    /// </summary>
-    public static JsonNode Entry(string section, string key)
-        => Section(section)[key] ?? throw new InvalidOperationException($@"Snapshot has no ""{section}.{key}"".");
-
     private static string Normalize(string text)
         => text.Replace("\r\n", "\n")
                .Trim('\n');
@@ -88,6 +79,15 @@ public static class Fixture
             fileName);
 
         return File.Exists(path) ? File.ReadAllText(path) : null;
+    }
+
+    /// <summary>
+    ///     Puts back the <see cref="AL.Data.GameData" /> that <see cref="LoadGameDataIfEmpty" /> found.
+    /// </summary>
+    public static void RestoreGameData(Dictionary<FieldInfo, object?> captured)
+    {
+        foreach ((var field, var value) in captured)
+            field.SetValue(null, value);
     }
 
     /// <summary>

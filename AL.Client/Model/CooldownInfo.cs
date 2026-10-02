@@ -40,9 +40,7 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     /// <summary>
     ///     Initializes a new instance of the <see cref="CooldownInfo" /> class.
     /// </summary>
-    /// <param name="cooldownMs">
-    ///     The cooldown of the skill.
-    /// </param>
+    /// <param name="cooldownMs">The cooldown of the skill.</param>
     public CooldownInfo(float cooldownMs) => CooldownMs = cooldownMs;
 
     public void CompensateOnce(TimeSpan offset)
@@ -58,9 +56,7 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     /// <inheritdoc />
     public void Update(TimeSpan delta) => Elapsed += delta;
 
-    /// <summary>
-    ///     Whether or not the skill can be used.
-    /// </summary>
+    /// <summary>Whether or not the skill can be used.</summary>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />

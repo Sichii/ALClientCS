@@ -11,8 +11,8 @@ namespace AL.Data.Sets;
 ///     <inheritdoc cref="AttributedRecordBase" />
 /// </summary>
 /// <remarks>
-///     Read it through <see cref="AttributedRecordBase.Attributes" />; on <see cref="GSetTier.InEffect" /> the declared stat
-///     properties are all zero.
+///     Read it through <see cref="AttributedRecordBase.Attributes" />; on <see cref="GSetTier.InEffect" /> the declared
+///     stat properties are all zero.
 /// </remarks>
 /// <seealso cref="AttributedRecordBase" />
 public sealed record GSetBonus : AttributedRecordBase;

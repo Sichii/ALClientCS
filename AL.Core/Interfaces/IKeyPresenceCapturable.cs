@@ -13,8 +13,6 @@ public interface IKeyPresenceCapturable
     ///     Records that a key was present on the wire. Called once per top-level key during deserialization, so it must not
     ///     allocate.
     /// </summary>
-    /// <param name="key">
-    ///     The wire key.
-    /// </param>
+    /// <param name="key">The wire key.</param>
     void MarkPresent(string key);
 }

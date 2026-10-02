@@ -9,9 +9,7 @@ public sealed record TrackData
     /// <summary>Distance from the caster to the tracked player.</summary>
     public double Dist { get; init; }
 
-    /// <summary>
-    ///     Whether the tracked player is invisible.
-    /// </summary>
+    /// <summary>Whether the tracked player is invisible.</summary>
     public bool Invis { get; init; }
 
     /// <summary>

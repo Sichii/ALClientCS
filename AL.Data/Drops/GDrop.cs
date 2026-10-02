@@ -25,8 +25,9 @@ public sealed record GDrop
     public int Quantity { get; init; } = 1;
 
     /// <summary>
-    ///     The per-kill chance for a solo kill of a level-1 monster with no luck bonus. The server drops when
-    ///     <c>random() / (share * luckm * level * mult) &lt; rate</c>, so a rate of 1 or more always drops.
+    ///     The per-kill chance for a solo kill of a level-1 monster with no luck bonus. The server drops when <c>
+    ///         random() / (share * luckm * level * mult) &lt; rate
+    ///     </c>, so a rate of 1 or more always drops.
     /// </summary>
     public float Rate { get; init; }
 }

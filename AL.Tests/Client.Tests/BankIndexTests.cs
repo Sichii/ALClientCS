@@ -26,6 +26,8 @@ public class BankIndexTests
 {
     private const BankPack PACK = BankPack.Items0;
 
+    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
+
     [Test]
     public void ALockedPileIsNotOfferedAsAStackTarget()
     {
@@ -74,6 +76,19 @@ public class BankIndexTests
     }
 
     [Test]
+    public void APileWhoseDataDiffersIsNotOfferedAsAStackTarget()
+    {
+        //the server stacks two cxjars only when their data agrees (js/old_common_functions.js:396). A name-only match
+        //handed the store sentinel to a pack whose one cxjar held another appearance, and in a full pack the server
+        //answered storage_full on every trip while the vault had room elsewhere
+        var client = ClientHolding(Item("cxjar", "makeawish"));
+
+        client.FindOptimalBankIndex(Indexed("cxjar", "ikissyou"), PACK)
+              .Should()
+              .Be((PACK, 1));
+    }
+
+    [Test]
     public void APvpMarkedItemIsOfferedTheUnmarkedPile()
     {
         //the bank handler deletes v before it stores anything (node/server.js:9172), so a pile the mark would split in the
@@ -92,19 +107,6 @@ public class BankIndexTests
         client.FindOptimalBankIndex(marked, PACK)
               .Should()
               .Be((PACK, -1));
-    }
-
-    [Test]
-    public void APileWhoseDataDiffersIsNotOfferedAsAStackTarget()
-    {
-        //the server stacks two cxjars only when their data agrees (js/old_common_functions.js:396). A name-only match
-        //handed the store sentinel to a pack whose one cxjar held another appearance, and in a full pack the server
-        //answered storage_full on every trip while the vault had room elsewhere
-        var client = ClientHolding(Item("cxjar", "makeawish"));
-
-        client.FindOptimalBankIndex(Indexed("cxjar", "ikissyou"), PACK)
-              .Should()
-              .Be((PACK, 1));
     }
 
     [Test]
@@ -154,15 +156,11 @@ public class BankIndexTests
         return client;
     }
 
-    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
-
     [Before(Class)]
     public static void EnsureGameData()
+
         //from the committed snapshot so no credentials are needed, the way ProjectileMitigationTests does it
         => CapturedGameData = Fixture.LoadGameDataIfEmpty();
-
-    [After(Class)]
-    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 
     private static InventoryIndexer Indexed(string name, string? data = null)
         => new()
@@ -178,6 +176,9 @@ public class BankIndexTests
             Quantity = 1,
             Data = data
         };
+
+    [After(Class)]
+    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 
     [Test]
     public void TheStoreSentinelIsAccepted()

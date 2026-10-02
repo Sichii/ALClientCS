@@ -189,9 +189,7 @@ public sealed record GClass
     /// <summary>
     ///     Checks if this class can wield the given 2handed weapon.
     /// </summary>
-    /// <param name="weaponType">
-    ///     A 2handed weapon.
-    /// </param>
+    /// <param name="weaponType">A 2handed weapon.</param>
     /// <returns>
     ///     <c>true</c> if this class can wield it; otherwise, <c>false</c>.
     /// </returns>
@@ -200,9 +198,7 @@ public sealed record GClass
     /// <summary>
     ///     Checks if this class can wield the given mainhand weapon.
     /// </summary>
-    /// <param name="weaponType">
-    ///     A mainhand weapon.
-    /// </param>
+    /// <param name="weaponType">A mainhand weapon.</param>
     /// <returns>
     ///     <c>true</c> if this class can wield it; otherwise, <c>false</c>.
     /// </returns>
@@ -211,9 +207,7 @@ public sealed record GClass
     /// <summary>
     ///     Checks if this class can wield the given offhand weapon.
     /// </summary>
-    /// <param name="weaponType">
-    ///     An offhand.
-    /// </param>
+    /// <param name="weaponType">An offhand.</param>
     /// <returns>
     ///     <c>true</c> if this class can wield it; otherwise, <c>false</c>.
     /// </returns>

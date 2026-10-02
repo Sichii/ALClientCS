@@ -12,20 +12,14 @@ namespace AL.Client.Extensions;
 /// </summary>
 public static class PlayerExtensions
 {
-    /// <summary>
-    ///     Gets the "G" data for this player's class.
-    /// </summary>
-    /// <param name="player">
-    ///     The player to get the data for.
-    /// </param>
+    /// <summary>Gets the "G" data for this player's class.</summary>
+    /// <param name="player">The player to get the data for.</param>
     /// <returns>
     ///     <see cref="GClass" />
     ///     <br />
     ///     The "G" data for this player's class from <see cref="GameData" />.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     player
-    /// </exception>
+    /// <exception cref="ArgumentNullException">player</exception>
     public static GClass? GetData(this ISimplePlayer player)
     {
         ArgumentNullException.ThrowIfNull(player);

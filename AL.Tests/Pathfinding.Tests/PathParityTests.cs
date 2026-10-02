@@ -43,17 +43,6 @@ public class PathParityTests : PathfindingTestBed
         return attribute is null || !attribute.IsJITOptimizerDisabled;
     }
 
-    /// <summary>
-    ///     Whether the corpus only found this route because the old graph used ground the server will not put a character
-    ///     on. Two kinds: behind a key door, and on a Dungeon World map, which only the dungeon server ever instances - so a
-    ///     route that so much as starts on one is off the table. Staying inside one copy, or leaving one, needs no key and is
-    ///     still held to the record.
-    /// </summary>
-    private static bool TouchesUnreachableGround(Case recorded)
-        => (GameData.Maps[recorded.Start.Map]?.World == WorldType.Dungeon)
-           || (GameData.Maps[recorded.End.Map]?.World == WorldType.Dungeon)
-           || (BehindAKey.Contains(recorded.End.Map) && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase));
-
     [Test]
     public async Task TheNewPathfinderMatchesTheRecordedCorpus()
     {
@@ -144,6 +133,17 @@ public class PathParityTests : PathfindingTestBed
         newBytes.Should()
                 .BeLessThan(oldBytes, "the rewrite exists to allocate less");
     }
+
+    /// <summary>
+    ///     Whether the corpus only found this route because the old graph used ground the server will not put a character on.
+    ///     Two kinds: behind a key door, and on a Dungeon World map, which only the dungeon server ever instances - so a route
+    ///     that so much as starts on one is off the table. Staying inside one copy, or leaving one, needs no key and is still
+    ///     held to the record.
+    /// </summary>
+    private static bool TouchesUnreachableGround(Case recorded)
+        => (GameData.Maps[recorded.Start.Map]?.World == WorldType.Dungeon)
+           || (GameData.Maps[recorded.End.Map]?.World == WorldType.Dungeon)
+           || (BehindAKey.Contains(recorded.End.Map) && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase));
 
     private static bool TryFind(Case recorded, out IReadOnlyList<PathEdge> path)
     {

@@ -6,8 +6,8 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Represents where a walk may stop to count as having arrived: a rectangle band inflated by a range. A door opens from
-///     exactly this shape, and a plain destination is a zero-size band with its radius as the range.
+///     Represents where a walk may stop to count as having arrived: a rectangle band inflated by a range. A door opens
+///     from exactly this shape, and a plain destination is a zero-size band with its radius as the range.
 /// </summary>
 public readonly struct Reach
 {
@@ -20,12 +20,8 @@ public readonly struct Reach
     /// <summary>
     ///     Initializes a new instance of the <see cref="Reach" /> struct.
     /// </summary>
-    /// <param name="band">
-    ///     The rectangle the range is measured from.
-    /// </param>
-    /// <param name="range">
-    ///     How far outside the band still counts.
-    /// </param>
+    /// <param name="band">The rectangle the range is measured from.</param>
+    /// <param name="range">How far outside the band still counts.</param>
     public Reach(Rectangle band, float range)
     {
         Band = band;
@@ -51,15 +47,9 @@ public readonly struct Reach
     /// <summary>
     ///     Calculates the distance from a point to the band's edge.
     /// </summary>
-    /// <param name="x">
-    ///     The point's x.
-    /// </param>
-    /// <param name="y">
-    ///     The point's y.
-    /// </param>
-    /// <returns>
-    ///     The distance to the band, zero inside it.
-    /// </returns>
+    /// <param name="x">The point's x.</param>
+    /// <param name="y">The point's y.</param>
+    /// <returns>The distance to the band, zero inside it.</returns>
     public float Distance(float x, float y) => Band.EdgeToCenterDistance(new ValuePoint(x, y));
 
     /// <summary>Determines whether a point is inside the reach.</summary>
@@ -73,12 +63,8 @@ public readonly struct Reach
     /// <summary>
     ///     Finds the point on the reach's boundary nearest to a point outside it.
     /// </summary>
-    /// <param name="x">
-    ///     The point's x.
-    /// </param>
-    /// <param name="y">
-    ///     The point's y.
-    /// </param>
+    /// <param name="x">The point's x.</param>
+    /// <param name="y">The point's y.</param>
     /// <returns>
     ///     The nearest boundary point, or the point itself when it is already inside.
     /// </returns>
@@ -99,18 +85,10 @@ public readonly struct Reach
     /// <summary>
     ///     Finds the first point along a segment that lies inside the reach.
     /// </summary>
-    /// <param name="x0">
-    ///     The segment start's x.
-    /// </param>
-    /// <param name="y0">
-    ///     The segment start's y.
-    /// </param>
-    /// <param name="x1">
-    ///     The segment end's x.
-    /// </param>
-    /// <param name="y1">
-    ///     The segment end's y.
-    /// </param>
+    /// <param name="x0">The segment start's x.</param>
+    /// <param name="y0">The segment start's y.</param>
+    /// <param name="x1">The segment end's x.</param>
+    /// <param name="y1">The segment end's y.</param>
     /// <param name="entryX">
     ///     The entry point's x, or the start's when the segment never enters.
     /// </param>
@@ -118,14 +96,7 @@ public readonly struct Reach
     ///     The entry point's y, or the start's when the segment never enters.
     /// </param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the start or the end is inside the reach; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the start or the end is inside the reach; otherwise, <c>false</c> .
     /// </returns>
     public bool TryFindEntry(
         float x0,

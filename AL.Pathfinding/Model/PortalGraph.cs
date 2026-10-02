@@ -21,8 +21,10 @@ internal sealed class PortalGraph
 {
     private static readonly List<int> EmptyNodes = [];
 
-    private readonly int[] ReverseEdges;
-    private readonly int[] ReverseStart;
+    /// <summary>
+    ///     The lattice a blink's landing is rounded onto, and the step the server checks around it.
+    /// </summary>
+    private const float BLINK_LATTICE = 10f;
 
     private readonly Dictionary<(string Map, int Spawn), int> ArrivalIndex = new(MapSpawnComparer.Instance);
     private readonly Dictionary<string, List<int>> ArrivalsOnMap = new(StringComparer.OrdinalIgnoreCase);
@@ -31,6 +33,9 @@ internal sealed class PortalGraph
 
     private readonly IReadOnlyDictionary<string, NavMesh> Meshes;
     private readonly List<Node> Nodes = [];
+
+    private readonly int[] ReverseEdges;
+    private readonly int[] ReverseStart;
 
     /// <summary>
     ///     The static edges, sorted by <see cref="Edge.From" />; <see cref="EdgeStart" /> indexes into them.
@@ -104,31 +109,6 @@ internal sealed class PortalGraph
         (ReverseEdges, ReverseStart) = BuildReverseEdges();
     }
 
-    /// <summary>
-    ///     Builds the index of static edges into each node, for the backward search behind the lower bounds.
-    /// </summary>
-    /// <returns>
-    ///     Indices into <see cref="StaticEdges" /> grouped by <see cref="Edge.To" />, and where each node's group starts.
-    /// </returns>
-    private (int[] Edges, int[] Start) BuildReverseEdges()
-    {
-        var start = new int[Nodes.Count + 1];
-
-        foreach (var edge in StaticEdges)
-            start[edge.To + 1]++;
-
-        for (var i = 1; i < start.Length; i++)
-            start[i] += start[i - 1];
-
-        var edges = new int[StaticEdges.Length];
-        var next = (int[])start.Clone();
-
-        for (var i = 0; i < StaticEdges.Length; i++)
-            edges[next[StaticEdges[i].To]++] = i;
-
-        return (edges, start);
-    }
-
     private void AddArrival(NavMesh mesh, GMap map, int spawnIndex)
     {
         if (ArrivalIndex.ContainsKey((map.Accessor, spawnIndex)))
@@ -158,6 +138,31 @@ internal sealed class PortalGraph
         GetMapLists(map.Accessor)
             .Arrivals
             .Add(index);
+    }
+
+    /// <summary>
+    ///     Builds the index of static edges into each node, for the backward search behind the lower bounds.
+    /// </summary>
+    /// <returns>
+    ///     Indices into <see cref="StaticEdges" /> grouped by <see cref="Edge.To" />, and where each node's group starts.
+    /// </returns>
+    private (int[] Edges, int[] Start) BuildReverseEdges()
+    {
+        var start = new int[Nodes.Count + 1];
+
+        foreach (var edge in StaticEdges)
+            start[edge.To + 1]++;
+
+        for (var i = 1; i < start.Length; i++)
+            start[i] += start[i - 1];
+
+        var edges = new int[StaticEdges.Length];
+        var next = (int[])start.Clone();
+
+        for (var i = 0; i < StaticEdges.Length; i++)
+            edges[next[StaticEdges[i].To]++] = i;
+
+        return (edges, start);
     }
 
     private (Edge[] Edges, int[] Start) BuildStaticEdges()
@@ -261,23 +266,185 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
+    ///     Determines whether the server would land a blink aimed at a point: the lattice cell it rounds to and the eight
+    ///     around it must all be ground.
+    /// </summary>
+    /// <param name="mesh">The mesh of the map the blink lands on.</param>
+    /// <param name="x">The point's x.</param>
+    /// <param name="y">The point's y.</param>
+    /// <returns>
+    ///     <c>true</c> if the blink lands; otherwise, <c>false</c> .
+    /// </returns>
+    private static bool CanLand(NavMesh mesh, float x, float y)
+    {
+        var cellX = MathF.Round(x / BLINK_LATTICE) * BLINK_LATTICE;
+        var cellY = MathF.Round(y / BLINK_LATTICE) * BLINK_LATTICE;
+
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dy = -1; dy <= 1; dy++)
+                if (!mesh.IsWalkable(cellX + dx * BLINK_LATTICE, cellY + dy * BLINK_LATTICE))
+                    return false;
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Fills the scratch's lower bounds: per node, the least the rest of any route to an end can cost, from one backward
+    ///     search over every edge at its cheapest.
+    /// </summary>
+    /// <param name="scratch">The calling thread's search state.</param>
+    /// <param name="startNode">The search's virtual start node.</param>
+    /// <param name="firstEnd">
+    ///     The first end node; every node from it on is an end.
+    /// </param>
+    /// <param name="nodeCount">The number of nodes in the search.</param>
+    /// <param name="options">The search's options.</param>
+    /// <param name="townCost">The price of a recall at the character's speed.</param>
+    private void ComputeLowerBounds(
+        SearchScratch scratch,
+        int startNode,
+        int firstEnd,
+        int nodeCount,
+        PathOptions options,
+        float townCost)
+    {
+        var bounds = scratch.LowerBound;
+        var queue = scratch.LowerBoundQueue;
+        var floor = options.BlinkCost ?? float.MaxValue;
+        var landing = Math.Max(options.BlinkCost ?? 0f, CONSTANTS.BLINK_LANDING_MS * GetSpeed(options) / 1000f);
+        var useTown = options.UseTown;
+
+        Array.Fill(
+            bounds,
+            float.PositiveInfinity,
+            0,
+            firstEnd);
+
+        Array.Fill(
+            bounds,
+            0f,
+            firstEnd,
+            nodeCount - firstEnd);
+        queue.Clear();
+
+        //the edges into the ends seed the search; the start's own edges are read last, since nothing leads into it
+        foreach (var edge in scratch.SearchEdges)
+        {
+            if ((edge.To < firstEnd) || (edge.From == startNode))
+                continue;
+
+            var bound = CalculateCheapest(edge);
+
+            if (bound < bounds[edge.From])
+            {
+                bounds[edge.From] = bound;
+                queue.Enqueue(edge.From, bound);
+            }
+        }
+
+        while (queue.TryDequeue(out var node, out var bound))
+        {
+            if (bound > bounds[node])
+                continue;
+
+            for (var i = ReverseStart[node]; i < ReverseStart[node + 1]; i++)
+            {
+                var edge = StaticEdges[ReverseEdges[i]];
+                var through = bound + CalculateCheapest(edge);
+
+                if (through < bounds[edge.From])
+                {
+                    bounds[edge.From] = through;
+                    queue.Enqueue(edge.From, through);
+                }
+            }
+        }
+
+        for (var i = scratch.SearchEdgeStart[startNode]; i < scratch.SearchEdgeStart[startNode + 1]; i++)
+        {
+            var edge = scratch.SearchEdges[i];
+            bounds[startNode] = Math.Min(bounds[startNode], CalculateCheapest(edge) + bounds[edge.To]);
+        }
+
+        return;
+
+        float CalculateCheapest(in Edge edge)
+            => edge.Type switch
+            {
+                EdgeType.Walk  => edge.Cost >= floor ? Math.Min(edge.Cost, landing) : edge.Cost,
+                EdgeType.Blink => landing,
+                EdgeType.Town  => useTown ? townCost : float.PositiveInfinity,
+                _              => edge.Cost
+            };
+    }
+
+    /// <summary>
+    ///     Finds where a blink aimed at an exit is sent: the entry, or the nearest lattice cell inside the reach that the
+    ///     server will land.
+    /// </summary>
+    /// <param name="mesh">The mesh of the map the blink lands on.</param>
+    /// <param name="reach">The exit's reach.</param>
+    /// <param name="entry">The exit's entry on the mesh.</param>
+    /// <returns>
+    ///     The landing point, or the entry when no cell in the reach takes one.
+    /// </returns>
+    /// <remarks>
+    ///     The server searches only three cells along the axes for a landing, so an entry on the edge of the ground can refuse
+    ///     every cast aimed at it.
+    /// </remarks>
+    private static Point FindBlinkLanding(NavMesh mesh, Reach reach, Point entry)
+    {
+        //wide enough to cover a door's reach
+        const int BLINK_LANDING_RINGS = 12;
+
+        if (CanLand(mesh, entry.X, entry.Y))
+            return entry;
+
+        var originX = MathF.Round(entry.X / BLINK_LATTICE) * BLINK_LATTICE;
+        var originY = MathF.Round(entry.Y / BLINK_LATTICE) * BLINK_LATTICE;
+
+        for (var ring = 1; ring <= BLINK_LANDING_RINGS; ring++)
+            for (var dx = -ring; dx <= ring; dx++)
+                for (var dy = -ring; dy <= ring; dy++)
+                {
+                    if ((Math.Abs(dx) != ring) && (Math.Abs(dy) != ring))
+                        continue;
+
+                    var x = originX + dx * BLINK_LATTICE;
+                    var y = originY + dy * BLINK_LATTICE;
+
+                    if (reach.Contains(x, y) && CanLand(mesh, x, y))
+                        return new Point(x, y);
+                }
+
+        //nothing in the reach takes one, so the leg keeps the entry
+        return entry;
+    }
+
+    /// <summary>
+    ///     Finds where a blink aimed at a route's end is sent: the edge of the end's radius nearest the caster, pulled in by a
+    ///     lattice step so the server's rounding keeps it inside.
+    /// </summary>
+    /// <param name="mesh">The mesh of the map the blink lands on.</param>
+    /// <param name="end">The route's end.</param>
+    /// <param name="from">Where the caster stands.</param>
+    /// <returns>The landing point.</returns>
+    private static Point FindEndLanding(NavMesh mesh, ICircle end, Point from)
+    {
+        var reach = Reach.CreateCircle(end.X, end.Y, Math.Max(0f, end.Radius - BLINK_LATTICE));
+        (var x, var y) = reach.FindNearestEdgePoint(from.X, from.Y);
+
+        return FindBlinkLanding(mesh, reach, new Point(x, y));
+    }
+
+    /// <summary>
     ///     Finds the cheapest route from a start to any of several ends.
     /// </summary>
-    /// <param name="start">
-    ///     Where the route starts.
-    /// </param>
-    /// <param name="ends">
-    ///     The candidate ends; the first one taken wins.
-    /// </param>
-    /// <param name="options">
-    ///     How the route is priced.
-    /// </param>
-    /// <typeparam name="T">
-    ///     The type of the ends.
-    /// </typeparam>
-    /// <returns>
-    ///     The route's legs, never empty.
-    /// </returns>
+    /// <param name="start">Where the route starts.</param>
+    /// <param name="ends">The candidate ends; the first one taken wins.</param>
+    /// <param name="options">How the route is priced.</param>
+    /// <typeparam name="T">The type of the ends.</typeparam>
+    /// <returns>The route's legs, never empty.</returns>
     /// <remarks>
     ///     A start already inside an end's reach gets one zero-cost <see cref="EdgeType.Walk" /> leg from the start to itself.
     /// </remarks>
@@ -701,12 +868,8 @@ internal sealed class PortalGraph
     ///     Gets a map's node lists, creating them on first use. Build time only; a search reads them through
     ///     <see cref="GetNodes" />.
     /// </summary>
-    /// <param name="map">
-    ///     The map's key.
-    /// </param>
-    /// <returns>
-    ///     The map's arrival and departure node ids.
-    /// </returns>
+    /// <param name="map">The map's key.</param>
+    /// <returns>The map's arrival and departure node ids.</returns>
     private (List<int> Arrivals, List<int> Departures) GetMapLists(string map)
     {
         if (!ArrivalsOnMap.TryGetValue(map, out var arrivals))
@@ -727,15 +890,9 @@ internal sealed class PortalGraph
     /// <summary>
     ///     Gets a map's node ids without writing to the dictionary, so searches on several threads can read at once.
     /// </summary>
-    /// <param name="byMap">
-    ///     The node ids by map.
-    /// </param>
-    /// <param name="map">
-    ///     The map's key.
-    /// </param>
-    /// <returns>
-    ///     The map's node ids, or an empty list.
-    /// </returns>
+    /// <param name="byMap">The node ids by map.</param>
+    /// <param name="map">The map's key.</param>
+    /// <returns>The map's node ids, or an empty list.</returns>
     private static List<int> GetNodes(Dictionary<string, List<int>> byMap, string map)
         => byMap.TryGetValue(map, out var nodes) ? nodes : EmptyNodes;
 
@@ -743,27 +900,17 @@ internal sealed class PortalGraph
     ///     Gets the character's speed for pricing, nominal when unset or not positive, as
     ///     <see cref="CONSTANTS.CalculateTownCost" /> does.
     /// </summary>
-    /// <param name="options">
-    ///     The search's options.
-    /// </param>
-    /// <returns>
-    ///     The walk speed.
-    /// </returns>
+    /// <param name="options">The search's options.</param>
+    /// <returns>The walk speed.</returns>
     private static float GetSpeed(PathOptions options)
         => options.WalkSpeed is > 0f ? options.WalkSpeed.Value : CONSTANTS.NOMINAL_WALK_SPEED;
 
     /// <summary>
     ///     Reads the route to an arrival back through its parents into the scratch's chain list.
     /// </summary>
-    /// <param name="scratch">
-    ///     The calling thread's search state.
-    /// </param>
-    /// <param name="winner">
-    ///     The arrival the route ends at.
-    /// </param>
-    /// <returns>
-    ///     The arrival ids from the first move to the last.
-    /// </returns>
+    /// <param name="scratch">The calling thread's search state.</param>
+    /// <param name="winner">The arrival the route ends at.</param>
+    /// <returns>The arrival ids from the first move to the last.</returns>
     private static List<int> ReadChain(SearchScratch scratch, int winner)
     {
         var chain = scratch.Chain;
@@ -777,118 +924,10 @@ internal sealed class PortalGraph
         return chain;
     }
 
-    /// <summary>
-    ///     Fills the scratch's lower bounds: per node, the least the rest of any route to an end can cost, from one backward
-    ///     search over every edge at its cheapest.
-    /// </summary>
-    /// <param name="scratch">
-    ///     The calling thread's search state.
-    /// </param>
-    /// <param name="startNode">
-    ///     The search's virtual start node.
-    /// </param>
-    /// <param name="firstEnd">
-    ///     The first end node; every node from it on is an end.
-    /// </param>
-    /// <param name="nodeCount">
-    ///     The number of nodes in the search.
-    /// </param>
-    /// <param name="options">
-    ///     The search's options.
-    /// </param>
-    /// <param name="townCost">
-    ///     The price of a recall at the character's speed.
-    /// </param>
-    private void ComputeLowerBounds(
-        SearchScratch scratch,
-        int startNode,
-        int firstEnd,
-        int nodeCount,
-        PathOptions options,
-        float townCost)
-    {
-        var bounds = scratch.LowerBound;
-        var queue = scratch.LowerBoundQueue;
-        var floor = options.BlinkCost ?? float.MaxValue;
-        var landing = Math.Max(options.BlinkCost ?? 0f, CONSTANTS.BLINK_LANDING_MS * GetSpeed(options) / 1000f);
-        var useTown = options.UseTown;
-
-        Array.Fill(
-            bounds,
-            float.PositiveInfinity,
-            0,
-            firstEnd);
-
-        Array.Fill(
-            bounds,
-            0f,
-            firstEnd,
-            nodeCount - firstEnd);
-        queue.Clear();
-
-        //the edges into the ends seed the search; the start's own edges are read last, since nothing leads into it
-        foreach (var edge in scratch.SearchEdges)
-        {
-            if ((edge.To < firstEnd) || (edge.From == startNode))
-                continue;
-
-            var bound = CalculateCheapest(edge);
-
-            if (bound < bounds[edge.From])
-            {
-                bounds[edge.From] = bound;
-                queue.Enqueue(edge.From, bound);
-            }
-        }
-
-        while (queue.TryDequeue(out var node, out var bound))
-        {
-            if (bound > bounds[node])
-                continue;
-
-            for (var i = ReverseStart[node]; i < ReverseStart[node + 1]; i++)
-            {
-                var edge = StaticEdges[ReverseEdges[i]];
-                var through = bound + CalculateCheapest(edge);
-
-                if (through < bounds[edge.From])
-                {
-                    bounds[edge.From] = through;
-                    queue.Enqueue(edge.From, through);
-                }
-            }
-        }
-
-        for (var i = scratch.SearchEdgeStart[startNode]; i < scratch.SearchEdgeStart[startNode + 1]; i++)
-        {
-            var edge = scratch.SearchEdges[i];
-            bounds[startNode] = Math.Min(bounds[startNode], CalculateCheapest(edge) + bounds[edge.To]);
-        }
-
-        return;
-
-        float CalculateCheapest(in Edge edge)
-            => edge.Type switch
-            {
-                EdgeType.Walk  => edge.Cost >= floor ? Math.Min(edge.Cost, landing) : edge.Cost,
-                EdgeType.Blink => landing,
-                EdgeType.Town  => useTown ? townCost : float.PositiveInfinity,
-                _              => edge.Cost
-            };
-    }
-
-    /// <summary>
-    ///     Runs the search from the start, cheapest first.
-    /// </summary>
-    /// <param name="scratch">
-    ///     The calling thread's search state.
-    /// </param>
-    /// <param name="search">
-    ///     The search's pricing rules.
-    /// </param>
-    /// <param name="options">
-    ///     The search's options.
-    /// </param>
+    /// <summary>Runs the search from the start, cheapest first.</summary>
+    /// <param name="scratch">The calling thread's search state.</param>
+    /// <param name="search">The search's pricing rules.</param>
+    /// <param name="options">The search's options.</param>
     /// <param name="firstEnd">
     ///     The first end node; every node from it on is an end.
     /// </param>
@@ -965,15 +1004,9 @@ internal sealed class PortalGraph
         /// <param name="scratch">
         ///     The calling thread's scratch, holding the arrivals and, with blink on, the lower bounds.
         /// </param>
-        /// <param name="options">
-        ///     The search's pricing and starting state.
-        /// </param>
-        /// <param name="townCost">
-        ///     The price of a recall at the character's speed.
-        /// </param>
-        /// <param name="startNode">
-        ///     The search's virtual start node.
-        /// </param>
+        /// <param name="options">The search's pricing and starting state.</param>
+        /// <param name="townCost">The price of a recall at the character's speed.</param>
+        /// <param name="startNode">The search's virtual start node.</param>
         public ArrivalSearch(
             SearchScratch scratch,
             PathOptions options,
@@ -1006,18 +1039,12 @@ internal sealed class PortalGraph
         ///     Offers the arrivals one edge makes out of an arrival: one per move, and a walk at least the floor long offers both
         ///     the walk and the cast that replaces it.
         /// </summary>
-        /// <param name="edge">
-        ///     The edge to relax.
-        /// </param>
+        /// <param name="edge">The edge to relax.</param>
         /// <param name="edgeIndex">
         ///     The edge's index, static edges first, then search edges.
         /// </param>
-        /// <param name="fromId">
-        ///     The id of the arrival the edge leaves from.
-        /// </param>
-        /// <param name="origin">
-        ///     The arrival the edge leaves from.
-        /// </param>
+        /// <param name="fromId">The id of the arrival the edge leaves from.</param>
+        /// <param name="origin">The arrival the edge leaves from.</param>
         public void Relax(
             in Edge edge,
             int edgeIndex,
@@ -1093,9 +1120,7 @@ internal sealed class PortalGraph
         ///     Adds an arrival unless one already at its node beats it, and drops every arrival there it beats. Nothing is added
         ///     at a node no end can be reached from.
         /// </summary>
-        /// <param name="arrival">
-        ///     The arrival to add.
-        /// </param>
+        /// <param name="arrival">The arrival to add.</param>
         private void Offer(in SearchScratch.Arrival arrival)
         {
             var node = arrival.Node;
@@ -1140,9 +1165,7 @@ internal sealed class PortalGraph
         /// <param name="next">
         ///     The walked arrival along the same edge, which the cast differs from only in price and state.
         /// </param>
-        /// <param name="origin">
-        ///     The arrival the cast is made from.
-        /// </param>
+        /// <param name="origin">The arrival the cast is made from.</param>
         private void OfferBlink(in Edge edge, SearchScratch.Arrival next, in SearchScratch.Arrival origin)
         {
             if (!BlinkOn)
@@ -1160,21 +1183,11 @@ internal sealed class PortalGraph
         /// <summary>
         ///     Determines whether one arrival makes another at the same node pointless.
         /// </summary>
-        /// <param name="a">
-        ///     The arrival that may beat.
-        /// </param>
-        /// <param name="b">
-        ///     The arrival that may be beaten.
-        /// </param>
+        /// <param name="a">The arrival that may beat.</param>
+        /// <param name="b">The arrival that may be beaten.</param>
         /// <returns>
-        ///     <c>
-        ///         true
-        ///     </c>
-        ///     if <paramref name="a" /> costs no more and is at least as ready now and at the next cast; otherwise,
-        ///     <c>
-        ///         false
-        ///     </c>
-        ///     .
+        ///     <c>true</c> if <paramref name="a" /> costs no more and is at least as ready now and at the next cast; otherwise,
+        ///     <c>false</c> .
         /// </returns>
         private bool Beats(in SearchScratch.Arrival a, in SearchScratch.Arrival b)
             => (a.Cost <= b.Cost) && Clock.IsAtLeastAsWellPlaced(a.State, b.State);
@@ -1194,120 +1207,6 @@ internal sealed class PortalGraph
 
         public int GetHashCode((string Map, int Spawn) obj)
             => HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Map), obj.Spawn);
-    }
-
-    /// <summary>
-    ///     The lattice a blink's landing is rounded onto, and the step the server checks around it.
-    /// </summary>
-    private const float BLINK_LATTICE = 10f;
-
-    /// <summary>
-    ///     Finds where a blink aimed at an exit is sent: the entry, or the nearest lattice cell inside the reach that the
-    ///     server will land.
-    /// </summary>
-    /// <param name="mesh">
-    ///     The mesh of the map the blink lands on.
-    /// </param>
-    /// <param name="reach">
-    ///     The exit's reach.
-    /// </param>
-    /// <param name="entry">
-    ///     The exit's entry on the mesh.
-    /// </param>
-    /// <returns>
-    ///     The landing point, or the entry when no cell in the reach takes one.
-    /// </returns>
-    /// <remarks>
-    ///     The server searches only three cells along the axes for a landing, so an entry on the edge of the ground can refuse
-    ///     every cast aimed at it.
-    /// </remarks>
-    private static Point FindBlinkLanding(NavMesh mesh, Reach reach, Point entry)
-    {
-        //wide enough to cover a door's reach
-        const int BLINK_LANDING_RINGS = 12;
-
-        if (CanLand(mesh, entry.X, entry.Y))
-            return entry;
-
-        var originX = MathF.Round(entry.X / BLINK_LATTICE) * BLINK_LATTICE;
-        var originY = MathF.Round(entry.Y / BLINK_LATTICE) * BLINK_LATTICE;
-
-        for (var ring = 1; ring <= BLINK_LANDING_RINGS; ring++)
-            for (var dx = -ring; dx <= ring; dx++)
-                for (var dy = -ring; dy <= ring; dy++)
-                {
-                    if ((Math.Abs(dx) != ring) && (Math.Abs(dy) != ring))
-                        continue;
-
-                    var x = originX + dx * BLINK_LATTICE;
-                    var y = originY + dy * BLINK_LATTICE;
-
-                    if (reach.Contains(x, y) && CanLand(mesh, x, y))
-                        return new Point(x, y);
-                }
-
-        //nothing in the reach takes one, so the leg keeps the entry
-        return entry;
-    }
-
-    /// <summary>
-    ///     Finds where a blink aimed at a route's end is sent: the edge of the end's radius nearest the caster, pulled in by a
-    ///     lattice step so the server's rounding keeps it inside.
-    /// </summary>
-    /// <param name="mesh">
-    ///     The mesh of the map the blink lands on.
-    /// </param>
-    /// <param name="end">
-    ///     The route's end.
-    /// </param>
-    /// <param name="from">
-    ///     Where the caster stands.
-    /// </param>
-    /// <returns>
-    ///     The landing point.
-    /// </returns>
-    private static Point FindEndLanding(NavMesh mesh, ICircle end, Point from)
-    {
-        var reach = Reach.CreateCircle(end.X, end.Y, Math.Max(0f, end.Radius - BLINK_LATTICE));
-        (var x, var y) = reach.FindNearestEdgePoint(from.X, from.Y);
-
-        return FindBlinkLanding(mesh, reach, new Point(x, y));
-    }
-
-    /// <summary>
-    ///     Determines whether the server would land a blink aimed at a point: the lattice cell it rounds to and the eight
-    ///     around it must all be ground.
-    /// </summary>
-    /// <param name="mesh">
-    ///     The mesh of the map the blink lands on.
-    /// </param>
-    /// <param name="x">
-    ///     The point's x.
-    /// </param>
-    /// <param name="y">
-    ///     The point's y.
-    /// </param>
-    /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the blink lands; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
-    /// </returns>
-    private static bool CanLand(NavMesh mesh, float x, float y)
-    {
-        var cellX = MathF.Round(x / BLINK_LATTICE) * BLINK_LATTICE;
-        var cellY = MathF.Round(y / BLINK_LATTICE) * BLINK_LATTICE;
-
-        for (var dx = -1; dx <= 1; dx++)
-            for (var dy = -1; dy <= 1; dy++)
-                if (!mesh.IsWalkable(cellX + dx * BLINK_LATTICE, cellY + dy * BLINK_LATTICE))
-                    return false;
-
-        return true;
     }
 
     private sealed class Node

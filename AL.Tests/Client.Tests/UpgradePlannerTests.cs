@@ -18,8 +18,6 @@ namespace AL.Tests.Client.Tests;
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public class UpgradePlannerTests
 {
-    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
-
     private static readonly IReadOnlyList<int> WSHIELD_THRESHOLDS =
     [
         7,
@@ -74,15 +72,13 @@ public class UpgradePlannerTests
     private const double COMPOUND_DECAY = 0;
 
     private const double COMPOUND_PLAIN = 0.02;
+    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
 
     [Before(Class)]
     public static void EnsureGameData()
 
         //from the committed snapshot, so no credentials are needed
         => CapturedGameData = Fixture.LoadGameDataIfEmpty();
-
-    [After(Class)]
-    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 
     private static IReadOnlyList<OfferingChoice> Offerings(
         double primling = 480_000,
@@ -94,6 +90,9 @@ public class UpgradePlannerTests
             new("offering", 2, essence),
             new("offeringx", 3, essenceX)
         ];
+
+    [After(Class)]
+    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 
     #region Upgrade planner
     [Test]

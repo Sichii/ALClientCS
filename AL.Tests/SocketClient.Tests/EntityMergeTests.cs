@@ -14,6 +14,72 @@ namespace AL.Tests.SocketClient.Tests;
 public class EntityMergeTests
 {
     /// <summary>
+    ///     The survivor of a duel turns neutral, and the server restates a dungeon actor's side on every frame. Kept from
+    ///     first sight, the side read as a duelist's for as long as the survivor stayed in view, and the lanes swung at it.
+    /// </summary>
+    [Test]
+    public void ADungeonActorsSideFollowsTheLatestFrame()
+    {
+        var tracked = TestJson.Socket<Monster>(
+                @"{ ""id"":""n1"", ""type"":""cave_npc"", ""cave"":{ ""room"":""r3"", ""side"":""duel_left"" }, ""slots"":{ ""mainhand"":{ ""name"":""blade"", ""level"":0 } } }")
+            !;
+
+        var later = TestJson.Socket<Monster>(
+            @"{ ""id"":""n1"", ""type"":""cave_npc"", ""cave"":{ ""room"":""r3"", ""side"":""neutral"" } }")!;
+        var bare = TestJson.Socket<Monster>(@"{ ""id"":""n1"", ""x"":5, ""y"":5 }")!;
+
+        tracked.Update(later);
+
+        tracked.Cave!.Side
+               .Should()
+               .Be("neutral");
+
+        tracked.Slots
+               .Should()
+               .BeNull();
+
+        //a frame without the key says nothing about it
+        tracked.Update(bare);
+
+        tracked.Cave!.Side
+               .Should()
+               .Be("neutral");
+    }
+
+    /// <summary>
+    ///     A squad logs in side by side and parties up afterwards, so the first sighting of a squadmate carries no party. A
+    ///     watcher that reads <see cref="Player.PartyLeader" /> off the tracked entity would never see one form.
+    /// </summary>
+    [Test]
+    public void APartyFormedAfterTheFirstSightingReachesTheTrackedPlayer()
+    {
+        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
+        var later = TestJson.Socket<Player>(@"{ ""id"":""a"", ""party"":""Sichi"" }")!;
+
+        tracked.Update(later);
+
+        tracked.PartyLeader
+               .Should()
+               .Be("Sichi");
+    }
+
+    /// <summary>
+    ///     The server restates the whole player object, so a frame without <c>party</c> is the party having ended.
+    /// </summary>
+    [Test]
+    public void APartyThatEndedClearsOnTheFrameThatOmitsIt()
+    {
+        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"", ""party"":""Sichi"" }")!;
+        var later = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
+
+        tracked.Update(later);
+
+        tracked.PartyLeader
+               .Should()
+               .BeNull();
+    }
+
+    /// <summary>
     ///     The server sends level only when it exceeds 1, so an undamaged level-1 monster omits it. Absent must resolve to 1
     ///     (the monster level floor), not the int default 0 - the phase goal names level explicitly.
     /// </summary>
@@ -34,6 +100,27 @@ public class EntityMergeTests
         monster.Level
                .Should()
                .Be(1);
+    }
+
+    /// <summary>
+    ///     A player first sighted mid-arrival kept <see cref="Player.Teleporting" /> for the rest of the session, so the flag
+    ///     rode every frame and the arrival never played again.
+    /// </summary>
+    [Test]
+    public void AnArrivalFlagClearsOnTheFrameThatDropsIt()
+    {
+        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"", ""tp"":true }")!;
+        var later = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
+
+        tracked.Teleporting
+               .Should()
+               .BeTrue();
+
+        tracked.Update(later);
+
+        tracked.Teleporting
+               .Should()
+               .BeFalse();
     }
 
     [Test]
@@ -197,92 +284,5 @@ public class EntityMergeTests
         live.HP
             .Should()
             .Be(320f);
-    }
-
-    /// <summary>
-    ///     A squad logs in side by side and parties up afterwards, so the first sighting of a squadmate carries no party. A
-    ///     watcher that reads <see cref="Player.PartyLeader" /> off the tracked entity would never see one form.
-    /// </summary>
-    [Test]
-    public void APartyFormedAfterTheFirstSightingReachesTheTrackedPlayer()
-    {
-        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
-        var later = TestJson.Socket<Player>(@"{ ""id"":""a"", ""party"":""Sichi"" }")!;
-
-        tracked.Update(later);
-
-        tracked.PartyLeader
-               .Should()
-               .Be("Sichi");
-    }
-
-    /// <summary>
-    ///     The server restates the whole player object, so a frame without <c>party</c> is the party having ended.
-    /// </summary>
-    [Test]
-    public void APartyThatEndedClearsOnTheFrameThatOmitsIt()
-    {
-        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"", ""party"":""Sichi"" }")!;
-        var later = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
-
-        tracked.Update(later);
-
-        tracked.PartyLeader
-               .Should()
-               .BeNull();
-    }
-
-    /// <summary>
-    ///     A player first sighted mid-arrival kept <see cref="Player.Teleporting" /> for the rest of the session, so the flag
-    ///     rode every frame and the arrival never played again.
-    /// </summary>
-    [Test]
-    public void AnArrivalFlagClearsOnTheFrameThatDropsIt()
-    {
-        var tracked = TestJson.Socket<Player>(@"{ ""id"":""a"", ""tp"":true }")!;
-        var later = TestJson.Socket<Player>(@"{ ""id"":""a"" }")!;
-
-        tracked.Teleporting
-               .Should()
-               .BeTrue();
-
-        tracked.Update(later);
-
-        tracked.Teleporting
-               .Should()
-               .BeFalse();
-    }
-
-    /// <summary>
-    ///     The survivor of a duel turns neutral, and the server restates a dungeon actor's side on every frame. Kept from
-    ///     first sight, the side read as a duelist's for as long as the survivor stayed in view, and the lanes swung at it.
-    /// </summary>
-    [Test]
-    public void ADungeonActorsSideFollowsTheLatestFrame()
-    {
-        var tracked = TestJson.Socket<Monster>(
-                @"{ ""id"":""n1"", ""type"":""cave_npc"", ""cave"":{ ""room"":""r3"", ""side"":""duel_left"" }, ""slots"":{ ""mainhand"":{ ""name"":""blade"", ""level"":0 } } }")
-            !;
-
-        var later = TestJson.Socket<Monster>(
-            @"{ ""id"":""n1"", ""type"":""cave_npc"", ""cave"":{ ""room"":""r3"", ""side"":""neutral"" } }")!;
-        var bare = TestJson.Socket<Monster>(@"{ ""id"":""n1"", ""x"":5, ""y"":5 }")!;
-
-        tracked.Update(later);
-
-        tracked.Cave!.Side
-               .Should()
-               .Be("neutral");
-
-        tracked.Slots
-               .Should()
-               .BeNull();
-
-        //a frame without the key says nothing about it
-        tracked.Update(bare);
-
-        tracked.Cave!.Side
-               .Should()
-               .Be("neutral");
     }
 }

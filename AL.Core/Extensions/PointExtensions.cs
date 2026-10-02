@@ -18,15 +18,9 @@ public static class PointExtensions
         /// <summary>
         ///     Calculates a new point, offsetting this point by a given distance at a given angle in degrees.
         /// </summary>
-        /// <param name="angle">
-        ///     The angle in degrees.
-        /// </param>
-        /// <param name="distance">
-        ///     The distance to offset by.
-        /// </param>
-        /// <returns>
-        ///     The offset point.
-        /// </returns>
+        /// <param name="angle">The angle in degrees.</param>
+        /// <param name="distance">The distance to offset by.</param>
+        /// <returns>The offset point.</returns>
         public Point AngularOffset(float angle, float distance = 1f)
         {
             var theta = angle * Math.PI / 180;
@@ -39,18 +33,10 @@ public static class PointExtensions
         /// <summary>
         ///     Calculates a new point, offsetting this point by a given distance in a given direction.
         /// </summary>
-        /// <param name="direction">
-        ///     The direction to offset in.
-        /// </param>
-        /// <param name="distance">
-        ///     The distance to offset by.
-        /// </param>
-        /// <returns>
-        ///     The offset point.
-        /// </returns>
-        /// <exception cref="System.ArgumentOutOfRangeException">
-        ///     direction
-        /// </exception>
+        /// <param name="direction">The direction to offset in.</param>
+        /// <param name="distance">The distance to offset by.</param>
+        /// <returns>The offset point.</returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">direction</exception>
         public Point DirectionalOffset(Direction direction, float distance = 1f)
         {
             if (direction == Direction.Invalid)
@@ -70,12 +56,8 @@ public static class PointExtensions
         /// <summary>
         ///     Calculates the euclidean distance between two points.
         /// </summary>
-        /// <param name="other">
-        ///     The other point.
-        /// </param>
-        /// <returns>
-        ///     The distance between the points.
-        /// </returns>
+        /// <param name="other">The other point.</param>
+        /// <returns>The distance between the points.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Distance<T2>(T2 other) where T2: IPoint, allows ref struct
         {
@@ -88,12 +70,8 @@ public static class PointExtensions
         /// <summary>
         ///     Calculates the squared euclidean distance between two points, for comparisons that do not need the root.
         /// </summary>
-        /// <param name="other">
-        ///     The other point.
-        /// </param>
-        /// <returns>
-        ///     The squared distance between the points.
-        /// </returns>
+        /// <param name="other">The other point.</param>
+        /// <returns>The squared distance between the points.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float FastDistance<T2>(T2 other) where T2: IPoint, allows ref struct
         {
@@ -111,9 +89,7 @@ public static class PointExtensions
         /// <summary>
         ///     Lazily generates the grid cells a line drawn from this point to <paramref name="other" /> crosses.
         /// </summary>
-        /// <param name="other">
-        ///     The end of the line.
-        /// </param>
+        /// <param name="other">The end of the line.</param>
         /// <returns>
         ///     A <see cref="RayTrace" /> over the crossed cells.
         /// </returns>
@@ -127,9 +103,7 @@ public static class PointExtensions
         /// <summary>
         ///     Creates a new <see cref="Point" /> from this point.
         /// </summary>
-        /// <returns>
-        ///     A new point with the same coordinates.
-        /// </returns>
+        /// <returns>A new point with the same coordinates.</returns>
         public Point ToPoint() => new(point.X, point.Y);
     }
 
@@ -143,20 +117,14 @@ public static class PointExtensions
     /// <param name="point">
     ///     The point who's relation to another point you want to know.
     /// </param>
-    /// <param name="other">
-    ///     The other point
-    /// </param>
+    /// <param name="other">The other point</param>
     /// <returns>
     ///     <see cref="float" />
     ///     <br />
     ///     The angle of <paramref name="point" /> from the <paramref name="other" />.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static float AngularRelationTo(this IPoint point, IPoint other)
     {
         ArgumentNullException.ThrowIfNull(point);
@@ -175,20 +143,14 @@ public static class PointExtensions
     /// <param name="point">
     ///     The point who's relation to another point you want to know.
     /// </param>
-    /// <param name="other">
-    ///     The other point
-    /// </param>
+    /// <param name="other">The other point</param>
     /// <returns>
     ///     <see cref="Direction" />
     ///     <br />
     ///     The local direction of <paramref name="point" /> from the <paramref name="other" />.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     point
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">point</exception>
+    /// <exception cref="System.ArgumentNullException">other</exception>
     public static Direction DirectionalRelationTo(this IPoint point, IPoint other)
     {
         ArgumentNullException.ThrowIfNull(point);
@@ -219,29 +181,17 @@ public static class PointExtensions
         return direction;
     }
 
-    /// <summary>
-    ///     Moves an point towards another at a given speed.
-    /// </summary>
-    /// <param name="p1">
-    ///     The starting point.
-    /// </param>
-    /// <param name="p2">
-    ///     The end point.
-    /// </param>
-    /// <param name="maxDistance">
-    ///     The max distance to translate by.
-    /// </param>
+    /// <summary>Moves an point towards another at a given speed.</summary>
+    /// <param name="p1">The starting point.</param>
+    /// <param name="p2">The end point.</param>
+    /// <param name="maxDistance">The max distance to translate by.</param>
     /// <returns>
     ///     <see cref="Geometry.Point" />
     ///     <br />
     ///     A new point.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     p1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     p2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">p1</exception>
+    /// <exception cref="System.ArgumentNullException">p2</exception>
     public static Point OffsetTowards(this IPoint p1, IPoint p2, float maxDistance)
     {
         ArgumentNullException.ThrowIfNull(p1);

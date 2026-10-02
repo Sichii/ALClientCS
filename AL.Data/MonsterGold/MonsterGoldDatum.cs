@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace AL.Data.MonsterGold;
 
 /// <summary>
-///     Represents the base gold a kill of each monster pays, keyed by monster and sent apart from the monster records.
-///     A monster with no entry, such as an instance-only one, pays nothing from this table.
+///     Represents the base gold a kill of each monster pays, keyed by monster and sent apart from the monster records. A
+///     monster with no entry, such as an instance-only one, pays nothing from this table.
 /// </summary>
 /// <seealso cref="DatumBase{T}" />
 public class MonsterGoldDatum : DatumBase<int?>

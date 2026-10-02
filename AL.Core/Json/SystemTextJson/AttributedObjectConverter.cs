@@ -42,12 +42,8 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
     ///     Returns a copy that declines <paramref name="type" />, so the type being filled cannot re-enter its own converter
     ///     while nested <see cref="IAttributed" /> members still match.
     /// </summary>
-    /// <param name="type">
-    ///     The type the copy declines.
-    /// </param>
-    /// <returns>
-    ///     The excluding copy.
-    /// </returns>
+    /// <param name="type">The type the copy declines.</param>
+    /// <returns>The excluding copy.</returns>
     internal AttributedObjectConverterFactory Excluding(Type type) => new(type);
 
     private static bool IsHarvestable(Type typeToConvert)
@@ -57,8 +53,8 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 }
 
 /// <summary>
-///     Reads an <see cref="IAttributed" /> type: fills its declared members, then marks each top-level wire key present
-///     (<see cref="IKeyPresenceCapturable" />) and harvests numeric <see cref="ALAttribute" /> keys into
+///     Reads an <see cref="IAttributed" /> type: fills its declared members, then marks each top-level wire key present (
+///     <see cref="IKeyPresenceCapturable" />) and harvests numeric <see cref="ALAttribute" /> keys into
 ///     <see cref="IAttributed.Attributes" />.
 /// </summary>
 public sealed class AttributedObjectConverter<T> : JsonConverter<T> where T: class, IAttributed, new()

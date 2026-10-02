@@ -34,35 +34,19 @@ public static class Snapshots
         "emotions"
     };
 
-    /// <summary>
-    ///     Finds the newest snapshot below a version.
-    /// </summary>
-    /// <param name="version">
-    ///     The version of the fresh payload.
-    /// </param>
-    /// <returns>
-    ///     The path of the snapshot, or null on a first run.
-    /// </returns>
-    public static string? FindBaseline(int version)
-        => GetKeptSnapshots()
-           .Where(snapshot => snapshot.Version < version)
-           .OrderByDescending(snapshot => snapshot.Version)
-           .Select(snapshot => snapshot.Path)
-           .FirstOrDefault();
+    private static IDictionary<string, JsonNode?> CreateSingleEntry(string name, JsonNode? node)
+        => new Dictionary<string, JsonNode?>
+        {
+            [name] = node
+        };
 
     /// <summary>
-    ///     Builds the report of value changes: a header per section that moved with its counts, the moved entries beneath
-    ///     it as <c>entry.path: old -&gt; new</c>, and a closing summary line.
+    ///     Builds the report of value changes: a header per section that moved with its counts, the moved entries beneath it
+    ///     as <c>entry.path: old -&gt; new</c>, and a closing summary line.
     /// </summary>
-    /// <param name="old">
-    ///     The earlier payload.
-    /// </param>
-    /// <param name="fresh">
-    ///     The fresh payload.
-    /// </param>
-    /// <returns>
-    ///     The report lines.
-    /// </returns>
+    /// <param name="old">The earlier payload.</param>
+    /// <param name="fresh">The fresh payload.</param>
+    /// <returns>The report lines.</returns>
     public static IReadOnlyList<string> Diff(JsonObject old, JsonObject fresh)
     {
         const int DETAIL_CAP = 60;
@@ -164,12 +148,8 @@ public static class Snapshots
     ///     Asynchronously writes the payload as <c>G-{version}.json</c> and drops every snapshot but the newest
     ///     <see cref="KEEP" />.
     /// </summary>
-    /// <param name="payload">
-    ///     The G json.
-    /// </param>
-    /// <param name="version">
-    ///     The payload's version.
-    /// </param>
+    /// <param name="payload">The G json.</param>
+    /// <param name="version">The payload's version.</param>
     public static async Task FileAwayAsync(string payload, int version)
     {
         Directory.CreateDirectory(FOLDER_NAME);
@@ -179,6 +159,27 @@ public static class Snapshots
                               .OrderByDescending(snapshot => snapshot.Version)
                               .Skip(KEEP))
             File.Delete(stale.Path);
+    }
+
+    /// <summary>Finds the newest snapshot below a version.</summary>
+    /// <param name="version">The version of the fresh payload.</param>
+    /// <returns>
+    ///     The path of the snapshot, or null on a first run.
+    /// </returns>
+    public static string? FindBaseline(int version)
+        => GetKeptSnapshots()
+           .Where(snapshot => snapshot.Version < version)
+           .OrderByDescending(snapshot => snapshot.Version)
+           .Select(snapshot => snapshot.Path)
+           .FirstOrDefault();
+
+    private static string FormatValue(JsonNode? node)
+    {
+        const int VALUE_WIDTH = 72;
+
+        var text = node?.ToJsonString() ?? "null";
+
+        return text.Length <= VALUE_WIDTH ? text : text[..(VALUE_WIDTH - 3)] + "...";
     }
 
     private static IEnumerable<(int Version, string Path)> GetKeptSnapshots()
@@ -194,36 +195,13 @@ public static class Snapshots
                 yield return (version, path);
     }
 
-    private static string FormatValue(JsonNode? node)
-    {
-        const int VALUE_WIDTH = 72;
-
-        var text = node?.ToJsonString() ?? "null";
-
-        return text.Length <= VALUE_WIDTH ? text : text[..(VALUE_WIDTH - 3)] + "...";
-    }
-
-    private static IDictionary<string, JsonNode?> CreateSingleEntry(string name, JsonNode? node)
-        => new Dictionary<string, JsonNode?>
-        {
-            [name] = node
-        };
-
     /// <summary>
     ///     Appends (path, old, new) for every leaf that differs. Arrays of unequal length count as one leaf.
     /// </summary>
-    /// <param name="old">
-    ///     The earlier node.
-    /// </param>
-    /// <param name="fresh">
-    ///     The fresh node.
-    /// </param>
-    /// <param name="path">
-    ///     The path of the node within its entry.
-    /// </param>
-    /// <param name="leaves">
-    ///     The list the differing leaves are appended to.
-    /// </param>
+    /// <param name="old">The earlier node.</param>
+    /// <param name="fresh">The fresh node.</param>
+    /// <param name="path">The path of the node within its entry.</param>
+    /// <param name="leaves">The list the differing leaves are appended to.</param>
     private static void Walk(
         JsonNode? old,
         JsonNode? fresh,

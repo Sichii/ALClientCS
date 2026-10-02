@@ -57,9 +57,7 @@ public static class ALClientSettings
     ///     If using <see cref="UseDefaultLoggingConfiguration" />, this will set the minimum logging level for all NLog
     ///     targets that fall under the "AL." namespace.
     /// </summary>
-    /// <param name="level">
-    ///     The minimum log level verbosity to see.
-    /// </param>
+    /// <param name="level">The minimum log level verbosity to see.</param>
     public static void SetLogLevel(LogLevel level)
     {
         var configuration = LogManager.Configuration;

@@ -6,9 +6,7 @@ using AL.SocketClient.Model;
 
 namespace AL.SocketClient.Interfaces;
 
-/// <summary>
-///     Represents an item in the inventory.
-/// </summary>
+/// <summary>Represents an item in the inventory.</summary>
 /// <seealso cref="ICommonItem" />
 public interface IInventoryItem : ICommonItem
 {

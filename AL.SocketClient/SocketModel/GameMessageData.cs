@@ -45,8 +45,9 @@ public sealed record GameMessageData : IOptionalObject
     ///     If populated, the values substituted into <see cref="Phrase" />: an amount, an item name, a character name.
     /// </summary>
     /// <remarks>
-    ///     A value is usually a string, but a translated substitution nests a phrase reference of its own, as in
-    ///     <c>{"npc": "Ilex", "rival": {"phrase": "server.cave.rival"}}</c>.
+    ///     A value is usually a string, but a translated substitution nests a phrase reference of its own, as in <c>
+    ///         {"npc": "Ilex", "rival": {"phrase": "server.cave.rival"}}
+    ///     </c>.
     /// </remarks>
     [JsonPropertyName("phrase_args")]
     public JsonObject? PhraseArgs { get; init; }

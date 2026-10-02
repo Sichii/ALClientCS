@@ -7,8 +7,7 @@ namespace AL.Data.Projectiles;
 public record GProjectile
 {
     /// <summary>
-    ///     Cosmetic only: the sprite is drawn without the attacker's weapon glow tint. Only the snowball
-    ///     carries it.
+    ///     Cosmetic only: the sprite is drawn without the attacker's weapon glow tint. Only the snowball carries it.
     /// </summary>
     public bool Pure { get; init; }
 

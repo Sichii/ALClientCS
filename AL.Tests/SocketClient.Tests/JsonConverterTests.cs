@@ -988,6 +988,38 @@ public class JsonConverterTests
             .BeFalse();
     }
 
+    /// <summary>
+    ///     A swap row carries the received item fifth. Its fourth element has no published shape, so whatever arrives there
+    ///     reads as no price rather than failing the whole history.
+    /// </summary>
+    [Test]
+    public void DeserializeTradeHistorySwapRow()
+    {
+        const string TRADE_HISTORY = @"[
+   [""swap"",""Bob"",{""name"":""ringsj"",""level"":3},{""odd"":true},{""name"":""wbook0"",""p"":""shiny""}],
+   [""swap"",""Eve"",{""name"":""hpot0"",""q"":20},null,{""name"":""mpot0"",""q"":20}]
+]";
+
+        var obj = TestJson.Socket<TradeHistoryEntry[]>(TRADE_HISTORY)!;
+
+        obj[0]
+            .Price
+            .Should()
+            .BeNull();
+
+        obj[0].Received!.Name
+              .Should()
+              .Be("wbook0");
+
+        obj[0].Received!.Prefix
+              .Should()
+              .Be("shiny");
+
+        obj[1].Received!.Quantity
+              .Should()
+              .Be(20);
+    }
+
     [Test]
     public void DeserializeTradeHistoryTest()
     {
@@ -1035,38 +1067,6 @@ public class JsonConverterTests
             .Price
             .Should()
             .BeNull("a giveaway entry carries a null price");
-    }
-
-    /// <summary>
-    ///     A swap row carries the received item fifth. Its fourth element has no published shape, so whatever arrives there
-    ///     reads as no price rather than failing the whole history.
-    /// </summary>
-    [Test]
-    public void DeserializeTradeHistorySwapRow()
-    {
-        const string TRADE_HISTORY = @"[
-   [""swap"",""Bob"",{""name"":""ringsj"",""level"":3},{""odd"":true},{""name"":""wbook0"",""p"":""shiny""}],
-   [""swap"",""Eve"",{""name"":""hpot0"",""q"":20},null,{""name"":""mpot0"",""q"":20}]
-]";
-
-        var obj = TestJson.Socket<TradeHistoryEntry[]>(TRADE_HISTORY)!;
-
-        obj[0]
-            .Price
-            .Should()
-            .BeNull();
-
-        obj[0].Received!.Name
-              .Should()
-              .Be("wbook0");
-
-        obj[0].Received!.Prefix
-              .Should()
-              .Be("shiny");
-
-        obj[1].Received!.Quantity
-              .Should()
-              .Be(20);
     }
 
     [Test]

@@ -14,6 +14,14 @@ namespace AL.SocketClient.Json.SystemTextJson;
 /// </summary>
 public sealed class TradeHistoryEntryConverter : JsonConverter<TradeHistoryEntry>
 {
+    private static bool IsPrice(JsonNode node)
+        => node.GetValueKind() switch
+        {
+            JsonValueKind.Number => true,
+            JsonValueKind.String => long.TryParse(node.GetValue<string>(), out _),
+            _                    => false
+        };
+
     public override TradeHistoryEntry Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var array = JsonNode.Parse(ref reader)
@@ -32,14 +40,6 @@ public sealed class TradeHistoryEntryConverter : JsonConverter<TradeHistoryEntry
             Received = (array.Count > 4) && array[4] is JsonObject received ? received.Deserialize<TradeItem>(options) : null
         };
     }
-
-    private static bool IsPrice(JsonNode node)
-        => node.GetValueKind() switch
-        {
-            JsonValueKind.Number => true,
-            JsonValueKind.String => long.TryParse(node.GetValue<string>(), out _),
-            _                    => false
-        };
 
     public override void Write(Utf8JsonWriter writer, TradeHistoryEntry value, JsonSerializerOptions options)
         => throw new NotSupportedException();

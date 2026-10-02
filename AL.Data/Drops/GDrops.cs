@@ -9,8 +9,8 @@ namespace AL.Data.Drops;
 public sealed record GDrops
 {
     /// <summary>
-    ///     The constants behind a kill's gold reward, which scale the monster's own gold figure before it is multiplied by
-    ///     its level and your share of the kill.
+    ///     The constants behind a kill's gold reward, which scale the monster's own gold figure before it is multiplied by its
+    ///     level and your share of the kill.
     /// </summary>
     [JsonPropertyName("gold")]
     public GGoldDrop Gold { get; init; } = new();
@@ -47,9 +47,7 @@ public sealed record GDrops
     ///     Every other table, keyed by the drop id an exchange or an opened chest rolls under. Most ids are item names; some,
     ///     such as <c>xN</c>, <c>f1</c> and <c>skins</c>, name no item.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyDictionary<string, IReadOnlyList<GDrop>> Tables { get; internal set; }
         = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase);
@@ -62,8 +60,9 @@ public sealed record GDrops
 }
 
 /// <summary>
-///     Represents the constants in a kill's gold reward, <c>round(1 + gold * (BASE + rand() * RANDOM)) * level * mult</c>.
-///     The monster's own <c>gold</c> reaches a client only in the start frame's <c>base_gold</c> table.
+///     Represents the constants in a kill's gold reward, <c>
+///         round(1 + gold * (BASE + rand() * RANDOM)) * level * mult
+///     </c>. The monster's own <c>gold</c> reaches a client only in the start frame's <c>base_gold</c> table.
 /// </summary>
 public sealed record GGoldDrop
 {

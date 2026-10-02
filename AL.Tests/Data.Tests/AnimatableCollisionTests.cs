@@ -14,26 +14,35 @@ namespace AL.Tests.Data.Tests;
 public class AnimatableCollisionTests : GameDataTestBed
 {
     /// <summary>
-    ///     The table binds off the wire at all, which the boxes above cannot show on their own. The frozen snapshot carries
-    ///     two pieces of scenery and neither blocks anything, so the fold is a no-op there - the binding is the half worth
-    ///     pinning, since a key that stopped binding would look exactly like a map with no scenery.
+    ///     Scenery that blocks nothing is nearly all of it, and a box the server sent short is the shape a guess would turn
+    ///     into a wall in the wrong place.
     /// </summary>
     [Test]
-    public void TheSceneryTableBindsFromTheWire()
+    public void SceneryWithoutAWholeBoxContributesNothing()
     {
-        GameData.Maps["main"]!.Animatables
-                .Should()
-                .ContainKey("the_door");
+        new GAnimatable
+            {
+                X = 100,
+                Y = 100
+            }.BuildCollisionLines()
+             .Should()
+             .BeEmpty();
 
-        GameData.Maps["main"]!.Animatables["the_door"]
-                .X
-                .Should()
-                .Be(888);
-
-        GameData.Maps["main"]!.Animatables["the_door"]
-                .Collision
-                .Should()
-                .BeNull();
+        new GAnimatable
+            {
+                X = 100,
+                Y = 100,
+                Collision =
+                [
+                    [
+                        1,
+                        2,
+                        3
+                    ]
+                ]
+            }.BuildCollisionLines()
+             .Should()
+             .BeEmpty();
     }
 
     /// <summary>
@@ -98,34 +107,25 @@ public class AnimatableCollisionTests : GameDataTestBed
     }
 
     /// <summary>
-    ///     Scenery that blocks nothing is nearly all of it, and a box the server sent short is the shape a guess would turn
-    ///     into a wall in the wrong place.
+    ///     The table binds off the wire at all, which the boxes above cannot show on their own. The frozen snapshot carries
+    ///     two pieces of scenery and neither blocks anything, so the fold is a no-op there - the binding is the half worth
+    ///     pinning, since a key that stopped binding would look exactly like a map with no scenery.
     /// </summary>
     [Test]
-    public void SceneryWithoutAWholeBoxContributesNothing()
+    public void TheSceneryTableBindsFromTheWire()
     {
-        new GAnimatable
-            {
-                X = 100,
-                Y = 100
-            }.BuildCollisionLines()
-             .Should()
-             .BeEmpty();
+        GameData.Maps["main"]!.Animatables
+                .Should()
+                .ContainKey("the_door");
 
-        new GAnimatable
-            {
-                X = 100,
-                Y = 100,
-                Collision =
-                [
-                    [
-                        1,
-                        2,
-                        3
-                    ]
-                ]
-            }.BuildCollisionLines()
-             .Should()
-             .BeEmpty();
+        GameData.Maps["main"]!.Animatables["the_door"]
+                .X
+                .Should()
+                .Be(888);
+
+        GameData.Maps["main"]!.Animatables["the_door"]
+                .Collision
+                .Should()
+                .BeNull();
     }
 }

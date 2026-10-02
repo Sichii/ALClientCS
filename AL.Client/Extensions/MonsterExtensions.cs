@@ -19,12 +19,8 @@ public static class MonsterExtensions
     ///     The server omits a soft property equal to the monster's definition, so without this a new monster reads 0 for hp,
     ///     speed, attack and the rest until it takes damage.
     /// </remarks>
-    /// <param name="monster">
-    ///     The monster to fill.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     monster
-    /// </exception>
+    /// <param name="monster">The monster to fill.</param>
+    /// <exception cref="ArgumentNullException">monster</exception>
     public static void BackfillSoftDefaults(this Monster monster)
     {
         ArgumentNullException.ThrowIfNull(monster);
@@ -51,20 +47,14 @@ public static class MonsterExtensions
         monster.BackfillSoftDefault(EntityUpdateField.Level, 1);
     }
 
-    /// <summary>
-    ///     Gets the "G" data for this monster.
-    /// </summary>
-    /// <param name="monster">
-    ///     The monster to get the data for.
-    /// </param>
+    /// <summary>Gets the "G" data for this monster.</summary>
+    /// <param name="monster">The monster to get the data for.</param>
     /// <returns>
     ///     <see cref="GMonster" />
     ///     <br />
     ///     The "G" data for this monster from <see cref="GameData" />.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     monster
-    /// </exception>
+    /// <exception cref="ArgumentNullException">monster</exception>
     public static GMonster GetData(this Monster monster)
     {
         ArgumentNullException.ThrowIfNull(monster);
@@ -78,15 +68,11 @@ public static class MonsterExtensions
     /// <remarks>
     ///     The frame carries the flag only when the instance differs from its definition.
     /// </remarks>
-    /// <param name="monster">
-    ///     The monster to check.
-    /// </param>
+    /// <param name="monster">The monster to check.</param>
     /// <returns>
     ///     true if kills count for every attacker; otherwise, false.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     monster
-    /// </exception>
+    /// <exception cref="ArgumentNullException">monster</exception>
     public static bool IsCooperative(this Monster monster)
     {
         ArgumentNullException.ThrowIfNull(monster);

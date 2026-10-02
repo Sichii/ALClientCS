@@ -26,6 +26,13 @@ public sealed record Item : IInventoryItem
     public float AchievementProgress { get; init; }
 
     /// <summary>
+    ///     Whether the item carries the <c>b</c> flag. The game's own client treats it like a lock, leaving such an item out
+    ///     of exchanges, crafts and trade offers.
+    /// </summary>
+    [JsonPropertyName("b")]
+    public bool Blocked { get; init; }
+
+    /// <summary>
     ///     If populated, the remaining charges on a charge-consuming item.
     /// </summary>
     public int? Charges { get; init; }
@@ -37,13 +44,6 @@ public sealed record Item : IInventoryItem
 
     [JsonConverter(typeof(StjConverters.LenientDateTimeConverter))]
     public DateTime? Expires { get; init; }
-
-    /// <summary>
-    ///     Whether the item carries the <c>b</c> flag. The game's own client treats it like a lock, leaving such an item out
-    ///     of exchanges, crafts and trade offers.
-    /// </summary>
-    [JsonPropertyName("b")]
-    public bool Blocked { get; init; }
 
     public float Extra { get; init; }
 
@@ -67,14 +67,11 @@ public sealed record Item : IInventoryItem
 
     public string Name { get; init; } = null!;
 
-    /// <summary>
-    ///     A list of possible prefixes for this item.
-    /// </summary>
+    /// <summary>A list of possible prefixes for this item.</summary>
     /// <remarks>
     ///     <b>
     ///         This list compares by reference, so two deserializations of one item are never <c>==</c>.
-    ///     </b>
-    ///     Compare name, level and quantity instead.
+    ///     </b> Compare name, level and quantity instead.
     /// </remarks>
     [JsonPropertyName("ps")]
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
@@ -90,9 +87,7 @@ public sealed record Item : IInventoryItem
     [JsonPropertyName("q")]
     public int Quantity { get; init; } = 1;
 
-    /// <summary>
-    ///     Whether this item is rented or offered for rent.
-    /// </summary>
+    /// <summary>Whether this item is rented or offered for rent.</summary>
     [JsonPropertyName("r")]
     public bool Rented { get; init; }
 

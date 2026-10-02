@@ -24,18 +24,10 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
     /// <summary>
     ///     Initializes a new instance of the <see cref="RayTrace" /> struct stepping from (x0, y0) toward (x1, y1).
     /// </summary>
-    /// <param name="x0">
-    ///     The start's x coordinate.
-    /// </param>
-    /// <param name="y0">
-    ///     The start's y coordinate.
-    /// </param>
-    /// <param name="x1">
-    ///     The end's x coordinate.
-    /// </param>
-    /// <param name="y1">
-    ///     The end's y coordinate.
-    /// </param>
+    /// <param name="x0">The start's x coordinate.</param>
+    /// <param name="y0">The start's y coordinate.</param>
+    /// <param name="x1">The end's x coordinate.</param>
+    /// <param name="y1">The end's y coordinate.</param>
     public RayTrace(
         float x0,
         float y0,
@@ -91,9 +83,7 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
 
     readonly object IEnumerator.Current => Current;
 
-    /// <summary>
-    ///     Advances to the next grid cell the line crosses.
-    /// </summary>
+    /// <summary>Advances to the next grid cell the line crosses.</summary>
     /// <returns>
     ///     <c>true</c> if another cell remains; otherwise, <c>false</c>.
     /// </returns>
@@ -122,25 +112,17 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
         return true;
     }
 
-    /// <summary>
-    ///     Not supported; a ray trace cannot be rewound.
-    /// </summary>
-    /// <exception cref="System.NotSupportedException">
-    ///     Always.
-    /// </exception>
+    /// <summary>Not supported; a ray trace cannot be rewound.</summary>
+    /// <exception cref="System.NotSupportedException">Always.</exception>
     public void Reset() => throw new NotSupportedException();
 
-    /// <summary>
-    ///     Does nothing; a ray trace holds no resources.
-    /// </summary>
+    /// <summary>Does nothing; a ray trace holds no resources.</summary>
     public readonly void Dispose() { }
 
     /// <summary>
     ///     Returns a copy of this ray trace, which starts from wherever this instance stands.
     /// </summary>
-    /// <returns>
-    ///     A copy of this ray trace.
-    /// </returns>
+    /// <returns>A copy of this ray trace.</returns>
     public readonly RayTrace GetEnumerator() => this;
 
     readonly IEnumerator<Point> IEnumerable<Point>.GetEnumerator() => this;

@@ -37,8 +37,8 @@ public sealed record GAnimatable
     ///     Builds the wall lines this scenery's collision boxes stand for, in map coordinates: each box's four sides.
     /// </summary>
     /// <returns>
-    ///     One line per box side, or nothing when the scenery blocks nothing. A box of fewer than four numbers is skipped,
-    ///     and duplicates are left for the caller to merge.
+    ///     One line per box side, or nothing when the scenery blocks nothing. A box of fewer than four numbers is skipped, and
+    ///     duplicates are left for the caller to merge.
     /// </returns>
     public IEnumerable<StraightLine> BuildCollisionLines()
     {

@@ -7,8 +7,8 @@ using AL.Core.Helpers;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads a value the server may send as literal <c>false</c> (JavaScript's <c>a &amp;&amp; a</c> idiom): a null or bool
-///     token reads as the configured default, and anything else as <typeparamref name="T" />.
+///     Reads a value the server may send as literal <c>false</c> (JavaScript's <c>a &amp;&amp; a</c> idiom): a null or
+///     bool token reads as the configured default, and anything else as <typeparamref name="T" />.
 /// </summary>
 /// <remarks>
 ///     The default cannot travel on a <c>[JsonConverter]</c> attribute, so apply it through a parameterless subclass such

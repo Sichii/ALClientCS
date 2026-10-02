@@ -45,6 +45,13 @@ public class BlinkCorpusRecorder : PathfindingTestBed
         return attribute is null || !attribute.IsJITOptimizerDisabled;
     }
 
+    private static PathOptions OptionsFor(BlinkSetting setting)
+        => new()
+        {
+            BlinkCost = FLOOR,
+            WalkSpeed = setting.Speed
+        };
+
     private static ILocation? RandomWalkable(Random rng, string map, GGeometry geo)
     {
         for (var attempt = 0; attempt < 400; attempt++)
@@ -176,13 +183,6 @@ public class BlinkCorpusRecorder : PathfindingTestBed
 
         await File.WriteAllTextAsync(outPath, json, new UTF8Encoding(false));
     }
-
-    private static PathOptions OptionsFor(BlinkSetting setting)
-        => new()
-        {
-            BlinkCost = FLOOR,
-            WalkSpeed = setting.Speed
-        };
 
     private static BlinkLeg ToLeg(PathEdge edge)
         => new(

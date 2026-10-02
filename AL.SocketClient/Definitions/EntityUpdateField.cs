@@ -37,8 +37,8 @@ public enum EntityUpdateField : uint
     MP = 1u << 15,
 
     /// <summary>
-    ///     Never carried by an entity frame; a monster's reach only ever comes from <c>G.monsters</c>, backfilled through
-    ///     the same path as every other def-sourced value.
+    ///     Never carried by an entity frame; a monster's reach only ever comes from <c>G.monsters</c>, backfilled through the
+    ///     same path as every other def-sourced value.
     /// </summary>
     Range = 1u << 22,
 

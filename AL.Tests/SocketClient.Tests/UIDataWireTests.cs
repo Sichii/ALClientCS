@@ -14,102 +14,6 @@ namespace AL.Tests.SocketClient.Tests;
 public class UIDataWireTests
 {
     /// <summary>
-    ///     The five conditions that can be shrugged off share one shout and differ only by which condition it was.
-    /// </summary>
-    [Test]
-    public void EveryResistSpellingParses()
-    {
-        var spellings = new Dictionary<string, UIDataType>(StringComparer.Ordinal)
-        {
-            ["poisoned_resist"] = UIDataType.PoisonedResist,
-            ["frozen_resist"] = UIDataType.FrozenResist,
-            ["deepfreezed_resist"] = UIDataType.DeepFreezedResist,
-            ["burned_resist"] = UIDataType.BurnedResist,
-            ["stunned_resist"] = UIDataType.StunnedResist
-        };
-
-        foreach ((var wire, var expected) in spellings)
-            TestJson.Socket<UIData>($@"{{""type"":""{wire}"",""id"":""a""}}") !.UIDataType
-                    .Should()
-                    .Be(expected, $"'{wire}' is what the server sends");
-    }
-
-    /// <summary>
-    ///     The money and transfer types are punctuation on the wire, so none of them can fall back to a member name.
-    /// </summary>
-    [Test]
-    public void TheMoneyAndTransferSpellingsParse()
-    {
-        var spellings = new Dictionary<string, UIDataType>(StringComparer.Ordinal)
-        {
-            ["+$$"] = UIDataType.PlayerTrade,
-            ["+$p"] = UIDataType.SecondhandsBuy,
-            ["+$f"] = UIDataType.LostAndFoundBuy,
-            ["+M"] = UIDataType.MerchantSale,
-            ["cx_sent"] = UIDataType.CxSent,
-            ["4fingers"] = UIDataType.FourFingers,
-            ["level_up"] = UIDataType.LevelUp
-        };
-
-        foreach ((var wire, var expected) in spellings)
-            TestJson.Socket<UIData>($@"{{""type"":""{wire}"",""name"":""Sichi""}}") !.UIDataType
-                    .Should()
-                    .Be(expected, $"'{wire}' is what the server sends");
-    }
-
-    /// <summary>
-    ///     A rogue's <c>throw</c> names the item it threw as a bare string (node/server.js:9754), where every other frame that
-    ///     carries an item sends an object.
-    /// </summary>
-    [Test]
-    public void TheThrowFrameNamesItsItemAsABareString()
-    {
-        var data = TestJson.Socket<UIData>(@"{""type"":""throw"",""from"":""Sichi"",""to"":""goo1"",""item"":""shadowstone""}");
-
-        data.Should()
-            .NotBeNull();
-
-        data.UIDataType
-            .Should()
-            .Be(UIDataType.Throw);
-
-        data.Item !.Name
-            .Should()
-            .Be("shadowstone");
-
-        data.Item
-            .ContainsData
-            .Should()
-            .BeFalse();
-    }
-
-    /// <summary>
-    ///     The same field as an object, which is the shape every other item-carrying frame uses.
-    /// </summary>
-    [Test]
-    public void TheSameFieldStillParsesAsAnObject()
-    {
-        var data = TestJson.Socket<UIData>(@"{""type"":""throw"",""item"":{""name"":""shadowstone"",""q"":3}}");
-
-        data.Should()
-            .NotBeNull();
-
-        data.Item !.Name
-            .Should()
-            .Be("shadowstone");
-
-        data.Item
-            .Quantity
-            .Should()
-            .Be(3);
-
-        data.Item
-            .ContainsData
-            .Should()
-            .BeTrue();
-    }
-
-    /// <summary>
     ///     <c>mult</c> and <c>amount</c> are whole numbers on the server today. Read as floats anyway, because a fractional
     ///     one landing on an integer property throws and the frame is discarded rather than drawn.
     /// </summary>
@@ -133,6 +37,27 @@ public class UIDataWireTests
         restore.Amount
                .Should()
                .Be(22.5f);
+    }
+
+    /// <summary>
+    ///     The five conditions that can be shrugged off share one shout and differ only by which condition it was.
+    /// </summary>
+    [Test]
+    public void EveryResistSpellingParses()
+    {
+        var spellings = new Dictionary<string, UIDataType>(StringComparer.Ordinal)
+        {
+            ["poisoned_resist"] = UIDataType.PoisonedResist,
+            ["frozen_resist"] = UIDataType.FrozenResist,
+            ["deepfreezed_resist"] = UIDataType.DeepFreezedResist,
+            ["burned_resist"] = UIDataType.BurnedResist,
+            ["stunned_resist"] = UIDataType.StunnedResist
+        };
+
+        foreach ((var wire, var expected) in spellings)
+            TestJson.Socket<UIData>($@"{{""type"":""{wire}"",""id"":""a""}}") !.UIDataType
+                    .Should()
+                    .Be(expected, $"'{wire}' is what the server sends");
     }
 
     /// <summary>
@@ -165,6 +90,55 @@ public class UIDataWireTests
     }
 
     /// <summary>
+    ///     The money and transfer types are punctuation on the wire, so none of them can fall back to a member name.
+    /// </summary>
+    [Test]
+    public void TheMoneyAndTransferSpellingsParse()
+    {
+        var spellings = new Dictionary<string, UIDataType>(StringComparer.Ordinal)
+        {
+            ["+$$"] = UIDataType.PlayerTrade,
+            ["+$p"] = UIDataType.SecondhandsBuy,
+            ["+$f"] = UIDataType.LostAndFoundBuy,
+            ["+M"] = UIDataType.MerchantSale,
+            ["cx_sent"] = UIDataType.CxSent,
+            ["4fingers"] = UIDataType.FourFingers,
+            ["level_up"] = UIDataType.LevelUp
+        };
+
+        foreach ((var wire, var expected) in spellings)
+            TestJson.Socket<UIData>($@"{{""type"":""{wire}"",""name"":""Sichi""}}") !.UIDataType
+                    .Should()
+                    .Be(expected, $"'{wire}' is what the server sends");
+    }
+
+    /// <summary>
+    ///     The same field as an object, which is the shape every other item-carrying frame uses.
+    /// </summary>
+    [Test]
+    public void TheSameFieldStillParsesAsAnObject()
+    {
+        var data = TestJson.Socket<UIData>(@"{""type"":""throw"",""item"":{""name"":""shadowstone"",""q"":3}}");
+
+        data.Should()
+            .NotBeNull();
+
+        data.Item !.Name
+            .Should()
+            .Be("shadowstone");
+
+        data.Item
+            .Quantity
+            .Should()
+            .Be(3);
+
+        data.Item
+            .ContainsData
+            .Should()
+            .BeTrue();
+    }
+
+    /// <summary>
     ///     The single-receiver casts the bench and the monster loops send.
     /// </summary>
     [Test]
@@ -190,5 +164,31 @@ public class UIDataWireTests
             TestJson.Socket<UIData>($@"{{""type"":""{wire}"",""id"":""a""}}") !.UIDataType
                     .Should()
                     .Be(expected, $"'{wire}' is what the server sends");
+    }
+
+    /// <summary>
+    ///     A rogue's <c>throw</c> names the item it threw as a bare string (node/server.js:9754), where every other frame that
+    ///     carries an item sends an object.
+    /// </summary>
+    [Test]
+    public void TheThrowFrameNamesItsItemAsABareString()
+    {
+        var data = TestJson.Socket<UIData>(@"{""type"":""throw"",""from"":""Sichi"",""to"":""goo1"",""item"":""shadowstone""}");
+
+        data.Should()
+            .NotBeNull();
+
+        data.UIDataType
+            .Should()
+            .Be(UIDataType.Throw);
+
+        data.Item !.Name
+            .Should()
+            .Be("shadowstone");
+
+        data.Item
+            .ContainsData
+            .Should()
+            .BeFalse();
     }
 }

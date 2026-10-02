@@ -5,9 +5,7 @@ using AL.Core.Definitions;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a monster entity.
-/// </summary>
+/// <summary>Represents a monster entity.</summary>
 /// <seealso cref="EntityBase" />
 public class Monster : EntityBase, IEquatable<Monster>
 {
@@ -82,19 +80,19 @@ public class Monster : EntityBase, IEquatable<Monster>
 
     public virtual bool Equals(Monster? other) => Name.Equals(other?.Name) && base.Equals(other);
 
+    public override bool Equals(object? obj) => Equals(obj as Monster);
+
+    public override int GetHashCode() => HashCode.Combine(Name.GetHashCode(), base.GetHashCode());
+
     /// <summary>
     ///     Merges a later frame into this live monster, its dungeon part included.
     /// </summary>
-    /// <param name="other">
-    ///     The later frame.
-    /// </param>
+    /// <param name="other">The later frame.</param>
     /// <remarks>
     ///     A dungeon actor's frame restates its room, side and gear whole, and its side can change mid-sighting. A frame
     ///     without <c>cave</c> says nothing about them.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     other
-    /// </exception>
+    /// <exception cref="ArgumentNullException">other</exception>
     public void Update(Monster other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -107,8 +105,4 @@ public class Monster : EntityBase, IEquatable<Monster>
 
         base.Update(other);
     }
-
-    public override bool Equals(object? obj) => Equals(obj as Monster);
-
-    public override int GetHashCode() => HashCode.Combine(Name.GetHashCode(), base.GetHashCode());
 }

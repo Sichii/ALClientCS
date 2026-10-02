@@ -26,12 +26,8 @@ public class CompoundsDatum : DatumBase<IReadOnlyDictionary<int, double>>
     /// <summary>
     ///     Gets the base chance of reaching a level on an item of a grade.
     /// </summary>
-    /// <param name="grade">
-    ///     The item's grade, which picks the row.
-    /// </param>
-    /// <param name="level">
-    ///     The level being reached.
-    /// </param>
+    /// <param name="grade">The item's grade, which picks the row.</param>
+    /// <param name="level">The level being reached.</param>
     /// <returns>
     ///     The base chance, or null where the table has no entry.
     /// </returns>

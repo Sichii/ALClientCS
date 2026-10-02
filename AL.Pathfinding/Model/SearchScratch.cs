@@ -5,12 +5,15 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Represents everything a search writes to, held per thread so searches never share state and never allocate once warm.
+///     Represents everything a search writes to, held per thread so searches never share state and never allocate once
+///     warm.
 /// </summary>
 internal sealed class SearchScratch
 {
     [ThreadStatic]
     private static SearchScratch? Current;
+
+    public readonly PriorityQueue<int, float> ArrivalQueue = new();
 
     /// <summary>
     ///     Every arrival the current search has made, in the order made; an arrival's index is its id, and its
@@ -18,9 +21,10 @@ internal sealed class SearchScratch
     /// </summary>
     public readonly List<Arrival> Arrivals = [];
 
-    public readonly PriorityQueue<int, float> ArrivalQueue = new();
     public readonly List<int> Chain = [];
     public readonly List<int> Corridor = [];
+
+    public readonly PriorityQueue<int, float> LowerBoundQueue = new();
     public readonly List<Point> Polyline = [];
     public readonly List<PortalGraph.Edge> SearchEdges = [];
     public readonly List<int> VertexChain = [];
@@ -40,12 +44,12 @@ internal sealed class SearchScratch
     /// </summary>
     public float[] LowerBound = [];
 
-    public readonly PriorityQueue<int, float> LowerBoundQueue = new();
-
     /// <summary>
     ///     The ids of the arrivals at each node that no other arrival there beats.
     /// </summary>
     public List<int>[] NodeArrivals = [];
+
+    private PortalGraph.Edge[] SearchEdgeBuffer = [];
 
     /// <summary>
     ///     Where each node's edges start in <see cref="SearchEdges" /> once <see cref="IndexSearchEdges" /> has sorted them.
@@ -53,43 +57,17 @@ internal sealed class SearchScratch
     public int[] SearchEdgeStart = [];
 
     public int SearchTriangle = -1;
-    private PortalGraph.Edge[] SearchEdgeBuffer = [];
 
-    /// <summary>
-    ///     The vertex search's cost per mesh vertex.
-    /// </summary>
+    /// <summary>The vertex search's cost per mesh vertex.</summary>
     public float[] VertexCost = [];
 
     public int[] VertexParent = [];
 
     /// <summary>
-    ///     Gets the calling thread's scratch, created on first use.
-    /// </summary>
-    /// <returns>
-    ///     The calling thread's scratch.
-    /// </returns>
-    public static SearchScratch Rent() => Current ??= new SearchScratch();
-
-    public void ResetEnds(int ends)
-    {
-        if (EndMesh.Length < ends)
-        {
-            EndMesh = new NavMesh?[ends];
-            EndTriangle = new int[ends];
-            EndEntry = new Point[ends];
-            EndReach = new Reach[ends];
-        }
-
-        Array.Clear(EndMesh, 0, ends);
-    }
-
-    /// <summary>
     ///     Sorts <see cref="SearchEdges" /> by <see cref="PortalGraph.Edge.From" /> and fills <see cref="SearchEdgeStart" />.
     ///     The sort is stable, so the edges out of one node are relaxed in the order they were added.
     /// </summary>
-    /// <param name="nodes">
-    ///     The number of nodes in the search.
-    /// </param>
+    /// <param name="nodes">The number of nodes in the search.</param>
     public void IndexSearchEdges(int nodes)
     {
         var count = SearchEdges.Count;
@@ -119,11 +97,15 @@ internal sealed class SearchScratch
     }
 
     /// <summary>
+    ///     Gets the calling thread's scratch, created on first use.
+    /// </summary>
+    /// <returns>The calling thread's scratch.</returns>
+    public static SearchScratch Rent() => Current ??= new SearchScratch();
+
+    /// <summary>
     ///     Empties every node's arrival list, the arrival pool and the queue, for a fresh search over the same edges.
     /// </summary>
-    /// <param name="nodes">
-    ///     The number of nodes in the search.
-    /// </param>
+    /// <param name="nodes">The number of nodes in the search.</param>
     public void ResetArrivals(int nodes)
     {
         for (var i = 0; i < nodes; i++)
@@ -132,6 +114,19 @@ internal sealed class SearchScratch
 
         Arrivals.Clear();
         ArrivalQueue.Clear();
+    }
+
+    public void ResetEnds(int ends)
+    {
+        if (EndMesh.Length < ends)
+        {
+            EndMesh = new NavMesh?[ends];
+            EndTriangle = new int[ends];
+            EndEntry = new Point[ends];
+            EndReach = new Reach[ends];
+        }
+
+        Array.Clear(EndMesh, 0, ends);
     }
 
     public void ResetNodes(int nodes)

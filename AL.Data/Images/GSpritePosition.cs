@@ -20,9 +20,7 @@ public sealed record GSpritePosition
     /// </summary>
     public int Column { get; init; } = -1;
 
-    /// <summary>
-    ///     The sheet's key, or empty for the default one.
-    /// </summary>
+    /// <summary>The sheet's key, or empty for the default one.</summary>
     public string ImageSet { get; init; } = string.Empty;
 
     /// <summary>
@@ -36,7 +34,8 @@ public sealed record GSpritePosition
 }
 
 /// <summary>
-///     Provides conversion of a <c>[sheet, column, row]</c> triple. Any other shape reads back as a position naming no cell.
+///     Provides conversion of a <c>[sheet, column, row]</c> triple. Any other shape reads back as a position naming no
+///     cell.
 /// </summary>
 internal sealed class GSpritePositionConverter : JsonConverter<GSpritePosition>
 {

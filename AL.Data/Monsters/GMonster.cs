@@ -32,9 +32,7 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     The key this monster is filed under in <see cref="GameData.Monsters" />.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public string Accessor { get; internal set; } = null!;
 
     /// <summary>
@@ -53,16 +51,14 @@ public sealed record GMonster : AttributedRecordBase
     ///     The collision footprint this monster walks and pathfinds with, from the sprite's (h, v, vn). Much smaller than
     ///     <see cref="HitBox" />, which is what a range is measured against.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public BoundingBase BoundingBase { get; set; } = null!;
 
     /// <summary>
     ///     The speed this monster moves at while it has any target, not just a <see cref="Rage" /> lock. It replaces
-    ///     <see cref="AttributedRecordBase.Speed" /> outright and is often several times larger. A
-    ///     <see cref="Supporter" /> following another monster uses it too, capped at that monster's speed plus 4.
+    ///     <see cref="AttributedRecordBase.Speed" /> outright and is often several times larger. A <see cref="Supporter" />
+    ///     following another monster uses it too, capped at that monster's speed plus 4.
     /// </summary>
     [JsonPropertyName("charge")]
     public float ChargeSpeed { get; init; }
@@ -102,18 +98,16 @@ public sealed record GMonster : AttributedRecordBase
     public bool Global { get; init; }
 
     /// <summary>
-    ///     The box this monster's <i>range</i> is measured against: the whole sprite, centred horizontally and rising from
-    ///     its feet. Movement collides with the much smaller <see cref="BoundingBase" /> instead.
+    ///     The box this monster's <i>range</i> is measured against: the whole sprite, centred horizontally and rising from its
+    ///     feet. Movement collides with the much smaller <see cref="BoundingBase" /> instead.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public BoundingBase HitBox { get; set; } = null!;
 
     /// <summary>
-    ///     If true, the mana-restoring proc that <c>mpxgloves</c> grants is five times as likely against this monster
-    ///     and a <see cref="Supporter" /> only heals monsters sharing the flag.
+    ///     If true, the mana-restoring proc that <c>mpxgloves</c> grants is five times as likely against this monster and a
+    ///     <see cref="Supporter" /> only heals monsters sharing the flag.
     /// </summary>
     public bool Humanoid { get; init; }
 
@@ -213,16 +207,8 @@ public sealed record GMonster : AttributedRecordBase
     /// <summary>
     ///     Whether any of this monster's spawn entries sets <see cref="Roam" />.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public bool SpawnRoams { get; internal set; }
-
-    /// <summary>
-    ///     Whether this monster roams anywhere on its map, from either its own flag or a spawn entry's.
-    /// </summary>
-    [JsonIgnore]
-    public bool Roams => Roam || SpawnRoams;
 
     /// <summary>
     ///     <b>NULLABLE</b>. If populated, this monster spawns other monsters while it has a target, next to that target.
@@ -267,9 +253,7 @@ public sealed record GMonster : AttributedRecordBase
     ///     The speed this monster chases at: <see cref="ChargeSpeed" /> when the data names one, otherwise a multiple of
     ///     <see cref="AttributedRecordBase.Speed" />, as the game fills it in when it loads G.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public float ChaseSpeed
     {
@@ -292,4 +276,10 @@ public sealed record GMonster : AttributedRecordBase
             return MathF.Floor(Speed * multiplier + 0.5f);
         }
     }
+
+    /// <summary>
+    ///     Whether this monster roams anywhere on its map, from either its own flag or a spawn entry's.
+    /// </summary>
+    [JsonIgnore]
+    public bool Roams => Roam || SpawnRoams;
 }

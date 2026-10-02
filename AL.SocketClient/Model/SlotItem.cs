@@ -85,8 +85,8 @@ public record SlotItem : ITradeItem, IInventoryItem
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
     /// <summary>
-    ///     Carries the item's title (e.g. <c>shiny</c>, <c>legacy</c>) via <see cref="Model.Prediction.Title" />. Null when the
-    ///     item has no title.
+    ///     Carries the item's title (e.g. <c>shiny</c>, <c>legacy</c>) via <see cref="Model.Prediction.Title" />. Null when
+    ///     the item has no title.
     /// </summary>
     /// <remarks>
     ///     Equipping moves the item object itself, so an equipped item keeps every field it carried in the bag. Nothing
@@ -100,9 +100,7 @@ public record SlotItem : ITradeItem, IInventoryItem
     [JsonPropertyName("q")]
     public int Quantity { get; init; } = 1;
 
-    /// <summary>
-    ///     Whether this item is rented or offered for rent.
-    /// </summary>
+    /// <summary>Whether this item is rented or offered for rent.</summary>
     [JsonPropertyName("r")]
     public bool Rented { get; init; }
 

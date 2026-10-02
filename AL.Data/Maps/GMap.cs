@@ -52,9 +52,7 @@ public sealed record GMap
     ///     The map's own drop table, rolled on kills anywhere on it in addition to the monster's own. Empty for a map the game
     ///     gives none.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public IReadOnlyList<GDrop> Drops { get; internal set; } = [];
 
     /// <summary>
@@ -65,9 +63,7 @@ public sealed record GMap
     /// <summary>
     ///     A list of exits on this map. Exits can be either doors, or npcs that transport you.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyList<Exit> Exits { get; internal set; } = new List<Exit>();
 

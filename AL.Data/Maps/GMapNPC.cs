@@ -19,9 +19,7 @@ public sealed record GMapNPC
     /// <summary>
     ///     This NPC's data from <see cref="GameData.NPCs" />.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public GNPC? Data { get; internal set; }
 
@@ -36,9 +34,7 @@ public sealed record GMapNPC
     ///     <br />
     ///     If you're familiar with the original form of this data, it's _position(if present) + _positions(if present).
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     [JsonIgnore]
     public IReadOnlyList<Location> Locations { get; init; } = new List<Location>();
 

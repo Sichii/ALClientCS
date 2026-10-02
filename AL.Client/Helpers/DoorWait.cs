@@ -13,9 +13,7 @@ internal static class DoorWait
     /// <summary>
     ///     Asynchronously waits for the landing, extending the wait once the server answers "in progress".
     /// </summary>
-    /// <param name="landed">
-    ///     Completes with the map change.
-    /// </param>
+    /// <param name="landed">Completes with the map change.</param>
     /// <param name="inProgress">
     ///     Completes when the server answers the door "in progress".
     /// </param>
@@ -32,9 +30,7 @@ internal static class DoorWait
     /// <param name="caller">
     ///     The calling member, named in the timeout message.
     /// </param>
-    /// <returns>
-    ///     The map change.
-    /// </returns>
+    /// <returns>The map change.</returns>
     /// <exception cref="TimeoutException">
     ///     Neither answer arrived in time, or the bank did not finish loading in time.
     /// </exception>

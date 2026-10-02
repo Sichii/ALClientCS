@@ -7,9 +7,7 @@ using StjConverters = AL.Core.Json.SystemTextJson;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a member of your party.
-/// </summary>
+/// <summary>Represents a member of your party.</summary>
 /// <seealso cref="ILocation" />
 public record PartyMember : IInstancedLocation
 {

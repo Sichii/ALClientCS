@@ -14,28 +14,22 @@ public interface IAlApiClient
     AuthUser Auth { get; }
 
     /// <summary>
-    ///     Asynchronously deletes a mail. The server allows this for a mail whose attached item was never taken, and
-    ///     deleting one destroys the item.
+    ///     Asynchronously deletes a mail. The server allows this for a mail whose attached item was never taken, and deleting
+    ///     one destroys the item.
     /// </summary>
-    /// <param name="mail">
-    ///     The mail to delete.
-    /// </param>
+    /// <param name="mail">The mail to delete.</param>
     Task DeleteMailAsync(Mail mail);
 
     /// <summary>
     ///     Asynchronously fetches mail from the server, requesting each next page as the previous one runs out.
     /// </summary>
-    /// <returns>
-    ///     Every mail of the account.
-    /// </returns>
+    /// <returns>Every mail of the account.</returns>
     IAsyncEnumerable<Mail> GetMailAsync();
 
     /// <summary>
     ///     Asynchronously fetches merchants from the server.
     /// </summary>
-    /// <returns>
-    ///     Every merchant the server lists.
-    /// </returns>
+    /// <returns>Every merchant the server lists.</returns>
     IAsyncEnumerable<MerchantInfo> GetMerchantsAsync();
 
     /// <summary>

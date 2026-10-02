@@ -6,7 +6,8 @@ using AL.Pathfinding.Definitions;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Represents a route's state on arrival at a node: how long until blink may be cast, the penalty still pending, and the bar.
+///     Represents a route's state on arrival at a node: how long until blink may be cast, the penalty still pending, and
+///     the bar.
 /// </summary>
 internal readonly record struct TravelState(float BlinkReadyInMs, float PenaltyMs, float Mp);
 
@@ -42,27 +43,17 @@ internal readonly struct BlinkClock
     /// <summary>
     ///     Creates the state at the route's start; an untracked bar is held at zero.
     /// </summary>
-    /// <param name="options">
-    ///     The search's options.
-    /// </param>
-    /// <returns>
-    ///     The starting state.
-    /// </returns>
+    /// <param name="options">The search's options.</param>
+    /// <returns>The starting state.</returns>
     public TravelState CreateInitialState(PathOptions options)
         => new(Math.Max(0f, options.BlinkReadyInMs), Math.Max(0f, options.PenaltyMs), Tracked ? options.Mp : 0f);
 
     /// <summary>
     ///     Advances a state by a span of time: both timers run down to zero, and a tracked bar refills to its maximum.
     /// </summary>
-    /// <param name="state">
-    ///     The state before.
-    /// </param>
-    /// <param name="ms">
-    ///     The time that passes, in milliseconds.
-    /// </param>
-    /// <returns>
-    ///     The state after.
-    /// </returns>
+    /// <param name="state">The state before.</param>
+    /// <param name="ms">The time that passes, in milliseconds.</param>
+    /// <returns>The state after.</returns>
     public TravelState AdvanceTime(TravelState state, float ms)
         => new(
             Math.Max(0f, state.BlinkReadyInMs - ms),
@@ -72,15 +63,9 @@ internal readonly struct BlinkClock
     /// <summary>
     ///     Adds <c>penalty_cd</c> to a state, capped at <see cref="CONSTANTS.PENALTY_CAP_MS" />.
     /// </summary>
-    /// <param name="state">
-    ///     The state before.
-    /// </param>
-    /// <param name="ms">
-    ///     The penalty to add, in milliseconds.
-    /// </param>
-    /// <returns>
-    ///     The state after.
-    /// </returns>
+    /// <param name="state">The state before.</param>
+    /// <param name="ms">The penalty to add, in milliseconds.</param>
+    /// <returns>The state after.</returns>
     public static TravelState AddPenalty(TravelState state, float ms)
         => state with
         {
@@ -90,24 +75,11 @@ internal readonly struct BlinkClock
     /// <summary>
     ///     Casts one blink from a state, waiting first for the cooldown and the bar.
     /// </summary>
-    /// <param name="state">
-    ///     The state before the cast.
-    /// </param>
-    /// <param name="spentMs">
-    ///     The wait plus the landing, in milliseconds.
-    /// </param>
-    /// <param name="after">
-    ///     The state on landing.
-    /// </param>
+    /// <param name="state">The state before the cast.</param>
+    /// <param name="spentMs">The wait plus the landing, in milliseconds.</param>
+    /// <param name="after">The state on landing.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the cast can go out; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     when a tracked bar can never pay for it.
+    ///     <c>true</c> if the cast can go out; otherwise, <c>false</c> when a tracked bar can never pay for it.
     /// </returns>
     public bool TryBlink(TravelState state, out float spentMs, out TravelState after)
     {
@@ -134,9 +106,7 @@ internal readonly struct BlinkClock
     /// <summary>
     ///     Calculates how long until a cast can go out: the cooldown, and the refill a tracked bar needs.
     /// </summary>
-    /// <param name="state">
-    ///     The state to wait from.
-    /// </param>
+    /// <param name="state">The state to wait from.</param>
     /// <returns>
     ///     The wait in milliseconds, or infinity when the bar can never hold a cast.
     /// </returns>
@@ -162,25 +132,15 @@ internal readonly struct BlinkClock
     /// <summary>
     ///     Determines whether one state is at least as ready as another now, and at the moment each could next cast.
     /// </summary>
-    /// <param name="a">
-    ///     The state that must be as ready.
-    /// </param>
-    /// <param name="b">
-    ///     The state it is compared to.
-    /// </param>
+    /// <param name="a">The state that must be as ready.</param>
+    /// <param name="b">The state it is compared to.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if <paramref name="a" /> is no later, has no more penalty pending and no less in the bar at both moments;
-    ///     otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if <paramref name="a" /> is no later, has no more penalty pending and no less in the bar at both
+    ///     moments; otherwise, <c>false</c> .
     /// </returns>
     /// <remarks>
-    ///     A wait absorbed by a cast's least price costs nothing, and the penalty that runs down during it readies the next cast.
+    ///     A wait absorbed by a cast's least price costs nothing, and the penalty that runs down during it readies the next
+    ///     cast.
     /// </remarks>
     public bool IsAtLeastAsWellPlaced(TravelState a, TravelState b)
     {
@@ -204,21 +164,11 @@ internal readonly struct BlinkClock
     /// <summary>
     ///     Determines whether one state is at least as ready as another on every count.
     /// </summary>
-    /// <param name="a">
-    ///     The state that must be as ready.
-    /// </param>
-    /// <param name="b">
-    ///     The state it is compared to.
-    /// </param>
+    /// <param name="a">The state that must be as ready.</param>
+    /// <param name="b">The state it is compared to.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if <paramref name="a" /> is no later on blink, has no more penalty and no less mana; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if <paramref name="a" /> is no later on blink, has no more penalty and no less mana; otherwise,
+    ///     <c>false</c> .
     /// </returns>
     public static bool IsAtLeastAsReady(TravelState a, TravelState b)
         => (a.BlinkReadyInMs <= b.BlinkReadyInMs) && (a.PenaltyMs <= b.PenaltyMs) && (a.Mp >= b.Mp);

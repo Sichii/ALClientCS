@@ -13,8 +13,8 @@ public sealed record DisappearingTextData
     public JsonNode? Args { get; init; }
 
     /// <summary>
-    ///     If populated, the id of the entity this text appears over. A text anchored to a point, such as the gold and xp
-    ///     over a corpse or a chest, omits it.
+    ///     If populated, the id of the entity this text appears over. A text anchored to a point, such as the gold and xp over
+    ///     a corpse or a chest, omits it.
     /// </summary>
     public string? Id { get; init; }
 

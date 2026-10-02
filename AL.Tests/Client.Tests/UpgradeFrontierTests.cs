@@ -14,8 +14,6 @@ namespace AL.Tests.Client.Tests;
 [NotInParallel(ParallelKeys.GAME_DATA)]
 public sealed class UpgradeFrontierTests
 {
-    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
-
     private static readonly IReadOnlyList<int> WSHIELD_THRESHOLDS =
     [
         7,
@@ -48,28 +46,7 @@ public sealed class UpgradeFrontierTests
         640_000_000
     ];
 
-    [Before(Class)]
-    public static void EnsureGameData() => CapturedGameData = Fixture.LoadGameDataIfEmpty();
-
-    [After(Class)]
-    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
-
-    [Test]
-    public async Task ACompoundBuildStakesThreeCopies()
-    {
-        var builds = new UpgradeFrontier(new CompoundPlanner(WBOOK_THRESHOLDS, CSCROLL_PRICES, Offerings())).Generate(3);
-
-        builds.Should()
-              .NotBeEmpty();
-
-        //three copies staked per attempt over three levels is 27 even if every attempt succeeded
-        foreach (var build in builds)
-            build.Copies
-                 .Should()
-                 .BeGreaterThanOrEqualTo(27);
-
-        await Task.CompletedTask;
-    }
+    private static Dictionary<FieldInfo, object?> CapturedGameData = new();
 
     [Test]
     public async Task ABuildMatchesThePlannersTotal()
@@ -137,6 +114,23 @@ public sealed class UpgradeFrontierTests
     }
 
     [Test]
+    public async Task ACompoundBuildStakesThreeCopies()
+    {
+        var builds = new UpgradeFrontier(new CompoundPlanner(WBOOK_THRESHOLDS, CSCROLL_PRICES, Offerings())).Generate(3);
+
+        builds.Should()
+              .NotBeEmpty();
+
+        //three copies staked per attempt over three levels is 27 even if every attempt succeeded
+        foreach (var build in builds)
+            build.Copies
+                 .Should()
+                 .BeGreaterThanOrEqualTo(27);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
     public async Task ATargetPastTheTrackHasNoBuilds()
     {
         var builds = new UpgradeFrontier(
@@ -151,6 +145,9 @@ public sealed class UpgradeFrontierTests
 
         await Task.CompletedTask;
     }
+
+    [Before(Class)]
+    public static void EnsureGameData() => CapturedGameData = Fixture.LoadGameDataIfEmpty();
 
     [Test]
     public async Task MoreCopiesCostLessGold()
@@ -199,4 +196,7 @@ public sealed class UpgradeFrontierTests
             new("offering", 2, 27_420_000),
             new("offeringx", 3, 242_064_000)
         ];
+
+    [After(Class)]
+    public static void RestoreGameData() => Fixture.RestoreGameData(CapturedGameData);
 }

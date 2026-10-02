@@ -15,18 +15,10 @@ namespace AL.Client.Extensions;
 /// </summary>
 public static class EntityExtensions
 {
-    /// <summary>
-    ///     Calculates the final damage value
-    /// </summary>
-    /// <param name="entity">
-    ///     The entity that is attacking.
-    /// </param>
-    /// <param name="target">
-    ///     The entity being attacked.
-    /// </param>
-    /// <param name="damageType">
-    ///     The type of damage being dealt.
-    /// </param>
+    /// <summary>Calculates the final damage value</summary>
+    /// <param name="entity">The entity that is attacking.</param>
+    /// <param name="target">The entity being attacked.</param>
+    /// <param name="damageType">The type of damage being dealt.</param>
     /// <param name="ignoreTempDefBuffs">
     ///     Whether or not to ignore defenses gained from temp buffs like
     ///     <see cref="AL.Core.Definitions.Condition.HardShell" />, <see cref="AL.Core.Definitions.Condition.WarCry" />, and
@@ -136,15 +128,9 @@ public static class EntityExtensions
     ///     Determines the damage type the server selects: monster data or class, then mainhand weapon, then skill for anything
     ///     but a basic attack. Unset falls back to physical.
     /// </summary>
-    /// <param name="attacker">
-    ///     The entity dealing the damage.
-    /// </param>
-    /// <param name="source">
-    ///     The skill that dealt it, if any.
-    /// </param>
-    /// <returns>
-    ///     The damage type the server applies.
-    /// </returns>
+    /// <param name="attacker">The entity dealing the damage.</param>
+    /// <param name="source">The skill that dealt it, if any.</param>
+    /// <returns>The damage type the server applies.</returns>
     private static DamageType ResolveDamageType(EntityBase attacker, string? source)
     {
         var damageType = attacker switch
@@ -186,9 +172,7 @@ public static class EntityExtensions
     /// <summary>
     ///     Calculates whether or not the entity will die to burning damage.
     /// </summary>
-    /// <param name="entity">
-    ///     The eneity to check.
-    /// </param>
+    /// <param name="entity">The eneity to check.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
@@ -232,12 +216,8 @@ public static class EntityExtensions
     /// <summary>
     ///     Calculates whether or not the entity will die to existing projectiles.
     /// </summary>
-    /// <param name="entity">
-    ///     The entity to check.
-    /// </param>
-    /// <param name="projectiles">
-    ///     The projectiles to use in the check.
-    /// </param>
+    /// <param name="entity">The entity to check.</param>
+    /// <param name="projectiles">The projectiles to use in the check.</param>
     /// <param name="findAttackerFunc">
     ///     Resolves a projectile's attacker id to a live entity. When provided, each projectile's damage is reduced by the
     ///     target's armor or resistance less twice the attacker's pierce. A projectile whose attacker cannot be resolved

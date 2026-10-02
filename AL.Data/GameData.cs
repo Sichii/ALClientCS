@@ -225,9 +225,7 @@ public record GameData
     ///     The game does this while processing the map rather than shipping the lines in <c>G.geometry</c>. Duplicates are
     ///     left to <see cref="FixLines(GGeometry)" />.
     /// </remarks>
-    /// <param name="map">
-    ///     The map whose scenery to fold in.
-    /// </param>
+    /// <param name="map">The map whose scenery to fold in.</param>
     private static void AddAnimatableWalls(GMap map)
     {
         if (map.Animatables.Count == 0)
@@ -291,12 +289,8 @@ public record GameData
     ///     Binds every <see cref="GameDataRootAttribute" /> static from the payload by reflection. Wire keys match
     ///     case-insensitively, and an absent key leaves the member's own initializer intact.
     /// </summary>
-    /// <param name="json">
-    ///     The game data payload.
-    /// </param>
-    /// <returns>
-    ///     The parsed payload.
-    /// </returns>
+    /// <param name="json">The game data payload.</param>
+    /// <returns>The parsed payload.</returns>
     /// <exception cref="InvalidOperationException">
     ///     The payload is not a JSON object, or a root has no setter.
     /// </exception>
@@ -327,6 +321,45 @@ public record GameData
         }
 
         return root;
+    }
+
+    /// <summary>
+    ///     Builds the class and map bonuses from an item's unbound keys: every object filed under a class's or a map's key.
+    /// </summary>
+    /// <remarks>
+    ///     An upgrade or compound line inside a bonus only reaches the stats the bonus also names at its own top level.
+    /// </remarks>
+    /// <param name="wireExtras">The item's unbound keys.</param>
+    /// <returns>The bonuses, keyed by class or map.</returns>
+    private static IReadOnlyDictionary<string, GItemBonus> BuildBonuses(Dictionary<string, JsonElement> wireExtras)
+    {
+        var bonuses = new Dictionary<string, GItemBonus>(StringComparer.OrdinalIgnoreCase);
+
+        foreach ((var key, var element) in wireExtras)
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+                continue;
+
+            var namesClass = EnumHelper.TryParse(key, out ALClass alClass) && Classes[alClass] is not null;
+
+            if (!namesClass && Maps[key] is null)
+                continue;
+
+            if (element.Deserialize<GItemBonus>(ALJson.Options) is not { } bonus)
+                continue;
+
+            bonuses[key] = bonus with
+            {
+                UpgradeModifiers = FilterToNamedStats(bonus.UpgradeModifiers, bonus),
+                CompoundModifiers = FilterToNamedStats(bonus.CompoundModifiers, bonus)
+            };
+        }
+
+        return bonuses;
+
+        static IReadOnlyDictionary<ALAttribute, float>? FilterToNamedStats(IReadOnlyDictionary<ALAttribute, float>? line, GItemBonus bonus)
+            => line?.Where(entry => bonus.Attributes.ContainsKey(entry.Key))
+                   .ToDictionary(entry => entry.Key, entry => entry.Value);
     }
 
     public static void BuildBoundingBases()
@@ -378,24 +411,96 @@ public record GameData
     }
 
     /// <summary>
+    ///     Builds every prize table this item can be exchanged for, by level.
+    /// </summary>
+    /// <param name="item">The exchangeable item.</param>
+    /// <returns>
+    ///     The prize tables keyed by level, or <c>null</c> where the data has none.
+    /// </returns>
+    private static IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? BuildExchangeRewards(GItem item)
+    {
+        //the game's grade tables stop at 12
+        const int MAX_EXCHANGE_LEVEL = 12;
+
+        //an item that neither compounds nor upgrades keys its table by its bare name
+        if (item is { CompoundModifiers: null, UpgradeModifiers: null })
+            return Drops.Tables.GetValueOrDefault(item.Accessor) is { } table
+                ? new Dictionary<int, IReadOnlyList<GDrop>>
+                {
+                    [0] = table
+                }
+                : null;
+
+        var levelled = new Dictionary<int, IReadOnlyList<GDrop>>();
+
+        //otherwise the table is keyed by the item's name plus its level
+        for (var level = 0; level <= MAX_EXCHANGE_LEVEL; level++)
+            if (Drops.Tables.GetValueOrDefault(item.Accessor + level) is { } table)
+                levelled[level] = table;
+
+        return levelled.Count > 0 ? levelled : null;
+    }
+
+    /// <summary>
+    ///     Calculates where the server lets a door open from, as a band plus a range. The band is a door-sized box standing on
+    ///     the door's own spawn, grown by the character's box.
+    /// </summary>
+    /// <param name="map">The map the door is on.</param>
+    /// <param name="door">The door.</param>
+    /// <returns>
+    ///     The band and range, or a zero-size band on the door with no range when the door's spawn cannot be resolved.
+    /// </returns>
+    private static (Rectangle Band, float Range) CalculateDoorReach(GMap map, GDoor door)
+    {
+        var spawnId = (int)door.CurrentMapSpawnId;
+
+        if ((spawnId < 0) || (spawnId >= map.Spawns.Count))
+            return (new Rectangle(
+                door.X,
+                door.Y,
+                0f,
+                0f), 0f);
+
+        var spawn = map.Spawns[spawnId];
+
+        //a generated floor's stairs open within the stair range of the landing
+        if (map.Generated is not null)
+            return (new Rectangle(
+                spawn.X,
+                spawn.Y,
+                0f,
+                0f), CONSTANTS.STAIR_RANGE);
+
+        var halfWidth = door.Width / 2 + CONSTANTS.CHARACTER_BOX_WIDTH / 2;
+        var top = spawn.Y - door.Height;
+        var bottom = spawn.Y + CONSTANTS.CHARACTER_BOX_HEIGHT;
+
+        var band = new Rectangle(new Point(spawn.X - halfWidth, top), new Point(spawn.X + halfWidth, bottom));
+
+        //a door outside its own band is paired with the wrong spawn, so walk to the door itself
+        if (band.EdgeToCenterDistance(door) >= CONSTANTS.DOOR_RANGE)
+        {
+            Log.Warn($"Door {map.Accessor} => {door.DestinationMap} lies outside the range of spawn {spawnId}.");
+
+            return (new Rectangle(
+                door.X,
+                door.Y,
+                0f,
+                0f), 0f);
+        }
+
+        return (band, CONSTANTS.DOOR_RANGE);
+    }
+
+    /// <summary>
     ///     Removes wall geometry inside the rect and walls off its long sides, leaving a walkable vertical corridor connecting
     ///     whatever the rect's two short ends overlap.
     /// </summary>
-    /// <param name="mapAccessor">
-    ///     The map to carve.
-    /// </param>
-    /// <param name="left">
-    ///     The rect's left edge.
-    /// </param>
-    /// <param name="right">
-    ///     The rect's right edge.
-    /// </param>
-    /// <param name="top">
-    ///     The rect's top edge.
-    /// </param>
-    /// <param name="bottom">
-    ///     The rect's bottom edge.
-    /// </param>
+    /// <param name="mapAccessor">The map to carve.</param>
+    /// <param name="left">The rect's left edge.</param>
+    /// <param name="right">The rect's right edge.</param>
+    /// <param name="top">The rect's top edge.</param>
+    /// <param name="bottom">The rect's bottom edge.</param>
     private static void CarveCorridor(
         string mapAccessor,
         int left,
@@ -450,8 +555,8 @@ public record GameData
     ///     Carves the corridors that exist only in local data.
     /// </summary>
     /// <remarks>
-    ///     The server checks only a move's endpoints against its walkable lattice, never the segment between them, so a
-    ///     carved channel routes a crossing the game's own geometry forbids.
+    ///     The server checks only a move's endpoints against its walkable lattice, never the segment between them, so a carved
+    ///     channel routes a crossing the game's own geometry forbids.
     /// </remarks>
     private static void CarveCorridors()
 
@@ -467,21 +572,15 @@ public record GameData
     ///     Drops the portion of each line inside the window: a line strictly between the on-axis bounds is clipped to the span
     ///     bounds, splitting into up to two pieces. Lines on the window edge merge with the seals instead.
     /// </summary>
-    /// <param name="lines">
-    ///     The lines to clip.
-    /// </param>
+    /// <param name="lines">The lines to clip.</param>
     /// <param name="onMin">
     ///     The window's lower bound on the lines' fixed axis.
     /// </param>
     /// <param name="onMax">
     ///     The window's upper bound on the lines' fixed axis.
     /// </param>
-    /// <param name="spanMin">
-    ///     The window's lower bound along the lines.
-    /// </param>
-    /// <param name="spanMax">
-    ///     The window's upper bound along the lines.
-    /// </param>
+    /// <param name="spanMin">The window's lower bound along the lines.</param>
+    /// <param name="spanMax">The window's upper bound along the lines.</param>
     /// <returns>
     ///     The lines, with every portion inside the window removed.
     /// </returns>
@@ -531,12 +630,8 @@ public record GameData
     ///     Counts wire members across the datum-backed roots that no generated property declares, which means
     ///     AL.MemberGenerator needs a re-run.
     /// </summary>
-    /// <param name="root">
-    ///     The parsed payload.
-    /// </param>
-    /// <returns>
-    ///     The number of undeclared members.
-    /// </returns>
+    /// <param name="root">The parsed payload.</param>
+    /// <returns>The number of undeclared members.</returns>
     internal static int CountUnknownMembers(JsonObject root)
     {
         var count = 0;
@@ -593,61 +688,6 @@ public record GameData
     }
 
     /// <summary>
-    ///     Calculates where the server lets a door open from, as a band plus a range. The band is a door-sized box standing
-    ///     on the door's own spawn, grown by the character's box.
-    /// </summary>
-    /// <param name="map">
-    ///     The map the door is on.
-    /// </param>
-    /// <param name="door">
-    ///     The door.
-    /// </param>
-    /// <returns>
-    ///     The band and range, or a zero-size band on the door with no range when the door's spawn cannot be resolved.
-    /// </returns>
-    private static (Rectangle Band, float Range) CalculateDoorReach(GMap map, GDoor door)
-    {
-        var spawnId = (int)door.CurrentMapSpawnId;
-
-        if ((spawnId < 0) || (spawnId >= map.Spawns.Count))
-            return (new Rectangle(
-                door.X,
-                door.Y,
-                0f,
-                0f), 0f);
-
-        var spawn = map.Spawns[spawnId];
-
-        //a generated floor's stairs open within the stair range of the landing
-        if (map.Generated is not null)
-            return (new Rectangle(
-                spawn.X,
-                spawn.Y,
-                0f,
-                0f), CONSTANTS.STAIR_RANGE);
-
-        var halfWidth = door.Width / 2 + CONSTANTS.CHARACTER_BOX_WIDTH / 2;
-        var top = spawn.Y - door.Height;
-        var bottom = spawn.Y + CONSTANTS.CHARACTER_BOX_HEIGHT;
-
-        var band = new Rectangle(new Point(spawn.X - halfWidth, top), new Point(spawn.X + halfWidth, bottom));
-
-        //a door outside its own band is paired with the wrong spawn, so walk to the door itself
-        if (band.EdgeToCenterDistance(door) >= CONSTANTS.DOOR_RANGE)
-        {
-            Log.Warn($"Door {map.Accessor} => {door.DestinationMap} lies outside the range of spawn {spawnId}.");
-
-            return (new Rectangle(
-                door.X,
-                door.Y,
-                0f,
-                0f), 0f);
-        }
-
-        return (band, CONSTANTS.DOOR_RANGE);
-    }
-
-    /// <summary>
     ///     Finishes every class's exclusive-cosmetic list the way the server's own game-data pass does: the free makeups, then
     ///     the name and every per-slot piece of each of the class's <see cref="GClassLook" />s.
     /// </summary>
@@ -697,49 +737,6 @@ public record GameData
         }
 
         Drops.Tables = tables;
-    }
-
-    /// <summary>
-    ///     Builds the class and map bonuses from an item's unbound keys: every object filed under a class's or a map's key.
-    /// </summary>
-    /// <remarks>
-    ///     An upgrade or compound line inside a bonus only reaches the stats the bonus also names at its own top level.
-    /// </remarks>
-    /// <param name="wireExtras">
-    ///     The item's unbound keys.
-    /// </param>
-    /// <returns>
-    ///     The bonuses, keyed by class or map.
-    /// </returns>
-    private static IReadOnlyDictionary<string, GItemBonus> BuildBonuses(Dictionary<string, JsonElement> wireExtras)
-    {
-        var bonuses = new Dictionary<string, GItemBonus>(StringComparer.OrdinalIgnoreCase);
-
-        foreach ((var key, var element) in wireExtras)
-        {
-            if (element.ValueKind != JsonValueKind.Object)
-                continue;
-
-            var namesClass = EnumHelper.TryParse(key, out ALClass alClass) && Classes[alClass] is not null;
-
-            if (!namesClass && Maps[key] is null)
-                continue;
-
-            if (element.Deserialize<GItemBonus>(ALJson.Options) is not { } bonus)
-                continue;
-
-            bonuses[key] = bonus with
-            {
-                UpgradeModifiers = FilterToNamedStats(bonus.UpgradeModifiers, bonus),
-                CompoundModifiers = FilterToNamedStats(bonus.CompoundModifiers, bonus)
-            };
-        }
-
-        return bonuses;
-
-        static IReadOnlyDictionary<ALAttribute, float>? FilterToNamedStats(IReadOnlyDictionary<ALAttribute, float>? line, GItemBonus bonus)
-            => line?.Where(entry => bonus.Attributes.ContainsKey(entry.Key))
-                   .ToDictionary(entry => entry.Key, entry => entry.Value);
     }
 
     private static void EnrichItems()
@@ -837,9 +834,7 @@ public record GameData
     ///     Applies one map's share of <see cref="EnrichMaps" />, so a floor filed at runtime gets the same exits, npc and
     ///     monster links G's own maps got on load.
     /// </summary>
-    /// <param name="map">
-    ///     The map to enrich.
-    /// </param>
+    /// <param name="map">The map to enrich.</param>
     private static void EnrichMap(GMap map)
     {
         map.Drops = Drops.Maps.GetValueOrDefault(map.Accessor) ?? [];
@@ -1106,39 +1101,6 @@ public record GameData
         }
     }
 
-    /// <summary>
-    ///     Builds every prize table this item can be exchanged for, by level.
-    /// </summary>
-    /// <param name="item">
-    ///     The exchangeable item.
-    /// </param>
-    /// <returns>
-    ///     The prize tables keyed by level, or <c>null</c> where the data has none.
-    /// </returns>
-    private static IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? BuildExchangeRewards(GItem item)
-    {
-        //the game's grade tables stop at 12
-        const int MAX_EXCHANGE_LEVEL = 12;
-
-        //an item that neither compounds nor upgrades keys its table by its bare name
-        if (item is { CompoundModifiers: null, UpgradeModifiers: null })
-            return Drops.Tables.GetValueOrDefault(item.Accessor) is { } table
-                ? new Dictionary<int, IReadOnlyList<GDrop>>
-                {
-                    [0] = table
-                }
-                : null;
-
-        var levelled = new Dictionary<int, IReadOnlyList<GDrop>>();
-
-        //otherwise the table is keyed by the item's name plus its level
-        for (var level = 0; level <= MAX_EXCHANGE_LEVEL; level++)
-            if (Drops.Tables.GetValueOrDefault(item.Accessor + level) is { } table)
-                levelled[level] = table;
-
-        return levelled.Count > 0 ? levelled : null;
-    }
-
     private static GMap FileGeneratedFloor(GeneratedFloor floor)
     {
         var map = floor.Definition;
@@ -1252,12 +1214,8 @@ public record GameData
     ///     record alone, so a stair leading to it resolves before its geometry arrives. Delivering a floor twice changes
     ///     nothing.
     /// </summary>
-    /// <param name="bundle">
-    ///     The run's manifest and delivered floors.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     bundle
-    /// </exception>
+    /// <param name="bundle">The run's manifest and delivered floors.</param>
+    /// <exception cref="ArgumentNullException">bundle</exception>
     public static void RegisterGeneratedFloors(GeneratedMapBundle bundle)
     {
         ArgumentNullException.ThrowIfNull(bundle);
@@ -1297,12 +1255,8 @@ public record GameData
     /// <summary>
     ///     Takes a run's floors back out of the map and geometry tables.
     /// </summary>
-    /// <param name="run">
-    ///     The run's id.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     run
-    /// </exception>
+    /// <param name="run">The run's id.</param>
+    /// <exception cref="ArgumentNullException">run</exception>
     public static void UnregisterGeneratedRun(string run)
     {
         ArgumentNullException.ThrowIfNull(run);

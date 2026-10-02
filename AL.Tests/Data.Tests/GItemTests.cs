@@ -42,61 +42,6 @@ public class GItemTests : GameDataTestBed
                    .BeNull();
 
     /// <summary>
-    ///     An offer keeps a level only on an item that levels, and a quantity only on one that stacks, the way the server
-    ///     reads it. A name or title the game does not have is refused outright.
-    /// </summary>
-    [Test]
-    public void ATradeWantIsNormalizedTheServersWay()
-    {
-        Merchant.NormalizeTradeWant(
-                    new TradeWant
-                    {
-                        Name = "firebow",
-                        Level = 15,
-                        Quantity = 4
-                    })
-                .Should()
-                .Be(
-                    new TradeWant
-                    {
-                        Name = "firebow",
-                        Level = 12
-                    });
-
-        Merchant.NormalizeTradeWant(
-                    new TradeWant
-                    {
-                        Name = "hpot0",
-                        Level = 3,
-                        Quantity = 50
-                    })
-                .Should()
-                .Be(
-                    new TradeWant
-                    {
-                        Name = "hpot0",
-                        Quantity = 50
-                    });
-
-        Merchant.NormalizeTradeWant(
-                    new TradeWant
-                    {
-                        Name = "placeholder"
-                    })
-                .Should()
-                .BeNull();
-
-        Merchant.NormalizeTradeWant(
-                    new TradeWant
-                    {
-                        Name = "firebow",
-                        Title = "no_such_title"
-                    })
-                .Should()
-                .BeNull();
-    }
-
-    /// <summary>
     ///     The offer's match rule: the same name, at least its level and stack, and its title when it names one.
     /// </summary>
     [Test]
@@ -152,6 +97,61 @@ public class GItemTests : GameDataTestBed
                  19)
              .Should()
              .BeFalse("short of the wanted stack");
+    }
+
+    /// <summary>
+    ///     An offer keeps a level only on an item that levels, and a quantity only on one that stacks, the way the server
+    ///     reads it. A name or title the game does not have is refused outright.
+    /// </summary>
+    [Test]
+    public void ATradeWantIsNormalizedTheServersWay()
+    {
+        Merchant.NormalizeTradeWant(
+                    new TradeWant
+                    {
+                        Name = "firebow",
+                        Level = 15,
+                        Quantity = 4
+                    })
+                .Should()
+                .Be(
+                    new TradeWant
+                    {
+                        Name = "firebow",
+                        Level = 12
+                    });
+
+        Merchant.NormalizeTradeWant(
+                    new TradeWant
+                    {
+                        Name = "hpot0",
+                        Level = 3,
+                        Quantity = 50
+                    })
+                .Should()
+                .Be(
+                    new TradeWant
+                    {
+                        Name = "hpot0",
+                        Quantity = 50
+                    });
+
+        Merchant.NormalizeTradeWant(
+                    new TradeWant
+                    {
+                        Name = "placeholder"
+                    })
+                .Should()
+                .BeNull();
+
+        Merchant.NormalizeTradeWant(
+                    new TradeWant
+                    {
+                        Name = "firebow",
+                        Title = "no_such_title"
+                    })
+                .Should()
+                .BeNull();
     }
 
     /// <summary>

@@ -15,27 +15,21 @@ namespace AL.Client;
 
 /// <summary>
 ///     Provides thin senders for server handlers with no richer wrapper of their own. Most emit the action only; any
-///     confirmation arrives as a separate inbound event. <see cref="Slot" /> and <see cref="TradeSlot" /> serialize lowercase
-///     through their own converters, so they go straight into a payload.
+///     confirmation arrives as a separate inbound event. <see cref="Slot" /> and <see cref="TradeSlot" /> serialize
+///     lowercase through their own converters, so they go straight into a payload.
 /// </summary>
 public abstract partial class ALClient
 {
     #region Misc
-    /// <summary>
-    ///     Asynchronously places a tavern bet.
-    /// </summary>
+    /// <summary>Asynchronously places a tavern bet.</summary>
     /// <param name="type">
     ///     The game to bet on, such as <c>roulette</c> or <c>dice</c>.
     /// </param>
-    /// <param name="gold">
-    ///     The stake.
-    /// </param>
+    /// <param name="gold">The stake.</param>
     /// <param name="odds">
     ///     The odds to bet at, for the games that take them.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     type
-    /// </exception>
+    /// <exception cref="ArgumentNullException">type</exception>
     public Task BetAsync(string type, long gold, string? odds = null)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -59,9 +53,7 @@ public abstract partial class ALClient
     /// <param name="number">
     ///     The number to bet against, clamped by the server to 0.01-99.99.
     /// </param>
-    /// <param name="up">
-    ///     Specifies whether a roll above the number wins.
-    /// </param>
+    /// <param name="up">Specifies whether a roll above the number wins.</param>
     /// <remarks>
     ///     A second bet while one is unresolved is refused with <c>tavern_dice_exist</c>, and one outside the betting window
     ///     with <c>tavern_not_yet</c> or <c>tavern_too_late</c>. Leaving the tavern with a bet unresolved refunds it in full.
@@ -86,16 +78,12 @@ public abstract partial class ALClient
     /// <param name="side">
     ///     One of <c>GameData.Games.Wheel.Sides</c>, <c>sun</c> or <c>moon</c>.
     /// </param>
-    /// <returns>
-    ///     The server's settlement.
-    /// </returns>
+    /// <returns>The server's settlement.</returns>
     /// <remarks>
     ///     The payload field carrying the side is inferred from the game data's own <c>sides</c> key; no published handler
     ///     confirms it. If the wheel answers <c>invalid</c> or settles against the wrong side, that field is the one to fix.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     side
-    /// </exception>
+    /// <exception cref="ArgumentNullException">side</exception>
     public Task<GameResponseData> BetWheelAsync(long gold, string side)
     {
         ArgumentNullException.ThrowIfNull(side);
@@ -133,15 +121,9 @@ public abstract partial class ALClient
     ///     Asynchronously places a wager, correlated on the request id alone, since a wheel reply's <c>place</c> cannot be
     ///     predicted.
     /// </summary>
-    /// <param name="game">
-    ///     The game to wager on.
-    /// </param>
-    /// <param name="fields">
-    ///     The game's own payload fields, if it takes any.
-    /// </param>
-    /// <returns>
-    ///     The server's settlement.
-    /// </returns>
+    /// <param name="game">The game to wager on.</param>
+    /// <param name="fields">The game's own payload fields, if it takes any.</param>
+    /// <returns>The server's settlement.</returns>
     private async Task<GameResponseData> PlaceWagerAsync(string game, Dictionary<string, object?>? fields = null)
     {
         var requestId = RequestId.Create();
@@ -176,18 +158,16 @@ public abstract partial class ALClient
     ///     Asynchronously asks the tavern for its current house rules.
     /// </summary>
     /// <returns>
-    ///     The house rules, with <see cref="TavernData.Event" /> set to <c>info</c> and only <see cref="TavernData.Edge" /> and
-    ///     <see cref="TavernData.Max" /> filled.
+    ///     The house rules, with <see cref="TavernData.Event" /> set to <c>info</c> and only <see cref="TavernData.Edge" />
+    ///     and <see cref="TavernData.Max" /> filled.
     /// </returns>
     /// <remarks>
-    ///     <see cref="TavernData.Max" /> is the house's free bankroll, which falls while other players hold large bets open, so
-    ///     ask again per bet rather than caching it.
+    ///     <see cref="TavernData.Max" /> is the house's free bankroll, which falls while other players hold large bets open,
+    ///     so ask again per bet rather than caching it.
     ///     <br />
     ///     The handler answers anywhere, but sends nothing at all when the tavern instance never started.
     /// </remarks>
-    /// <exception cref="TimeoutException">
-    ///     The server never answered.
-    /// </exception>
+    /// <exception cref="TimeoutException">The server never answered.</exception>
     public async Task<TavernData> RequestTavernInfoAsync()
     {
         var requestId = RequestId.Create();
@@ -222,9 +202,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sets an upper cap on this character's movement speed.
     /// </summary>
-    /// <param name="speed">
-    ///     The cap, or zero to clear it.
-    /// </param>
+    /// <param name="speed">The cap, or zero to clear it.</param>
     /// <remarks>
     ///     The server applies it as <c>min(speed, cruise || 200000)</c> after every other modifier and keeps it until changed,
     ///     so it can only slow the character and has to be cleared with zero. It costs 10 call units; a move costs 1.5.
@@ -243,18 +221,12 @@ public abstract partial class ALClient
     #endregion
 
     #region Chat
-    /// <summary>
-    ///     Asynchronously sends a public chat message.
-    /// </summary>
-    /// <param name="message">
-    ///     The message to send.
-    /// </param>
+    /// <summary>Asynchronously sends a public chat message.</summary>
+    /// <param name="message">The message to send.</param>
     /// <param name="code">
     ///     Flags the message as code-manager output, which the server rate-limits to once per 15 seconds.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     message
-    /// </exception>
+    /// <exception cref="ArgumentNullException">message</exception>
     public Task SayAsync(string message, int? code = null)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -271,12 +243,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sends a message to the character's party chat.
     /// </summary>
-    /// <param name="message">
-    ///     The message to send.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     message
-    /// </exception>
+    /// <param name="message">The message to send.</param>
+    /// <exception cref="ArgumentNullException">message</exception>
     public Task SayToPartyAsync(string message)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -293,18 +261,10 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sends a private message to a named character.
     /// </summary>
-    /// <param name="name">
-    ///     The name of the character.
-    /// </param>
-    /// <param name="message">
-    ///     The message to send.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     message
-    /// </exception>
+    /// <param name="name">The name of the character.</param>
+    /// <param name="message">The message to send.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
+    /// <exception cref="ArgumentNullException">message</exception>
     public Task WhisperAsync(string name, string message)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -323,18 +283,10 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sends a code-manager message to one or more characters, the channel bots use to coordinate a party.
     /// </summary>
-    /// <param name="to">
-    ///     The names of the characters.
-    /// </param>
-    /// <param name="message">
-    ///     The message to send.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     to
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     message
-    /// </exception>
+    /// <param name="to">The names of the characters.</param>
+    /// <param name="message">The message to send.</param>
+    /// <exception cref="ArgumentNullException">to</exception>
+    /// <exception cref="ArgumentNullException">message</exception>
     public Task SendCmAsync(IEnumerable<string> to, object message)
     {
         ArgumentNullException.ThrowIfNull(to);
@@ -350,15 +302,9 @@ public abstract partial class ALClient
             });
     }
 
-    /// <summary>
-    ///     Asynchronously plays an unlocked emotion.
-    /// </summary>
-    /// <param name="name">
-    ///     The name of the emotion.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <summary>Asynchronously plays an unlocked emotion.</summary>
+    /// <param name="name">The name of the emotion.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
     public Task UseEmotionAsync(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -377,15 +323,9 @@ public abstract partial class ALClient
     ///     Asynchronously enters instanced content such as a crypt, a tomb or duelland. This is the only path that creates an
     ///     instance; <see cref="TransportAsync" /> covers static doors only.
     /// </summary>
-    /// <param name="place">
-    ///     The instance to enter.
-    /// </param>
-    /// <param name="instanceName">
-    ///     The name of an existing copy to join, if any.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     place
-    /// </exception>
+    /// <param name="place">The instance to enter.</param>
+    /// <param name="instanceName">The name of an existing copy to join, if any.</param>
+    /// <exception cref="ArgumentNullException">place</exception>
     public Task EnterAsync(string place, string? instanceName = null)
     {
         ArgumentNullException.ThrowIfNull(place);
@@ -402,12 +342,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously joins ongoing event content such as goobrawl, crabxx or an arena.
     /// </summary>
-    /// <param name="eventName">
-    ///     The name of the event.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     eventName
-    /// </exception>
+    /// <param name="eventName">The name of the event.</param>
+    /// <exception cref="ArgumentNullException">eventName</exception>
     public Task JoinEventAsync(string eventName)
     {
         ArgumentNullException.ThrowIfNull(eventName);
@@ -424,8 +360,8 @@ public abstract partial class ALClient
     ///     Asynchronously sets this character's home to the current server. The game refuses another change for 36 hours.
     /// </summary>
     /// <returns>
-    ///     <see langword="null" /> when <c>home_set</c> landed and <see cref="Home" /> is updated; otherwise the hours still to
-    ///     wait, from <c>sh_time</c>.
+    ///     <see langword="null" /> when <c>home_set</c> landed and <see cref="Home" /> is updated; otherwise the hours still
+    ///     to wait, from <c>sh_time</c>.
     /// </returns>
     public async Task<float?> SetHomeAsync()
     {
@@ -464,12 +400,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously triggers a seasonal map-object interaction, such as <c>newyear_tree</c> or <c>redorb</c>.
     /// </summary>
-    /// <param name="type">
-    ///     The type of the interaction.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     type
-    /// </exception>
+    /// <param name="type">The type of the interaction.</param>
+    /// <exception cref="ArgumentNullException">type</exception>
     public Task InteractionAsync(string type)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -495,12 +427,8 @@ public abstract partial class ALClient
     ///     Its answer is a <c>success_response</c> either way; only <see cref="GameResponseData.EquipBatchEntries" /> tells a
     ///     refusal apart.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     equips
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to equip {count} items. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">equips</exception>
+    /// <exception cref="InvalidOperationException">Failed to equip {count} items. ({reason})</exception>
     public async Task EquipBatchAsync(IEnumerable<(int InventorySlot, Slot? Slot)> equips)
     {
         ArgumentNullException.ThrowIfNull(equips);
@@ -550,12 +478,8 @@ public abstract partial class ALClient
     ///     Determines whether <paramref name="answered" /> answers <paramref name="batch" /> rather than another batch in
     ///     flight, judged on the inventory slots the server echoed back.
     /// </summary>
-    /// <param name="answered">
-    ///     The entries the server answered.
-    /// </param>
-    /// <param name="batch">
-    ///     The batch that was sent.
-    /// </param>
+    /// <param name="answered">The entries the server answered.</param>
+    /// <param name="batch">The batch that was sent.</param>
     /// <returns>
     ///     true if the answer belongs to the batch; otherwise, false.
     /// </returns>
@@ -579,9 +503,7 @@ public abstract partial class ALClient
     ///     Tops up an equip batch's charge to its real length, since the emit hook charged a batch of one. The server prices
     ///     by length before the handler runs, so a refused batch is billed the same.
     /// </summary>
-    /// <param name="count">
-    ///     The number of entries in the batch.
-    /// </param>
+    /// <param name="count">The number of entries in the batch.</param>
     private void ChargeBatch(int count)
         => CallMeter.Charge(
             ALSocketEmitType.EquipBatch,
@@ -590,12 +512,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the stack.
-    /// </param>
-    /// <param name="quantity">
-    ///     The number of items to move.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the stack.</param>
+    /// <param name="quantity">The number of items to move.</param>
     public Task SplitAsync(int inventorySlot, int quantity)
         => Socket.EmitAsync(
             ALSocketEmitType.Split,
@@ -608,9 +526,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously destroys an item, or part of a stack, for good.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the item.</param>
     /// <param name="quantity">
     ///     The number of items to destroy, or null for the whole stack.
     /// </param>
@@ -626,18 +542,12 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously buys and exchanges a token or quest item in one step.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item.
-    /// </param>
-    /// <param name="name">
-    ///     The name of the item to buy.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the item.</param>
+    /// <param name="name">The name of the item to buy.</param>
     /// <param name="quantity">
     ///     The current stack size, checked by the server as a safeguard.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <exception cref="ArgumentNullException">name</exception>
     public Task ExchangeBuyAsync(int inventorySlot, string name, int quantity)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -655,9 +565,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously activates a booster item, starting its expiry timer of 30 days plus two per level.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the booster.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the booster.</param>
     /// <returns>
     ///     The server's answer: <c>data</c> with <c>place</c> set to <c>booster</c>, or <c>invalid</c> for an empty slot or
     ///     anything that is not a booster.
@@ -676,9 +584,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously turns a booster into one of the other two kinds in place, keeping its level and expiry.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the booster.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the booster.</param>
     /// <param name="to">
     ///     <c>xpbooster</c>, <c>luckbooster</c> or <c>goldbooster</c>.
     /// </param>
@@ -689,9 +595,7 @@ public abstract partial class ALClient
     /// <remarks>
     ///     The swap resets <c>xpm</c>, <c>goldm</c> and <c>luckm</c> to 1 and adds 240ms to <c>penalty_cd</c>, capped at 120s.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     to
-    /// </exception>
+    /// <exception cref="ArgumentNullException">to</exception>
     public Task<GameResponseData> ShiftBoosterAsync(int inventorySlot, string to)
     {
         ArgumentNullException.ThrowIfNull(to);
@@ -720,12 +624,10 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Asynchronously converts a discontinued <c>stoneofxp</c>, <c>stoneofgold</c> or <c>stoneofluck</c> into shells:
-    ///     3600 if never activated, otherwise prorated down from 600 by the hours since.
+    ///     Asynchronously converts a discontinued <c>stoneofxp</c>, <c>stoneofgold</c> or <c>stoneofluck</c> into shells: 3600
+    ///     if never activated, otherwise prorated down from 600 by the hours since.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the stone.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the stone.</param>
     /// <remarks>
     ///     The server sends no <c>game_response</c>, only the inventory, and ignores any other item.
     /// </remarks>
@@ -740,15 +642,9 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously throws one throwable item at a point on the ground, consuming it.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item.
-    /// </param>
-    /// <param name="x">
-    ///     The x coordinate to throw at.
-    /// </param>
-    /// <param name="y">
-    ///     The y coordinate to throw at.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the item.</param>
+    /// <param name="x">The x coordinate to throw at.</param>
+    /// <param name="y">The y coordinate to throw at.</param>
     /// <remarks>
     ///     The game's THROW! button, not <c>Merchant.ThrowAsync</c>; only items whose def carries <c>throw</c> reach it. The
     ///     reach is <c>str * 3</c>, but a throw past it answers <c>too_far</c> and lands anyway.
@@ -768,21 +664,13 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sells an item into another player's standing buy order.
     /// </summary>
-    /// <param name="buyerId">
-    ///     The id of the buyer.
-    /// </param>
-    /// <param name="slot">
-    ///     The trade slot holding the buy order.
-    /// </param>
-    /// <param name="quantity">
-    ///     The number of items to sell.
-    /// </param>
+    /// <param name="buyerId">The id of the buyer.</param>
+    /// <param name="slot">The trade slot holding the buy order.</param>
+    /// <param name="quantity">The number of items to sell.</param>
     /// <param name="rid">
     ///     The listing's <c>rid</c>, so a replaced listing is refused.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     buyerId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">buyerId</exception>
     public Task TradeSellAsync(
         string buyerId,
         TradeSlot slot,
@@ -805,21 +693,15 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously joins a giveaway posted in a player's stand slot.
     /// </summary>
-    /// <param name="sellerId">
-    ///     The id of the player giving the item away.
-    /// </param>
-    /// <param name="slot">
-    ///     The trade slot holding the giveaway.
-    /// </param>
+    /// <param name="sellerId">The id of the player giving the item away.</param>
+    /// <param name="slot">The trade slot holding the giveaway.</param>
     /// <param name="rid">
     ///     The listing's <c>rid</c>, so a replaced listing is refused.
     /// </param>
     /// <remarks>
     ///     A joiner never sees its own name arrive in the participant list, so only the <c>game_response</c> confirms it.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     sellerId
-    /// </exception>
+    /// <exception cref="ArgumentNullException">sellerId</exception>
     /// <exception cref="InvalidOperationException">
     ///     The server refused: out of range, seller gone, listing gone or replaced, or not a giveaway.
     /// </exception>
@@ -865,25 +747,17 @@ public abstract partial class ALClient
     /// <param name="merchantId">
     ///     The id of the player whose stand holds the offer.
     /// </param>
-    /// <param name="slot">
-    ///     The trade slot holding the offer.
-    /// </param>
+    /// <param name="slot">The trade slot holding the offer.</param>
     /// <param name="rid">
     ///     The listing's <c>rid</c>, so a replaced offer is refused.
     /// </param>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item to give.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the item to give.</param>
     /// <remarks>
     ///     The emit names the item as this client saw it, so a bag reordered in between is refused rather than giving a
     ///     different item.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     merchantId
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     rid
-    /// </exception>
+    /// <exception cref="ArgumentNullException">merchantId</exception>
+    /// <exception cref="ArgumentNullException">rid</exception>
     /// <exception cref="InvalidOperationException">
     ///     The slot is empty, or the server refused: out of range, the offer gone or replaced, the item not what the offer
     ///     wants, or the merchant out of room.
@@ -960,9 +834,7 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously donates gold at a shrine. A donation of 1,000,000 or more unlocks lost-and-found access.
     /// </summary>
-    /// <param name="gold">
-    ///     The gold to donate.
-    /// </param>
+    /// <param name="gold">The gold to donate.</param>
     public Task DonateAsync(long gold)
         => Socket.EmitAsync(
             ALSocketEmitType.Donate,
@@ -976,21 +848,13 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sends mail to a character, which costs gold.
     /// </summary>
-    /// <param name="to">
-    ///     The name of the character.
-    /// </param>
-    /// <param name="subject">
-    ///     The subject line.
-    /// </param>
-    /// <param name="message">
-    ///     The message body.
-    /// </param>
+    /// <param name="to">The name of the character.</param>
+    /// <param name="subject">The subject line.</param>
+    /// <param name="message">The message body.</param>
     /// <param name="sendItem">
     ///     Specifies whether the item in inventory slot 0 is attached.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     to
-    /// </exception>
+    /// <exception cref="ArgumentNullException">to</exception>
     public Task MailAsync(
         string to,
         string? subject = null,
@@ -1013,12 +877,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously takes the item attached to a received mail into the inventory.
     /// </summary>
-    /// <param name="mailId">
-    ///     The id of the mail.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     mailId
-    /// </exception>
+    /// <param name="mailId">The id of the mail.</param>
+    /// <exception cref="ArgumentNullException">mailId</exception>
     public Task TakeMailItemAsync(string mailId)
     {
         ArgumentNullException.ThrowIfNull(mailId);
@@ -1036,12 +896,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously sends a friend request to a nearby online character.
     /// </summary>
-    /// <param name="name">
-    ///     The name of the character.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <param name="name">The name of the character.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
     public Task SendFriendRequestAsync(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -1055,15 +911,9 @@ public abstract partial class ALClient
             });
     }
 
-    /// <summary>
-    ///     Asynchronously accepts a pending friend request.
-    /// </summary>
-    /// <param name="name">
-    ///     The name of the character who sent it.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <summary>Asynchronously accepts a pending friend request.</summary>
+    /// <param name="name">The name of the character who sent it.</param>
+    /// <exception cref="ArgumentNullException">name</exception>
     public Task AcceptFriendRequestAsync(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -1100,21 +950,15 @@ public abstract partial class ALClient
     ///     Asynchronously locks, seals or unlocks the item in <paramref name="inventorySlot" /> at the locksmith, for 250,000
     ///     gold except the final clear of an expired seal.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item.
-    /// </param>
-    /// <param name="operation">
-    ///     The operation to perform.
-    /// </param>
-    /// <returns>
-    ///     The server's answer.
-    /// </returns>
+    /// <param name="inventorySlot">The slot holding the item.</param>
+    /// <param name="operation">The operation to perform.</param>
+    /// <returns>The server's answer.</returns>
     /// <remarks>
     ///     Refused in the bank, and distance-gated to Smith in desertland unless a <c>computer</c> is in the bags. Scrolls,
     ///     offerings and tomes are refused with <c>locksmith_cant</c>.
     ///     <br />
-    ///     <see cref="LocksmithOperation.Seal" /> checks only the purse: sealing an item mid-unseal takes the gold and discards
-    ///     however much of the 48 hours had elapsed.
+    ///     <see cref="LocksmithOperation.Seal" /> checks only the purse: sealing an item mid-unseal takes the gold and
+    ///     discards however much of the 48 hours had elapsed.
     /// </remarks>
     public async Task<GameResponseData> LocksmithAsync(int inventorySlot, LocksmithOperation operation)
     {
@@ -1160,9 +1004,7 @@ public abstract partial class ALClient
     ///     Asynchronously strips the stat scroll off the item in <paramref name="inventorySlot" /> at the scrollsmith and
     ///     refunds the scrolls.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item.
-    /// </param>
+    /// <param name="inventorySlot">The slot holding the item.</param>
     /// <returns>
     ///     The server's answer; <c>scrollsmith_success</c> carries the gold spent in <see cref="GameResponseData.Gold" />.
     /// </returns>
@@ -1215,8 +1057,8 @@ public abstract partial class ALClient
     /// </param>
     /// <remarks>
     ///     <c>angelwings</c> toggles the <c>snow_angel</c> skin for a mage or priest wearing it at +8 or better.
-    ///     <c>tristone</c> and <c>darktristone</c> roll a transform skin, and clear it instead whenever a skin is already on or
-    ///     the unsent activation count is exactly one hundred.
+    ///     <c>tristone</c> and <c>darktristone</c> roll a transform skin, and clear it instead whenever a skin is already on
+    ///     or the unsent activation count is exactly one hundred.
     /// </remarks>
     public Task ActivateEquippedAsync(Slot slot)
         => Socket.EmitAsync(
@@ -1229,12 +1071,8 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously activates an inventory item. Only the three bank keys answer.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot holding the item.
-    /// </param>
-    /// <returns>
-    ///     The server's answer.
-    /// </returns>
+    /// <param name="inventorySlot">The slot holding the item.</param>
+    /// <returns>The server's answer.</returns>
     /// <remarks>
     ///     <c>bkey</c> and <c>ukey</c> open the second and third bank floors and <c>dkey</c> the next bank pack, all consumed,
     ///     all answering <c>only_in_bank</c> outside the vault. <c>frozenstone</c> is consumed for nothing.
@@ -1277,23 +1115,15 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously equips an owned cosmetic into <paramref name="slot" />.
     /// </summary>
-    /// <param name="slot">
-    ///     The cosmetic slot.
-    /// </param>
-    /// <param name="name">
-    ///     The name of the cosmetic.
-    /// </param>
+    /// <param name="slot">The cosmetic slot.</param>
+    /// <param name="name">The name of the cosmetic.</param>
     /// <remarks>
     ///     Answers <c>cx_not_found</c> for anything the account does not own. Ownership includes bundles and exclusives, so a
     ///     name absent from <c>acx</c> can still be equippable. The server then drops any slot whose sprite type no longer
     ///     matches it.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     slot
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <exception cref="ArgumentNullException">slot</exception>
+    /// <exception cref="ArgumentNullException">name</exception>
     public Task SetCosmeticAsync(string slot, string name)
     {
         ArgumentNullException.ThrowIfNull(slot);
@@ -1312,15 +1142,11 @@ public abstract partial class ALClient
     /// <summary>
     ///     Asynchronously clears <paramref name="slot" />, by sending no <c>name</c>.
     /// </summary>
-    /// <param name="slot">
-    ///     The cosmetic slot.
-    /// </param>
+    /// <param name="slot">The cosmetic slot.</param>
     /// <remarks>
     ///     Clearing <c>back</c> also clears <c>tail</c>, and clearing <c>face</c> also clears <c>makeup</c>.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     slot
-    /// </exception>
+    /// <exception cref="ArgumentNullException">slot</exception>
     public Task ClearCosmeticAsync(string slot)
     {
         ArgumentNullException.ThrowIfNull(slot);
@@ -1349,12 +1175,8 @@ public abstract partial class ALClient
     /// <remarks>
     ///     Anything worn blocks the send, however many copies are owned.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     toPlayerId
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     name
-    /// </exception>
+    /// <exception cref="ArgumentNullException">toPlayerId</exception>
+    /// <exception cref="ArgumentNullException">name</exception>
     public async Task<GameResponseData> SendCosmeticAsync(string toPlayerId, string name)
     {
         ArgumentNullException.ThrowIfNull(toPlayerId);

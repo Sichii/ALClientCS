@@ -20,6 +20,7 @@ public sealed class WallLines
     ///     The server's own epsilon, which keeps the divisor off zero for a vertical track.
     /// </summary>
     private const double REPS = 2.220446049250313e-16;
+
     private readonly int[] HorizontalEnd;
     private readonly int[] HorizontalOn;
     private readonly int[] HorizontalStart;
@@ -41,12 +42,8 @@ public sealed class WallLines
     /// <summary>
     ///     Initializes a new instance of the <see cref="WallLines" /> class.
     /// </summary>
-    /// <param name="verticalLines">
-    ///     The map's <c>x_lines</c>.
-    /// </param>
-    /// <param name="horizontalLines">
-    ///     The map's <c>y_lines</c>.
-    /// </param>
+    /// <param name="verticalLines">The map's <c>x_lines</c>.</param>
+    /// <param name="horizontalLines">The map's <c>y_lines</c>.</param>
     public WallLines(IReadOnlyList<StraightLine> verticalLines, IReadOnlyList<StraightLine> horizontalLines)
     {
         (VerticalOn, VerticalStart, VerticalEnd) = SortLines(verticalLines);
@@ -57,24 +54,11 @@ public sealed class WallLines
     ///     Determines whether any line passes through the collision box hanging on a point. The client refuses every move out
     ///     of such a point.
     /// </summary>
-    /// <param name="x">
-    ///     The point's x.
-    /// </param>
-    /// <param name="y">
-    ///     The point's y.
-    /// </param>
-    /// <param name="boundingBase">
-    ///     The collision base hanging on the point.
-    /// </param>
+    /// <param name="x">The point's x.</param>
+    /// <param name="y">The point's y.</param>
+    /// <param name="boundingBase">The collision base hanging on the point.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if a line passes through the box; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if a line passes through the box; otherwise, <c>false</c> .
     /// </returns>
     public bool BoxIntersects(double x, double y, BoundingBase boundingBase)
     {
@@ -104,30 +88,13 @@ public sealed class WallLines
     ///     Determines whether a character can move between two points: the four corners of the base, plus two fence tracks
     ///     along the box's leading edges at the destination.
     /// </summary>
-    /// <param name="x0">
-    ///     The start's x.
-    /// </param>
-    /// <param name="y0">
-    ///     The start's y.
-    /// </param>
-    /// <param name="x1">
-    ///     The destination's x.
-    /// </param>
-    /// <param name="y1">
-    ///     The destination's y.
-    /// </param>
-    /// <param name="boundingBase">
-    ///     The character's collision base.
-    /// </param>
+    /// <param name="x0">The start's x.</param>
+    /// <param name="y0">The start's y.</param>
+    /// <param name="x1">The destination's x.</param>
+    /// <param name="y1">The destination's y.</param>
+    /// <param name="boundingBase">The character's collision base.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if no track crosses a line; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if no track crosses a line; otherwise, <c>false</c> .
     /// </returns>
     public bool CanMove(
         double x0,
@@ -205,27 +172,12 @@ public sealed class WallLines
     /// <summary>
     ///     Determines whether a single track between two points crosses no line, by the server's single-track test.
     /// </summary>
-    /// <param name="x0">
-    ///     The start's x.
-    /// </param>
-    /// <param name="y0">
-    ///     The start's y.
-    /// </param>
-    /// <param name="x1">
-    ///     The end's x.
-    /// </param>
-    /// <param name="y1">
-    ///     The end's y.
-    /// </param>
+    /// <param name="x0">The start's x.</param>
+    /// <param name="y0">The start's y.</param>
+    /// <param name="x1">The end's x.</param>
+    /// <param name="y1">The end's y.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the track crosses no line; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the track crosses no line; otherwise, <c>false</c> .
     /// </returns>
     public bool CanMoveLine(
         double x0,
@@ -268,34 +220,6 @@ public sealed class WallLines
         return lo;
     }
 
-    private static (int[] On, int[] Start, int[] End) SortLines(IReadOnlyList<StraightLine> lines)
-    {
-        var count = lines.Count;
-        var on = new int[count];
-        var start = new int[count];
-        var end = new int[count];
-        var order = new int[count];
-
-        for (var i = 0; i < count; i++)
-            order[i] = i;
-
-        Array.Sort(
-            order,
-            (a, b) => lines[a]
-                      .On
-                      .CompareTo(lines[b].On));
-
-        for (var i = 0; i < count; i++)
-        {
-            var line = lines[order[i]];
-            on[i] = line.On;
-            start[i] = Math.Min(line.Start, line.End);
-            end[i] = Math.Max(line.Start, line.End);
-        }
-
-        return (on, start, end);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IntersectsSpan(
         int[] on,
@@ -327,33 +251,14 @@ public sealed class WallLines
     /// <param name="on">
     ///     The coordinate each line sits on, sorted ascending.
     /// </param>
-    /// <param name="start">
-    ///     The low end of each line's span.
-    /// </param>
-    /// <param name="end">
-    ///     The high end of each line's span.
-    /// </param>
-    /// <param name="a0">
-    ///     The start's coordinate across the lines.
-    /// </param>
-    /// <param name="b0">
-    ///     The start's coordinate along the lines.
-    /// </param>
-    /// <param name="a1">
-    ///     The end's coordinate across the lines.
-    /// </param>
-    /// <param name="b1">
-    ///     The end's coordinate along the lines.
-    /// </param>
+    /// <param name="start">The low end of each line's span.</param>
+    /// <param name="end">The high end of each line's span.</param>
+    /// <param name="a0">The start's coordinate across the lines.</param>
+    /// <param name="b0">The start's coordinate along the lines.</param>
+    /// <param name="a1">The end's coordinate across the lines.</param>
+    /// <param name="b1">The end's coordinate along the lines.</param>
     /// <returns>
-    ///     <c>
-    ///         true
-    ///     </c>
-    ///     if the track crosses no line; otherwise,
-    ///     <c>
-    ///         false
-    ///     </c>
-    ///     .
+    ///     <c>true</c> if the track crosses no line; otherwise, <c>false</c> .
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsTrackClear(
@@ -394,5 +299,33 @@ public sealed class WallLines
         }
 
         return true;
+    }
+
+    private static (int[] On, int[] Start, int[] End) SortLines(IReadOnlyList<StraightLine> lines)
+    {
+        var count = lines.Count;
+        var on = new int[count];
+        var start = new int[count];
+        var end = new int[count];
+        var order = new int[count];
+
+        for (var i = 0; i < count; i++)
+            order[i] = i;
+
+        Array.Sort(
+            order,
+            (a, b) => lines[a]
+                      .On
+                      .CompareTo(lines[b].On));
+
+        for (var i = 0; i < count; i++)
+        {
+            var line = lines[order[i]];
+            on[i] = line.On;
+            start[i] = Math.Min(line.Start, line.End);
+            end[i] = Math.Max(line.Start, line.End);
+        }
+
+        return (on, start, end);
     }
 }

@@ -38,18 +38,10 @@ public readonly ref struct ValueRectangle : IRectangle
     /// <summary>
     ///     Initializes a new instance of the <see cref="ValueRectangle" /> struct from its centre and size.
     /// </summary>
-    /// <param name="x">
-    ///     The centre's x coordinate.
-    /// </param>
-    /// <param name="y">
-    ///     The centre's y coordinate.
-    /// </param>
-    /// <param name="width">
-    ///     The width.
-    /// </param>
-    /// <param name="height">
-    ///     The height.
-    /// </param>
+    /// <param name="x">The centre's x coordinate.</param>
+    /// <param name="y">The centre's y coordinate.</param>
+    /// <param name="width">The width.</param>
+    /// <param name="height">The height.</param>
     public ValueRectangle(
         float x,
         float y,
@@ -69,24 +61,12 @@ public readonly ref struct ValueRectangle : IRectangle
             rectangle.Width,
             rectangle.Height);
 
-    /// <summary>
-    ///     Creates a rectangle from two opposing corners.
-    /// </summary>
-    /// <param name="x1">
-    ///     The first corner's x coordinate.
-    /// </param>
-    /// <param name="y1">
-    ///     The first corner's y coordinate.
-    /// </param>
-    /// <param name="x2">
-    ///     The opposing corner's x coordinate.
-    /// </param>
-    /// <param name="y2">
-    ///     The opposing corner's y coordinate.
-    /// </param>
-    /// <returns>
-    ///     The rectangle spanning both corners.
-    /// </returns>
+    /// <summary>Creates a rectangle from two opposing corners.</summary>
+    /// <param name="x1">The first corner's x coordinate.</param>
+    /// <param name="y1">The first corner's y coordinate.</param>
+    /// <param name="x2">The opposing corner's x coordinate.</param>
+    /// <param name="y2">The opposing corner's y coordinate.</param>
+    /// <returns>The rectangle spanning both corners.</returns>
     public static ValueRectangle FromCorners(
         float x1,
         float y1,
@@ -101,20 +81,16 @@ public readonly ref struct ValueRectangle : IRectangle
     /// <summary>
     ///     Copies any <see cref="IRectangle" /> onto the stack.
     /// </summary>
-    /// <param name="rectangle">
-    ///     The rectangle to copy.
-    /// </param>
+    /// <param name="rectangle">The rectangle to copy.</param>
     /// <returns>
     ///     A <see cref="ValueRectangle" /> with the same values.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     rectangle
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">rectangle</exception>
     public static ValueRectangle From(IRectangle rectangle)
     {
         ArgumentNullException.ThrowIfNull(rectangle);
 
-        return new(
+        return new ValueRectangle(
             rectangle.X,
             rectangle.Y,
             rectangle.Width,

@@ -5,9 +5,7 @@ using AL.Core.Geometry;
 
 namespace AL.Data.Games;
 
-/// <summary>
-///     Represents the tavern's Texas Hold'em table.
-/// </summary>
+/// <summary>Represents the tavern's Texas Hold'em table.</summary>
 /// <remarks>
 ///     The script functions and socket events that play it are not modelled; this record covers the static data only.
 /// </remarks>
@@ -75,9 +73,7 @@ public record GPoker
     [JsonPropertyName("rake_cap")]
     public int RakeCap { get; init; }
 
-    /// <summary>
-    ///     The card ranks, lowest first.
-    /// </summary>
+    /// <summary>The card ranks, lowest first.</summary>
     public IReadOnlyList<string> Ranks { get; init; } = [];
 
     /// <summary>
@@ -99,8 +95,6 @@ public record GPoker
     /// </summary>
     public IReadOnlyList<Point> Stools { get; init; } = [];
 
-    /// <summary>
-    ///     The suits, which are unranked.
-    /// </summary>
+    /// <summary>The suits, which are unranked.</summary>
     public IReadOnlyList<string> Suits { get; init; } = [];
 }

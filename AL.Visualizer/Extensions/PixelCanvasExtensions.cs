@@ -49,30 +49,14 @@ public static class PixelCanvasExtensions
         return canvas;
     }
 
-    /// <summary>
-    ///     Draws a line on a canvas.
-    /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="line">
-    ///     The line to draw on the canvas.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the line.
-    /// </param>
-    /// <param name="pointColor">
-    ///     The color of the start and end pixels.
-    /// </param>
-    /// <returns>
-    ///     The canvas with the line drawn on it.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     line
-    /// </exception>
+    /// <summary>Draws a line on a canvas.</summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="line">The line to draw on the canvas.</param>
+    /// <param name="color">The color to draw the line.</param>
+    /// <param name="pointColor">The color of the start and end pixels.</param>
+    /// <returns>The canvas with the line drawn on it.</returns>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">line</exception>
     public static PixelCanvas DrawLine<TLine>(
         this PixelCanvas canvas,
         TLine line,
@@ -90,36 +74,16 @@ public static class PixelCanvasExtensions
             pointColor);
     }
 
-    /// <summary>
-    ///     Draws a line on a canvas.
-    /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="start">
-    ///     The start of the line.
-    /// </param>
-    /// <param name="end">
-    ///     The end of the line.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the line.
-    /// </param>
-    /// <param name="pointColor">
-    ///     The color of the start and end pixels.
-    /// </param>
-    /// <returns>
-    ///     The canvas with the line drawn on it.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     start
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     end
-    /// </exception>
+    /// <summary>Draws a line on a canvas.</summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="start">The start of the line.</param>
+    /// <param name="end">The end of the line.</param>
+    /// <param name="color">The color to draw the line.</param>
+    /// <param name="pointColor">The color of the start and end pixels.</param>
+    /// <returns>The canvas with the line drawn on it.</returns>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">start</exception>
+    /// <exception cref="ArgumentNullException">end</exception>
     public static PixelCanvas DrawLine<TPoint>(
         this PixelCanvas canvas,
         TPoint start,
@@ -154,27 +118,13 @@ public static class PixelCanvasExtensions
     /// <summary>
     ///     Draws the legs of a path that lie on the mesh's map.
     /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="navMesh">
-    ///     The navmesh the legs are drawn over.
-    /// </param>
-    /// <param name="path">
-    ///     The legs to draw.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the legs in.
-    /// </param>
-    /// <returns>
-    ///     The canvas with the path drawn on it.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     path
-    /// </exception>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="navMesh">The navmesh the legs are drawn over.</param>
+    /// <param name="path">The legs to draw.</param>
+    /// <param name="color">The color to draw the legs in.</param>
+    /// <returns>The canvas with the path drawn on it.</returns>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">path</exception>
     public static PixelCanvas DrawPath(
         this PixelCanvas canvas,
         NavMesh navMesh,
@@ -200,24 +150,12 @@ public static class PixelCanvasExtensions
     /// <summary>
     ///     Draws a path along a number of points on a canvas.
     /// </summary>
-    /// <param name="canvas">
-    ///     The canvas to draw on.
-    /// </param>
-    /// <param name="points">
-    ///     The points to draw the path along.
-    /// </param>
-    /// <param name="color">
-    ///     The color to draw the path.
-    /// </param>
-    /// <returns>
-    ///     The canvas with the path drawn on it.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     canvas
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     points
-    /// </exception>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="points">The points to draw the path along.</param>
+    /// <param name="color">The color to draw the path.</param>
+    /// <returns>The canvas with the path drawn on it.</returns>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">points</exception>
     public static PixelCanvas DrawPath<TPoint>(this PixelCanvas canvas, IEnumerable<TPoint> points, SKColor color = default)
         where TPoint: IPoint
     {

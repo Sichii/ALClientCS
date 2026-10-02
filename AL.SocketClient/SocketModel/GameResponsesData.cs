@@ -18,8 +18,8 @@ namespace AL.SocketClient.SocketModel;
 public sealed record GameResponseData : IOptionalObject
 {
     /// <summary>
-    ///     The account's full cosmetics unlock dictionary, sent by <c>cx_new</c>, <c>cx_sent</c> and <c>cx_received</c> as
-    ///     a replacement rather than a delta; a send deletes the key at zero, so merging would restore a traded-away cosmetic.
+    ///     The account's full cosmetics unlock dictionary, sent by <c>cx_new</c>, <c>cx_sent</c> and <c>cx_received</c> as a
+    ///     replacement rather than a delta; a send deletes the key at zero, so merging would restore a traded-away cosmetic.
     /// </summary>
     [JsonPropertyName("acx")]
     public Dictionary<string, int>? Acx { get; init; }
@@ -77,8 +77,8 @@ public sealed record GameResponseData : IOptionalObject
     public float Duration { get; init; }
 
     /// <summary>
-    ///     On a correlated tavern info reply, the percentage of a win's profit the house keeps (<see cref="TavernData.Edge" />).
-    ///     On a correlated dice settlement, the gold the house took out of that bet, already subtracted from the payout.
+    ///     On a correlated tavern info reply, the percentage of a win's profit the house keeps (<see cref="TavernData.Edge" />
+    ///     ). On a correlated dice settlement, the gold the house took out of that bet, already subtracted from the payout.
     ///     Zero on every other frame.
     /// </summary>
     [JsonPropertyName("edge")]
@@ -195,8 +195,8 @@ public sealed record GameResponseData : IOptionalObject
     ///     less <see cref="Cost" />, negative on a loss.
     /// </summary>
     /// <remarks>
-    ///     The server applies the payout before it sends the settlement, so reading this and watching the balance counts
-    ///     the same win twice.
+    ///     The server applies the payout before it sends the settlement, so reading this and watching the balance counts the
+    ///     same win twice.
     /// </remarks>
     [JsonPropertyName("net")]
     public long Net { get; init; }

@@ -15,8 +15,8 @@ namespace AL.Core.Json.SystemTextJson;
 ///     <see cref="JsonArrayIndexAttribute" />.
 /// </summary>
 /// <remarks>
-///     Register it through <see cref="ArrayToObjectConverterFactory" /> rather than as a type-level attribute, so the inner
-///     member fill can exclude it.
+///     Register it through <see cref="ArrayToObjectConverterFactory" /> rather than as a type-level attribute, so the
+///     inner member fill can exclude it.
 /// </remarks>
 public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
 {
@@ -48,7 +48,7 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
     /// </summary>
     private static readonly ConstructorInfo Constructor = typeof(T).GetConstructors(BindingFlags.Public | BindingFlags.Instance)
                                                                    .OrderByDescending(ctor => ctor.GetParameters()
-                                                                                                  .Length)
+                                                                       .Length)
                                                                    .First();
 
     /// <summary>
@@ -70,15 +70,11 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
     /// <summary>
     ///     Creates an <see cref="IEnumerable" /> <typeparamref name="T" /> and sets each indexed member from its array slot.
     /// </summary>
-    /// <param name="array">
-    ///     The positional array.
-    /// </param>
+    /// <param name="array">The positional array.</param>
     /// <param name="options">
     ///     The options each member value deserializes through, so nested converters still apply.
     /// </param>
-    /// <returns>
-    ///     The bound instance.
-    /// </returns>
+    /// <returns>The bound instance.</returns>
     private static T BindIndexedMembers(JsonArray array, JsonSerializerOptions options)
     {
         var instance = Activator.CreateInstance<T>();
@@ -111,15 +107,9 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
     /// <remarks>
     ///     Sidesteps System.Text.Json's rule that every constructor parameter must bind to an included member.
     /// </remarks>
-    /// <param name="array">
-    ///     The positional array.
-    /// </param>
-    /// <param name="options">
-    ///     The options each argument deserializes through.
-    /// </param>
-    /// <returns>
-    ///     The constructed instance.
-    /// </returns>
+    /// <param name="array">The positional array.</param>
+    /// <param name="options">The options each argument deserializes through.</param>
+    /// <returns>The constructed instance.</returns>
     private static T ConstructFromArray(JsonArray array, JsonSerializerOptions options)
     {
         var parameters = Constructor.GetParameters();
@@ -144,21 +134,13 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
     ///     Maps a positional <see cref="JsonArray" /> to <typeparamref name="T" /> by index, for converters that hold a parsed
     ///     node rather than a reader.
     /// </summary>
-    /// <param name="array">
-    ///     The positional array.
-    /// </param>
+    /// <param name="array">The positional array.</param>
     /// <param name="options">
     ///     The options each member value deserializes through.
     /// </param>
-    /// <returns>
-    ///     The mapped instance.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     array
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     options
-    /// </exception>
+    /// <returns>The mapped instance.</returns>
+    /// <exception cref="System.ArgumentNullException">array</exception>
+    /// <exception cref="System.ArgumentNullException">options</exception>
     public static T FromArray(JsonArray array, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(array);
@@ -201,8 +183,8 @@ public sealed class ArrayToObjectConverter<T> : JsonConverter<T>
 }
 
 /// <summary>
-///     Applies <see cref="ArrayToObjectConverter{T}" /> to any type with <see cref="JsonArrayIndexAttribute" /> members, which
-///     is always array-shaped on the wire.
+///     Applies <see cref="ArrayToObjectConverter{T}" /> to any type with <see cref="JsonArrayIndexAttribute" /> members,
+///     which is always array-shaped on the wire.
 /// </summary>
 public sealed class ArrayToObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
 {

@@ -28,24 +28,12 @@ public class Merchant : ALClient
     /// <summary>
     ///     Initializes a new instance of the <see cref="Merchant" /> class.
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the merchant.
-    /// </param>
-    /// <param name="apiClient">
-    ///     An API client implementation.
-    /// </param>
-    /// <param name="socketClient">
-    ///     A socket client implementation.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     characterName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     socketClient
-    /// </exception>
+    /// <param name="characterName">The name of the merchant.</param>
+    /// <param name="apiClient">An API client implementation.</param>
+    /// <param name="socketClient">A socket client implementation.</param>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
+    /// <exception cref="ArgumentNullException">socketClient</exception>
     public Merchant(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
         : base(characterName, apiClient, socketClient) { }
 
@@ -78,9 +66,7 @@ public class Merchant : ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously starts Fishing.
-    /// </summary>
+    /// <summary>Asynchronously starts Fishing.</summary>
     /// <remarks>
     ///     Returns once the server accepts the cast, which starts the channel rather than landing a fish. Fishing runs for 5
     ///     to 15 seconds and catches something one time in ten; the cooldown is taken then, not now.
@@ -88,9 +74,7 @@ public class Merchant : ALClient
     ///     The server does not restore its cooldown at login, so until the first state-changing action
     ///     <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'fishing'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'fishing'. ({reason})</exception>
     public Task FishingAsync()
         => UseSkillCoreAsync(
             "fishing",
@@ -107,31 +91,21 @@ public class Merchant : ALClient
     /// <summary>
     ///     Asynchronously uses MCourage, raising your defenses.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mcourage'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mcourage'. ({reason})</exception>
     public Task MCourageAsync() => UseSkillCoreAsync("mcourage");
 
     /// <summary>
     ///     Asynchronously uses MFrenzy, raising your attack speed sharply for a short time.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mfrenzy'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mfrenzy'. ({reason})</exception>
     public Task MFrenzyAsync() => UseSkillCoreAsync("mfrenzy");
 
     /// <summary>
     ///     Asynchronously uses MLuck on a target, luck-buffing them for a long duration.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mluck' on {targetId}. ({reason})
-    /// </exception>
+    /// <param name="targetId">The id of the target.</param>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mluck' on {targetId}. ({reason})</exception>
     public Task MLuckAsync(string targetId)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -146,9 +120,7 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next exchange and expiring 10 seconds after the cast either way.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massexchange'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massexchange'. ({reason})</exception>
     public Task MassExchangeAsync() => UseSkillCoreAsync("massexchange");
 
     /// <summary>
@@ -159,9 +131,7 @@ public class Merchant : ALClient
     ///     <see cref="MassExchangeAsync" /> rather than instead of it, so with both up an exchange runs in a twentieth of its
     ///     time.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massexchangepp'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massexchangepp'. ({reason})</exception>
     public Task MassExchangePPAsync() => UseSkillCoreAsync("massexchangepp");
 
     /// <summary>
@@ -170,9 +140,7 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next upgrade or compound and expiring 10 seconds after the cast either way.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massproduction'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massproduction'. ({reason})</exception>
     public Task MassProductionAsync() => UseSkillCoreAsync("massproduction");
 
     /// <summary>
@@ -181,14 +149,10 @@ public class Merchant : ALClient
     /// <remarks>
     ///     A one-shot buff, spent by the next upgrade or compound and expiring 10 seconds after the cast either way.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'massproductionpp'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'massproductionpp'. ({reason})</exception>
     public Task MassProductionPPAsync() => UseSkillCoreAsync("massproductionpp");
 
-    /// <summary>
-    ///     Asynchronously starts Mining.
-    /// </summary>
+    /// <summary>Asynchronously starts Mining.</summary>
     /// <remarks>
     ///     Returns once the server accepts the cast, which starts the channel rather than landing a strike. Mining runs for 5
     ///     to 15 seconds and yields something one time in five; the cooldown is taken then, not now.
@@ -196,9 +160,7 @@ public class Merchant : ALClient
     ///     The server does not restore its cooldown at login, so until the first state-changing action
     ///     <see cref="ALClient.Cooldowns" /> has no entry for it and it reads as ready.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'mining'. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'mining'. ({reason})</exception>
     public Task MiningAsync()
         => UseSkillCoreAsync(
             "mining",
@@ -213,15 +175,47 @@ public class Merchant : ALClient
             });
 
     /// <summary>
+    ///     Normalizes <paramref name="want" /> the way the server keeps it.
+    /// </summary>
+    /// <param name="want">What the offer asks for.</param>
+    /// <returns>
+    ///     The normalized want, or null for one the server refuses outright.
+    /// </returns>
+    /// <remarks>
+    ///     The name must be a real item other than the upgrade placeholder, and a title must be a real title. A level is kept
+    ///     only on an item that upgrades or compounds, capped at 12; a quantity only on one that stacks, capped at its stack
+    ///     size.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">want</exception>
+    public static TradeWant? NormalizeTradeWant(TradeWant want)
+    {
+        ArgumentNullException.ThrowIfNull(want);
+
+        if (string.IsNullOrEmpty(want.Name) || (want.Name == "placeholder") || GameData.Items[want.Name] is not { } item)
+            return null;
+
+        if (!string.IsNullOrEmpty(want.Title) && GameData.Titles[want.Title] is null)
+            return null;
+
+        var levels = item.UpgradeModifiers is not null || item.CompoundModifiers is not null;
+
+        return new TradeWant
+        {
+            Name = want.Name,
+            Level = levels && want.Level is { } level and > 0 ? Math.Min(12, level) : null,
+            Title = string.IsNullOrEmpty(want.Title) ? null : want.Title,
+            Quantity = item.StackSize > 1 ? Math.Min(item.StackSize, Math.Max(1, want.Quantity ?? 1)) : null
+        };
+    }
+
+    /// <summary>
     ///     Asynchronously opens the merchant stand, favoring a computer.
     /// </summary>
     /// <remarks>
     ///     A computer opens a <c>cstand</c>, which grants 24 trade slots below level 70 where a plain stand grants 16. Items
     ///     match by type, so a <c>supercomputer</c>, typed <c>computer</c>, counts too.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to open stand. ({reason})
-    /// </exception>
+    /// <exception cref="InvalidOperationException">Failed to open stand. ({reason})</exception>
     public async Task OpenStandAsync()
     {
         if (Character.Stand != Stand.None)
@@ -260,27 +254,13 @@ public class Merchant : ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously posts a buy order for an item.
-    /// </summary>
-    /// <param name="itemName">
-    ///     The name of the item to post a buy order for.
-    /// </param>
-    /// <param name="itemLevel">
-    ///     The level of the item to buy.
-    /// </param>
-    /// <param name="tradeSlot">
-    ///     The slot to post the buy order.
-    /// </param>
-    /// <param name="price">
-    ///     The price per item the buy order is for.
-    /// </param>
-    /// <param name="quantity">
-    ///     The number of items to buy.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     itemName
-    /// </exception>
+    /// <summary>Asynchronously posts a buy order for an item.</summary>
+    /// <param name="itemName">The name of the item to post a buy order for.</param>
+    /// <param name="itemLevel">The level of the item to buy.</param>
+    /// <param name="tradeSlot">The slot to post the buy order.</param>
+    /// <param name="price">The price per item the buy order is for.</param>
+    /// <param name="quantity">The number of items to buy.</param>
+    /// <exception cref="ArgumentNullException">itemName</exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to post item {itemName} to buy. ({reason})
     /// </exception>
@@ -351,21 +331,11 @@ public class Merchant : ALClient
         expectation.ThrowIfUnsuccessful();
     }
 
-    /// <summary>
-    ///     Asynchronously lists an item for sale.
-    /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot in the inventory of the item to list.
-    /// </param>
-    /// <param name="tradeSlot">
-    ///     The trade slot to list the item to.
-    /// </param>
-    /// <param name="price">
-    ///     The list price of the item.
-    /// </param>
-    /// <param name="quantity">
-    ///     The quantity of the item to sell.
-    /// </param>
+    /// <summary>Asynchronously lists an item for sale.</summary>
+    /// <param name="inventorySlot">The slot in the inventory of the item to list.</param>
+    /// <param name="tradeSlot">The trade slot to list the item to.</param>
+    /// <param name="price">The list price of the item.</param>
+    /// <param name="quantity">The quantity of the item to sell.</param>
     /// <exception cref="InvalidOperationException">
     ///     Failed to list item {itemNameOrSlot} for sale. ({reason})
     /// </exception>
@@ -450,18 +420,12 @@ public class Merchant : ALClient
     /// <summary>
     ///     Asynchronously offers an item on the stand in exchange for another item rather than for gold.
     /// </summary>
-    /// <param name="inventorySlot">
-    ///     The slot in the inventory of the item to offer.
-    /// </param>
-    /// <param name="tradeSlot">
-    ///     The trade slot to offer it in.
-    /// </param>
+    /// <param name="inventorySlot">The slot in the inventory of the item to offer.</param>
+    /// <param name="tradeSlot">The trade slot to offer it in.</param>
     /// <param name="want">
     ///     What the offer asks for. Normalized first by <see cref="NormalizeTradeWant" />, the way the server reads it.
     /// </param>
-    /// <param name="quantity">
-    ///     How many of a stack to offer.
-    /// </param>
+    /// <param name="quantity">How many of a stack to offer.</param>
     /// <exception cref="InvalidOperationException">
     ///     Failed to offer item {itemNameOrSlot} for trade. ({reason})
     /// </exception>
@@ -526,56 +490,12 @@ public class Merchant : ALClient
     }
 
     /// <summary>
-    ///     Normalizes <paramref name="want" /> the way the server keeps it.
-    /// </summary>
-    /// <param name="want">
-    ///     What the offer asks for.
-    /// </param>
-    /// <returns>
-    ///     The normalized want, or null for one the server refuses outright.
-    /// </returns>
-    /// <remarks>
-    ///     The name must be a real item other than the upgrade placeholder, and a title must be a real title. A level is kept
-    ///     only on an item that upgrades or compounds, capped at 12; a quantity only on one that stacks, capped at its stack
-    ///     size.
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     want
-    /// </exception>
-    public static TradeWant? NormalizeTradeWant(TradeWant want)
-    {
-        ArgumentNullException.ThrowIfNull(want);
-
-        if (string.IsNullOrEmpty(want.Name) || (want.Name == "placeholder") || GameData.Items[want.Name] is not { } item)
-            return null;
-
-        if (!string.IsNullOrEmpty(want.Title) && GameData.Titles[want.Title] is null)
-            return null;
-
-        var levels = item.UpgradeModifiers is not null || item.CompoundModifiers is not null;
-
-        return new TradeWant
-        {
-            Name = want.Name,
-            Level = levels && want.Level is { } level and > 0 ? Math.Min(12, level) : null,
-            Title = string.IsNullOrEmpty(want.Title) ? null : want.Title,
-            Quantity = item.StackSize > 1 ? Math.Min(item.StackSize, Math.Max(1, want.Quantity ?? 1)) : null
-        };
-    }
-
-    /// <summary>
     ///     Asynchronously creates a Merchant client and connects.
     ///     <br />
     /// </summary>
-    /// <param name="characterName">
-    ///     The name of the character to log in as.
-    /// </param>
-    /// <param name="region">
-    ///     The region to log into.
-    /// </param>
-    /// <param name="identifier">
-    ///     The identifier suffic for the region.
-    /// </param>
+    /// <param name="characterName">The name of the character to log in as.</param>
+    /// <param name="region">The region to log into.</param>
+    /// <param name="identifier">The identifier suffic for the region.</param>
     /// <param name="apiClient">
     ///     An <see cref="IAlApiClient" /> with your authorization credentials.
     /// </param>
@@ -585,12 +505,8 @@ public class Merchant : ALClient
     /// <returns>
     ///     <see cref="Merchant" />
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     characterName
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     apiClient
-    /// </exception>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
     public static Task<Merchant> StartAsync(
         string characterName,
         ServerRegion region,
@@ -608,21 +524,13 @@ public class Merchant : ALClient
     /// <summary>
     ///     Asynchronously throws an item from your inventory at a target.
     /// </summary>
-    /// <param name="targetId">
-    ///     The id of the target.
-    /// </param>
-    /// <param name="inventorySlot">
-    ///     The inventory slot holding the item to throw.
-    /// </param>
+    /// <param name="targetId">The id of the target.</param>
+    /// <param name="inventorySlot">The inventory slot holding the item to throw.</param>
     /// <remarks>
     ///     The item is consumed. Throwing an item the server considers harmful at another player fails outside of pvp.
     /// </remarks>
-    /// <exception cref="ArgumentNullException">
-    ///     targetId
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Failed to use 'throw' on {targetId}. ({reason})
-    /// </exception>
+    /// <exception cref="ArgumentNullException">targetId</exception>
+    /// <exception cref="InvalidOperationException">Failed to use 'throw' on {targetId}. ({reason})</exception>
     public Task ThrowAsync(string targetId, int inventorySlot)
     {
         if (string.IsNullOrEmpty(targetId))
@@ -639,12 +547,8 @@ public class Merchant : ALClient
             });
     }
 
-    /// <summary>
-    ///     Asynchronously unposts a trade item.
-    /// </summary>
-    /// <param name="tradeSlot">
-    ///     The trade slot of the item to unpost.
-    /// </param>
+    /// <summary>Asynchronously unposts a trade item.</summary>
+    /// <param name="tradeSlot">The trade slot of the item to unpost.</param>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
     ///     <br />

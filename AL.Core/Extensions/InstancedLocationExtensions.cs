@@ -15,25 +15,19 @@ public static class InstancedLocationExtensions
     extension<T>(T location) where T: IInstancedLocation, allows ref struct
     {
         /// <summary>
-        ///     Calculates the euclidean distance between two instanced locations, or <see cref="float.MaxValue" /> when they
-        ///     are in different instances or on different maps.
+        ///     Calculates the euclidean distance between two instanced locations, or <see cref="float.MaxValue" /> when they are
+        ///     in different instances or on different maps.
         /// </summary>
-        /// <param name="other">
-        ///     Another instanced location.
-        /// </param>
-        /// <returns>
-        ///     The distance between the locations.
-        /// </returns>
+        /// <param name="other">Another instanced location.</param>
+        /// <returns>The distance between the locations.</returns>
         public float DistanceWithInstanceCheck<T2>(T2 other) where T2: IInstancedLocation, allows ref struct
             => !location.InSameInstanceAs(other) ? float.MaxValue : location.DistanceWithMapCheck(other);
 
         /// <summary>
-        ///     Determines whether two locations share an instance. An empty instance matches any; a null one is unknown and
-        ///     only matches another unknown.
+        ///     Determines whether two locations share an instance. An empty instance matches any; a null one is unknown and only
+        ///     matches another unknown.
         /// </summary>
-        /// <param name="other">
-        ///     Another instanced location.
-        /// </param>
+        /// <param name="other">Another instanced location.</param>
         /// <returns>
         ///     <c>true</c> if the locations share an instance; otherwise, <c>false</c>.
         /// </returns>
@@ -60,21 +54,13 @@ public static class InstancedLocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">
-    ///     A location.
-    /// </param>
-    /// <param name="l2">
-    ///     Another location.
-    /// </param>
+    /// <param name="l1">A location.</param>
+    /// <param name="l2">Another location.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.AngularRelationTo" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">l1</exception>
+    /// <exception cref="System.ArgumentNullException">l2</exception>
     public static float AngularRelationTo(this IInstancedLocation l1, IInstancedLocation l2)
     {
         ArgumentNullException.ThrowIfNull(l1);
@@ -89,21 +75,13 @@ public static class InstancedLocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">
-    ///     A location.
-    /// </param>
-    /// <param name="l2">
-    ///     Another location.
-    /// </param>
+    /// <param name="l1">A location.</param>
+    /// <param name="l2">Another location.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.DirectionalRelationTo" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">l1</exception>
+    /// <exception cref="System.ArgumentNullException">l2</exception>
     public static Direction DirectionalRelationTo(this IInstancedLocation l1, IInstancedLocation l2)
     {
         ArgumentNullException.ThrowIfNull(l1);
@@ -118,24 +96,14 @@ public static class InstancedLocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">
-    ///     A location.
-    /// </param>
-    /// <param name="l2">
-    ///     Another location.
-    /// </param>
-    /// <param name="maxDistance">
-    ///     The max distance to translate by.
-    /// </param>
+    /// <param name="l1">A location.</param>
+    /// <param name="l2">Another location.</param>
+    /// <param name="maxDistance">The max distance to translate by.</param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     l2
-    /// </exception>
+    /// <exception cref="System.ArgumentNullException">l1</exception>
+    /// <exception cref="System.ArgumentNullException">l2</exception>
     public static Point OffsetTowards(this IInstancedLocation l1, IInstancedLocation l2, float maxDistance)
     {
         ArgumentNullException.ThrowIfNull(l1);

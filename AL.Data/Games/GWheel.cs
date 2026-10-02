@@ -8,9 +8,7 @@ namespace AL.Data.Games;
 /// </remarks>
 public record GWheel
 {
-    /// <summary>
-    ///     The smallest stake the wheel accepts, in gold.
-    /// </summary>
+    /// <summary>The smallest stake the wheel accepts, in gold.</summary>
     public long Min { get; init; }
 
     /// <summary>

@@ -376,9 +376,9 @@ public enum ALAttribute
 }
 
 /// <summary>
-///     Represents what stops an item being disposed of, read from the socket item field <c>l</c> . The server deletes the field
-///     rather than clearing it, so an item whose unlock has run to completion arrives carrying no <c>l</c> at all and
-///     reads back as <see cref="None" />.
+///     Represents what stops an item being disposed of, read from the socket item field <c>l</c> . The server deletes the
+///     field rather than clearing it, so an item whose unlock has run to completion arrives carrying no <c>l</c> at all
+///     and reads back as <see cref="None" />.
 /// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ItemLockType
@@ -393,7 +393,8 @@ public enum ItemLockType
 
     /// <summary>
     ///     A seal partway through its 48-hour unseal, which starts when the unseal is paid for. The server refuses a sale or a
-    ///     fresh lock on any set <c>item.l</c>, so the item stays as protected as on <see cref="Locked" /> until the timer ends.
+    ///     fresh lock on any set <c>item.l</c>, so the item stays as protected as on <see cref="Locked" /> until the timer
+    ///     ends.
     /// </summary>
     /// <remarks>
     ///     The deadline itself is <c>item.ld</c> , which this library does not model. How long is left has to come from the

@@ -10,8 +10,8 @@ using AL.SocketClient.SocketModel;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     Deserializes <see cref="DisappearData" />, whose <c>s</c> field is either a spawn <see cref="Orientation" /> array or
-///     a scalar spawn id.
+///     Deserializes <see cref="DisappearData" />, whose <c>s</c> field is either a spawn <see cref="Orientation" /> array
+///     or a scalar spawn id.
 /// </summary>
 /// <remarks>
 ///     Register it in the shared options, so the declared-field fill can drop it and not re-enter itself.

@@ -109,8 +109,8 @@ public sealed record GCondition : AttributedRecordBase
     public bool Persistent { get; init; }
 
     /// <summary>
-    ///     Caps <see cref="ALAttribute.Speed" /> at this value - tangle sets 24, hard shell 10, dash 500. The server
-    ///     applies it nowhere.
+    ///     Caps <see cref="ALAttribute.Speed" /> at this value - tangle sets 24, hard shell 10, dash 500. The server applies
+    ///     it nowhere.
     /// </summary>
     [JsonPropertyName("set_speed")]
     public int SetSpeed { get; init; }

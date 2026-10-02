@@ -15,8 +15,8 @@ namespace AL.Data.NPCs;
 public sealed record GNPC : AttributedRecordBase
 {
     /// <summary>
-    ///     <b>NULLABLE</b>. If populated, this NPC has an aura, and these are the attributes it gives to players standing
-    ///     near it.
+    ///     <b>NULLABLE</b>. If populated, this NPC has an aura, and these are the attributes it gives to players standing near
+    ///     it.
     /// </summary>
     public IReadOnlyDictionary<ALAttribute, float>? Aura { get; init; }
 
@@ -42,8 +42,7 @@ public sealed record GNPC : AttributedRecordBase
     public float Interval { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b>. If populated this NPC sells items, one entry per slot of its shop window. A null is an empty
-    ///     slot.
+    ///     <b>NULLABLE</b>. If populated this NPC sells items, one entry per slot of its shop window. A null is an empty slot.
     /// </summary>
     public IReadOnlyList<string?>? Items { get; init; }
 
@@ -56,9 +55,7 @@ public sealed record GNPC : AttributedRecordBase
     ///     Every place this NPC stands, gathered from the maps. Maps flagged as ignored contribute nothing, so an NPC placed
     ///     only on those has an empty list.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public IReadOnlyList<Location> Locations { get; internal set; } = new List<Location>();
 
     /// <summary>

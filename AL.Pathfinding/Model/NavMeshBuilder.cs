@@ -29,12 +29,8 @@ public sealed class NavMeshBuilder
     /// <summary>
     ///     Initializes a new instances of the <see cref="NavMeshBuilder" /> class.
     /// </summary>
-    /// <param name="map">
-    ///     A map's gamedata.
-    /// </param>
-    /// <param name="geometry">
-    ///     A maps gemometry data.
-    /// </param>
+    /// <param name="map">A map's gamedata.</param>
+    /// <param name="geometry">A maps gemometry data.</param>
     public NavMeshBuilder(GMap map, GGeometry geometry)
     {
         Map = map;
@@ -46,12 +42,8 @@ public sealed class NavMeshBuilder
         PointMap = new PointType[Width + 1, Height + 1];
     }
 
-    /// <summary>
-    ///     Builds the flat triangle mesh for this map.
-    /// </summary>
-    /// <returns>
-    ///     The walkable ground of the map as triangles.
-    /// </returns>
+    /// <summary>Builds the flat triangle mesh for this map.</summary>
+    /// <returns>The walkable ground of the map as triangles.</returns>
     /// <remarks>
     ///     The flood marks the raster as it goes, so a second call on the same builder returns an empty mesh.
     /// </remarks>

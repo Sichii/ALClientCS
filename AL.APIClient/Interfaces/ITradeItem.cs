@@ -4,9 +4,7 @@ using AL.APIClient.Model;
 
 namespace AL.APIClient.Interfaces;
 
-/// <summary>
-///     Represents an item for trade or sale.
-/// </summary>
+/// <summary>Represents an item for trade or sale.</summary>
 /// <seealso cref="ICommonItem" />
 public interface ITradeItem : ICommonItem
 {

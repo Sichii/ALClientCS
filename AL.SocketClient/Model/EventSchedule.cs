@@ -25,8 +25,7 @@ public sealed record EventSchedule
     public IReadOnlyList<int> Nightlies { get; init; } = [];
 
     /// <summary>
-    ///     Whole hours the server's own clock runs ahead of UTC: +1 EU, -5 US, +7 ASIA. Every hour above is on
-    ///     that clock.
+    ///     Whole hours the server's own clock runs ahead of UTC: +1 EU, -5 US, +7 ASIA. Every hour above is on that clock.
     /// </summary>
     [JsonPropertyName("time_offset")]
     public int TimeOffset { get; init; }

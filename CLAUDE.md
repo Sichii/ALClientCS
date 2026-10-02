@@ -12,7 +12,10 @@ projects target net10.0. The libraries build on each other and can be consumed s
 
 ### The server is open source — use it as the spec
 
-Adventure.Land's server is published at **<https://github.com/kaansoral/adventureland_mongodb>** (cloned locally at `D:\repos\kaansoral\adventureland_mongodb`). It is the live game's actual source, not a reimplementation, so for any protocol question it is an exact answer rather than an approximation. Never guess at a payload shape or a `game_response` code — read the handler.
+Adventure.Land's server is published at **<https://github.com/kaansoral/adventureland_mongodb>** (cloned locally at
+`D:\repos\kaansoral\adventureland_mongodb`). It is the live game's actual source, not a reimplementation, so for any
+protocol question it is an exact answer rather than an approximation. Never guess at a payload shape or a
+`game_response` code — read the handler.
 
 | File                            | What                                          |
 |---------------------------------|-----------------------------------------------|
@@ -24,8 +27,11 @@ Adventure.Land's server is published at **<https://github.com/kaansoral/adventur
 
 Things that will waste your time if you don't know them:
 
-- **The published repo is incomplete.** `/common` is not in it, and `api_call` lives there. Fetch it from `https://adventure.land/js/common_functions.js` — the REST calling convention changed and the repo cannot tell you that.
-- **Not every emit is a `socket.emit`.** Helpers `xy_emit`, `party_emit`, `instance_emit`, and `notify_friends_emit` carry events like `hit`, `action`, `chat_log`, and `ui`. Grep the quoted event name, not `emit(`.
+- **The published repo is incomplete.** `/common` is not in it, and `api_call` lives there. Fetch it from
+  `https://adventure.land/js/common_functions.js` — the REST calling convention changed and the repo cannot tell you
+  that.
+- **Not every emit is a `socket.emit`.** Helpers `xy_emit`, `party_emit`, `instance_emit`, and `notify_friends_emit`
+  carry events like `hit`, `action`, `chat_log`, and `ui`. Grep the quoted event name, not `emit(`.
 - **An NPC's entity id is its display name, not its `G.npcs` key.** NPCs are in `Players` under that name (`newupgrade`
   is `Cue`, `secondhands` is `Ponty`); the key rides in the entity's `npc` field (`Player.NPCName`).
   `Players.TryGetValue(npcKey, …)` always misses, and whatever it guards is silently dead. Locate an NPC through
@@ -51,7 +57,8 @@ Things that will waste your time if you don't know them:
   (`design/items.js:7441`) before `node/server.js` evals it (`:373`, `:556`). `G` only ever carries an integer `s`:
   `AL.Core/data.json` holds no boolean one, and `GItem_StackSize_EveryWireSpellingIsNumeric` pins it.
 
-<https://github.com/earthiverse/ALClient> is a maintained TypeScript client; its `source/definitions/*.d.ts` is a useful cross-check, but it is a third-party client — where it disagrees with the server, the server wins.
+<https://github.com/earthiverse/ALClient> is a maintained TypeScript client; its `source/definitions/*.d.ts` is a useful
+cross-check, but it is a third-party client — where it disagrees with the server, the server wins.
 
 ## Build Commands
 
@@ -75,9 +82,12 @@ dotnet run --project AL.MemberGenerator
 dotnet run --project AL.Visualizer -- dump-maps
 ```
 
-Any test deriving from `APITestBed` logs into the live API and needs `TestCredentials.txt` beside the test binary — account email on line 1, password on line 2. `AssemblyInit` repoints `Environment.CurrentDirectory` at the test output directory.
+Any test deriving from `APITestBed` logs into the live API and needs `TestCredentials.txt` beside the test binary —
+account email on line 1, password on line 2. `AssemblyInit` repoints `Environment.CurrentDirectory` at the test output
+directory.
 
-Shared build properties (TFM, nullable, implicit usings, packaging metadata) live in `Directory.Build.props` at the repo root, so a new project inherits them. The three tool projects opt out of packaging with `IsPackable=false`.
+Shared build properties (TFM, nullable, implicit usings, packaging metadata) live in `Directory.Build.props` at the repo
+root, so a new project inherits them. The three tool projects opt out of packaging with `IsPackable=false`.
 
 **Downstream consumer:** `ALBot` vendors this repo as a git submodule and builds every project here from source through
 its own `ALBot.slnx`. Changing a public signature here breaks that build with no compile-time warning on this side.
@@ -109,9 +119,12 @@ AL.Visualizer      -> AL.APIClient + AL.Pathfinding
 AL.Tests           -> AL.Client + AL.MemberGenerator
 ```
 
-The six library projects are packed on build; `AL.MemberGenerator`, `AL.Visualizer` and `AL.Tests` are `Exe` tools and set `IsPackable=false`.
+The six library projects are packed on build; `AL.MemberGenerator`, `AL.Visualizer` and `AL.Tests` are `Exe` tools and
+set `IsPackable=false`.
 
-`AL.Core` is the only project with no project references. Every NuGet dependency the whole stack gets for free flows from it: `Chaos.Time` and `Common.Logging.NLogNetStandard` (which is what puts NLog on the graph — nothing else references it directly).
+`AL.Core` is the only project with no project references. Every NuGet dependency the whole stack gets for free flows
+from it: `Chaos.Time` and `Common.Logging.NLogNetStandard` (which is what puts NLog on the graph — nothing else
+references it directly).
 
 ## Architecture
 
@@ -126,21 +139,28 @@ Login is API-first, then per-character: `AlApiClient.LoginAsync(email, pw)` prod
 
 ### Client Layer (`AL.Client`)
 
-- **`ALClient`** -- `abstract class ALClient : IAsyncDisposable, IDeltaUpdatable`. Holds the socket, the API handle, the persistent `Character`, and the live entity collections. Owns a private `EntityManager` and `PingManager`.
+- **`ALClient`** -- `abstract class ALClient : IAsyncDisposable, IDeltaUpdatable`. Holds the socket, the API handle, the
+  persistent `Character`, and the live entity collections. Owns a private `EntityManager` and `PingManager`.
 - **`Mage` / `Merchant` / `Paladin` / `Priest` / `Ranger` / `Rogue` / `Warrior`** -- one subclass per character class,
   adding its skills. Only `Warrior` is `sealed`.
-- **`AsyncDeltaLoop`** (`Abstractions/`) -- base for rate-limited internal loops. `PeriodicTimer(1000 / PollingRate)` plus `Chaos.Time.DeltaTime`, serialized through a `FifoAutoReleasingSemaphoreSlim`. Per-iteration exceptions are caught and logged so a bad tick never kills the loop. Note `Start()` is `async void` by design — it is fire-and-forget; use `StopAsync()` to cancel.
-- **`ALClientSettings`** -- static config. `NetworkTimeoutMS` (default 1500), `PositionPollingRate` (default 30), `SetLogLevel()`, `UseDefaultLoggingConfiguration()`.
+- **`AsyncDeltaLoop`** (`Abstractions/`) -- base for rate-limited internal loops. `PeriodicTimer(1000 / PollingRate)`
+  plus `Chaos.Time.DeltaTime`, serialized through a `FifoAutoReleasingSemaphoreSlim`. Per-iteration exceptions are
+  caught and logged so a bad tick never kills the loop. Note `Start()` is `async void` by design — it is
+  fire-and-forget; use `StopAsync()` to cancel.
+- **`ALClientSettings`** -- static config. `NetworkTimeoutMS` (default 1500), `PositionPollingRate` (default 30),
+  `SetLogLevel()`, `UseDefaultLoggingConfiguration()`.
 - **`Helpers/`, `Extensions/`** -- client-level utilities. Most general-purpose utility lives one layer down in
   `AL.Core.Extensions`.
 
 ### Logging
 
-`Common.Logging`, so a consumer can plug in any factory adapter. `ALClientSettings.UseDefaultLoggingConfiguration()` installs the NLog adapter; `SetLogLevel()` adjusts it. Every client exposes a `Logger`.
+`Common.Logging`, so a consumer can plug in any factory adapter. `ALClientSettings.UseDefaultLoggingConfiguration()`
+installs the NLog adapter; `SetLogLevel()` adjusts it. Every client exposes a `Logger`.
 
 ### Data Layer (`AL.Data`)
 
-`GameData` is the static accessor for the game's 'G' objects, populated during `InitializeAsync`. Beyond the raw data it carries *enriched* members that the original does not have:
+`GameData` is the static accessor for the game's 'G' objects, populated during `InitializeAsync`. Beyond the raw data it
+carries *enriched* members that the original does not have:
 
 ```csharp
 var gItem = GameData.Items["someItemName"];
@@ -156,18 +176,25 @@ var monsters = gMap.Monsters;        // each has .Data -> the G monster
 var bounds = gMonster.BoundingBase;
 ```
 
-`AL.MemberGenerator` is what produces the strongly-typed members over this data — rerun it when the game's G data changes.
+`AL.MemberGenerator` is what produces the strongly-typed members over this data — rerun it when the game's G data
+changes.
 
 ### Pathfinding (`AL.Pathfinding`)
 
-Built once by `Pathfinder.Initialize()`; every query after that is lock-free. The geometry queries (`CanMove`, `IsWall`, `IsWalkable`, `TryFindNearestWalkable`) are allocation-free once warm; a search allocates only its result legs.
+Built once by `Pathfinder.Initialize()`; every query after that is lock-free. The geometry queries (`CanMove`, `IsWall`,
+`IsWalkable`, `TryFindNearestWalkable`) are allocation-free once warm; a search allocates only its result legs.
 
-- **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall` are answered from it. The lines carry the local ice golem corridor carve.
+- **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision
+  base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall`
+  are answered from it. The lines carry the local ice golem corridor carve.
 - **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at
   build. Flat arrays, neighbour ids, a uniform grid for `FindTriangle`. `IsWalkable` and `TryFindNearestWalkable` are
   containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled; where
   the two floods disagree, `GameData.CarveCorridors` closes the gap.
-- **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a rectangle band plus a range: a door is the real rounded rectangle the server opens from, a destination a circle).
+- **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the
+  vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over
+  the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a
+  rectangle band plus a range: a door is the real rounded rectangle the server opens from, a destination a circle).
 - **`PortalGraph`** joins maps: arrival nodes (spawns something lands on), departure nodes (exits), static walk costs
   funnelled at build, town and leave edges, and a blink-only edge wherever no walk joins an arrival to an exit. A search
   adds a virtual start and its ends, runs Dijkstra over arrivals with `PathOptions` pricing recall and blink against the
@@ -178,13 +205,20 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   down. With blink on, an A* lower bound orders the queue), and expands the winner into `PathEdge`s. Any of N ends:
   the first taken wins. Blink off leaves the route untouched.
 
-`PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the `Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
+`PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the
+`Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
 
-**A daily-dungeon floor is not in G and never in the world graph.** The server generates a run's floors and streams them over `map_chunk`; `Pathfinder.RegisterGeneratedRun` files them into `GameData.Maps`/`Geometry` (copy-on-write, so readers need no lock), builds their meshes, and gives the run a portal graph of its own that a route starting on a floor uses. Nothing routes from the world into a run - the keeper pulls the party in over an `interaction` - so a `FindPath` from `main` to a floor finds nothing, by design. `GMap.Generated` is how to tell a floor from a map; a run's floors leave the tables two hours after a later run replaces them.
+**A daily-dungeon floor is not in G and never in the world graph.** The server generates a run's floors and streams them
+over `map_chunk`; `Pathfinder.RegisterGeneratedRun` files them into `GameData.Maps`/`Geometry` (copy-on-write, so
+readers need no lock), builds their meshes, and gives the run a portal graph of its own that a route starting on a floor
+uses. Nothing routes from the world into a run - the keeper pulls the party in over an `interaction` - so a `FindPath`
+from `main` to a floor finds nothing, by design. `GMap.Generated` is how to tell a floor from a map; a run's floors
+leave the tables two hours after a later run replaces them.
 
 ## Entity Persistence Rules
 
-Getting these wrong produces stale reads and NREs, because "the object I'm holding" and "the object the server knows about" diverge silently.
+Getting these wrong produces stale reads and NREs, because "the object I'm holding" and "the object the server knows
+about" diverge silently.
 
 | Object                      | Lifetime                                                                                                                   |
 |-----------------------------|----------------------------------------------------------------------------------------------------------------------------|

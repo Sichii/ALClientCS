@@ -21,6 +21,7 @@ public class ProjectileMitigationTests
 
     [Before(Class)]
     public static void EnsureGameData()
+
         //same guard as GameDataTestBed, but from the committed snapshot so no credentials are needed. the
         //assertions below survive either data source - a warrior deals physical damage in both
         => CapturedGameData = Fixture.LoadGameDataIfEmpty();

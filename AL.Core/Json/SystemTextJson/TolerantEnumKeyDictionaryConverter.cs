@@ -21,8 +21,8 @@ public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConve
     where TValue: notnull
 {
     /// <summary>
-    ///     The logger, named from a string because the layout's shortName truncates a closed generic's assembly-qualified
-    ///     name to the tail of the last type argument.
+    ///     The logger, named from a string because the layout's shortName truncates a closed generic's assembly-qualified name
+    ///     to the tail of the last type argument.
     /// </summary>
     private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumKeyDictionaryConverter<TKey, TValue>));
 

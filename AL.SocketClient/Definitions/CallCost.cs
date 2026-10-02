@@ -20,9 +20,7 @@ public static class CallCost
     /// </summary>
     public const double LIMIT = 200d;
 
-    /// <summary>
-    ///     The sliding window the limit is measured over.
-    /// </summary>
+    /// <summary>The sliding window the limit is measured over.</summary>
     public static readonly TimeSpan WINDOW = TimeSpan.FromSeconds(4);
 
     /// <summary>
@@ -30,9 +28,7 @@ public static class CallCost
     /// </summary>
     private const double RESEND = 2d;
 
-    /// <summary>
-    ///     The server's <c>CC.equip</c> row.
-    /// </summary>
+    /// <summary>The server's <c>CC.equip</c> row.</summary>
     private const double EQUIP_ROW = 3d;
 
     /// <summary>
@@ -49,8 +45,8 @@ public static class CallCost
     ///     The cost <c>transport_player_to</c> bills whoever it moves, from a loop as readily as from a handler.
     /// </summary>
     /// <remarks>
-    ///     A landed blink is a skill at 0.1 and then this when its condition runs out, which no row keyed on the emit type
-    ///     can carry.
+    ///     A landed blink is a skill at 0.1 and then this when its condition runs out, which no row keyed on the emit type can
+    ///     carry.
     /// </remarks>
     public const double TRANSPORT = 8d;
 
@@ -59,8 +55,8 @@ public static class CallCost
     ///     this client's emit surface.
     /// </summary>
     /// <remarks>
-    ///     A method absent here bills nothing: no <c>CC</c> row, and either no resend or a <c>reopen+nc+inv</c> one, which
-    ///     is what every bench, shop and inventory handler sends.
+    ///     A method absent here bills nothing: no <c>CC</c> row, and either no resend or a <c>reopen+nc+inv</c> one, which is
+    ///     what every bench, shop and inventory handler sends.
     /// </remarks>
     private static readonly IReadOnlyDictionary<ALSocketEmitType, double> COSTS = new Dictionary<ALSocketEmitType, double>
     {
@@ -133,28 +129,11 @@ public static class CallCost
     };
 
     /// <summary>
-    ///     Calculates what one emit of this type costs against <see cref="LIMIT" />.
+    ///     Calculates what a transport bills on top of <see cref="CalculateCost" /> for crossing the bank's threshold, under
+    ///     the name <c>bank</c>: 32 to mount the account's bank on the way in, 16 to unmount it on the way out.
     /// </summary>
-    /// <param name="emitType">
-    ///     The emit type.
-    /// </param>
-    /// <returns>
-    ///     The emit's <c>CC</c> row plus its handler's resend, or 0 for a method with neither.
-    ///     <see cref="ALSocketEmitType.EquipBatch" /> is priced as a batch of one; use
-    ///     <see cref="CalculateEquipBatchCost" /> when the count is known.
-    /// </returns>
-    public static double CalculateCost(ALSocketEmitType emitType) => COSTS.GetValueOrDefault(emitType, 0d);
-
-    /// <summary>
-    ///     Calculates what a transport bills on top of <see cref="CalculateCost" /> for crossing the bank's threshold, under the
-    ///     name <c>bank</c>: 32 to mount the account's bank on the way in, 16 to unmount it on the way out.
-    /// </summary>
-    /// <param name="fromBank">
-    ///     Whether the map being left has the bank mounted.
-    /// </param>
-    /// <param name="toBank">
-    ///     Whether the destination has the bank mounted.
-    /// </param>
+    /// <param name="fromBank">Whether the map being left has the bank mounted.</param>
+    /// <param name="toBank">Whether the destination has the bank mounted.</param>
     /// <returns>
     ///     The extra cost, 0 for a door between two bank floors or two ordinary maps.
     /// </returns>
@@ -176,12 +155,10 @@ public static class CallCost
     /// <param name="othersWithItems">
     ///     Members other than the opener who received an item from the chest.
     /// </param>
-    /// <param name="openerGotItem">
-    ///     Whether the opener received an item.
-    /// </param>
+    /// <param name="openerGotItem">Whether the opener received an item.</param>
     /// <returns>
-    ///     A tenth for each member who got nothing, and <see cref="REOPEN_OTHER" /> tenths for each other member reopened
-    ///     with an item.
+    ///     A tenth for each member who got nothing, and <see cref="REOPEN_OTHER" /> tenths for each other member reopened with
+    ///     an item.
     /// </returns>
     public static double CalculateChestOpenCost(int partySize, int othersWithItems, bool openerGotItem)
     {
@@ -191,12 +168,21 @@ public static class CallCost
     }
 
     /// <summary>
+    ///     Calculates what one emit of this type costs against <see cref="LIMIT" />.
+    /// </summary>
+    /// <param name="emitType">The emit type.</param>
+    /// <returns>
+    ///     The emit's <c>CC</c> row plus its handler's resend, or 0 for a method with neither.
+    ///     <see cref="ALSocketEmitType.EquipBatch" /> is priced as a batch of one; use <see cref="CalculateEquipBatchCost" />
+    ///     when the count is known.
+    /// </returns>
+    public static double CalculateCost(ALSocketEmitType emitType) => COSTS.GetValueOrDefault(emitType, 0d);
+
+    /// <summary>
     ///     Calculates what one <c>equip_batch</c> costs against <see cref="LIMIT" />: <c>CC.equip * (0.5 + count/2)</c> plus
     ///     the one <c>reopen+u+cid</c> resend the handler ends on.
     /// </summary>
-    /// <param name="count">
-    ///     The number of items in the batch.
-    /// </param>
+    /// <param name="count">The number of items in the batch.</param>
     /// <returns>
     ///     The batch's cost; from two items up it is less than the same equips sent one at a time.
     /// </returns>

@@ -83,6 +83,24 @@ public class ConcurrentDictionaryExtensionsTests
     }
 
     [Test]
+    public void TryRemoveWhereDropsMatchingEntriesWithoutASnapshot()
+    {
+        var map = new ConcurrentDictionary<string, int>
+        {
+            ["keep"] = 1,
+            ["drop"] = 0
+        };
+
+        map.TryRemoveWhere(value => value == 0);
+
+        map.Should()
+           .ContainKey("keep");
+
+        map.Should()
+           .NotContainKey("drop");
+    }
+
+    [Test]
     public void UpdateAndTryRemoveWhereDropsExpiredEntriesAndTicksTheRest()
     {
         var map = new ConcurrentDictionary<string, TickItem>
@@ -143,24 +161,6 @@ public class ConcurrentDictionaryExtensionsTests
 
         written.Should()
                .Be(64);
-    }
-
-    [Test]
-    public void TryRemoveWhereDropsMatchingEntriesWithoutASnapshot()
-    {
-        var map = new ConcurrentDictionary<string, int>
-        {
-            ["keep"] = 1,
-            ["drop"] = 0
-        };
-
-        map.TryRemoveWhere(value => value == 0);
-
-        map.Should()
-           .ContainKey("keep");
-
-        map.Should()
-           .NotContainKey("drop");
     }
 
     private sealed class TickItem(float remainingMs) : IDeltaUpdatable

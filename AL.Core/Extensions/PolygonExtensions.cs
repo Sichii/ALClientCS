@@ -14,12 +14,8 @@ public static class PolygonExtensions
     ///     <br />
     ///     https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
     /// </summary>
-    /// <param name="polygon">
-    ///     A polygon.
-    /// </param>
-    /// <param name="point">
-    ///     A point.
-    /// </param>
+    /// <param name="polygon">A polygon.</param>
+    /// <param name="point">A point.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />

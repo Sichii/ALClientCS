@@ -41,8 +41,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <see cref="GameData.Conditions" />. In PvP it reaches only the wearer's own side.
     /// </summary>
     /// <remarks>
-    ///     The item's <c>attr0</c> is how much of the condition's one stat the aura hands out: <c>sanguine</c> gives that
-    ///     much lifesteal.
+    ///     The item's <c>attr0</c> is how much of the condition's one stat the aura hands out: <c>sanguine</c> gives that much
+    ///     lifesteal.
     /// </remarks>
     public string? Aura { get; init; }
 
@@ -87,8 +87,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     If this item is a booster, the duration an inactive copy contributes when compounded, in days.
-    ///     Activation itself uses a flat 30 days plus two per level instead.
+    ///     If this item is a booster, the duration an inactive copy contributes when compounded, in days. Activation itself
+    ///     uses a flat 30 days plus two per level instead.
     /// </summary>
     public int? Days { get; init; }
 
@@ -101,9 +101,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// <summary>
     ///     If populated, this item can be exchanged at this NPC.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public GNPC? ExchangeAtNPC { get; internal set; }
 
     /// <summary>
@@ -121,9 +119,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     If populated, what an exchange of this item rolls on, keyed by the level exchanged. An item that neither compounds
     ///     nor upgrades has a single entry at 0, and a level absent from the table cannot be exchanged.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewards { get; internal set; }
 
     /// <summary>
@@ -182,9 +178,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     How <see cref="ObtainableFromNPC" /> was reached: bought from that NPC's shop, crafted from a recipe, exchanged for
     ///     tokens, or handed over for a quest. Unknown when no NPC was found.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public ObtainType ObtainType { get; internal set; }
 
     /// <summary>
@@ -192,9 +186,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <br />
     ///     Check <see cref="ObtainType" /> for the method of obtaining.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public GNPC? ObtainableFromNPC { get; internal set; }
 
     /// <summary>
@@ -212,9 +204,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// <summary>
     ///     If populated, the recipe that crafts this item. The item's dismantle recipe is not reachable from here.
     /// </summary>
-    /// <remarks>
-    ///     Enriched property
-    /// </remarks>
+    /// <remarks>Enriched property</remarks>
     public Recipe? Recipe { get; internal set; }
 
     /// <summary>
@@ -265,8 +255,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public ItemType Type { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b>. If null, this item is not upgradeable. If NOT null, the <see cref="ALAttribute" /> gain added
-    ///     once per upgrade level, scaled up past +6: 1.25x at +7, 1.5x at +8, 2x at +9, 3x at +10, 1.25x at +11 and +12.
+    ///     <b>NULLABLE</b>. If null, this item is not upgradeable. If NOT null, the <see cref="ALAttribute" /> gain added once
+    ///     per upgrade level, scaled up past +6: 1.25x at +7, 1.5x at +8, 2x at +9, 3x at +10, 1.25x at +11 and +12.
     /// </summary>
     [JsonPropertyName("upgrade")]
     public IReadOnlyDictionary<ALAttribute, float>? UpgradeModifiers { get; init; }
@@ -294,9 +284,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// <param name="statName">
     ///     The stat name as sent. A name that is not an <see cref="ALAttribute" /> is ignored.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     statName
-    /// </exception>
+    /// <exception cref="ArgumentNullException">statName</exception>
     public void RecoverScrollStat(string statName)
     {
         ArgumentNullException.ThrowIfNull(statName);

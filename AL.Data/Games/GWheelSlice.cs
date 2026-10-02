@@ -13,9 +13,7 @@ namespace AL.Data.Games;
 /// <param name="Side">
 ///     Which of <see cref="GWheel.Sides" /> this wedge pays.
 /// </param>
-/// <param name="Colour">
-///     The wedge's fill, as a CSS hex colour.
-/// </param>
+/// <param name="Colour">The wedge's fill, as a CSS hex colour.</param>
 public sealed record GWheelSlice(
     [property: JsonArrayIndex(0)]
     string Name,

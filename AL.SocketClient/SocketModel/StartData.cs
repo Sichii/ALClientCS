@@ -110,9 +110,7 @@ public class StartData : CharacterData
     ///     The current instance's info blob. Shape depends on the instance type (e.g. duel state); defaults to an empty
     ///     object.
     /// </summary>
-    /// <remarks>
-    ///     Start-only: sent as <c>info</c> on join.
-    /// </remarks>
+    /// <remarks>Start-only: sent as <c>info</c> on join.</remarks>
     [JsonPropertyName("info")]
     public JsonObject? InstanceInfo { get; init; }
 

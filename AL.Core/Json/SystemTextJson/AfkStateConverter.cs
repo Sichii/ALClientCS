@@ -33,12 +33,8 @@ public sealed class AfkStateConverter : JsonConverter<AfkState>
     /// <summary>
     ///     Reads one of the two names the server writes; any other name reads as <see cref="AfkState.Idle" />.
     /// </summary>
-    /// <param name="reader">
-    ///     The reader, positioned on a string token.
-    /// </param>
-    /// <returns>
-    ///     The state the name stands for.
-    /// </returns>
+    /// <param name="reader">The reader, positioned on a string token.</param>
+    /// <returns>The state the name stands for.</returns>
     private static AfkState ReadName(ref Utf8JsonReader reader)
     {
         if (reader.ValueTextEquals("bot"))

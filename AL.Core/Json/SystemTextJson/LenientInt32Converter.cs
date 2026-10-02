@@ -7,8 +7,8 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Rounds a fractional number to an <see cref="int" /> with banker's rounding (<c>GItem.Grade</c> 3.6 -&gt; 4,
-///     2.5 -&gt; 2) and coerces a numeric string.
+///     Rounds a fractional number to an <see cref="int" /> with banker's rounding (<c>GItem.Grade</c> 3.6 -&gt; 4, 2.5 -
+///     &gt; 2) and coerces a numeric string.
 /// </summary>
 /// <remarks>
 ///     Registered only in the attributed-object converter's inner options; the shared socket options must still throw on a

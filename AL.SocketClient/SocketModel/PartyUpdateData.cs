@@ -17,9 +17,7 @@ public sealed record PartyUpdateData
     [JsonPropertyName("leave")]
     public bool Leave { get; init; }
 
-    /// <summary>
-    ///     A list of the names of everyone in your party.
-    /// </summary>
+    /// <summary>A list of the names of everyone in your party.</summary>
     /// <remarks>
     ///     Arrives as <c>false</c> rather than an empty array when the party dissolves.
     /// </remarks>

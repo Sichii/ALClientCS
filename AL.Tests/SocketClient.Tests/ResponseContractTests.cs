@@ -16,71 +16,6 @@ namespace AL.Tests.SocketClient.Tests;
 public class ResponseContractTests
 {
     /// <summary>
-    ///     An <c>equip_batch</c> answers with one entry per equip it applied, each echoing the inventory slot the emit named
-    ///     and the slot the item went into. The server picks that slot itself, so it is read off the answer rather than
-    ///     assumed to be the one asked for.
-    /// </summary>
-    [Test]
-    public void AnEquipBatchAnswerEchoesTheSlotOfEveryEquipApplied()
-    {
-        const string RESPONSE
-            = @"{ ""response"":""data"", ""place"":""equip_batch"", ""success"":true, ""slots"":[ { ""num"":12, ""slot"":""mainhand"" }, { ""num"":13, ""slot"":""offhand"" } ] }";
-
-        var data = TestJson.Socket<GameResponseData>(RESPONSE);
-
-        data.Should()
-            .NotBeNull();
-
-        data.EquipBatchEntries
-            .Should()
-            .HaveCount(2);
-
-        data.EquipBatchEntries![0]
-            .ContainsData
-            .Should()
-            .BeTrue();
-
-        data.EquipBatchEntries[0]
-            .InventorySlot
-            .Should()
-            .Be(12);
-
-        data.EquipBatchEntries[1]
-            .Slot
-            .Should()
-            .Be(Slot.OffHand);
-    }
-
-    /// <summary>
-    ///     Two gear swaps on different slots leave two batches in flight at once, and <c>equip_batch</c> echoes no
-    ///     <c>request_id</c> to tell their answers apart. The echoed inventory slots do it instead. Without them each batch
-    ///     reads whichever answer arrives first as its own, and the one whose answer has not landed yet reports a refusal the
-    ///     server never made.
-    /// </summary>
-    [Test]
-    public void AnEquipBatchAnswerIsNotClaimedByAnotherBatchInFlight()
-    {
-        const string RESPONSE
-            = @"{ ""response"":""data"", ""place"":""equip_batch"", ""success"":true, ""slots"":[ { ""num"":30, ""slot"":""gloves"" } ] }";
-
-        var data = TestJson.Socket<GameResponseData>(RESPONSE);
-
-        data.Should()
-            .NotBeNull();
-
-        (int InventorySlot, Slot? Slot)[] weaponSwap = [(12, Slot.MainHand)];
-        (int InventorySlot, Slot? Slot)[] gloveSwap = [(30, Slot.Gloves)];
-
-        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, weaponSwap)
-                .Should()
-                .BeFalse();
-
-        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, gloveSwap)
-                .Should()
-                .BeTrue();
-    }
-
-    /// <summary>
     ///     A refused entry is not a <c>fail_response</c> . The server keeps everything it applied before it, stops there, and
     ///     sends the reason as a bare string in place of that entry - so <c>failed</c> is never set, and the trailing string
     ///     is the only thing saying the batch did not land whole.
@@ -221,6 +156,71 @@ public class ResponseContractTests
         data.Gold
             .Should()
             .BeApproximately(1290.6f, 0.001f);
+    }
+
+    /// <summary>
+    ///     An <c>equip_batch</c> answers with one entry per equip it applied, each echoing the inventory slot the emit named
+    ///     and the slot the item went into. The server picks that slot itself, so it is read off the answer rather than
+    ///     assumed to be the one asked for.
+    /// </summary>
+    [Test]
+    public void AnEquipBatchAnswerEchoesTheSlotOfEveryEquipApplied()
+    {
+        const string RESPONSE
+            = @"{ ""response"":""data"", ""place"":""equip_batch"", ""success"":true, ""slots"":[ { ""num"":12, ""slot"":""mainhand"" }, { ""num"":13, ""slot"":""offhand"" } ] }";
+
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
+
+        data.Should()
+            .NotBeNull();
+
+        data.EquipBatchEntries
+            .Should()
+            .HaveCount(2);
+
+        data.EquipBatchEntries![0]
+            .ContainsData
+            .Should()
+            .BeTrue();
+
+        data.EquipBatchEntries[0]
+            .InventorySlot
+            .Should()
+            .Be(12);
+
+        data.EquipBatchEntries[1]
+            .Slot
+            .Should()
+            .Be(Slot.OffHand);
+    }
+
+    /// <summary>
+    ///     Two gear swaps on different slots leave two batches in flight at once, and <c>equip_batch</c> echoes no
+    ///     <c>request_id</c> to tell their answers apart. The echoed inventory slots do it instead. Without them each batch
+    ///     reads whichever answer arrives first as its own, and the one whose answer has not landed yet reports a refusal the
+    ///     server never made.
+    /// </summary>
+    [Test]
+    public void AnEquipBatchAnswerIsNotClaimedByAnotherBatchInFlight()
+    {
+        const string RESPONSE
+            = @"{ ""response"":""data"", ""place"":""equip_batch"", ""success"":true, ""slots"":[ { ""num"":30, ""slot"":""gloves"" } ] }";
+
+        var data = TestJson.Socket<GameResponseData>(RESPONSE);
+
+        data.Should()
+            .NotBeNull();
+
+        (int InventorySlot, Slot? Slot)[] weaponSwap = [(12, Slot.MainHand)];
+        (int InventorySlot, Slot? Slot)[] gloveSwap = [(30, Slot.Gloves)];
+
+        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, weaponSwap)
+                .Should()
+                .BeFalse();
+
+        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, gloveSwap)
+                .Should()
+                .BeTrue();
     }
 
     /// <summary>

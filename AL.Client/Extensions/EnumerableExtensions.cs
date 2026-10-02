@@ -13,9 +13,7 @@ public static class EnumerableExtensions
     /// <summary>
     ///     Lazily enumerates an enumeration of <see cref="IIndexer{T}" />s and finds groups of items that can be compounded.
     /// </summary>
-    /// <param name="enumerable">
-    ///     An enumerable of <see cref="IIndexer{T}" />s.
-    /// </param>
+    /// <param name="enumerable">An enumerable of <see cref="IIndexer{T}" />s.</param>
     /// <typeparam name="T">
     ///     A type that inherits from <see cref="IIndexer{T}" />.
     /// </typeparam>
@@ -25,9 +23,7 @@ public static class EnumerableExtensions
     ///     A lazy enumeration of groups of compoundable items. If there are more than 3 of an item, the group will contains
     ///     all of them.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     enumerable
-    /// </exception>
+    /// <exception cref="ArgumentNullException">enumerable</exception>
     public static IEnumerable<ICompoundableGrouping<T>> CompoundableGroupBy<T>(this IEnumerable<T> enumerable) where T: IIndexer<Item>
     {
         ArgumentNullException.ThrowIfNull(enumerable);

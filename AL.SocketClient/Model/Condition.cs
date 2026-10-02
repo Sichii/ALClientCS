@@ -8,9 +8,7 @@ using Chaos.Time.Abstractions;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>
-///     Represents a buff or debuff.
-/// </summary>
+/// <summary>Represents a buff or debuff.</summary>
 /// <seealso cref="AttributedObjectBase" />
 public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaUpdatable
 {
@@ -24,20 +22,6 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     Gets the amount of milliseconds that have elapsed since a skill was used.
     /// </summary>
     public TimeSpan Elapsed { get; set; }
-
-    /// <summary>
-    ///     If populated,
-    ///     <br />
-    ///     this could be the name of the monster you need to kill for <see cref="AL.Core.Definitions.Condition.MonsterHunt" />
-    ///     <b>OR</b> the ID of a coop boss this player is fighting.
-    /// </summary>
-    [JsonPropertyName("id")]
-    public string? Id { get; init; }
-
-    /// <summary>
-    ///     The intensity of the <see cref="AL.Core.Definitions.Condition.Burned" /> condition.
-    /// </summary>
-    public float Intensity { get; init; }
 
     /// <summary>
     ///     If populated, the Unix time in milliseconds at which an encouragement bonus stops paying altogether.
@@ -58,10 +42,18 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     public float? GoldMultiplier { get; init; }
 
     /// <summary>
-    ///     If populated, this encouragement bonus's share of the luck multiplier.
+    ///     If populated,
+    ///     <br />
+    ///     this could be the name of the monster you need to kill for <see cref="AL.Core.Definitions.Condition.MonsterHunt" />
+    ///     <b>OR</b> the ID of a coop boss this player is fighting.
     /// </summary>
-    [JsonPropertyName("luck_multiplier")]
-    public float? LuckMultiplier { get; init; }
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    /// <summary>
+    ///     The intensity of the <see cref="AL.Core.Definitions.Condition.Burned" /> condition.
+    /// </summary>
+    public float Intensity { get; init; }
 
     public bool IsCompensated { get; private set; }
 
@@ -70,6 +62,12 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </summary>
     [JsonPropertyName("ability")]
     public bool IsMonsterAbility { get; init; }
+
+    /// <summary>
+    ///     If populated, this encouragement bonus's share of the luck multiplier.
+    /// </summary>
+    [JsonPropertyName("luck_multiplier")]
+    public float? LuckMultiplier { get; init; }
 
     /// <summary>
     ///     Wizard: delevel flag, as long as it's on, after every level 1 monster kill monsters of that kind are deleveled -
@@ -87,6 +85,19 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     the sprite.
     /// </summary>
     public string? Name { get; init; }
+
+    /// <summary>
+    ///     If populated, which ten-day step of the New Player bonus the account is on, counting from 1.
+    /// </summary>
+    /// <remarks>Each step pays less than the one before.</remarks>
+    [JsonPropertyName("phase")]
+    public int? Phase { get; init; }
+
+    /// <summary>
+    ///     If populated, the Unix time in milliseconds at which the New Player bonus drops to its next <see cref="Phase" /> .
+    /// </summary>
+    [JsonPropertyName("phase_ends")]
+    public long? PhaseEnds { get; init; }
 
     /// <summary>
     ///     If populated, the points the server credits this character with on a coop boss: its accumulated damage and healing,
@@ -126,21 +137,6 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </summary>
     [JsonPropertyName("sn")]
     public string? ServerKey { get; init; }
-
-    /// <summary>
-    ///     If populated, which ten-day step of the New Player bonus the account is on, counting from 1.
-    /// </summary>
-    /// <remarks>
-    ///     Each step pays less than the one before.
-    /// </remarks>
-    [JsonPropertyName("phase")]
-    public int? Phase { get; init; }
-
-    /// <summary>
-    ///     If populated, the Unix time in milliseconds at which the New Player bonus drops to its next <see cref="Phase" /> .
-    /// </summary>
-    [JsonPropertyName("phase_ends")]
-    public long? PhaseEnds { get; init; }
 
     /// <summary>
     ///     If populated, the Id of the merchant who cast this <see cref="AL.Core.Definitions.Condition.MLuck" />.

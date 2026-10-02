@@ -8,8 +8,8 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Represents a converter factory that can copy itself to decline one type, so a converter it produced can run an inner
-///     member fill without re-entering itself while nested types still match.
+///     Represents a converter factory that can copy itself to decline one type, so a converter it produced can run an
+///     inner member fill without re-entering itself while nested types still match.
 /// </summary>
 /// <remarks>
 ///     Options cannot drop a factory by the produced converter's type, so the factory is swapped for such a copy instead.

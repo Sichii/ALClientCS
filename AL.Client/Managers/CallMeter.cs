@@ -5,9 +5,7 @@ using AL.SocketClient.Definitions;
 
 namespace AL.Client.Managers;
 
-/// <summary>
-///     Represents one row of a call-budget breakdown.
-/// </summary>
+/// <summary>Represents one row of a call-budget breakdown.</summary>
 /// <param name="Name">
 ///     A source label, or an emit type, depending on which grouping the row came from.
 /// </param>
@@ -35,9 +33,7 @@ public sealed record CallBudgetRow(string Name, double Cost, int Emits)
 /// <param name="Cost">
 ///     The cost of the emits in the window, by <see cref="CallCost.CalculateCost" />, dated the way the server dates them.
 /// </param>
-/// <param name="Emits">
-///     The number of emits the window covers.
-/// </param>
+/// <param name="Emits">The number of emits the window covers.</param>
 /// <param name="BySource">
 ///     The window's cost broken down by whatever <see cref="CallMeter.SourceResolver" /> named the caller.
 /// </param>
@@ -92,12 +88,8 @@ public sealed class CallMeter
     ///     Folded into that emit's entry and never below zero. Once the entry has left the window, a charge opens a new one
     ///     and a refund is dropped.
     /// </remarks>
-    /// <param name="emitType">
-    ///     The emit the charge belongs to.
-    /// </param>
-    /// <param name="cost">
-    ///     The cost to add, negative for a refund.
-    /// </param>
+    /// <param name="emitType">The emit the charge belongs to.</param>
+    /// <param name="cost">The cost to add, negative for a refund.</param>
     internal void Charge(ALSocketEmitType emitType, double cost)
     {
         if (cost == 0)
@@ -134,18 +126,14 @@ public sealed class CallMeter
     /// <summary>
     ///     Groups a window of entries into rows, one per key, each summing its group's cost.
     /// </summary>
-    /// <param name="window">
-    ///     The entries to group into rows.
-    /// </param>
+    /// <param name="window">The entries to group into rows.</param>
     /// <param name="keySelector">
     ///     What to group each entry by - the row's <see cref="CallBudgetRow.Name" />.
     /// </param>
     /// <param name="createChildrenFunc">
     ///     Given the entries of one group, the breakdown to hang under it. Null leaves the row a leaf.
     /// </param>
-    /// <returns>
-    ///     The rows, most expensive first.
-    /// </returns>
+    /// <returns>The rows, most expensive first.</returns>
     private static IReadOnlyList<CallBudgetRow> Group(
         IReadOnlyList<Entry> window,
         Func<Entry, string> keySelector,
@@ -167,9 +155,7 @@ public sealed class CallMeter
     ///     Drops every entry that has fallen outside the window. A free emit is dated when it happened while the run it sits
     ///     inside is dated earlier, so what has expired is not always a prefix.
     /// </summary>
-    /// <param name="now">
-    ///     The current stopwatch ticks.
-    /// </param>
+    /// <param name="now">The current stopwatch ticks.</param>
     private void Prune(long now) => Entries.RemoveAll(entry => Stopwatch.GetElapsedTime(entry.Stamp, now) > CallCost.WINDOW);
 
     internal void Record(ALSocketEmitType emitType)
@@ -199,12 +185,8 @@ public sealed class CallMeter
     /// <summary>
     ///     Takes a snapshot of the window as it stands, against the server's own cost.
     /// </summary>
-    /// <param name="serverCost">
-    ///     The character's live <c>cc</c>.
-    /// </param>
-    /// <returns>
-    ///     The window's cost and its breakdowns.
-    /// </returns>
+    /// <param name="serverCost">The character's live <c>cc</c>.</param>
+    /// <returns>The window's cost and its breakdowns.</returns>
     public CallBudgetSnapshot Snapshot(double serverCost)
     {
         Entry[] window;

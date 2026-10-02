@@ -29,21 +29,13 @@ public record InscribedBoundary : ICircle, IRectangle, ILocation
     /// <summary>
     ///     Initializes a new instance of the <see cref="InscribedBoundary" /> class.
     /// </summary>
-    /// <param name="vertex1">
-    ///     A vertex of the rectangle.
-    /// </param>
+    /// <param name="vertex1">A vertex of the rectangle.</param>
     /// <param name="vertex2">
     ///     Another vertex of the rectangle. (must be an opposing vertex to #1)
     /// </param>
-    /// <param name="map">
-    ///     The map.
-    /// </param>
-    /// <exception cref="System.ArgumentNullException">
-    ///     vertex1
-    /// </exception>
-    /// <exception cref="System.ArgumentNullException">
-    ///     vertex2
-    /// </exception>
+    /// <param name="map">The map.</param>
+    /// <exception cref="System.ArgumentNullException">vertex1</exception>
+    /// <exception cref="System.ArgumentNullException">vertex2</exception>
     public InscribedBoundary(IPoint vertex1, IPoint vertex2, string map)
     {
         ArgumentNullException.ThrowIfNull(vertex1);
@@ -73,18 +65,10 @@ public record InscribedBoundary : ICircle, IRectangle, ILocation
     /// <summary>
     ///     Initializes a new instance of the <see cref="InscribedBoundary" /> class.
     /// </summary>
-    /// <param name="rect">
-    ///     A rectangle.
-    /// </param>
-    /// <param name="map">
-    ///     The map.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     rect
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    ///     map
-    /// </exception>
+    /// <param name="rect">A rectangle.</param>
+    /// <param name="map">The map.</param>
+    /// <exception cref="ArgumentNullException">rect</exception>
+    /// <exception cref="ArgumentNullException">map</exception>
     public InscribedBoundary(IRectangle rect, string map)
     {
         ArgumentNullException.ThrowIfNull(rect);

@@ -8,8 +8,8 @@ using AL.APIClient.Response;
 namespace AL.APIClient.Json.SystemTextJson;
 
 /// <summary>
-///     Provides a converter that normalizes the login endpoint's two shapes into a <see cref="LoginResponse" />: success is
-///     a bare array of notification objects; failure is an object carrying <c>failed</c> / <c>reason</c> that may wrap
+///     Provides a converter that normalizes the login endpoint's two shapes into a <see cref="LoginResponse" />: success
+///     is a bare array of notification objects; failure is an object carrying <c>failed</c> / <c>reason</c> that may wrap
 ///     that array under <c>infs</c>.
 /// </summary>
 public sealed class LoginResponseConverter : JsonConverter<LoginResponse>
