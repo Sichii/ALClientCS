@@ -6,13 +6,11 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Images;
 
 /// <summary>
-///     Where an item's skin sits: a cell in the named <see cref="GImageSet" />.
+///     Represents where an item's skin sits: a cell in the named <see cref="GImageSet" />.
 /// </summary>
 /// <remarks>
-///     Look one of these up by an item's <c>Skin</c> and nothing else. The table it comes from is a general index of named
-///     art, and a dozen of its entries are texture rectangles or lists of other names - those parse to whatever their
-///     first three elements happen to say, so a lookup by an arbitrary string can come back with a cell that means
-///     nothing.
+///     Look one up by an item's <c>Skin</c> only. Some entries in the source table are not icons and parse to a cell that
+///     means nothing.
 /// </remarks>
 [JsonConverter(typeof(GSpritePositionConverter))]
 public sealed record GSpritePosition
@@ -23,7 +21,7 @@ public sealed record GSpritePosition
     public int Column { get; init; } = -1;
 
     /// <summary>
-    ///     The sheet's key, or empty for the default one. Empty is the common case.
+    ///     The sheet's key, or empty for the default one.
     /// </summary>
     public string ImageSet { get; init; } = string.Empty;
 
@@ -38,9 +36,7 @@ public sealed record GSpritePosition
 }
 
 /// <summary>
-///     Reads a <c>[sheet, column, row]</c> triple. Anything that is not that shape reads back as a position naming no
-///     cell, rather than throwing and taking the whole payload down with it - the table holds entries of several shapes
-///     and only this one is an icon.
+///     Provides conversion of a <c>[sheet, column, row]</c> triple. Any other shape reads back as a position naming no cell.
 /// </summary>
 internal sealed class GSpritePositionConverter : JsonConverter<GSpritePosition>
 {

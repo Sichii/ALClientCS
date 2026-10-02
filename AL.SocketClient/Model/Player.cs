@@ -8,7 +8,9 @@ using IJsonOnDeserialized = System.Text.Json.Serialization.IJsonOnDeserialized;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>Represents a player. (ymyself or others)</summary>
+/// <summary>
+///     Represents a player. (ymyself or others)
+/// </summary>
 /// <seealso cref="EntityBase" />
 /// <seealso cref="ISimplePlayer" />
 /// <seealso cref="IEquatable{T}" />
@@ -88,11 +90,11 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     [JsonInclude]
     public QueuedActionInfo? QueuedActions { get; protected set; }
 
-    /// <summary>Whether or not you are dead.</summary>
+    /// <summary>
+    ///     Whether or not you are dead.
+    /// </summary>
     /// <remarks>
-    ///     The server sends <c>true</c> or, once a gravestone cosmetic is chosen, the cosmetic's name - which is the same
-    ///     true-or-string shape AFK has, so it reuses that converter. The cosmetic name itself is of no use to a headless
-    ///     client.
+    ///     The server sends <c>true</c> or, once a gravestone cosmetic is chosen, the cosmetic's name.
     /// </remarks>
     [JsonInclude]
     [JsonConverter(typeof(StjConverters.AfkConverter))]
@@ -118,8 +120,8 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     public Stand Stand { get; protected set; }
 
     /// <summary>
-    ///     If populated, this player's assigned side ("A" or "B") in a team-based PVP event such as the A/B Testing arena or a
-    ///     duel. Null outside such an event — the server deletes the field the moment the player leaves.
+    ///     If populated, this player's side (<c>A</c> or <c>B</c>) in a team-based PVP event such as the A/B Testing arena
+    ///     or a duel. The server deletes the field the moment the player leaves.
     /// </summary>
     [JsonInclude]
     public string? Team { get; protected set; }
@@ -142,9 +144,7 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
     public virtual bool Equals(Player? other) => other is not null && base.Equals(other);
 
     /// <summary>
-    ///     System.Text.Json post-deserialize step: the wire only carries the equipment slots that are populated, so fill every
-    ///     missing <see cref="Slot" /> with null. This reproduces the Newtonsoft PlayerConverter enrich; unlike that converter
-    ///     it also runs for a bare <see cref="Player" />.
+    ///     Fills every <see cref="Slot" /> the frame did not carry with null, since the wire only carries populated slots.
     /// </summary>
     public virtual void OnDeserialized()
     {
@@ -174,16 +174,14 @@ public class Player : EntityBase, ISimplePlayer, IEquatable<Player>, IJsonOnDese
         {
             Range = other.Range;
 
-            //a frame that never mentioned the field says nothing about it, and the server omits it rather than sending
-            //false. Copying the gap in is how a sighting's answer gets overwritten by no answer at all
+            //the server omits AFK rather than sending false, so a frame without it says nothing
             if (other.AFK != AfkState.Unknown)
                 AFK = other.AFK;
 
             Age = other.Age;
             Code = other.Code;
 
-            //a party forms and breaks while a player is already in vision, and the server restates the whole player
-            //object every time - so an absent leader is the party having ended rather than the frame not mentioning it
+            //the server restates the whole player each time, so an absent leader means the party ended
             PartyLeader = other.PartyLeader;
             PDPS = other.PDPS;
             RIP = other.RIP;

@@ -40,27 +40,10 @@ public abstract class EntityBase : AttributedObjectBase,
                                    IEquatable<EntityBase>
 {
     /// <summary>
-    ///     Every member of the movement block, so the wholesale path runs the same merge the gated one does.
-    /// </summary>
-    private const EntityUpdateField MOVEMENT_FIELDS = EntityUpdateField.X
-                                                      | EntityUpdateField.Y
-                                                      | EntityUpdateField.GoingX
-                                                      | EntityUpdateField.GoingY
-                                                      | EntityUpdateField.Angle
-                                                      | EntityUpdateField.MoveNum
-                                                      | EntityUpdateField.Moving
-                                                      | EntityUpdateField.Map
-                                                      | EntityUpdateField.In;
-
-    /// <summary>
-    ///     Serializes every write to the movement block. Three threads write it - the 30Hz delta loop, the socket's receive
-    ///     callbacks and the consumer's own movement calls - and each write is a read-compute-write, so a correction landing
-    ///     mid-computation was silently clobbered by a step derived from the position before it. Readers are deliberately left
-    ///     lock-free; only writers serialize.
+    ///     Serializes every read-compute-write of the movement block across the delta loop, the socket and movement calls.
+    ///     Readers stay lock-free.
     ///     <br />
-    ///     Deserialization is the one writer that does not take it: <c>[JsonInclude]</c> drives the narrowed setters straight
-    ///     through. That is safe only because a freshly-deserialized entity is thread-local until it is published, and it
-    ///     would stop being safe the day a frame is deserialized <i>into</i> a live entity.
+    ///     Deserialization writes the setters without it, which holds only while a deserialized entity is not yet published.
     /// </summary>
     protected private readonly Lock MovementLock = new();
 
@@ -121,9 +104,8 @@ public abstract class EntityBase : AttributedObjectBase,
     public float GoingY { get; private set; }
 
     /// <summary>
-    ///     The box this entity's <i>range</i> is measured against, as opposed to the collision foot-print the rest of this
-    ///     class presents as its rectangle. It tracks the entity, since it is built over this instance rather than over a
-    ///     snapshot of where it was standing.
+    ///     The box this entity's <i>range</i> is measured against, as opposed to the collision footprint this class presents
+    ///     as its rectangle. It follows the entity as it moves.
     /// </summary>
     public IRectangle HitBox { get; private set; } = null!;
 
@@ -132,13 +114,12 @@ public abstract class EntityBase : AttributedObjectBase,
     /// </summary>
     public string Id { get; init; } = null!;
 
-    /// <summary>The map or instance this entity is in.</summary>
+    /// <summary>
+    ///     The map or instance this entity is in.
+    /// </summary>
     /// <remarks>
-    ///     Only a self 'player' frame carries this - player_to_client (node/server.js:732) lists 'in' in the !stranger block
-    ///     alongside 'map'. An entities frame carries it once for the whole frame instead, which is why every entity in one is
-    ///     stamped by hand. Left unbound, the shallow merge behind a player frame wrote null over whatever the last entities
-    ///     frame stamped, and InSameInstanceAs answers false against a null - so the vision sweep evicted every monster and
-    ///     player at once, several times a second.
+    ///     Only a self <c>player</c> frame carries <c>in</c> per entity. An <c>entities</c> frame carries it once for the
+    ///     whole frame, so every entity in one is stamped by hand.
     /// </remarks>
     [JsonPropertyName("in")]
     [JsonInclude]
@@ -198,9 +179,8 @@ public abstract class EntityBase : AttributedObjectBase,
     public float Y { get; private set; }
 
     /// <summary>
-    ///     Where this entity is and where it is walking, read as one coherent value under the lock every writer takes. Use it
-    ///     where two of these have to agree with each other - a position against the destination it was derived from, say.
-    ///     Single-property reads stay lock-free and are unaffected.
+    ///     Where this entity is and where it is walking, read as one value under the lock every writer takes. Use it where a
+    ///     position has to agree with the destination it was derived from.
     /// </summary>
     public MovementBlock Movement
     {
@@ -257,9 +237,12 @@ public abstract class EntityBase : AttributedObjectBase,
     public override int GetHashCode() => Id.GetHashCode();
 
     /// <summary>
-    ///     Records that <paramref name="key" /> was present on the wire. Allocation-free: it only ORs a flag. Unlisted keys
-    ///     (bank data, cosmetics, etc.) are not mergeable through <see cref="Update(EntityBase)" /> and are ignored here.
+    ///     Records that <paramref name="key" /> was present on the wire. Keys <see cref="Update(EntityBase)" /> does not
+    ///     merge are ignored.
     /// </summary>
+    /// <param name="key">
+    ///     The wire key.
+    /// </param>
     public void MarkPresent(string key)
         => PresentFields |= key switch
         {
@@ -299,10 +282,9 @@ public abstract class EntityBase : AttributedObjectBase,
     public void Update(TimeSpan delta)
     {
         //a condition sent without "ms" (the encouragement bonuses) has no timer; it lasts until a frame drops it
-        Conditions.TickAndTryRemoveWhere(delta, condition => (condition.DurationMs > 0) && (condition.RemainingMs <= 0));
+        Conditions.UpdateAndTryRemoveWhere(delta, condition => (condition.DurationMs > 0) && (condition.RemainingMs <= 0));
 
-        //the whole read-compute-write is inside the lock, not just the write. A correction landing between the read
-        //and the write is otherwise clobbered by a step derived from the position it just replaced, silently
+        //the read stays inside the lock so a correction cannot land between it and the write
         lock (MovementLock)
         {
             var movement = ReadMovement();
@@ -331,9 +313,7 @@ public abstract class EntityBase : AttributedObjectBase,
                 return;
             }
 
-            //steer by where going is from here, rather than by the heading the leg started with. Several paths write
-            //x/y between ticks without re-deriving Angle, and a stale heading resumes from the new position along a
-            //line parallel to the one it should be on, until the overshoot clamp finally trips
+            //steer toward going from here; Angle goes stale when a write moves x/y without re-deriving it
             (var newX, var newY) = this.AngularOffset(going.AngularRelationTo(this), distance);
 
             ApplyMovement(
@@ -346,24 +326,32 @@ public abstract class EntityBase : AttributedObjectBase,
     }
 
     /// <summary>
-    ///     Applies a server frame's movement wholesale, exactly as sent - a key the frame omitted lands as its deserialized
-    ///     default rather than keeping what was there. No arbitration either: a frame that disagrees with local reckoning
-    ///     still wins, which is what the shallow merge behind a character frame always did.
+    ///     Applies a server frame's movement wholesale: a key the frame omitted lands as its deserialized default, and the
+    ///     frame wins over local reckoning.
     /// </summary>
     /// <remarks>
-    ///     Wholesale rather than gated on <see cref="PresentFields" /> on purpose, and the difference is real: a character
-    ///     frame omits every movement key until the character's first move of the session, so a committed capture carries
-    ///     <c>x</c> , <c>y</c> , <c>map</c> and <c>in</c> and none of <c>moving</c> , <c>going_x</c> , <c>going_y</c> ,
-    ///     <c>angle</c> or <c>move_num</c> ( <c>player_to_client</c> sends a key only when the server's player object has one,
-    ///     <c>node/server.js:778</c> ). Gating would let a reconnect's start frame leave a persistent character walking to the
-    ///     destination of a leg on the server it just left.
+    ///     A character frame omits every movement key until the character's first move of the session, so gating on
+    ///     <see cref="PresentFields" /> would leave a reconnected character walking a leg from the server it left.
     /// </remarks>
     /// <param name="frame">
     ///     The freshly-deserialized frame to take movement from.
     /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     frame
+    /// </exception>
     public void AcceptMovement(EntityBase frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
+
+        const EntityUpdateField MOVEMENT_FIELDS = EntityUpdateField.X
+                                                  | EntityUpdateField.Y
+                                                  | EntityUpdateField.GoingX
+                                                  | EntityUpdateField.GoingY
+                                                  | EntityUpdateField.Angle
+                                                  | EntityUpdateField.MoveNum
+                                                  | EntityUpdateField.Moving
+                                                  | EntityUpdateField.Map
+                                                  | EntityUpdateField.In;
 
         //read the frame's block before taking our own lock, so no two entity locks are ever held at once
         var incoming = frame.Movement;
@@ -388,11 +376,17 @@ public abstract class EntityBase : AttributedObjectBase,
     }
 
     /// <summary>
-    ///     Seeds a soft property from its G default, but only if the frame this entity was deserialized from did not already
-    ///     carry it. The server omits a soft property that equals the G default, so a freshly-sighted monster reports 0 for
-    ///     those until they are backfilled - mirrors the browser's <c>adopt_soft_properties</c> ( <c>js/game.js:766-771</c> ).
-    ///     Only the numeric soft properties the encoder can omit are handled.
+    ///     Seeds a soft property from its game-data default, unless the frame this entity was deserialized from carried it.
     /// </summary>
+    /// <param name="field">
+    ///     The soft property.
+    /// </param>
+    /// <param name="value">
+    ///     Its game-data default.
+    /// </param>
+    /// <remarks>
+    ///     The server omits a soft property equal to its default, as the browser's <c>adopt_soft_properties</c> assumes.
+    /// </remarks>
     public void BackfillSoftDefault(EntityUpdateField field, float value)
     {
         //the frame carried a real value for this field; never override it with the def
@@ -454,12 +448,12 @@ public abstract class EntityBase : AttributedObjectBase,
 
     public void CorrectAndCompensate(IPoint point, TimeSpan offset)
     {
-        //materialised before the lock: point can be another live entity, and calling into a foreign implementation
-        //while holding this entity's lock is how a deadlock gets built later
+        ArgumentNullException.ThrowIfNull(point);
+
+        //copied before the lock, so no foreign IPoint implementation is called while holding it
         var corrected = new Point(point.X, point.Y);
 
-        //one atomic operation, not two - a reckoning tick that landed between them would step from the corrected
-        //position and then be compensated from a position it had already left. Both nested calls re-enter the lock
+        //held across both so no reckoning tick lands between them; both calls re-enter it
         lock (MovementLock)
         {
             IsCompensated = false;
@@ -471,13 +465,21 @@ public abstract class EntityBase : AttributedObjectBase,
     public override bool Equals(object? obj) => Equals(obj as EntityBase);
 
     /// <summary>
-    ///     The one place a server frame becomes movement, for both paths that apply one. Whichever fields the mask lets
-    ///     through land together; the rest keep what they had.
+    ///     Merges the fields of <paramref name="incoming" /> that <paramref name="present" /> lets through onto
+    ///     <paramref name="current" />.
     /// </summary>
-    /// <remarks>
-    ///     When an arbitration rule arrives - ignore a frame whose <c>move_num</c> is behind, snap past a distance threshold -
-    ///     this is where it goes, and it is written once.
-    /// </remarks>
+    /// <param name="current">
+    ///     The movement block this entity holds.
+    /// </param>
+    /// <param name="incoming">
+    ///     The movement block a server frame carried.
+    /// </param>
+    /// <param name="present">
+    ///     The fields to take from <paramref name="incoming" />.
+    /// </param>
+    /// <returns>
+    ///     The merged movement block.
+    /// </returns>
     protected private static MovementBlock MergeMovement(MovementBlock current, MovementBlock incoming, EntityUpdateField present)
     {
         if ((present & EntityUpdateField.Angle) != 0)
@@ -538,11 +540,13 @@ public abstract class EntityBase : AttributedObjectBase,
     }
 
     /// <summary>
-    ///     The one place the block is read as a group, and the one place any member of it is assigned.
+    ///     Reads the movement block as one value.
     /// </summary>
+    /// <returns>
+    ///     The movement block.
+    /// </returns>
     /// <remarks>
-    ///     Both assume the caller already holds <see cref="MovementLock" /> - nothing else in this class or
-    ///     <see cref="Character" /> may touch the members directly.
+    ///     The caller must hold <see cref="MovementLock" />, as must any caller of <see cref="ApplyMovement" />.
     /// </remarks>
     protected private MovementBlock ReadMovement()
         => new(
@@ -557,18 +561,27 @@ public abstract class EntityBase : AttributedObjectBase,
             In);
 
     /// <summary>Sets the bounding base of the entity.</summary>
-    /// <param name="boundingBase">The entitie's bounding base.</param>
+    /// <param name="boundingBase">The entity's bounding base.</param>
     public void SetBoundingBase(BoundingBase boundingBase) => BoundingBase = boundingBase;
 
     public void SetHitBox(BoundingBase hitBox) => HitBox = new BoundingRectangle(this, hitBox);
 
     /// <summary>
-    ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame actually carried.
-    ///     Mirrors the browser's received-key merge ( <c>js/game.js:786</c> ) - a bare <c>{id,x,y}</c> delta leaves
-    ///     hp/speed/etc. untouched instead of zeroing them.
+    ///     Merges a freshly-deserialized frame into this live entity, copying only the fields the frame carried.
     /// </summary>
+    /// <param name="new">
+    ///     The freshly-deserialized frame.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     The frame is for a different entity.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     new
+    /// </exception>
     public void Update(EntityBase @new)
     {
+        ArgumentNullException.ThrowIfNull(@new);
+
         if (Id != @new.Id)
             throw new InvalidOperationException($"Attempting to update entity with ID: {Id}, with data for entity with ID: {@new.Id}");
 
@@ -577,8 +590,7 @@ public abstract class EntityBase : AttributedObjectBase,
         //taken before our own lock, so no two entity locks are ever held at once
         var incoming = @new.Movement;
 
-        //each member stays individually gated: a partial delta must not overwrite a field the server omitted. What
-        //the lock adds is that whichever ones the frame did carry land together
+        //gated per member; the lock only makes the carried movement fields land together
         lock (MovementLock)
             ApplyMovement(MergeMovement(ReadMovement(), incoming, present));
 
@@ -632,14 +644,17 @@ public abstract class EntityBase : AttributedObjectBase,
     ///     Updates the instanced location of this entity. The instance, the map and the position land together, so no reader
     ///     ever sees the new map at the old position.
     /// </summary>
-    /// <param name="location">An instanced location.</param>
-    /// <exception cref="ArgumentNullException">location</exception>
+    /// <param name="location">
+    ///     An instanced location.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     location
+    /// </exception>
     public void UpdateLocation(IInstancedLocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
 
-        //read the argument before the lock: ALClient hands a live Player here, and calling into a foreign
-        //implementation while holding this entity's lock is how a deadlock gets built later
+        //copied before the lock, so no foreign implementation is called while holding it
         var @in = location.In;
         var map = location.Map;
         var x = location.X;
@@ -659,8 +674,12 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     Updates the map and position of this entity, as one write.
     /// </summary>
-    /// <param name="location">A location.</param>
-    /// <exception cref="ArgumentNullException">location</exception>
+    /// <param name="location">
+    ///     A location.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     location
+    /// </exception>
     public void UpdateLocation(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);

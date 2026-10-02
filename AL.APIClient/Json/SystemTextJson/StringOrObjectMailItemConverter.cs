@@ -9,9 +9,8 @@ using AL.Core.Json.SystemTextJson;
 namespace AL.APIClient.Json.SystemTextJson;
 
 /// <summary>
-///     Binds a mail item the server sends either as a JSON object or as a JSON-stringified object (simplify_item) to a
-///     <see cref="MailItem" />. The System.Text.Json replacement for the Newtonsoft <c>StringOrObjectMailItemConverter</c>
-///     .
+///     Provides a converter that binds a mail item the server sends either as a JSON object or as a JSON-stringified
+///     object (<c>simplify_item</c>) to a <see cref="MailItem" />.
 /// </summary>
 public sealed class StringOrObjectMailItemConverter : JsonConverter<MailItem?>
 {
@@ -36,9 +35,7 @@ public sealed class StringOrObjectMailItemConverter : JsonConverter<MailItem?>
             node = JsonNode.Parse(raw);
         }
 
-        //this converter is registered in the shared REST options, so the inner bind must drop it or it re-enters
-        //itself on the same MailItem token and stack-overflows (isolation tests never hit this - they registered
-        //no options). The node is a plain object by here (the string form was re-parsed above).
+        //the shared options hold this converter, so the inner bind drops it or it re-enters itself and overflows the stack
         return node.Deserialize<MailItem>(RecursionSafeOptions.Without(options, typeof(StringOrObjectMailItemConverter)));
     }
 

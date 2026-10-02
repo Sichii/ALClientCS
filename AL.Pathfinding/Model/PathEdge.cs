@@ -6,9 +6,8 @@ using AL.Pathfinding.Definitions;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     One leg of a path. On a <see cref="EdgeType.Door" /> or <see cref="EdgeType.Transport" /> leg <see cref="Start" />
-///     is the <see cref="AL.Data.Exit" /> being used, so a caller can read the spawn index it lands on.
-///     <see cref="Cost" /> is in walk-distance units for every type.
+///     Represents one leg of a path, its <see cref="Cost" /> in walk distance. On a <see cref="EdgeType.Door" /> or
+///     <see cref="EdgeType.Transport" /> leg <see cref="Start" /> is the <see cref="AL.Data.Exit" /> being used.
 /// </summary>
 public readonly record struct PathEdge(
     EdgeType Type,
@@ -17,7 +16,10 @@ public readonly record struct PathEdge(
     float Cost)
 {
     /// <summary>
-    ///     The leg as its type, both ends and cost, for logs.
+    ///     Formats the leg as its type, both ends and cost, for logs.
     /// </summary>
+    /// <returns>
+    ///     The leg as one line of text.
+    /// </returns>
     public override string ToString() => $"{Type} {ILocation.ToString(Start)} -> {ILocation.ToString(End)} ({Cost:F1})";
 }

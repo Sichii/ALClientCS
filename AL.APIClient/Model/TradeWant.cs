@@ -29,17 +29,39 @@ public sealed record TradeWant
     public int? Quantity { get; init; }
 
     /// <summary>
-    ///     If populated, the title the item must carry - <c>shiny</c> , <c>glitched</c> . Unset accepts any title or none.
+    ///     If populated, the title the item must carry, such as <c>shiny</c> or <c>glitched</c>. Unset accepts any title or
+    ///     none.
     /// </summary>
     [JsonPropertyName("p")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Title { get; init; }
 
     /// <summary>
-    ///     Whether an item with these properties satisfies the offer, by the rule the server and the game's own stand share (
-    ///     <c>trade_want_matches</c> , <c>js/old_common_functions.js</c> ): the same name, at least the wanted level and
+    ///     Determines whether an item with these properties satisfies the offer: the same name, at least the wanted level and
     ///     stack, and the wanted title when one is set.
     /// </summary>
+    /// <param name="name">
+    ///     The item's name.
+    /// </param>
+    /// <param name="level">
+    ///     The item's level.
+    /// </param>
+    /// <param name="title">
+    ///     The item's title, if any.
+    /// </param>
+    /// <param name="quantity">
+    ///     The item's stack size.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the item satisfies the offer; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     /// <remarks>
     ///     A locked or bound item passes this and is still refused; the game's stand leaves those out of the choice before it
     ///     asks.

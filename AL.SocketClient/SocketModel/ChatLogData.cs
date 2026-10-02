@@ -5,15 +5,12 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents an inbound public chat line. A player's own chat goes out through <c>broadcast</c> , which is a bare
-///     <c>io.emit</c> (node/server.js:4638, node/server_functions.js:2929) - so this reaches every socket on the server
-///     rather than only the ones nearby, and the sender receives their own line back. The outbound half is <c>SayAsync</c>
-///     .
+///     Represents an inbound public chat line. A player's line reaches every socket on the server, the sender's included.
+///     The outbound half is <c>SayAsync</c>.
 /// </summary>
 /// <remarks>
-///     Not every line comes from a player. The same event carries NPC and system chatter through <c>xy_emit</c> - the pvp
-///     arena's kill announcements, the Grinch's phrases, cyberland's mainframe - and those are local to the area rather
-///     than server-wide. <see cref="IsPlayerChat" /> is what tells them apart.
+///     The same event carries NPC and system chatter, such as the pvp arena's kill announcements, local to the area rather
+///     than server-wide. <see cref="IsPlayerChat" /> tells them apart.
 /// </remarks>
 public sealed record ChatLogData
 {
@@ -30,7 +27,7 @@ public sealed record ChatLogData
     public string Id { get; init; } = null!;
 
     /// <summary>
-    ///     True when a player said this, which is also what makes the line server-wide rather than local.
+    ///     Whether a player said this, which also makes the line server-wide rather than local.
     /// </summary>
     [JsonPropertyName("p")]
     public bool IsPlayerChat { get; init; }

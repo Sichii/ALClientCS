@@ -5,15 +5,13 @@ using AL.Core.Json.Attributes;
 namespace AL.Data.Games;
 
 /// <summary>
-///     The two forced bets of one poker stake level. Rides the values of <see cref="GPoker.Blinds" />, which are
-///     positional arrays.
+///     Represents the two forced bets of one poker stake level, positional in the values of <see cref="GPoker.Blinds" />.
 /// </summary>
 /// <param name="Small">
-///     The small blind, in gold. Posted by the seat left of the dealer.
+///     The small blind, in gold, posted by the seat left of the dealer.
 /// </param>
 /// <param name="Big">
-///     The big blind, in gold, and twice <paramref name="Small" /> at every published level. It is also the unit
-///     <see cref="GPoker.BuyIn" /> is counted in.
+///     The big blind, in gold. Also the unit <see cref="GPoker.BuyIn" /> is counted in.
 /// </param>
 public sealed record GBlindLevel(
     [property: JsonArrayIndex(0)]

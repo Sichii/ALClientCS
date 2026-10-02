@@ -12,20 +12,22 @@ namespace AL.Data.Maps;
 public sealed record GMapNPC
 {
     /// <summary>
-    ///     <b>NULLABLE</b> . If populated, this is the area in which this NPC roams.
+    ///     <b>NULLABLE</b>. If populated, this is the area in which this NPC roams.
     /// </summary>
     public MapRectangle? Boundary { get; init; }
 
     /// <summary>
     ///     This NPC's data from <see cref="GameData.NPCs" />.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     [JsonIgnore]
     public GNPC? Data { get; internal set; }
 
     /// <summary>
-    ///     The key this NPC is filed under in <see cref="GameData.NPCs" />. Not the id the live entity arrives with - that is
-    ///     the display <see cref="Name" />, so do not look one up by this.
+    ///     The key this NPC is filed under in <see cref="GameData.NPCs" />. The live entity's id is the display
+    ///     <see cref="Name" />, not this.
     /// </summary>
     public string Id { get; init; } = null!;
 
@@ -34,22 +36,21 @@ public sealed record GMapNPC
     ///     <br />
     ///     If you're familiar with the original form of this data, it's _position(if present) + _positions(if present).
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     [JsonIgnore]
     public IReadOnlyList<Location> Locations { get; init; } = new List<Location>();
 
     /// <summary>
-    ///     Always false. No NPC placement in the game data carries the key and the server never reads it; a wandering NPC is
-    ///     kept inside <see cref="Boundary" /> instead (node/server.js:13911).
+    ///     Always false. No NPC placement carries the key and the server never reads it; a wandering NPC is kept inside
+    ///     <see cref="Boundary" /> instead.
     /// </summary>
     public bool Loop { get; init; }
 
     /// <summary>
     ///     The name of this NPC as displayed on the GUI. Sometimes different than the Id.
     /// </summary>
-    /// <remarks>
-    ///     The private backing field carries the <c>name</c> wire key, so this accessor must not claim it too.
-    /// </remarks>
     [JsonIgnore]
     public string Name => _name ?? Id;
 

@@ -8,21 +8,19 @@ namespace AL.Client.Managers;
 public sealed class PingManager : AsyncDeltaLoop
 {
     /// <summary>
-    ///     What an unmeasured connection reads as. Before the first ping a zero offset zeroes every grace period and
-    ///     compensation scaled by it - the desync detector fired on the first frame of every boot-time walk for exactly that
-    ///     reason.
+    ///     The offset an unmeasured connection reads as, so grace periods and compensation scaled by it are not zero before
+    ///     the first ping.
     /// </summary>
     private static readonly TimeSpan UNMEASURED_FLOOR = TimeSpan.FromMilliseconds(100);
 
     /// <summary>
-    ///     Which percentile of the window <see cref="LowPercentileOffset" /> reads. Shorter than 95% of round trips, so still
-    ///     deliberately conservative, but not pinned for the window's whole 200 seconds by one freak-fast ping the way a
-    ///     minimum is.
+    ///     The percentile of the window <see cref="LowPercentileOffset" /> reads, low enough to stay conservative but not
+    ///     pinned by one unusually fast ping the way a minimum is.
     /// </summary>
     private const double OFFSET_PERCENTILE = 5d;
 
     /// <summary>
-    ///     How many pings the window holds. At one every 4 seconds, fifty is the last 200 seconds.
+    ///     The number of pings the window holds, the last 200 seconds at one every 4 seconds.
     /// </summary>
     private const int WINDOW_SIZE = 50;
 
@@ -38,13 +36,11 @@ public sealed class PingManager : AsyncDeltaLoop
     internal IReadOnlyList<TimeSpan> History { get; private set; } = [];
 
     /// <summary>
-    ///     A fast round trip for this connection: the <see cref="OFFSET_PERCENTILE" />th percentile of the last fifty pings,
-    ///     floored at 100ms until the first one lands. One number for the whole client - entity positions are advanced by it,
-    ///     cooldowns are compensated by it, and the correction grace is scaled off it.
+    ///     A fast round trip for this connection: the <see cref="OFFSET_PERCENTILE" />th percentile of the window, or 100ms
+    ///     until the first ping lands. Entity positions, cooldown compensation and the correction grace all scale off it.
     /// </summary>
     /// <remarks>
-    ///     Below 21 samples its nearest rank is index 0, so a partly filled window reads as its own minimum and this only
-    ///     loosens once there is a window to speak of.
+    ///     Below 21 samples the nearest rank is index 0, so a partly filled window reads as its minimum.
     /// </remarks>
     internal TimeSpan LowPercentileOffset
     {
@@ -71,26 +67,29 @@ public sealed class PingManager : AsyncDeltaLoop
             elapsed
         ];
 
-        //50 samples once every 4 seconds - a rescan costs less than being sure incremental maintenance is right
-        LowPercentileOffset = PercentileOf(History, OFFSET_PERCENTILE);
+        LowPercentileOffset = CalculatePercentile(History, OFFSET_PERCENTILE);
     }
 
     /// <summary>
-    ///     The round trip at the given percentile of <paramref name="samples" />, by nearest rank.
+    ///     Calculates the round trip at the given percentile of <paramref name="samples" />, by nearest rank.
     /// </summary>
     /// <param name="samples">
     ///     The measured round trips, in any order.
     /// </param>
     /// <param name="percentile">
-    ///     Where to read in the sorted samples, from 0 to 100. The rank taken is <c>ceil(percentile / 100 * count) - 1</c> ,
-    ///     clamped into the array, so 0 gives the smallest sample and any percentile whose rank rounds below the first sample
-    ///     gives it too.
+    ///     Where to read in the sorted samples, from 0 to 100, at rank <c>ceil(percentile / 100 * count) - 1</c> clamped into
+    ///     the samples.
     /// </param>
     /// <returns>
     ///     The sample at that rank, or <see cref="TimeSpan.Zero" /> if nothing has been measured yet.
     /// </returns>
-    public static TimeSpan PercentileOf(IEnumerable<TimeSpan> samples, double percentile)
+    /// <exception cref="ArgumentNullException">
+    ///     samples
+    /// </exception>
+    public static TimeSpan CalculatePercentile(IEnumerable<TimeSpan> samples, double percentile)
     {
+        ArgumentNullException.ThrowIfNull(samples);
+
         var sorted = samples.Order()
                             .ToArray();
 

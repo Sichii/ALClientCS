@@ -36,7 +36,21 @@ public readonly ref struct ValueCircle : ICircle, IEquatable<ValueCircle>
     /// <summary>
     ///     Copies any <see cref="ICircle" /> onto the stack.
     /// </summary>
-    public static ValueCircle From(ICircle circle) => new(circle.X, circle.Y, circle.Radius);
+    /// <param name="circle">
+    ///     The circle to copy.
+    /// </param>
+    /// <returns>
+    ///     A <see cref="ValueCircle" /> with the same values.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     circle
+    /// </exception>
+    public static ValueCircle From(ICircle circle)
+    {
+        ArgumentNullException.ThrowIfNull(circle);
+
+        return new ValueCircle(circle.X, circle.Y, circle.Radius);
+    }
 
     public bool Equals(IPoint? other) => other is not null && X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 

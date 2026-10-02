@@ -33,7 +33,7 @@ public class ConcurrentDictionaryExtensionsTests
             RemainingMs = -5
         };
 
-        map.TickAndTryRemoveWhere(
+        map.UpdateAndTryRemoveWhere(
             TimeSpan.FromMilliseconds(10),
             item =>
             {
@@ -64,7 +64,7 @@ public class ConcurrentDictionaryExtensionsTests
 
         var replaced = new TickItem(5);
 
-        map.TickAndTryRemoveWhere(
+        map.UpdateAndTryRemoveWhere(
             TimeSpan.FromMilliseconds(10),
             item =>
             {
@@ -83,7 +83,7 @@ public class ConcurrentDictionaryExtensionsTests
     }
 
     [Test]
-    public void TickAndTryRemoveWhereDropsExpiredEntriesAndTicksTheRest()
+    public void UpdateAndTryRemoveWhereDropsExpiredEntriesAndTicksTheRest()
     {
         var map = new ConcurrentDictionary<string, TickItem>
         {
@@ -91,7 +91,7 @@ public class ConcurrentDictionaryExtensionsTests
             ["drop"] = new(5)
         };
 
-        map.TickAndTryRemoveWhere(TimeSpan.FromMilliseconds(10), item => item.Expired);
+        map.UpdateAndTryRemoveWhere(TimeSpan.FromMilliseconds(10), item => item.Expired);
 
         map.ContainsKey("keep")
            .Should()
@@ -114,7 +114,7 @@ public class ConcurrentDictionaryExtensionsTests
     ///     's wall-clock budget alongside it.
     /// </summary>
     [Test]
-    public void TickAndTryRemoveWhereToleratesTheMapChangingDuringTheWalk()
+    public void UpdateAndTryRemoveWhereToleratesTheMapChangingDuringTheWalk()
     {
         var map = new ConcurrentDictionary<int, TickItem>();
 
@@ -123,7 +123,7 @@ public class ConcurrentDictionaryExtensionsTests
 
         var written = 0;
 
-        var walk = () => map.TickAndTryRemoveWhere(
+        var walk = () => map.UpdateAndTryRemoveWhere(
             TimeSpan.FromMilliseconds(1),
             item =>
             {

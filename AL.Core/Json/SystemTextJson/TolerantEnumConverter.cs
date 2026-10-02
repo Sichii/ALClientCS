@@ -10,9 +10,8 @@ using Common.Logging;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     A per-enum converter that degrades an unrecognized wire value to the enum's zero member rather than throwing, so
-///     one unknown value never discards the whole socket frame. The System.Text.Json replacement for the Newtonsoft
-///     <c>TolerantStringEnumConverter</c> ; produced by <see cref="TolerantStringEnumConverterFactory" />.
+///     Degrades an unrecognized wire value to the enum's zero member rather than throwing, so one unknown value never
+///     discards the whole socket frame. Produced by <see cref="TolerantStringEnumConverterFactory" />.
 /// </summary>
 /// <typeparam name="TEnum">
 ///     An enum type. Parsed with <see cref="EnumHelper" /> so
@@ -21,20 +20,14 @@ namespace AL.Core.Json.SystemTextJson;
 public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TEnum: struct, Enum
 {
     /// <summary>
-    ///     Named from a string, not the type: a closed generic's logger name is its assembly-qualified name, which the
-    ///     layout's shortName truncates at the last dot, to "0, Culture=neutral, PublicKeyToken=null]]".
+    ///     The logger, named from a string because the layout's shortName truncates a closed generic's assembly-qualified
+    ///     name to "0, Culture=neutral, PublicKeyToken=null]]".
     /// </summary>
-    /// <remarks>
-    ///     The warning below already carries the enum's name.
-    /// </remarks>
     private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumConverter<TEnum>));
 
     /// <summary>
-    ///     Tolerance that hides schema drift is worse than the drift, so each unknown value is reported once.
+    ///     The unknown values already warned about, so each is reported once.
     /// </summary>
-    /// <remarks>
-    ///     Per-TEnum is equivalent to a global table here; the key is already prefixed with the enum's name.
-    /// </remarks>
 
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<string, byte> Reported = new();
@@ -49,9 +42,14 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
     public TolerantEnumConverter(bool lowerCase) => LowerCase = lowerCase;
 
     /// <summary>
-    ///     Tolerant parse shared by <see cref="Read" />'s string branch and the dictionary-key path: Newtonsoft's numeric
-    ///     fallback (a quoted "17" becomes the underlying value), then degrade to the zero member.
+    ///     Parses a name, falling back to a quoted number ("17" reads as the underlying value) and then to the zero member.
     /// </summary>
+    /// <param name="raw">
+    ///     The name as the server sent it.
+    /// </param>
+    /// <returns>
+    ///     The parsed member, or the zero member if nothing matches.
+    /// </returns>
     private static TEnum ParseTolerant(string? raw)
     {
         if (EnumHelper.TryParse<TEnum>(raw, out var parsed))
@@ -77,7 +75,7 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
             case JsonTokenType.String:
                 return ParseTolerant(reader.GetString());
 
-            //Newtonsoft's StringEnumConverter allows integer values by default; preserve that path
+            //an integer reads as the underlying value
             case JsonTokenType.Number when reader.TryGetInt64(out var num):
                 return (TEnum)Enum.ToObject(typeof(TEnum), num);
 
@@ -105,13 +103,24 @@ public sealed class TolerantEnumConverter<TEnum> : JsonConverter<TEnum> where TE
     }
 
     /// <summary>
-    ///     Parses a dictionary key with the same tolerance as a value; unknown keys degrade, where Newtonsoft threw.
+    ///     Parses a dictionary key with the same tolerance as a value.
     /// </summary>
     /// <remarks>
-    ///     Enum-keyed dictionaries route the key through the key type's converter, so without this a tolerant enum used as a
-    ///     dictionary key (WeaponType in GClass.mainhand, TradeSlot and Slot in Character.slots) throws
-    ///     <see cref="NotSupportedException" />.
+    ///     Without this, a tolerant enum used as a dictionary key (WeaponType in GClass.mainhand, TradeSlot and Slot in
+    ///     Character.slots) throws <see cref="NotSupportedException" />.
     /// </remarks>
+    /// <param name="reader">
+    ///     The reader, positioned on the property name.
+    /// </param>
+    /// <param name="typeToConvert">
+    ///     The enum type.
+    /// </param>
+    /// <param name="options">
+    ///     The serializer options.
+    /// </param>
+    /// <returns>
+    ///     The parsed key, or the zero member if nothing matches.
+    /// </returns>
     public override TEnum ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => ParseTolerant(reader.GetString());
 
@@ -160,18 +169,10 @@ public class TolerantStringEnumConverterFactory : JsonConverterFactory
 
 /// <summary>
 ///     The lowercase-emitting variant, for enums whose wire form is the bare lowercase member name ( <c>Slot</c> -&gt;
-///     "mainhand", <c>TradeSlot</c> -&gt; "trade1", <c>BankPack</c> -&gt; "items0"). Applied as <c>
-///         [JsonConverter(typeof(LowerCaseTolerantStringEnumConverterFactory))]
-///     </c> on the enum, replacing the Newtonsoft two-arg <c>
-///         [JsonConverter(typeof(TolerantStringEnumConverter), typeof(LowerCaseNamingStrategy))]
-///     </c> .
+///     "mainhand", <c>TradeSlot</c> -&gt; "trade1", <c>BankPack</c> -&gt; "items0").
 /// </summary>
 public sealed class LowerCaseTolerantStringEnumConverterFactory : TolerantStringEnumConverterFactory
 {
     public LowerCaseTolerantStringEnumConverterFactory()
         : base(true) { }
 }
-
-//tolerance is opted into per enum with [JsonConverter(typeof(TolerantStringEnumConverterFactory))] (or the
-//LowerCase variant) on the enum itself. Registering either factory in the shared options would make EVERY enum
-//tolerant, which Newtonsoft did not do — an unmarked enum keeps System.Text.Json's numeric default.

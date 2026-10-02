@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents the data received when an entity dies (node/server.js:11898).
+///     Represents the data received when an entity dies.
 /// </summary>
 public sealed record DeathData
 {

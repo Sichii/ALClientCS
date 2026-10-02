@@ -12,23 +12,20 @@ using AL.Core.Json.Attributes;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Binds a type marked <see cref="JsonForcedObjectAttribute" /> which System.Text.Json would otherwise treat as a
-///     collection because it also implements <see cref="IEnumerable" /> — the geometry containers (e.g. <c>GGeometry</c> )
-///     that implement <c>IRectangle : IEnumerable&lt;IPoint&gt;</c> for bounding-box convenience yet serialize as a named
-///     object. It reads the named object and sets each member from the native attributes ( <c>[JsonPropertyName]</c>
-///     renames, <c>[JsonIgnore]</c> , <c>[JsonInclude]</c> for non-public setters and fields), deserializing each value
-///     through the options so nested converters still apply. The positional <c>[JsonArrayIndex]</c> shapes (GDoor/GTile)
-///     are handled by <see cref="ArrayToObjectConverter{T}" /> instead.
+///     Binds a type marked <see cref="JsonForcedObjectAttribute" /> as a named object, which System.Text.Json would
+///     otherwise treat as a collection because it implements <see cref="IEnumerable" />.
 /// </summary>
+/// <remarks>
+///     Members bind from their own <c>[JsonPropertyName]</c>, <c>[JsonIgnore]</c> and <c>[JsonInclude]</c> attributes, and
+///     each value deserializes through the options so nested converters still apply.
+/// </remarks>
 public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
 {
-    private const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-
     private static readonly (string WireName, Type MemberType, JsonConverter? Converter, Action<T, object?> Set)[] Members = BuildMembers();
 
     /// <summary>
-    ///     Per (root options, member converter) cached options carrying that one converter, so a member's property-level
-    ///     converter is applied to that member only and never leaks onto a same-typed sibling. Per-T costs nothing.
+    ///     The options per outer options instance and member converter, each carrying that one converter so it applies to
+    ///     its own member only.
     /// </summary>
 
     // ReSharper disable StaticMemberInGenericType
@@ -48,13 +45,17 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
     ///     Each member's <see cref="JsonConverterAttribute" /> is applied here too, since the resolver never gets to apply it
     ///     to these <see cref="IEnumerable" /> types.
     /// </remarks>
+    /// <returns>
+    ///     The wire name, type, converter and setter of each member.
+    /// </returns>
     private static (string, Type, JsonConverter?, Action<T, object?>)[] BuildMembers()
     {
+        const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
         var members = new List<(string, Type, JsonConverter?, Action<T, object?>)>();
 
-        //a derived `new` member (Character.Code : string shadows Player.Code : bool; likewise MPCost) hides the
-        //base one, so only the most-derived declaration binds - matching System.Text.Json's default resolver.
-        //The walk runs most-derived first, so the first declaration of a name wins and later (base) ones are skipped.
+        //a derived `new` member (Character.Code shadows Player.Code) hides the base one; the walk runs most-derived
+        //first, so the first declaration of a name wins
         var shadowed = new HashSet<string>(StringComparer.Ordinal);
 
         for (var type = typeof(T); type is not null && (type != typeof(object)); type = type.BaseType)
@@ -70,16 +71,14 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
                 if (property.GetSetMethod(true) is not { } setter)
                     continue;
 
-                //a public setter binds by default; a non-public one only when the member opts in with
-                //[JsonInclude]. EntityBase.In (public getter, protected setter, no opt-in) therefore stays
-                //unbound - the map/in stamp is applied later by ALClient, not at deserialize.
+                //a non-public setter binds only with [JsonInclude], so EntityBase.In stays unbound
                 if (!setter.IsPublic && property.GetCustomAttribute<JsonIncludeAttribute>() is null)
                     continue;
 
                 var wireName = property.GetCustomAttribute<JsonPropertyNameAttribute>()
                                        ?.Name
                                ?? property.Name;
-                var converter = MemberConverter(property);
+                var converter = CreateMemberConverter(property);
                 members.Add((wireName, property.PropertyType, converter, (target, value) => setter.Invoke(target, [value])));
             }
 
@@ -89,21 +88,26 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
                     members.Add(
                         (field.GetCustomAttribute<JsonPropertyNameAttribute>()
                               ?.Name
-                         ?? field.Name, field.FieldType, MemberConverter(field), (target, value) => field.SetValue(target, value)));
+                         ?? field.Name, field.FieldType, CreateMemberConverter(field), (target, value) => field.SetValue(target, value)));
         }
 
         return members.ToArray();
     }
 
     /// <summary>
-    ///     Returns the member's own <see cref="JsonConverterAttribute" /> converter. These types never reach the resolver, so
-    ///     the binder instantiates it directly.
+    ///     Creates the converter named by the member's own <see cref="JsonConverterAttribute" />.
     /// </summary>
     /// <remarks>
-    ///     That requires a public parameterless constructor, the same constraint the attribute path imposes; one that does not
-    ///     satisfy it throws <see cref="MissingMethodException" /> out of the static <see cref="Members" /> initializer.
+    ///     A converter without a public parameterless constructor throws <see cref="MissingMethodException" /> out of the
+    ///     static <see cref="Members" /> initializer.
     /// </remarks>
-    private static JsonConverter? MemberConverter(MemberInfo member)
+    /// <param name="member">
+    ///     The property or field.
+    /// </param>
+    /// <returns>
+    ///     The converter, or <c>null</c> if the member names none.
+    /// </returns>
+    private static JsonConverter? CreateMemberConverter(MemberInfo member)
         => member.GetCustomAttribute<JsonConverterAttribute>() is { ConverterType: { } converterType }
             ? (JsonConverter)Activator.CreateInstance(converterType)!
             : null;
@@ -119,17 +123,28 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
             if (TryGet(obj, wireName, out var node) && node is not null)
                 set(instance, node.Deserialize(memberType, converter is null ? options : WithConverter(options, converter)));
 
-        //System.Text.Json fires this callback from its own object converter, which these types never reach - a custom
-        //converter has to invoke it itself. It must run AFTER the member loop and BEFORE the outer attributed
-        //converter's attribute harvest. Safe only because no OnDeserialized reads Attributes or PresentFields
+        //System.Text.Json fires this from its own object converter, which these types never reach; it runs before the
+        //attributed converter's harvest, so no OnDeserialized may read Attributes or PresentFields
         (instance as IJsonOnDeserialized)?.OnDeserialized();
 
         return instance;
     }
 
     /// <summary>
-    ///     Matches keys case-insensitively, as Newtonsoft did and the shared options request.
+    ///     Gets the node under <paramref name="wireName" />, matching keys case-insensitively as the shared options do.
     /// </summary>
+    /// <param name="obj">
+    ///     The object to search.
+    /// </param>
+    /// <param name="wireName">
+    ///     The key to find.
+    /// </param>
+    /// <param name="node">
+    ///     The node under the key, if found.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the key is present; otherwise, <c>false</c>.
+    /// </returns>
     private static bool TryGet(JsonObject obj, string wireName, out JsonNode? node)
     {
         foreach ((var key, var value) in obj)
@@ -163,43 +178,50 @@ public sealed class ForcedObjectConverter<T> : JsonConverter<T> where T: new()
 
 /// <summary>
 ///     Applies <see cref="ForcedObjectConverter{T}" /> to a type that carries <see cref="JsonForcedObjectAttribute" /> (on
-///     itself or an implemented interface such as <c>IRectangle</c> ), implements <see cref="IEnumerable" />, exposes a
-///     parameterless constructor, and is not a positional <c>[JsonArrayIndex]</c> type. Registered last, so the specific
-///     converters (attributed, array-to-object, map-rectangle, …) claim their types first.
+///     itself or an implemented interface such as <c>IRectangle</c>), implements <see cref="IEnumerable" />, exposes a
+///     parameterless constructor, and is not a positional <c>[JsonArrayIndex]</c> type.
 /// </summary>
+/// <remarks>
+///     Registered last, so the more specific converters claim their types first.
+/// </remarks>
 public sealed class ForcedObjectConverterFactory : JsonConverterFactory
 {
-    private const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-
     /// <summary>
-    ///     The answer is a property of the type alone, but the question is asked again for every
-    ///     <see cref="JsonSerializerOptions" /> instance the nesting converters mint, and each miss walks every member reading
-    ///     attributes.
+    ///     The cached answer to <see cref="IsConvertible" /> per type.
     /// </summary>
     private static readonly ConcurrentDictionary<Type, bool> Convertible = new();
 
-    public override bool CanConvert(Type typeToConvert) => Convertible.GetOrAdd(typeToConvert, Evaluate);
+    public override bool CanConvert(Type typeToConvert) => Convertible.GetOrAdd(typeToConvert, IsConvertible);
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         => (JsonConverter)Activator.CreateInstance(typeof(ForcedObjectConverter<>).MakeGenericType(typeToConvert))!;
 
-    private static bool Evaluate(Type typeToConvert)
+    private static bool IsConvertible(Type typeToConvert)
         => !typeToConvert.IsAbstract
            && typeof(IEnumerable).IsAssignableFrom(typeToConvert)
            && typeToConvert.GetConstructor(Type.EmptyTypes) is not null
            && !HasArrayIndex(typeToConvert)
-           && ForcedToObject(typeToConvert);
+           && IsForcedToObject(typeToConvert);
 
     /// <summary>
-    ///     Whether <see cref="JsonForcedObjectAttribute" /> on the type or an implemented interface (IRectangle, for one)
-    ///     forces an object contract.
+    ///     Determines whether <see cref="JsonForcedObjectAttribute" /> sits on the type or on an interface it implements.
     /// </summary>
-    private static bool ForcedToObject(Type type)
+    /// <param name="type">
+    ///     The type to test.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the type or one of its interfaces carries the attribute; otherwise, <c>false</c>.
+    /// </returns>
+    private static bool IsForcedToObject(Type type)
         => type.GetCustomAttribute<JsonForcedObjectAttribute>() is not null
            || type.GetInterfaces()
                   .Any(contract => contract.GetCustomAttribute<JsonForcedObjectAttribute>() is not null);
 
     private static bool HasArrayIndex(Type type)
-        => type.GetMembers(FLAGS)
-               .Any(member => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null);
+    {
+        const BindingFlags FLAGS = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
+        return type.GetMembers(FLAGS)
+                   .Any(member => member.GetCustomAttribute<JsonArrayIndexAttribute>() is not null);
+    }
 }

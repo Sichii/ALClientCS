@@ -8,9 +8,8 @@ using AL.Core.Helpers;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Parses <see cref="ALClass" /> with fallbacks: <c>null</c> /bool -&gt; <see cref="ALClass.None" />, a string that
-///     parses -&gt; that class, a string that does not parse -&gt; <see cref="ALClass.NPC" />. The System.Text.Json
-///     replacement for the Newtonsoft <c>ALClassConverter</c> .
+///     Reads <see cref="ALClass" />: <c>null</c> or a bool reads as <see cref="ALClass.None" />, and an unknown name or
+///     any other token as <see cref="ALClass.NPC" />.
 /// </summary>
 public sealed class ALClassConverter : JsonConverter<ALClass>
 {
@@ -27,7 +26,7 @@ public sealed class ALClassConverter : JsonConverter<ALClass>
         if (reader.TokenType == JsonTokenType.String)
             return EnumHelper.TryParse(reader.GetString(), out ALClass @class) ? @class : ALClass.NPC;
 
-        //server occasionally sends a number/object here; Newtonsoft's Value<string> failed to parse -> NPC
+        //the server occasionally sends a number or an object here
         reader.Skip();
 
         return ALClass.NPC;

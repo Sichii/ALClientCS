@@ -7,7 +7,9 @@ namespace AL.Client.Interfaces;
 /// <summary>
 ///     Represents a grouping of at least 3 items with a shared item name and level.
 /// </summary>
-/// <typeparam name="T"></typeparam>
+/// <typeparam name="T">
+///     The type that locates each item.
+/// </typeparam>
 /// <seealso cref="IReadOnlyList{T}" />
 /// <seealso cref="IIndexer{T}" />
 public interface ICompoundableGrouping<out T> : IReadOnlyList<T> where T: IIndexer<Item>

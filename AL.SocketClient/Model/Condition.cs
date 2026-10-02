@@ -8,7 +8,9 @@ using Chaos.Time.Abstractions;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>Represents a buff or debuff.</summary>
+/// <summary>
+///     Represents a buff or debuff.
+/// </summary>
 /// <seealso cref="AttributedObjectBase" />
 public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaUpdatable
 {
@@ -50,8 +52,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     If populated, this encouragement bonus's share of the gold multiplier.
     /// </summary>
     /// <remarks>
-    ///     Reading the character's <see cref="Character.Encouragement" /> is the better way to get a rate: the totals there
-    ///     are already multiplied out across every active bonus.
+    ///     <see cref="Character.Encouragement" /> carries the totals multiplied out across every active bonus.
     /// </remarks>
     [JsonPropertyName("gold_multiplier")]
     public float? GoldMultiplier { get; init; }
@@ -82,8 +83,8 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// <summary>
     ///     If populated, the display effect the <see cref="AL.Core.Definitions.Condition.Filter" /> condition applies.
     ///     <br />
-    ///     The browser treats <c>scale</c> as the one name that draws nothing of its own, because the resizing in
-    ///     <see cref="Scale" /> is the whole effect; every other name is a colour filter over the sprite.
+    ///     <c>scale</c> draws nothing beyond the resizing in <see cref="Scale" />; every other name is a colour filter over
+    ///     the sprite.
     /// </summary>
     public string? Name { get; init; }
 
@@ -108,9 +109,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     for.
     /// </summary>
     /// <remarks>
-    ///     The server issues one invitation per round and honours it against no other, so one left over from an earlier round
-    ///     is a kiss that can never land - and it refuses without saying which of its rules it refused on. Compare this
-    ///     against the round the event table reports before spending a walk on it.
+    ///     The server honours an invitation only in the round it was issued for, and refuses a stale one without saying why.
     /// </remarks>
     [JsonPropertyName("round")]
     public long? Round { get; init; }
@@ -132,7 +131,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     If populated, which ten-day step of the New Player bonus the account is on, counting from 1.
     /// </summary>
     /// <remarks>
-    ///     Each step pays less than the one before, so this changing is a rate cut rather than a cosmetic detail.
+    ///     Each step pays less than the one before.
     /// </remarks>
     [JsonPropertyName("phase")]
     public int? Phase { get; init; }
@@ -175,9 +174,8 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     .
     /// </summary>
     /// <remarks>
-    ///     Realm Fatigue is the one that carries it. Activity on another realm pushes this out while the condition is already
-    ///     running, and coming home does not clear it, so counting <see cref="DurationMs" /> down from when it first appeared
-    ///     finishes early.
+    ///     Realm Fatigue carries it. Activity on another realm pushes it out while the condition runs, and coming home does
+    ///     not clear it.
     /// </remarks>
     [JsonPropertyName("until")]
     public long? Until { get; init; }

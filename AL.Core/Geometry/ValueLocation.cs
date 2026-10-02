@@ -5,8 +5,7 @@ using AL.Core.Interfaces;
 using Chaos.Extensions.Common;
 #endregion
 
-//a default-constructed ValueLocation carries a null map despite Map's annotation, and EqualsI throws on a null
-//receiver, so the map null checks below are load-bearing
+//a default ValueLocation has a null map despite the annotation, and EqualsI throws on a null receiver
 // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 
 namespace AL.Core.Geometry;
@@ -41,7 +40,21 @@ public readonly ref struct ValueLocation : ILocation, IEquatable<ValueLocation>
     /// <summary>
     ///     Copies any <see cref="ILocation" /> onto the stack.
     /// </summary>
-    public static ValueLocation From(ILocation location) => new(location.Map, location.X, location.Y);
+    /// <param name="location">
+    ///     The location to copy.
+    /// </param>
+    /// <returns>
+    ///     A <see cref="ValueLocation" /> with the same values.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     location
+    /// </exception>
+    public static ValueLocation From(ILocation location)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        return new ValueLocation(location.Map, location.X, location.Y);
+    }
 
     public void Deconstruct(out string map, out float x, out float y)
     {

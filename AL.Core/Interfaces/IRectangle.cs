@@ -4,7 +4,9 @@ using AL.Core.Json.Attributes;
 
 namespace AL.Core.Interfaces;
 
-/// <summary>Represents a rectangle.</summary>
+/// <summary>
+///     Represents a rectangle.
+/// </summary>
 /// <remarks>
 ///     <see cref="JsonForcedObjectAttribute" /> makes implementers that also implement <see cref="IEnumerable{IPoint}" />
 ///     (GTile, for one) bind as objects rather than arrays.

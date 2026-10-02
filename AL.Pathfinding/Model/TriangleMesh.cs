@@ -8,14 +8,13 @@ using Poly2Tri;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     A map's walkable ground as a flat triangle mesh: unique vertices, three corner indices per triangle, three
-///     neighbour ids per triangle, and a uniform grid for point location. Neighbour slot i is the triangle across the edge
-///     opposite corner i, or -1 where that edge is a wall.
+///     Represents a map's walkable ground as a flat triangle mesh, with a uniform grid for point location. Neighbour slot i
+///     is the triangle across the edge opposite corner i, or -1 where that edge is a wall.
 /// </summary>
 public sealed class TriangleMesh
 {
     /// <summary>
-    ///     The uniform grid in CSR form: CellStart[c]..CellStart[c+1] index into <see cref="CellTriangles" />.
+    ///     Where each grid cell's triangles start in <see cref="CellTriangles" />, plus one end entry.
     /// </summary>
     private readonly int[] CellStart;
 
@@ -26,7 +25,7 @@ public sealed class TriangleMesh
     private readonly int GridRows;
 
     /// <summary>
-    ///     The vertex adjacency in CSR form: VertexEdgeStart[v]..VertexEdgeStart[v+1] index into <see cref="VertexEdgeTo" />.
+    ///     Where each vertex's edges start in <see cref="VertexEdgeTo" />, plus one end entry.
     /// </summary>
     private readonly int[] VertexEdgeStart;
 
@@ -51,6 +50,18 @@ public sealed class TriangleMesh
     /// <summary>
     ///     Initializes a new instance of the <see cref="TriangleMesh" /> class.
     /// </summary>
+    /// <param name="vertices">
+    ///     The unique vertices, in map coordinates.
+    /// </param>
+    /// <param name="corners">
+    ///     Three vertex indices per triangle.
+    /// </param>
+    /// <param name="neighbours">
+    ///     Three neighbour triangle ids per triangle, -1 for none.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    ///     corners is not a multiple of three, or neighbours is not the same length.
+    /// </exception>
     public TriangleMesh(Point[] vertices, int[] corners, int[] neighbours)
     {
         if ((corners.Length % 3) != 0)
@@ -98,7 +109,7 @@ public sealed class TriangleMesh
 
         for (var triangle = 0; triangle < TriangleCount; triangle++)
         {
-            Bounds(
+            CalculateCellBounds(
                 triangle,
                 out var c0,
                 out var r0,
@@ -119,7 +130,7 @@ public sealed class TriangleMesh
 
         for (var triangle = 0; triangle < TriangleCount; triangle++)
         {
-            Bounds(
+            CalculateCellBounds(
                 triangle,
                 out var c0,
                 out var r0,
@@ -136,7 +147,7 @@ public sealed class TriangleMesh
         }
     }
 
-    private void Bounds(
+    private void CalculateCellBounds(
         int triangle,
         out int column0,
         out int row0,
@@ -152,7 +163,7 @@ public sealed class TriangleMesh
         var maxX = MathF.Max(a.X, MathF.Max(b.X, c.X));
         var maxY = MathF.Max(a.Y, MathF.Max(b.Y, c.Y));
 
-        CellRange(
+        CalculateCellRange(
             minX,
             minY,
             maxX,
@@ -166,10 +177,12 @@ public sealed class TriangleMesh
     /// <summary>
     ///     Builds every triangle edge once, in both directions, each vertex's targets ascending.
     /// </summary>
+    /// <returns>
+    ///     Where each vertex's targets start, plus one end entry, and the targets themselves.
+    /// </returns>
     /// <remarks>
-    ///     A vertex whose triangles do not form one fan (a pinch: two sectors touching only at the point) gets no edges either
-    ///     way, so no chain passes through it and the corridor can rotate round every chain vertex in one sweep. The search
-    ///     may still seed it as a corner of the start triangle.
+    ///     A vertex whose triangles do not form one fan, two sectors touching only at the point, gets no edges, so the corridor
+    ///     can rotate round every chain vertex in one sweep.
     /// </remarks>
     private (int[] Start, int[] To) BuildVertexEdges()
     {
@@ -181,7 +194,7 @@ public sealed class TriangleMesh
         var pinched = new bool[Vertices.Length];
 
         for (var vertex = 0; vertex < pinched.Length; vertex++)
-            pinched[vertex] = (incident[vertex] > 0) && (FanSize(vertex) != incident[vertex]);
+            pinched[vertex] = (incident[vertex] > 0) && (CalculateFanSize(vertex) != incident[vertex]);
 
         var edges = new HashSet<(int From, int To)>();
 
@@ -218,7 +231,7 @@ public sealed class TriangleMesh
         return (start, targets);
     }
 
-    private void CellRange(
+    private void CalculateCellRange(
         float minX,
         float minY,
         float maxX,
@@ -234,8 +247,10 @@ public sealed class TriangleMesh
         row1 = Math.Clamp(((int)MathF.Ceiling(maxY) - GridMinY) / CONSTANTS.MESH_GRID_CELL, 0, GridRows - 1);
     }
 
-    /// <summary>The mean of the triangle's corners.</summary>
-    public (float X, float Y) Centroid(int triangle)
+    /// <summary>Calculates the mean of the triangle's corners.</summary>
+    /// <param name="triangle">The triangle's id.</param>
+    /// <returns>The triangle's centroid.</returns>
+    public (float X, float Y) CalculateCentroid(int triangle)
     {
         var a = Vertices[Corners[triangle * 3]];
         var b = Vertices[Corners[triangle * 3 + 1]];
@@ -245,8 +260,27 @@ public sealed class TriangleMesh
     }
 
     /// <summary>
-    ///     Whether (x, y) is inside the triangle, edges included.
+    ///     Determines whether a point is inside the triangle, edges included.
     /// </summary>
+    /// <param name="triangle">
+    ///     The triangle's id.
+    /// </param>
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the point is inside the triangle or on its edge; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool Contains(int triangle, float x, float y)
     {
         var a = Vertices[Corners[triangle * 3]];
@@ -280,19 +314,31 @@ public sealed class TriangleMesh
     }
 
     /// <summary>
-    ///     The vertices joined to <paramref name="vertex" /> by a triangle edge.
+    ///     Gets the vertices joined to a vertex by a triangle edge.
     /// </summary>
-    internal ReadOnlySpan<int> EdgesFrom(int vertex)
+    /// <param name="vertex">
+    ///     The vertex's index.
+    /// </param>
+    /// <returns>
+    ///     The joined vertices' indices, ascending.
+    /// </returns>
+    internal ReadOnlySpan<int> GetVertexEdges(int vertex)
         => VertexEdgeTo.AsSpan(VertexEdgeStart[vertex], VertexEdgeStart[vertex + 1] - VertexEdgeStart[vertex]);
 
     /// <summary>
-    ///     How many of the triangles at <paramref name="vertex" /> are reached from its first one by stepping across the edges
-    ///     that meet there, both ways round; equal to the incident count exactly when they form one sector.
+    ///     Calculates how many of the triangles at a vertex are reached from its first one by stepping across the edges that
+    ///     meet there, both ways round.
     /// </summary>
-    private int FanSize(int vertex)
+    /// <param name="vertex">
+    ///     The vertex's index.
+    /// </param>
+    /// <returns>
+    ///     The fan's size, equal to the incident count exactly when the triangles form one sector.
+    /// </returns>
+    private int CalculateFanSize(int vertex)
     {
         var first = VertexTriangle[vertex];
-        var firstSlot = SlotOfVertex(first, vertex);
+        var firstSlot = FindVertexSlot(first, vertex);
         var count = 1;
 
         for (var way = 1; way <= 2; way++)
@@ -303,7 +349,7 @@ public sealed class TriangleMesh
             while ((triangle >= 0) && (triangle != first))
             {
                 count++;
-                var slot = SlotOfVertex(triangle, vertex);
+                var slot = FindVertexSlot(triangle, vertex);
                 var across = Neighbour(triangle, (slot + 1) % 3);
                 var following = across == last ? Neighbour(triangle, (slot + 2) % 3) : across;
                 last = triangle;
@@ -321,6 +367,18 @@ public sealed class TriangleMesh
     /// <summary>
     ///     Builds a mesh from Poly2Tri's output, translating raster coordinates back into map coordinates.
     /// </summary>
+    /// <param name="triangles">
+    ///     The walkable triangles.
+    /// </param>
+    /// <param name="xOffset">
+    ///     The raster's x offset from map coordinates.
+    /// </param>
+    /// <param name="yOffset">
+    ///     The raster's y offset from map coordinates.
+    /// </param>
+    /// <returns>
+    ///     The mesh in map coordinates.
+    /// </returns>
     internal static TriangleMesh FromPoly2Tri(IReadOnlyList<DelaunayTriangle> triangles, int xOffset, int yOffset)
     {
         var vertexIndex = new Dictionary<(double X, double Y), int>();
@@ -351,8 +409,7 @@ public sealed class TriangleMesh
 
                 corners[t * 3 + i] = index;
 
-                //a constrained edge is a polygon edge, which is a wall; a neighbour outside the walkable set is
-                //one Poly2Tri made in the exterior and is not in the index
+                //a constrained edge is a wall, and a neighbour missing from the index lies outside the walkable set
                 var across = triangle.Neighbors[i];
 
                 neighbours[t * 3 + i]
@@ -364,11 +421,22 @@ public sealed class TriangleMesh
     }
 
     /// <summary>
-    ///     The nearest vertex to (x, y) that <paramref name="accept" /> allows, trying the nearest
-    ///     <see cref="CONSTANTS.NEAREST_VERTEX_CANDIDATES" /> in distance order; the nearest of all when none is allowed. -1
-    ///     on an empty mesh.
+    ///     Finds the nearest vertex to a point that a filter allows, trying the nearest
+    ///     <see cref="CONSTANTS.NEAREST_VERTEX_CANDIDATES" /> in distance order.
     /// </summary>
-    public int NearestVertex(float x, float y, Func<int, bool> accept)
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <param name="acceptFunc">
+    ///     Determines whether a vertex index may be returned.
+    /// </param>
+    /// <returns>
+    ///     The vertex's index, the nearest of all when none is allowed, or -1 on an empty mesh.
+    /// </returns>
+    public int FindNearestVertex(float x, float y, Func<int, bool> acceptFunc)
     {
         if (Vertices.Length == 0)
             return -1;
@@ -377,8 +445,7 @@ public sealed class TriangleMesh
         Span<int> bestIndex = stackalloc int[CONSTANTS.NEAREST_VERTEX_CANDIDATES];
         var count = 0;
 
-        //insertion into a sorted fixed buffer: the mesh has a thousand or so vertices, so this is cheaper than
-        //a sort and allocates nothing
+        //insertion into a sorted fixed buffer
         for (var i = 0; i < Vertices.Length; i++)
         {
             var dx = Vertices[i].X - x;
@@ -405,15 +472,24 @@ public sealed class TriangleMesh
         }
 
         for (var i = 0; i < count; i++)
-            if (accept(bestIndex[i]))
+            if (acceptFunc(bestIndex[i]))
                 return bestIndex[i];
 
         return bestIndex[0];
     }
 
     /// <summary>
-    ///     The neighbour across the edge opposite corner <paramref name="slot" />, or -1.
+    ///     Gets the neighbour across the edge opposite a corner.
     /// </summary>
+    /// <param name="triangle">
+    ///     The triangle's id.
+    /// </param>
+    /// <param name="slot">
+    ///     The corner's slot, 0 to 2.
+    /// </param>
+    /// <returns>
+    ///     The neighbour's id, or -1 where the edge is a wall.
+    /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Neighbour(int triangle, int slot) => Neighbours[triangle * 3 + slot];
 
@@ -426,9 +502,18 @@ public sealed class TriangleMesh
         => (x - b.X) * (a.Y - b.Y) - (a.X - b.X) * (y - b.Y);
 
     /// <summary>
-    ///     The corner slot <paramref name="vertex" /> occupies in <paramref name="triangle" />, or -1.
+    ///     Finds the corner slot a vertex occupies in a triangle.
     /// </summary>
-    internal int SlotOfVertex(int triangle, int vertex)
+    /// <param name="triangle">
+    ///     The triangle's id.
+    /// </param>
+    /// <param name="vertex">
+    ///     The vertex's index.
+    /// </param>
+    /// <returns>
+    ///     The slot, 0 to 2, or -1 when the vertex is not a corner of the triangle.
+    /// </returns>
+    internal int FindVertexSlot(int triangle, int vertex)
     {
         for (var slot = 0; slot < 3; slot++)
             if (Corners[triangle * 3 + slot] == vertex)
@@ -438,9 +523,18 @@ public sealed class TriangleMesh
     }
 
     /// <summary>
-    ///     The triangle containing (x, y), or -1. A point on a shared edge answers whichever triangle the grid lists first.
+    ///     Finds the triangle containing a point.
     /// </summary>
-    public int TriangleAt(float x, float y)
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <returns>
+    ///     The triangle's id, or -1. A point on a shared edge returns whichever triangle the grid lists first.
+    /// </returns>
+    public int FindTriangle(float x, float y)
     {
         var column = ((int)MathF.Floor(x) - GridMinX) / CONSTANTS.MESH_GRID_CELL;
         var row = ((int)MathF.Floor(y) - GridMinY) / CONSTANTS.MESH_GRID_CELL;
@@ -457,22 +551,43 @@ public sealed class TriangleMesh
         return -1;
     }
 
-    /// <summary>A triangle the vertex belongs to.</summary>
-    public int TriangleOfVertex(int vertex) => VertexTriangle[vertex];
+    /// <summary>
+    ///     Gets a triangle the vertex belongs to.
+    /// </summary>
+    /// <param name="vertex">
+    ///     The vertex's index.
+    /// </param>
+    /// <returns>
+    ///     The triangle's id.
+    /// </returns>
+    public int GetVertexTriangle(int vertex) => VertexTriangle[vertex];
 
     /// <summary>
-    ///     The nearest point inside the mesh to (x, y), within <paramref name="maxDistance" />: the point itself when it is
-    ///     inside, otherwise the nearest point on a boundary edge stepped one unit into its triangle. False when no boundary
-    ///     edge is within range.
+    ///     Finds the nearest point inside the mesh: the point itself when it is inside, otherwise the nearest point on a
+    ///     boundary edge stepped one unit into its triangle.
     /// </summary>
-    public bool TryNearestInside(
+    /// <param name="x">The point's x.</param>
+    /// <param name="y">The point's y.</param>
+    /// <param name="maxDistance">
+    ///     How far from the point to look for a boundary edge.
+    /// </param>
+    /// <param name="insideX">
+    ///     The inside point's x, or the point's own when none is found.
+    /// </param>
+    /// <param name="insideY">
+    ///     The inside point's y, or the point's own when none is found.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the point is inside or a boundary edge is within range; otherwise, <c>false</c> .
+    /// </returns>
+    public bool TryFindNearestInside(
         float x,
         float y,
         float maxDistance,
         out float insideX,
         out float insideY)
     {
-        if (TriangleAt(x, y) >= 0)
+        if (FindTriangle(x, y) >= 0)
         {
             insideX = x;
             insideY = y;
@@ -485,7 +600,7 @@ public sealed class TriangleMesh
         var bestX = 0f;
         var bestY = 0f;
 
-        CellRange(
+        CalculateCellRange(
             x - maxDistance,
             y - maxDistance,
             x + maxDistance,
@@ -495,7 +610,7 @@ public sealed class TriangleMesh
             out var column1,
             out var row1);
 
-        //a triangle sits in every cell its bounds touch, so one may be seen more than once; the answer is the same
+        //a triangle sits in every cell its bounds touch, so one may be seen more than once
         for (var row = row0; row <= row1; row++)
             for (var column = column0; column <= column1; column++)
             {
@@ -544,9 +659,8 @@ public sealed class TriangleMesh
             return false;
         }
 
-        //a unit step toward the centroid lands strictly inside a convex triangle; one smaller than the step takes
-        //the centroid itself
-        (var cx, var cy) = Centroid(bestTriangle);
+        //step one unit toward the centroid, or take the centroid when it is closer than that
+        (var cx, var cy) = CalculateCentroid(bestTriangle);
         var toX = cx - bestX;
         var toY = cy - bestY;
         var length = MathF.Sqrt(toX * toX + toY * toY);

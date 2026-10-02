@@ -65,7 +65,7 @@ public class AnimatableCollisionTests : GameDataTestBed
             ]
         };
 
-        var lines = gate.CollisionLines()
+        var lines = gate.BuildCollisionLines()
                         .ToList();
 
         lines.Should()
@@ -108,7 +108,7 @@ public class AnimatableCollisionTests : GameDataTestBed
             {
                 X = 100,
                 Y = 100
-            }.CollisionLines()
+            }.BuildCollisionLines()
              .Should()
              .BeEmpty();
 
@@ -124,7 +124,7 @@ public class AnimatableCollisionTests : GameDataTestBed
                         3
                     ]
                 ]
-            }.CollisionLines()
+            }.BuildCollisionLines()
              .Should()
              .BeEmpty();
     }

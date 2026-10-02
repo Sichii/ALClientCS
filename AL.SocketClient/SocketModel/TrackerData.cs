@@ -6,8 +6,8 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     The monster/drop tracker snapshot (node/server.js:5068): kill counts, exchange counts and drop tables. Nested
-///     drop-table shapes are left as raw JSON tokens - they are deeply heterogeneous and not worth a concrete model.
+///     Represents the monster and drop tracker snapshot: kill counts, exchange counts and drop tables. The heterogeneous
+///     drop-table shapes stay raw JSON.
 /// </summary>
 public sealed record TrackerData
 {
@@ -44,8 +44,7 @@ public sealed record TrackerData
     public JsonObject Max { get; init; } = new();
 
     /// <summary>
-    ///     Kill counts by monster type as of the last snapshot. The lifetime total is this plus <see cref="MonstersDiff" />,
-    ///     which is how the server and the game's own client both work it out.
+    ///     Kill counts by monster type as of the last snapshot. The lifetime total is this plus <see cref="MonstersDiff" />.
     /// </summary>
     [JsonPropertyName("monsters")]
     public JsonObject Monsters { get; init; } = new();

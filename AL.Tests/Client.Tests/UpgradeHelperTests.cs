@@ -130,7 +130,7 @@ public sealed class UpgradeHelperTests
 
         //+5 to +6 is grade 1 against [4, 8, ...], and every upgrade prices from the grade 0 row the item has at +0
         var expected = UpgradeMath.CalculateUpgradeChance(
-            GameData.Upgrades.ChanceOf(0, 6)!.Value,
+            GameData.Upgrades.GetChance(0, 6)!.Value,
             6,
             1,
             0,

@@ -27,8 +27,8 @@ public class Character : Player, IEquatable<Character>
     public int AggroTargets { get; protected set; }
 
     /// <summary>
-    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. Read it rather
-    ///     than guessing at the featured player's state: the game's own kiss button is enabled on nothing else.
+    ///     The server's answer on whether this character's next anniversary kiss pays, or null outside a round. The game's
+    ///     own kiss button is enabled on nothing else.
     /// </summary>
     [JsonPropertyName("anniversary")]
     [JsonInclude]
@@ -55,7 +55,7 @@ public class Character : Player, IEquatable<Character>
 
     /// <summary>
     ///     The daily dungeon's run state while this character is inside one, or null. Set from the cave event, never from a
-    ///     character frame, which is why the frame merge leaves it alone.
+    ///     character frame.
     /// </summary>
     [JsonIgnore]
     [ShallowMergeIgnore]
@@ -71,25 +71,17 @@ public class Character : Player, IEquatable<Character>
     ///     What the network calls this character has made are costing it. Not all calls are equal, and this is not a count -
     ///     see <see cref="Definitions.CallCost" /> for the table the server prices them from.
     ///     <br />
-    ///     Nearly a sliding window: the server drops entries older than <see cref="Definitions.CallCost.WINDOW" /> off the
-    ///     front before every read. But a charge whose method matches the last entry's is folded into that entry and keeps its
-    ///     date, so a run of one method clears as a block four seconds after the run began. A character doing one thing over
-    ///     and over reads as a sawtooth here, not a plateau.
+    ///     Nearly a sliding window over <see cref="Definitions.CallCost.WINDOW" />, except that consecutive calls to one
+    ///     method fold into one entry and clear together, measured from the first.
     ///     <br />
     ///     <b>
-    ///         Above <see cref="Definitions.CallCost.LIMIT" /> the server sends a limitdcreport and disconnects.
+    ///         Above <see cref="Definitions.CallCost.LIMIT" /> the server sends a <c>limitdcreport</c> and disconnects.
     ///     </b>
     /// </summary>
     [JsonPropertyName("cc")]
     [JsonInclude]
     public float CodeCost { get; protected set; }
 
-    /// <summary>
-    ///     When the number of monsters you are attacking exceeds the courage value for that type of monster, you start to gain
-    ///     fear.
-    ///     <br />
-    ///     This value is the number of monsters you are exceeding your courage by.
-    /// </summary>
     /// <summary>
     ///     The number of physically-attacking monsters this character can face before gaining fear. Sent on every character
     ///     frame; the server counts physical attackers against this one, magical against <see cref="MCourage" /> and pure
@@ -122,15 +114,19 @@ public class Character : Player, IEquatable<Character>
     ///     A lag allowance the server spends on your behalf: one budget per character, shared by every skill including attack.
     ///     It starts at 25 and refills 5 per second back to that cap, unconditionally - attacking does not hold it back.
     ///     <br />
-    ///     A cast lands when the distance is within <c>range + xrange</c> , and one that needed the allowance drains it by
-    ///     however much of it was used. A cast past that is refused with <c>too_far</c> and costs nothing, so the budget only
-    ///     ever pays for casts that worked. Nothing refuses while it holds, which is why a range check measuring against the
-    ///     nominal range alone reads as correct right up until it runs dry.
+    ///     A cast lands within <c>range + xrange</c> and drains whatever of the allowance it used. A cast past that is refused
+    ///     with <c>too_far</c> and costs nothing.
     /// </summary>
     [JsonPropertyName("xrange")]
     [JsonInclude]
     public float ExtraRange { get; protected set; }
 
+    /// <summary>
+    ///     When the number of monsters you are attacking exceeds the courage value for that type of monster, you start to gain
+    ///     fear.
+    ///     <br />
+    ///     This value is the number of monsters you are exceeding your courage by.
+    /// </summary>
     [JsonInclude]
     public float Fear { get; protected set; }
 
@@ -247,13 +243,10 @@ public class Character : Player, IEquatable<Character>
     public override int GetHashCode() => base.GetHashCode();
 
     /// <summary>
-    ///     System.Text.Json post-deserialize step: after the base slot fill, size the inventory to
-    ///     <see cref="InventorySize" /> (bound by this point). Reproduces the Newtonsoft CharacterConverter enrich.
+    ///     Sizes the inventory to <see cref="InventorySize" /> after the base slot fill.
     /// </summary>
     /// <remarks>
-    ///     A frame that carries no <c>items</c> key leaves <see cref="Inventory" /> null, so the sizing is skipped rather than
-    ///     dereferencing it — there is no inventory to size, and the alternative is a <see cref="NullReferenceException" />
-    ///     that kills the whole frame.
+    ///     Skipped when the frame carries no <c>items</c> key, which leaves <see cref="Inventory" /> null.
     /// </remarks>
     public override void OnDeserialized()
     {
@@ -263,16 +256,23 @@ public class Character : Player, IEquatable<Character>
         Inventory?.SetCapacity(InventorySize);
     }
 
-    /// <summary>Sets this character as moving to a point.</summary>
-    /// <param name="point">Where to walk to.</param>
+    /// <summary>
+    ///     Sets this character as moving to a point.
+    /// </summary>
+    /// <param name="point">
+    ///     Where to walk to.
+    /// </param>
     /// <returns>
-    ///     The movement block this left the character holding. Returned so a caller needing the move number this walk was
-    ///     started with reads it from the same write rather than from a second, later look at the character.
+    ///     The movement block this left the character holding, including the move number the walk started with.
     /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     point
+    /// </exception>
     public MovementBlock SetMoving(IPoint point)
     {
-        //materialised before the lock: ALClient hands a live Player here, and calling into a foreign implementation
-        //while holding this character's lock is how a deadlock gets built later
+        ArgumentNullException.ThrowIfNull(point);
+
+        //copied before the lock, so no foreign IPoint implementation is called while holding it
         var going = new Point(point.X, point.Y);
 
         lock (MovementLock)
@@ -313,20 +313,23 @@ public class Character : Player, IEquatable<Character>
     /// <summary>
     ///     Folds an in-progress upgrade or compound's detail onto the inventory slot it belongs to.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the operation's placeholder.
+    /// </param>
+    /// <param name="prediction">
+    ///     The operation's current detail.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     prediction
+    /// </exception>
     /// <remarks>
-    ///     The server sends this on <c>q_data</c> and only there - it names the slot and carries the operation's prediction,
-    ///     and it never restates the inventory. So a consumer that only merges character frames sees the placeholder but never
-    ///     the detail underneath it, which is where the roll's digits live and where they are revealed one at a time as the
-    ///     animation counts down.
+    ///     The server sends this only on <c>q_data</c>, never in a character frame.
     /// </remarks>
-    /// <param name="inventorySlot">The slot holding the operation's placeholder.</param>
-    /// <param name="prediction">The operation's current detail.</param>
     public void Update(int inventorySlot, Prediction prediction)
     {
         ArgumentNullException.ThrowIfNull(prediction);
 
-        //null before the first character frame lands, which a q_data cannot precede in practice but costs nothing
-        //to allow for
+        //null before the first character frame lands
         // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
         Inventory?.SetPrediction(inventorySlot, prediction);
     }
@@ -340,8 +343,7 @@ public class Character : Player, IEquatable<Character>
 
         MapChangeCount = data.MapChangeCount;
 
-        //one atomic operation, not two - a reckoning tick landing between them would walk the character away from
-        //the arrival spot the stop just pinned. Both nested calls re-enter the lock
+        //held across both so a reckoning tick cannot walk the character off the arrival spot; both calls re-enter it
         lock (MovementLock)
         {
             StopMoving();

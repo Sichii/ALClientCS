@@ -7,8 +7,7 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Shared positional-element reader: null-safe and forwards <see cref="JsonSerializerOptions" /> so nested converters
-///     and number-from-string coercion apply, mirroring Newtonsoft's <c>JToken.ToObject&lt;T&gt;(serializer)</c> .
+///     Provides the null-safe element read the tuple converters share, forwarding the options so nested converters apply.
 /// </summary>
 internal static class TupleElement
 {
@@ -184,8 +183,8 @@ public class ArrayToTupleConverter<T1, T2, T3, T4, T5, T6, T7> : JsonConverter<V
                 TupleElement.Read<T4>(arr, 3, options), TupleElement.Read<T5>(arr, 4, options), TupleElement.Read<T6>(arr, 5, options),
                 default),
 
-            // ponytail: the 7th element deserializes WITHOUT options, faithfully preserving the Newtonsoft quirk
-            // (arr[6].ToObject<T7>() omitted the serializer). Pinned by characterization; revisit only if it moves.
+            // ponytail: the 7th element deserializes without options, so nested converters skip it; a test pins this,
+            // revisit only if it moves
             7 => (TupleElement.Read<T1>(arr, 0, options), TupleElement.Read<T2>(arr, 1, options), TupleElement.Read<T3>(arr, 2, options),
                 TupleElement.Read<T4>(arr, 3, options), TupleElement.Read<T5>(arr, 4, options), TupleElement.Read<T6>(arr, 5, options),
                 arr[6] is { } n7 ? n7.Deserialize<T7>() : default),
@@ -198,12 +197,13 @@ public class ArrayToTupleConverter<T1, T2, T3, T4, T5, T6, T7> : JsonConverter<V
 }
 
 /// <summary>
-///     Applies the arity-matched <see cref="ArrayToTupleConverter{T1,T2}" /> to any <see cref="ValueTuple" />. Every
-///     serialized tuple in the model is a positional array (both the single-tuple <c>[JsonConverter]</c> sites and the
-///     <c>ItemConverterType</c> list-element sites), so one global factory replaces both. The <c>?</c> on the converter's
-///     unconstrained parameters is annotation-only, so the produced converter's runtime target type is the exact declared
-///     tuple (e.g. <c>ValueTuple&lt;float, float&gt;</c> ), which is what System.Text.Json matches on.
+///     Applies the arity-matched <see cref="ArrayToTupleConverter{T1,T2}" /> to any <see cref="ValueTuple" /> of two to
+///     seven elements, since every serialized tuple in the model is a positional array.
 /// </summary>
+/// <remarks>
+///     The <c>?</c> on the converters' type parameters is annotation-only, so each produced converter targets the exact
+///     declared tuple type.
+/// </remarks>
 public sealed class TupleConverterFactory : JsonConverterFactory
 {
     private static readonly Dictionary<Type, Type> ByArity = new()

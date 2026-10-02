@@ -11,31 +11,24 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Reads an object into a dictionary keyed by <typeparamref name="TKey" />, skipping any key that does not map to a
-///     known member instead of failing the whole payload. The System.Text.Json replacement for the Newtonsoft
-///     <c>TolerantEnumKeyDictionaryConverter</c> .
+///     known member instead of failing the whole payload.
 /// </summary>
 /// <remarks>
-///     System.Text.Json resolves dictionary keys with a key converter that throws on an unparseable key, so a
-///     whole-dictionary converter is required to skip-and-continue. One unrecognized key - a new monster ability, a new
-///     buff - would otherwise discard every entity in the same frame.
+///     One unrecognized key, such as a new monster ability, would otherwise discard every entity in the same frame.
 /// </remarks>
 public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConverter<ConcurrentDictionary<TKey, TValue>>
     where TKey: struct, Enum
     where TValue: notnull
 {
     /// <summary>
-    ///     Named from a string, not the type: a closed generic's logger name is its assembly-qualified name, which the
-    ///     layout's shortName truncates to the tail of the last type argument.
+    ///     The logger, named from a string because the layout's shortName truncates a closed generic's assembly-qualified
+    ///     name to the tail of the last type argument.
     /// </summary>
-    /// <remarks>The warning below already carries TKey's name.</remarks>
     private static readonly ILog Log = LogManager.GetLogger(nameof(TolerantEnumKeyDictionaryConverter<TKey, TValue>));
 
     /// <summary>
-    ///     Tolerance that hides schema drift is worse than the drift, so each unknown key is reported once per closed generic.
+    ///     The unknown keys already warned about, so each is reported once per closed generic.
     /// </summary>
-    /// <remarks>
-    ///     A TKey shared by two TValues can warn twice, which is cheaper than a global table to dedupe it.
-    /// </remarks>
 
     // ReSharper disable once StaticMemberInGenericType
     private static readonly ConcurrentDictionary<string, byte> Reported = new();
@@ -68,7 +61,7 @@ public sealed class TolerantEnumKeyDictionaryConverter<TKey, TValue> : JsonConve
                 continue;
             }
 
-            //a null value token is skipped (the null filter), matching Newtonsoft's `value != null` guard
+            //a null value is skipped
             if (node is not null && node.Deserialize<TValue>(options) is { } value)
                 result[key] = value;
         }

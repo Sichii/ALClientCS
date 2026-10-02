@@ -6,8 +6,8 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Events;
 
 /// <summary>
-///     A monster and how many of it: one entry of a camp's pack, or the fight an encounter reply starts. Rides the wire as
-///     <c>["cave_rat", 6]</c> .
+///     Represents a monster and how many of it: one entry of a camp's pack, or the fight an encounter reply starts. Positional
+///     on the wire, as <c>["cave_rat", 6]</c>.
 /// </summary>
 [JsonConverter(typeof(GMonsterCountConverter))]
 public sealed record GMonsterCount
@@ -18,8 +18,7 @@ public sealed record GMonsterCount
 }
 
 /// <summary>
-///     Reads the positional pair. Anything that is not an array of a string then a whole number reads as null rather than
-///     throwing, so one odd entry does not take the whole event table down.
+///     Reads the positional pair. Anything that is not an array of a string then a whole number reads as null.
 /// </summary>
 public sealed class GMonsterCountConverter : JsonConverter<GMonsterCount>
 {
@@ -40,7 +39,6 @@ public sealed class GMonsterCountConverter : JsonConverter<GMonsterCount>
                             .EnumerateArray()
                             .ToArray();
 
-        //TryGetInt32 rather than GetInt32, which throws on a fractional or oversized count
         if ((slots.Length < 2)
             || (slots[0].ValueKind != JsonValueKind.String)
             || (slots[1].ValueKind != JsonValueKind.Number)

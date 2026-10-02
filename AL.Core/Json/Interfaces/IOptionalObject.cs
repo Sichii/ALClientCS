@@ -5,9 +5,8 @@ namespace AL.Core.Json.Interfaces;
 /// </summary>
 public interface IOptionalObject
 {
-    /// <summary>Whether or not the object was a scalar value.</summary>
-    /// <value>
-    ///     <c>true</c> if object was not a scalar value.; otherwise, <c>false</c> .
-    /// </value>
+    /// <summary>
+    ///     Whether the server sent a full object rather than a scalar value.
+    /// </summary>
     bool ContainsData { get; set; }
 }

@@ -5,8 +5,7 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.Model;
 
 /// <summary>
-///     When a server runs its scheduled events. Sent whole inside the server info snapshot, on login and on every change (
-///     <c>node/server.js:10581</c> , <c>node/server_functions.js:2510</c> ).
+///     When a server runs its scheduled events. Sent whole inside the server info snapshot, on login and on every change.
 /// </summary>
 /// <remarks>
 ///     Which event lands in a slot is not published: the server rotates a list it shuffled at start-up and holds in module
@@ -26,8 +25,8 @@ public sealed record EventSchedule
     public IReadOnlyList<int> Nightlies { get; init; } = [];
 
     /// <summary>
-    ///     Whole hours the server's own clock runs ahead of UTC — per region, +1 EU, -5 US, +7 ASIA (
-    ///     <c>node/server.js:235</c> ). Every hour below is on that clock.
+    ///     Whole hours the server's own clock runs ahead of UTC: +1 EU, -5 US, +7 ASIA. Every hour above is on
+    ///     that clock.
     /// </summary>
     [JsonPropertyName("time_offset")]
     public int TimeOffset { get; init; }

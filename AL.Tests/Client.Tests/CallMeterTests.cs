@@ -21,19 +21,19 @@ public class CallMeterTests
     [Test]
     public void ABankCrossingIsBilledBesideTheDoor()
     {
-        CallCost.OfBankCrossing(false, true)
+        CallCost.CalculateBankCrossingCost(false, true)
                 .Should()
                 .Be(32d);
 
-        CallCost.OfBankCrossing(true, false)
+        CallCost.CalculateBankCrossingCost(true, false)
                 .Should()
                 .Be(16d);
 
-        CallCost.OfBankCrossing(true, true)
+        CallCost.CalculateBankCrossingCost(true, true)
                 .Should()
                 .Be(0d);
 
-        CallCost.OfBankCrossing(false, false)
+        CallCost.CalculateBankCrossingCost(false, false)
                 .Should()
                 .Be(0d);
     }
@@ -54,7 +54,7 @@ public class CallMeterTests
 
         snapshot.Cost
                 .Should()
-                .Be(CallCost.Of(ALSocketEmitType.Transport) + 32d);
+                .Be(CallCost.CalculateCost(ALSocketEmitType.Transport) + 32d);
 
         //a refund comes off the same entry and stops at nothing
         meter.Charge(ALSocketEmitType.Transport, -100d);
@@ -73,24 +73,24 @@ public class CallMeterTests
     [Test]
     public void AChestOpenedInAPartyBillsTheOpenerForEveryMember()
     {
-        CallCost.OfChestOpen(1, 0, false)
+        CallCost.CalculateChestOpenCost(1, 0, false)
                 .Should()
-                .Be(CallCost.Of(ALSocketEmitType.OpenChest));
+                .Be(CallCost.CalculateCost(ALSocketEmitType.OpenChest));
 
-        CallCost.OfChestOpen(1, 0, true)
+        CallCost.CalculateChestOpenCost(1, 0, true)
                 .Should()
                 .Be(0d);
 
-        CallCost.OfChestOpen(4, 0, false)
+        CallCost.CalculateChestOpenCost(4, 0, false)
                 .Should()
                 .BeApproximately(0.4d, 1e-9);
 
-        CallCost.OfChestOpen(4, 3, true)
+        CallCost.CalculateChestOpenCost(4, 3, true)
                 .Should()
                 .BeApproximately(1.2d, 1e-9);
 
         //three empty resends, the opener's among them, and one reopen of somebody else
-        CallCost.OfChestOpen(4, 1, false)
+        CallCost.CalculateChestOpenCost(4, 1, false)
                 .Should()
                 .BeApproximately(0.7d, 1e-9);
     }
@@ -138,39 +138,39 @@ public class CallMeterTests
         meter.Snapshot(0d)
              .Cost
              .Should()
-             .Be(CallCost.Of(ALSocketEmitType.Attack));
+             .Be(CallCost.CalculateCost(ALSocketEmitType.Attack));
     }
 
     [Test]
     public void AnEmitCostsItsRowInTheServersTablePlusWhatItsHandlerResends()
     {
         //no CC row, but commence_attack resends u+cid at modifier 1: a unit for u, a unit for the stats pass
-        CallCost.Of(ALSocketEmitType.Attack)
+        CallCost.CalculateCost(ALSocketEmitType.Attack)
                 .Should()
                 .Be(2d);
 
         //the same resend at the skill modifier of 0.05 - which is why a base of one per call reads a ranger at double
-        CallCost.Of(ALSocketEmitType.Skill)
+        CallCost.CalculateCost(ALSocketEmitType.Skill)
                 .Should()
                 .Be(0.1d);
 
         //the wrapper's add_call_cost(-1) lands on the module's false_socket, never on the player, so a method with
         //neither a CC row nor a resend costs nothing at all
-        CallCost.Of(ALSocketEmitType.Use)
+        CallCost.CalculateCost(ALSocketEmitType.Use)
                 .Should()
                 .Be(0d);
 
         //a CC row and no resend
-        CallCost.Of(ALSocketEmitType.Move)
+        CallCost.CalculateCost(ALSocketEmitType.Move)
                 .Should()
                 .Be(1.5d);
 
         //cruise is the expensive one a movement lane can emit on a loop: its row of 10 and a u+cid on top
-        CallCost.Of(ALSocketEmitType.Cruise)
+        CallCost.CalculateCost(ALSocketEmitType.Cruise)
                 .Should()
                 .Be(12d);
 
-        CallCost.Of(ALSocketEmitType.Tracker)
+        CallCost.CalculateCost(ALSocketEmitType.Tracker)
                 .Should()
                 .Be(50d);
     }

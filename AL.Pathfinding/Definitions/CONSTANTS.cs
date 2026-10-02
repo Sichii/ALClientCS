@@ -13,61 +13,48 @@ public static class CONSTANTS
     public const float TOWN_CHANNEL_SECONDS = 3f;
 
     /// <summary>
-    ///     The <c>penalty_cd</c> a door, transporter or <c>leave</c> adds on landing (<c>transport_player_to</c>,
-    ///     <c>node/server.js</c>).
+    ///     The <c>penalty_cd</c> a door, transporter or <c>leave</c> adds on landing.
     /// </summary>
     public const float DOOR_PENALTY_MS = 3200f;
 
     /// <summary>
-    ///     The <c>penalty_cd</c> a blink, magiport or recall adds on landing (<c>transport_player_to</c>,
-    ///     <c>node/server.js</c>).
+    ///     The <c>penalty_cd</c> a blink, magiport or recall adds on landing.
     /// </summary>
     public const float EFFECT_PENALTY_MS = 812f;
 
     /// <summary>
-    ///     The most <c>penalty_cd</c> the server lets pile up (<c>transport_player_to</c>, <c>node/server.js</c>).
+    ///     The most <c>penalty_cd</c> the server lets pile up.
     /// </summary>
     public const float PENALTY_CAP_MS = 120000f;
 
     /// <summary>
-    ///     The most of the pending <c>penalty_cd</c> one cast adds to its skill's next ready time (<c>consume_skill</c>,
-    ///     <c>node/server_functions.js</c>).
+    ///     The most of the pending <c>penalty_cd</c> one cast adds to its skill's next ready time.
     /// </summary>
     public const float PENALTY_CHARGE_CAP_MS = 10000f;
 
     /// <summary>
-    ///     How long a blink takes from the cast to the landing (<c>node/server.js</c>).
+    ///     How long a blink takes from the cast to the landing.
     /// </summary>
     public const float BLINK_LANDING_MS = 200f;
 
     /// <summary>
-    ///     What the channel is priced at over its raw duration.
+    ///     The multiplier the town channel is priced at over the walk it replaces.
     /// </summary>
     /// <remarks>
-    ///     Small, because the speed it is applied to is now the character's own. The flat cost this replaced was 2.4x the raw
-    ///     duration at a base speed, and that factor was carrying the spread between a slowed character and a boosted one
-    ///     rather than any risk - which is what made it wrong for both ends of it.
-    ///     <br />
-    ///     What is left to charge for is the part of the channel a walk of the same length does not cost: an interruption
-    ///     leaves the character where it started, and landing adds 3200ms of penalty cooldown to the next skill where a walk
-    ///     adds none. 1.2 counts about 600ms of that against the three second channel. This is the one number to move to make
-    ///     the bot town more or less readily.
+    ///     Covers what a walk does not cost: an interrupted channel leaves the character where it started, and landing adds
+    ///     3200ms of penalty cooldown. Raise it to make the bot town less readily.
     /// </remarks>
     public const float TOWN_RISK_PREMIUM = 1.2f;
 
     /// <summary>
-    ///     What the channel is priced at when the character's own speed is not to hand.
+    ///     The walk speed the town channel is priced at when the character's own speed is unknown or zero.
     /// </summary>
-    /// <remarks>
-    ///     A character's base speed before any boost. Used for a frame that has not filled in yet as well, where a literal
-    ///     reading of a zero speed would make the channel free and win every search.
-    /// </remarks>
     public const float NOMINAL_WALK_SPEED = 50f;
 
     /// <summary>
-    ///     <see cref="TownCost" /> at <see cref="NOMINAL_WALK_SPEED" />, for a search given no speed to price against.
+    ///     The <see cref="CalculateTownCost" /> at <see cref="NOMINAL_WALK_SPEED" />.
     /// </summary>
-    public static readonly float NOMINAL_TOWN_COST = TownCost(NOMINAL_WALK_SPEED);
+    public static readonly float NOMINAL_TOWN_COST = CalculateTownCost(NOMINAL_WALK_SPEED);
 
     /// <summary>
     ///     The heuristic value of a transport, door, or leave connection.
@@ -78,32 +65,25 @@ public static class CONSTANTS
     ///     What a door into the bank costs instead of <see cref="TRANSPORT_HEURISTIC" />.
     /// </summary>
     /// <remarks>
-    ///     Entering the bank is the dearest map change there is: the server bills a mount beside the door, four doors' worth,
-    ///     and the client then waits for the bank data before it can move. The door also opens from up to 150 units along
-    ///     main's street, so at the flat price a round trip through it undercut walking past. 200 puts the round trip past
-    ///     anything the door's reach can save. A trip that ends inside the bank has no other way in, so it pays the same
-    ///     whatever the number.
+    ///     The door opens from up to 150 units along main's street, so a cheaper door makes a round trip through the bank
+    ///     undercut walking past it.
     /// </remarks>
     public const float BANK_DOOR_COST = 200f;
 
     /// <summary>
-    ///     How far a search will look for standable ground around a point the flood fill never reached, before giving up on
-    ///     it. Sized to clear the widest padded band - a vertical line is padded by the bounding base's half width on each
-    ///     side - with room for a corner where two bands stack. Past that the point is not a character grazing a wall, it is
-    ///     one somewhere no walk should be starting from.
+    ///     How far a search looks for standable ground around a point the flood fill never reached. Clears the widest padded
+    ///     wall band, with room for a corner where two bands stack.
     /// </summary>
     public const int MAX_UNSTICK_DISTANCE = 24;
 
     /// <summary>
-    ///     How many of the nearest mesh vertices a point outside every triangle will try to reach before settling for the
-    ///     nearest one whether it can be reached or not. A walkable point almost always reaches the first candidate; the bound
-    ///     is there for the cases that do not.
+    ///     How many of the nearest mesh vertices a point outside every triangle tries to reach before settling for the
+    ///     nearest one.
     /// </summary>
     public const int NEAREST_VERTEX_CANDIDATES = 64;
 
     /// <summary>
-    ///     The side of a cell in the uniform grid that answers which triangle a point is in. Sized to the typical triangle: a
-    ///     cell holds a handful of candidates, and the grid over the largest map is a few thousand cells.
+    ///     The side of a cell in the uniform grid that finds which triangle a point is in.
     /// </summary>
     public const int MESH_GRID_CELL = 64;
 
@@ -111,24 +91,36 @@ public static class CONSTANTS
     public static readonly BoundingBase DEFAULT_BOUNDING_BASE = new(8, 7, 2);
 
     /// <summary>
-    ///     Whether the server takes a leave command from a map.
+    ///     Determines whether the server takes a <c>leave</c> command from a map.
     /// </summary>
+    /// <param name="map">
+    ///     The map's key.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if <c>leave</c> works on the map; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     /// <remarks>
-    ///     Its own check is these two names plus solo instances, and a solo instance is only ever created by a gm - so on an
-    ///     ordinary account this is the whole list. Being irregular has nothing to do with it: duelland and resort are both
-    ///     irregular and the command is refused on both.
+    ///     The server also allows solo instances, which only a gm can create.
     /// </remarks>
-    public static bool AcceptsLeave(string map) => map.EqualsI("jail") || map.EqualsI("cyberland");
+    public static bool CanLeave(string map) => map.EqualsI("jail") || map.EqualsI("cyberland");
 
     /// <summary>
-    ///     The cost of a town teleport in the walk-distance units every other edge is measured in: the ground the character
-    ///     would have covered on foot while the channel ran, times <see cref="TOWN_RISK_PREMIUM" />.
+    ///     Calculates the cost of a town teleport in walk distance: the ground the character would cover on foot while the
+    ///     channel runs, times <see cref="TOWN_RISK_PREMIUM" />.
     /// </summary>
-    /// <remarks>
-    ///     Speed-derived rather than flat because the thing being compared is a walk, and how far a walk gets in three seconds
-    ///     is the whole of what makes the trade. A boosted character should reach for the channel less readily than a slow
-    ///     one, and a flat cost had it the same for both.
-    /// </remarks>
-    public static float TownCost(float walkSpeed)
+    /// <param name="walkSpeed">
+    ///     The character's walk speed; zero or less falls back to <see cref="NOMINAL_WALK_SPEED" />.
+    /// </param>
+    /// <returns>
+    ///     The cost of the town edge.
+    /// </returns>
+    public static float CalculateTownCost(float walkSpeed)
         => TOWN_CHANNEL_SECONDS * (walkSpeed > 0f ? walkSpeed : NOMINAL_WALK_SPEED) * TOWN_RISK_PREMIUM;
 }

@@ -5,8 +5,9 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.Model;
 
 /// <summary>
-///     The daily dungeon's run state as the server last sent it: the clock, the party's shared purse, where the stairs and
-///     objectives are, and the vote in progress if the run is paused for one. Times are server epoch milliseconds.
+///     Represents the daily dungeon's run state as the server last sent it: the clock, the party's shared purse, where the
+///     stairs and objectives are, and the vote in progress if the run is paused for one. Times are server epoch
+///     milliseconds.
 /// </summary>
 public sealed record CaveState
 {
@@ -57,8 +58,7 @@ public sealed record CaveState
     public bool Paused { get; init; }
 
     /// <summary>
-    ///     If populated, the Unix time in milliseconds the pause began at. Null whenever the run is not paused, which is
-    ///     nearly always, so this must stay nullable or every state frame fails to read.
+    ///     If populated, the Unix time in milliseconds the pause began at. Null whenever the run is not paused.
     /// </summary>
     [JsonPropertyName("paused_at")]
     public long? PausedAt { get; init; }
@@ -94,13 +94,15 @@ public sealed record CaveState
     public long ServerTime { get; init; }
 
     /// <summary>
-    ///     Supplies the party picked up, which some choices need: "tool", "lamp", "decoy" and the like.
+    ///     Supplies the party picked up, which some choices need: <c>tool</c>, <c>lamp</c>, <c>decoy</c> and the like.
     /// </summary>
     [JsonPropertyName("supplies")]
     public IReadOnlyList<string> Supplies { get; init; } = [];
 }
 
-/// <summary>A stair or the exit on the current floor.</summary>
+/// <summary>
+///     Represents a stair or the exit on the current floor.
+/// </summary>
 public sealed record CaveDoor
 {
     /// <summary>Whether the door leads a floor deeper.</summary>
@@ -120,7 +122,7 @@ public sealed record CaveDoor
     public string? Map { get; init; }
 
     /// <summary>
-    ///     The map the door leads to: a floor's key, or "main" for the exit.
+    ///     The map the door leads to: a floor's key, or <c>main</c> for the exit.
     /// </summary>
     [JsonPropertyName("to")]
     public string To { get; init; } = null!;
@@ -133,7 +135,7 @@ public sealed record CaveDoor
 }
 
 /// <summary>
-///     A room to settle: a monster camp, a floor keeper or an encounter.
+///     Represents a room to settle: a monster camp, a floor keeper or an encounter.
 /// </summary>
 public sealed record CaveObjective
 {
@@ -152,10 +154,8 @@ public sealed record CaveObjective
     public string Id { get; init; } = null!;
 
     /// <summary>
-    ///     What kind of room the server built, not what happens in it: "fight" for a guard camp, "boss" for a keeper,
-    ///     "encounter" for anything put to a vote, "farm" for a wave camp, "citizen" for a passing traveler. An
-    ///     encounter's own kind is not here; it is on <see cref="CaveChoice.Kind" />, and <see cref="Name" /> carries the
-    ///     encounter's title, which identifies it before the vote opens.
+    ///     What kind of room the server built: <c>fight</c>, <c>boss</c>, <c>encounter</c>, <c>farm</c> or <c>citizen</c>.
+    ///     An encounter's own kind is on <see cref="CaveChoice.Kind" />; <see cref="Name" /> carries its title.
     /// </summary>
     [JsonPropertyName("kind")]
     public string Kind { get; init; } = null!;
@@ -182,7 +182,7 @@ public sealed record CaveObjective
     public float Y { get; init; }
 }
 
-/// <summary>Something the party was paid.</summary>
+/// <summary>Represents something the party was paid.</summary>
 public sealed record CaveReward
 {
     [JsonPropertyName("amber")]
@@ -213,14 +213,14 @@ public sealed record CaveReward
     public int? Slot { get; init; }
 
     /// <summary>
-    ///     Where it went: "purse" for the shared purse, "inventory", "gold", "mail", or pending mail.
+    ///     Where it went: <c>purse</c> for the shared purse, <c>inventory</c>, <c>gold</c>, <c>mail</c>, or pending mail.
     /// </summary>
     [JsonPropertyName("where")]
     public string Where { get; init; } = null!;
 }
 
 /// <summary>
-///     An item named in a reward or carried by a person in a scene.
+///     Represents an item named in a reward or carried by a person in a scene.
 /// </summary>
 public sealed record CaveItem
 {
@@ -231,7 +231,7 @@ public sealed record CaveItem
     public int Quantity { get; init; } = 1;
 }
 
-/// <summary>A timed hunt a traveler set.</summary>
+/// <summary>Represents a timed hunt a traveler set.</summary>
 public sealed record CaveHunt
 {
     /// <summary>How many kills the hunt asks for.</summary>
@@ -246,7 +246,7 @@ public sealed record CaveHunt
     public int Kills { get; init; }
 }
 
-/// <summary>A practice bout a duelist set.</summary>
+/// <summary>Represents a practice bout a duelist set.</summary>
 public sealed record CavePractice
 {
     [JsonPropertyName("deadline")]
@@ -261,7 +261,7 @@ public sealed record CavePractice
 }
 
 /// <summary>
-///     A vote: an encounter put to the party, one vote each, a minute to choose, majority settles it early.
+///     Represents a vote: an encounter put to the party, one vote each, a minute to choose, majority settles it early.
 /// </summary>
 public sealed record CaveChoice
 {
@@ -277,8 +277,8 @@ public sealed record CaveChoice
     public string Id { get; init; } = null!;
 
     /// <summary>
-    ///     The encounter's own kind: "rescue", "dice", "merchant" and the like. The room the vote belongs to reports
-    ///     "encounter" and nothing finer, so this is the only place the kind is spelled out.
+    ///     The encounter's own kind: <c>rescue</c>, <c>dice</c>, <c>merchant</c> and the like. The room the vote belongs to
+    ///     reports only <c>encounter</c>.
     /// </summary>
     [JsonPropertyName("kind")]
     public string? Kind { get; init; }
@@ -311,7 +311,7 @@ public sealed record CaveChoice
     public string? ResultLabel { get; init; }
 
     /// <summary>
-    ///     A service the resolved choice opened: "recipes" for the collector's recipe list.
+    ///     A service the resolved choice opened: <c>recipes</c> for the collector's recipe list.
     /// </summary>
     [JsonPropertyName("service")]
     public string? Service { get; init; }
@@ -339,7 +339,7 @@ public sealed record CaveChoice
     public IReadOnlyDictionary<string, string> Votes { get; init; } = new Dictionary<string, string>();
 }
 
-/// <summary>One reply to a vote.</summary>
+/// <summary>Represents one reply to a vote.</summary>
 public sealed record CaveOption
 {
     /// <summary>What it costs from the purse's amber.</summary>
@@ -363,7 +363,7 @@ public sealed record CaveOption
     public string? Unavailable { get; init; }
 }
 
-/// <summary>Someone in an encounter's room.</summary>
+/// <summary>Represents someone in an encounter's room.</summary>
 public sealed record CavePerson
 {
     [JsonPropertyName("attack")]
@@ -383,7 +383,7 @@ public sealed record CavePerson
 }
 
 /// <summary>
-///     A merchant's one item. Bought from the purse, once, by whoever stands near enough.
+///     Represents a merchant's one item. Bought from the purse, once, by whoever stands near enough.
 /// </summary>
 public sealed record CaveShop
 {
@@ -408,7 +408,7 @@ public sealed record CaveShop
 }
 
 /// <summary>
-///     A line a traveler said, on a chat frame or a talk reply.
+///     Represents a line a traveler said, on a chat frame or a talk reply.
 /// </summary>
 public sealed record CaveChat
 {
@@ -419,7 +419,7 @@ public sealed record CaveChat
     public string? Text { get; init; }
 }
 
-/// <summary>A line an actor said in a room.</summary>
+/// <summary>Represents a line an actor said in a room.</summary>
 public sealed record CaveCue
 {
     /// <summary>The entity id of the speaker.</summary>
@@ -434,7 +434,7 @@ public sealed record CaveCue
 }
 
 /// <summary>
-///     The account's standing with the dungeon: one visit a day, shared by every character on the account.
+///     Represents the account's standing with the dungeon: one visit a day, shared by every character on the account.
 /// </summary>
 public sealed record CaveVisit
 {
@@ -451,8 +451,7 @@ public sealed record CaveVisit
     public long Resets { get; init; }
 
     /// <summary>
-    ///     A run this character walked out of and can still walk back into, or null. Populated while the visit is spent, so it
-    ///     is the only thing that says the day is not over.
+    ///     If populated, a run this character walked out of and can still walk back into, even while the visit is spent.
     /// </summary>
     [JsonPropertyName("resume")]
     public CaveResume? Resume { get; init; }
@@ -468,8 +467,8 @@ public sealed record CaveVisit
 }
 
 /// <summary>
-///     An interrupted run this character can return to. Re-entering is the ordinary pull-in at the keeper, sent by this
-///     character for itself rather than by the party's first.
+///     Represents an interrupted run this character can return to. Re-entering is the ordinary pull-in at the keeper, sent by
+///     this character for itself rather than by the party's first.
 /// </summary>
 public sealed record CaveResume
 {
@@ -490,7 +489,7 @@ public sealed record CaveResume
 }
 
 /// <summary>
-///     What a cave chest added to the party's shared purse.
+///     Represents what a cave chest added to the party's shared purse.
 /// </summary>
 public sealed record CavePurse
 {
@@ -502,7 +501,7 @@ public sealed record CavePurse
 }
 
 /// <summary>
-///     A monster's part in the dungeon: the travelers and actors are monsters with a side.
+///     Represents a monster's part in the dungeon: the travelers and actors are monsters with a side.
 /// </summary>
 public sealed record MonsterCave
 {
@@ -519,7 +518,8 @@ public sealed record MonsterCave
     public string? Room { get; init; }
 
     /// <summary>
-    ///     "neutral", "ally" or "victim" can be talked to; "enemy" and "predator" fight.
+    ///     The monster's side: <c>neutral</c>, <c>ally</c> or <c>victim</c> can be talked to; <c>enemy</c> and
+    ///     <c>predator</c> fight.
     /// </summary>
     [JsonPropertyName("side")]
     public string? Side { get; init; }

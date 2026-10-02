@@ -26,7 +26,7 @@ public class CooldownGroupTests
             CooldownMultiplier = 2
         };
 
-        regenHp.CooldownKey("regen_hp")
+        regenHp.GetCooldownKey("regen_hp")
                .Should()
                .Be("potion");
     }
@@ -59,7 +59,7 @@ public class CooldownGroupTests
             })
         };
 
-        group.Select(entry => entry.Skill.CooldownKey(entry.Name))
+        group.Select(entry => entry.Skill.GetCooldownKey(entry.Name))
              .Should()
              .AllBe("potion");
     }
@@ -73,11 +73,11 @@ public class CooldownGroupTests
         new GSkill
             {
                 SharedCooldown = "attack"
-            }.CooldownKey("heal")
+            }.GetCooldownKey("heal")
              .Should()
              .Be("attack");
 
-        new GSkill().CooldownKey("blink")
+        new GSkill().GetCooldownKey("blink")
                     .Should()
                     .Be("blink");
     }

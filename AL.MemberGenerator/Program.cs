@@ -133,8 +133,7 @@ public class Program
                 var builder = new StringBuilder();
                 var fileName = $@"{FOLDER_NAME}\{gDataProperty.Key}.txt";
 
-                //"version" is a scalar, not a member table: emit it as the KNOWN_VERSION stamp. Paste it over
-                //GameData.KNOWN_VERSION when refreshing the datums so Populate can tell when live data outruns them
+                //"version" is a scalar, written as the stamp to paste over GameData.KNOWN_VERSION
                 if (gDataProperty.Key is "version")
                 {
                     await File.WriteAllTextAsync(fileName, $"public const int KNOWN_VERSION = {gDataProperty.Value!.GetValue<int>()};");
@@ -145,9 +144,7 @@ public class Program
                 if (!TypeStrings.TryGetValue(gDataProperty.Key, out var typeString))
                     typeString = string.Empty;
 
-                //a section that is not an object has no members to generate. Newtonsoft's Children<JProperty>()
-                //filtered by type and silently yielded nothing for those; AsObject() would throw instead. The
-                //empty file is still written, as it was before.
+                //a section that is not an object has no members, so its file is written empty
                 foreach (var child in gDataProperty.Value as JsonObject ?? [])
                 {
                     var jsonPropertyValue = child.Key;
@@ -171,15 +168,13 @@ public class Program
                            .Trim());
             });
 
-        //the value half of a refresh: the member files say which keys moved, and only the previous fetch can say which
-        //values moved behind the keys that stayed. Kept beside the tool that fetched it, so the diff is the same
-        //wherever the refresh is run from
-        if (Snapshots.BaselineFor(version) is { } baseline)
+        //the member files show which keys moved; the previous snapshot shows which values moved
+        if (Snapshots.FindBaseline(version) is { } baseline)
         {
             var old = JsonNode.Parse(await File.ReadAllTextAsync(baseline))!.AsObject();
+            var fetched = File.GetLastWriteTime(baseline);
 
-            Console.WriteLine(
-                $"values: {old["version"]} ({Path.GetFileName(baseline)}, fetched {File.GetLastWriteTime(baseline):yyyy-MM-dd}) -> {version}");
+            Console.WriteLine($"values: {old["version"]} ({Path.GetFileName(baseline)}, fetched {fetched:yyyy-MM-dd}) -> {version}");
 
             foreach (var line in Snapshots.Diff(old, jObj))
                 Console.WriteLine(line);

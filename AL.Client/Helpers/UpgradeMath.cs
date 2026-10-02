@@ -124,12 +124,14 @@ public static class UpgradeMath
     /// <summary>
     ///     Tries to get the item's grade thresholds, its own or the defaults.
     /// </summary>
-    /// <param name="item">The item.</param>
+    /// <param name="item">
+    ///     The item.
+    /// </param>
     /// <param name="thresholds">
     ///     The item's thresholds or the defaults, or null when it has none.
     /// </param>
     /// <returns>
-    ///     <c>true</c> if the item upgrades or compounds; otherwise, <c>false</c> , even if it declares thresholds.
+    ///     <c>true</c> if the item upgrades or compounds; otherwise, <c>false</c>, even if it declares thresholds.
     /// </returns>
     public static bool TryGetGradeThresholds(GItem? item, [NotNullWhen(true)] out IReadOnlyList<int>? thresholds)
     {
@@ -146,12 +148,14 @@ public static class UpgradeMath
     /// <summary>
     ///     Tries to get the named item's grade thresholds, its own or the defaults.
     /// </summary>
-    /// <param name="itemName">The item's key.</param>
+    /// <param name="itemName">
+    ///     The item's key.
+    /// </param>
     /// <param name="thresholds">
     ///     The item's thresholds or the defaults, or null when it has none.
     /// </param>
     /// <returns>
-    ///     <c>true</c> if the name is known and the item upgrades or compounds; otherwise, <c>false</c> .
+    ///     <c>true</c> if the name is known and the item upgrades or compounds; otherwise, <c>false</c>.
     /// </returns>
     public static bool TryGetGradeThresholds(string? itemName, [NotNullWhen(true)] out IReadOnlyList<int>? thresholds)
     {
@@ -166,19 +170,25 @@ public static class UpgradeMath
     /// <summary>
     ///     Determines whether the named item has an upgrade level at all. A potion has none.
     /// </summary>
-    /// <param name="itemName">The item's key.</param>
+    /// <param name="itemName">
+    ///     The item's key.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if the item upgrades or compounds; otherwise, <c>false</c> .
+    ///     <c>true</c> if the item upgrades or compounds; otherwise, <c>false</c>.
     /// </returns>
     public static bool HasLevel(string? itemName) => TryGetGradeThresholds(itemName, out _);
 
     /// <summary>
     ///     Tries to get the highest level the named item can reach.
     /// </summary>
-    /// <param name="itemName">The item's key.</param>
-    /// <param name="maxLevel">The item's max level, or 0 when there is none.</param>
+    /// <param name="itemName">
+    ///     The item's key.
+    /// </param>
+    /// <param name="maxLevel">
+    ///     The item's max level, or 0 when there is none.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if the name is known and the item upgrades or compounds; otherwise, <c>false</c> .
+    ///     <c>true</c> if the name is known and the item upgrades or compounds; otherwise, <c>false</c>.
     /// </returns>
     public static bool TryGetMaxLevel(string? itemName, out int maxLevel)
     {
@@ -195,9 +205,15 @@ public static class UpgradeMath
     /// <summary>
     ///     Gets the highest level an item with the given thresholds can reach, which is its last threshold.
     /// </summary>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <returns>The last threshold.</returns>
-    /// <exception cref="System.ArgumentNullException">thresholds</exception>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
+    /// <returns>
+    ///     The last threshold.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     thresholds
+    /// </exception>
     public static int GetMaxLevel(IReadOnlyList<int> thresholds)
     {
         ArgumentNullException.ThrowIfNull(thresholds);
@@ -211,7 +227,9 @@ public static class UpgradeMath
     /// <param name="thresholds">
     ///     The item's thresholds, or null for an item with none.
     /// </param>
-    /// <param name="level">The item's level.</param>
+    /// <param name="level">
+    ///     The item's level.
+    /// </param>
     /// <returns>
     ///     The grade, 0 through 4, or 0 when there are no thresholds.
     /// </returns>
@@ -233,8 +251,12 @@ public static class UpgradeMath
     /// <summary>
     ///     Calculates the grade of the named item at the given level.
     /// </summary>
-    /// <param name="itemName">The item's key.</param>
-    /// <param name="level">The item's level.</param>
+    /// <param name="itemName">
+    ///     The item's key.
+    /// </param>
+    /// <param name="level">
+    ///     The item's level.
+    /// </param>
     /// <returns>
     ///     The grade, 0 through 4, or 0 when the name is unknown or the item has no level.
     /// </returns>
@@ -245,20 +267,28 @@ public static class UpgradeMath
     ///     Tries to get the base chance of upgrading to the level above <paramref name="level" /> with only the required
     ///     scroll.
     /// </summary>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <param name="level">The level the item is raised from.</param>
-    /// <param name="chance">The base chance, or 0 when there is none.</param>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
+    /// <param name="level">
+    ///     The level the item is raised from.
+    /// </param>
+    /// <param name="chance">
+    ///     The base chance, or 0 when there is none.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if the server's table has an entry; otherwise, <c>false</c> .
+    ///     <c>true</c> if the server's table has an entry; otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">thresholds</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     thresholds
+    /// </exception>
     public static bool TryGetUpgradeBaseChance(IReadOnlyList<int> thresholds, int level, out double chance)
     {
         ArgumentNullException.ThrowIfNull(thresholds);
 
         chance = 0;
 
-        if (GameData.Upgrades.ChanceOf(GetUpgradeChanceRow(thresholds), level + 1) is not { } baseChance)
+        if (GameData.Upgrades.GetChance(GetUpgradeChanceRow(thresholds), level + 1) is not { } baseChance)
             return false;
 
         chance = baseChance;
@@ -270,16 +300,24 @@ public static class UpgradeMath
     ///     Tries to get the base chance of compounding to the level above <paramref name="level" /> with only the required
     ///     scroll.
     /// </summary>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <param name="level">The level the copies are raised from.</param>
-    /// <param name="chance">The base chance, or 0 when there is none.</param>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
+    /// <param name="level">
+    ///     The level the copies are raised from.
+    /// </param>
+    /// <param name="chance">
+    ///     The base chance, or 0 when there is none.
+    /// </param>
     /// <param name="itemName">
-    ///     The item's key, for <see cref="GetCompoundRowAtZero" />.
+    ///     The item's key, for <see cref="GetCompoundBaseRow" />.
     /// </param>
     /// <returns>
-    ///     <c>true</c> if the server's table has an entry; otherwise, <c>false</c> .
+    ///     <c>true</c> if the server's table has an entry; otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">thresholds</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     thresholds
+    /// </exception>
     public static bool TryGetCompoundBaseChance(
         IReadOnlyList<int> thresholds,
         int level,
@@ -290,7 +328,7 @@ public static class UpgradeMath
 
         chance = 0;
 
-        if (GameData.Compounds.ChanceOf(GetCompoundChanceRow(thresholds, level, itemName), level + 1) is not { } baseChance)
+        if (GameData.Compounds.GetChance(GetCompoundChanceRow(thresholds, level, itemName), level + 1) is not { } baseChance)
             return false;
 
         chance = baseChance;
@@ -305,10 +343,16 @@ public static class UpgradeMath
     /// <remarks>
     ///     Only the chance row is pinned; <see cref="CalculateGrade(IReadOnlyList{int}, int)" /> still reads the thresholds.
     /// </remarks>
-    /// <param name="itemName">The item's key.</param>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <returns>The chance table row.</returns>
-    internal static int GetCompoundRowAtZero(string? itemName, IReadOnlyList<int>? thresholds)
+    /// <param name="itemName">
+    ///     The item's key.
+    /// </param>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
+    /// <returns>
+    ///     The chance table row.
+    /// </returns>
+    internal static int GetCompoundBaseRow(string? itemName, IReadOnlyList<int>? thresholds)
     {
         const string PINNED_ITEM = "lostearring";
         const int PINNED_ROW = 2;
@@ -322,23 +366,33 @@ public static class UpgradeMath
     ///     Gets the chance table row a compound from <paramref name="level" /> uses: the grade two levels below the one it
     ///     leaves.
     /// </summary>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <param name="level">The level the copies are raised from.</param>
-    /// <param name="itemName">
-    ///     The item's key, for <see cref="GetCompoundRowAtZero" />.
+    /// <param name="thresholds">
+    ///     The item's thresholds.
     /// </param>
-    /// <returns>The chance table row.</returns>
+    /// <param name="level">
+    ///     The level the copies are raised from.
+    /// </param>
+    /// <param name="itemName">
+    ///     The item's key, for <see cref="GetCompoundBaseRow" />.
+    /// </param>
+    /// <returns>
+    ///     The chance table row.
+    /// </returns>
     internal static int GetCompoundChanceRow(IReadOnlyList<int> thresholds, int level, string? itemName = null)
-        => level >= 3 ? CalculateGrade(thresholds, level - 2) : GetCompoundRowAtZero(itemName, thresholds);
+        => level >= 3 ? CalculateGrade(thresholds, level - 2) : GetCompoundBaseRow(itemName, thresholds);
 
     /// <summary>
     ///     Gets every upgrade level the given thresholds have a base chance for in one chance table.
     /// </summary>
     /// <param name="getChanceFunc">
-    ///     The table lookup by row and level, such as <see cref="UpgradesDatum.ChanceOf" />.
+    ///     The table lookup by row and level, such as <see cref="UpgradesDatum.GetChance" />.
     /// </param>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <returns>Each level and its base chance in level order.</returns>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
+    /// <returns>
+    ///     Each level and its base chance in level order.
+    /// </returns>
     internal static IReadOnlyList<(int Level, double Chance)> GetUpgradeLevelChances(
         Func<int, int, double?> getChanceFunc,
         IReadOnlyList<int> thresholds)
@@ -348,13 +402,17 @@ public static class UpgradeMath
     ///     Gets every compound level the given thresholds have a base chance for in one chance table.
     /// </summary>
     /// <param name="getChanceFunc">
-    ///     The table lookup by row and level, such as <see cref="CompoundsDatum.ChanceOf" />.
+    ///     The table lookup by row and level, such as <see cref="CompoundsDatum.GetChance" />.
     /// </param>
-    /// <param name="thresholds">The item's thresholds.</param>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
     /// <param name="itemName">
-    ///     The item's key, for <see cref="GetCompoundRowAtZero" />.
+    ///     The item's key, for <see cref="GetCompoundBaseRow" />.
     /// </param>
-    /// <returns>Each level and its base chance in level order.</returns>
+    /// <returns>
+    ///     Each level and its base chance in level order.
+    /// </returns>
     internal static IReadOnlyList<(int Level, double Chance)> GetCompoundLevelChances(
         Func<int, int, double?> getChanceFunc,
         IReadOnlyList<int> thresholds,
@@ -364,7 +422,9 @@ public static class UpgradeMath
     /// <summary>
     ///     Gets every level the item has a base chance for, with the chance of reaching it.
     /// </summary>
-    /// <param name="item">The item.</param>
+    /// <param name="item">
+    ///     The item.
+    /// </param>
     /// <returns>
     ///     Each level and its base chance in level order, or empty when the item neither upgrades nor compounds.
     /// </returns>
@@ -374,8 +434,8 @@ public static class UpgradeMath
             return [];
 
         return item.CompoundModifiers is not null
-            ? GetCompoundLevelChances(GameData.Compounds.ChanceOf, thresholds, item.Accessor)
-            : GetUpgradeLevelChances(GameData.Upgrades.ChanceOf, thresholds);
+            ? GetCompoundLevelChances(GameData.Compounds.GetChance, thresholds, item.Accessor)
+            : GetUpgradeLevelChances(GameData.Upgrades.GetChance, thresholds);
     }
 
     private static IReadOnlyList<(int Level, double Chance)> GetLevelChances(
@@ -389,7 +449,7 @@ public static class UpgradeMath
 
         for (var level = 0; level < GetMaxLevel(thresholds); level++)
         {
-            //the tables have no row past grade 2, so a level with no entry is left out rather than guessed
+            //the tables have no row past grade 2, so a level with no entry is left out
             if (getBaseChanceFunc(level) is not { } chance)
                 continue;
 
@@ -405,12 +465,24 @@ public static class UpgradeMath
     /// <param name="baseChance">
     ///     The base chance of the level being reached, from <see cref="TryGetCompoundBaseChance" />.
     /// </param>
-    /// <param name="newLevel">The level being reached.</param>
-    /// <param name="itemGrade">The copies' grade at the level they are leaving.</param>
-    /// <param name="scrollGrade">The scroll's grade.</param>
-    /// <param name="offeringGrade">The offering's grade, or null for none.</param>
-    /// <param name="pooledGrace">The three copies' grace summed.</param>
-    /// <param name="ograce">The player's offering pity counter.</param>
+    /// <param name="newLevel">
+    ///     The level being reached.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The copies' grade at the level they are leaving.
+    /// </param>
+    /// <param name="scrollGrade">
+    ///     The scroll's grade.
+    /// </param>
+    /// <param name="offeringGrade">
+    ///     The offering's grade, or null for none.
+    /// </param>
+    /// <param name="pooledGrace">
+    ///     The three copies' grace summed.
+    /// </param>
+    /// <param name="ograce">
+    ///     The player's offering pity counter.
+    /// </param>
     /// <returns>
     ///     The attempt's chance and the figures it was built from.
     /// </returns>
@@ -496,10 +568,18 @@ public static class UpgradeMath
     ///     Gets the divisor a compound applies to its capped grace, which grows with the level unless the offering matches or
     ///     outranks the copies.
     /// </summary>
-    /// <param name="newLevel">The level being reached.</param>
-    /// <param name="itemGrade">The copies' grade at the level they are leaving.</param>
-    /// <param name="offeringGrade">The offering's grade, or null for none.</param>
-    /// <returns>The divisor, at least 1.</returns>
+    /// <param name="newLevel">
+    ///     The level being reached.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The copies' grade at the level they are leaving.
+    /// </param>
+    /// <param name="offeringGrade">
+    ///     The offering's grade, or null for none.
+    /// </param>
+    /// <returns>
+    ///     The divisor, at least 1.
+    /// </returns>
     public static int GetCompoundGraceDivisor(int newLevel, int itemGrade, int? offeringGrade)
     {
         var level = newLevel - 1;
@@ -516,8 +596,12 @@ public static class UpgradeMath
     /// <summary>
     ///     Gets the grace an upgrade item gets from its grade at +0: a normal item +1, a high one -1, a rare one -2.
     /// </summary>
-    /// <param name="gradeAtZero">The item's grade at +0.</param>
-    /// <returns>The grace, or 0 for any other grade.</returns>
+    /// <param name="gradeAtZero">
+    ///     The item's grade at +0.
+    /// </param>
+    /// <returns>
+    ///     The grace, or 0 for any other grade.
+    /// </returns>
     internal static double GetBaseGradeGrace(int gradeAtZero)
         => gradeAtZero switch
         {
@@ -534,16 +618,24 @@ public static class UpgradeMath
     /// <param name="calculateAttemptFunc">
     ///     Builds the attempt with the input set to a value.
     /// </param>
-    /// <param name="min">The lowest value searched.</param>
-    /// <param name="max">The highest value searched, inclusive.</param>
-    /// <param name="step">The distance between searched values.</param>
+    /// <param name="min">
+    ///     The lowest value searched.
+    /// </param>
+    /// <param name="max">
+    ///     The highest value searched, inclusive.
+    /// </param>
+    /// <param name="step">
+    ///     The distance between searched values.
+    /// </param>
     /// <param name="value">
     ///     The first capped value, rounded to <paramref name="step" />, or 0 when there is none.
     /// </param>
     /// <returns>
-    ///     <c>true</c> if the attempt caps in the range; otherwise, <c>false</c> .
+    ///     <c>true</c> if the attempt caps in the range; otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">calculateAttemptFunc</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     calculateAttemptFunc
+    /// </exception>
     public static bool TryFindFirstCappedValue(
         Func<double, Breakdown> calculateAttemptFunc,
         double min,
@@ -562,9 +654,9 @@ public static class UpgradeMath
 
         for (; candidate <= (max + 1e-9); candidate += step)
         {
-            var odds = calculateAttemptFunc(candidate);
+            var breakdown = calculateAttemptFunc(candidate);
 
-            if (odds.Uncapped >= (odds.Ceiling - 1e-9))
+            if (breakdown.Uncapped >= (breakdown.Ceiling - 1e-9))
                 break;
         }
 
@@ -579,27 +671,51 @@ public static class UpgradeMath
     /// <summary>
     ///     Calculates an upgrade's chance with the lucky slot, which scales the roll down 60% of the time.
     /// </summary>
-    /// <param name="chance">The upgrade's chance without the lucky slot.</param>
-    /// <returns>The chance with the lucky slot.</returns>
+    /// <param name="chance">
+    ///     The upgrade's chance without the lucky slot.
+    /// </param>
+    /// <returns>
+    ///     The chance with the lucky slot.
+    /// </returns>
     internal static double CalculateLuckySlotChance(double chance)
         => LUCKY_BRANCH_CHANCE * Math.Min(1, (chance + LUCKY_ROLL_OFFSET) / LUCKY_ROLL_SCALE) + (1 - LUCKY_BRANCH_CHANCE) * chance;
 
-    /// <summary>Calculates the chance of one upgrade attempt.</summary>
+    /// <summary>
+    ///     Calculates the chance of one upgrade attempt.
+    /// </summary>
     /// <remarks>
     ///     The grace the offering banks lands after the roll and is not part of this chance.
     /// </remarks>
     /// <param name="baseChance">
     ///     The base chance of the level being reached, from <see cref="TryGetUpgradeBaseChance" />.
     /// </param>
-    /// <param name="newLevel">The level being reached.</param>
-    /// <param name="itemGrade">The item's grade at the level it is leaving.</param>
-    /// <param name="gradeAtZero">The item's grade at +0.</param>
-    /// <param name="scrollGrade">The scroll's grade.</param>
-    /// <param name="offeringGrade">The offering's grade, or null for none.</param>
-    /// <param name="itemGrace">The grace stored on the item.</param>
-    /// <param name="playerPity">The player's failstacks at this level.</param>
-    /// <param name="serverPity">Everyone's failstacks at this level.</param>
-    /// <param name="ograce">The player's offering pity counter.</param>
+    /// <param name="newLevel">
+    ///     The level being reached.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The item's grade at the level it is leaving.
+    /// </param>
+    /// <param name="gradeAtZero">
+    ///     The item's grade at +0.
+    /// </param>
+    /// <param name="scrollGrade">
+    ///     The scroll's grade.
+    /// </param>
+    /// <param name="offeringGrade">
+    ///     The offering's grade, or null for none.
+    /// </param>
+    /// <param name="itemGrace">
+    ///     The grace stored on the item.
+    /// </param>
+    /// <param name="playerPity">
+    ///     The player's failstacks at this level.
+    /// </param>
+    /// <param name="serverPity">
+    ///     Everyone's failstacks at this level.
+    /// </param>
+    /// <param name="ograce">
+    ///     The player's offering pity counter.
+    /// </param>
     /// <returns>
     ///     The attempt's chance and the figures it was built from.
     /// </returns>
@@ -692,41 +808,63 @@ public static class UpgradeMath
     /// <summary>
     ///     Calculates the grace a compound's surviving item carries out of the merge, before the attempt's own grace lands.
     /// </summary>
-    /// <param name="copyGrace">The grace each of the three copies carries.</param>
+    /// <param name="copyGrace">
+    ///     The grace each of the three copies carries.
+    /// </param>
     /// <param name="withOffering">
     ///     Specifies whether the compound uses an offering, which sums the copies' grace rather than keeping one.
     /// </param>
-    /// <returns>The merged grace.</returns>
+    /// <returns>
+    ///     The merged grace.
+    /// </returns>
     internal static double CalculateMergedGrace(double copyGrace, bool withOffering)
         => (withOffering ? CONSTANTS.ITEMS_PER_COMPOUND * copyGrace : copyGrace) / COMPOUND_MERGE_GRACE_DIVISOR;
 
     /// <summary>
     ///     Gets the grace an offering banks on an upgrade item per attempt, by the offering's grade against the item's.
     /// </summary>
-    /// <param name="offeringGrade">The offering's grade.</param>
-    /// <param name="itemGrade">The item's grade at the level it is leaving.</param>
-    /// <returns>The banked grace.</returns>
+    /// <param name="offeringGrade">
+    ///     The offering's grade.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The item's grade at the level it is leaving.
+    /// </param>
+    /// <returns>
+    ///     The banked grace.
+    /// </returns>
     internal static double GetUpgradeOfferingGrace(int offeringGrade, int itemGrade)
         => GetOfferingGrace(offeringGrade, itemGrade, UPGRADE_MATCHING_OFFERING_GRACE);
 
     /// <summary>
     ///     Gets the grace an offering banks on a compound per attempt, by the offering's grade against the copies'.
     /// </summary>
-    /// <param name="offeringGrade">The offering's grade.</param>
-    /// <param name="itemGrade">The copies' grade at the level they are leaving.</param>
-    /// <returns>The banked grace.</returns>
+    /// <param name="offeringGrade">
+    ///     The offering's grade.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The copies' grade at the level they are leaving.
+    /// </param>
+    /// <returns>
+    ///     The banked grace.
+    /// </returns>
     internal static double GetCompoundOfferingGrace(int offeringGrade, int itemGrade)
         => GetOfferingGrace(offeringGrade, itemGrade, COMPOUND_MATCHING_OFFERING_GRACE);
 
     /// <summary>
     ///     Gets the grace an offering banks per attempt, by the offering's grade against the item's.
     /// </summary>
-    /// <param name="offeringGrade">The offering's grade.</param>
-    /// <param name="itemGrade">The item's grade at the level it is leaving.</param>
+    /// <param name="offeringGrade">
+    ///     The offering's grade.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The item's grade at the level it is leaving.
+    /// </param>
     /// <param name="matchingGrace">
     ///     The grace an offering at the item's own grade banks.
     /// </param>
-    /// <returns>The banked grace.</returns>
+    /// <returns>
+    ///     The banked grace.
+    /// </returns>
     internal static double GetOfferingGrace(int offeringGrade, int itemGrade, double matchingGrace)
         => offeringGrade > (itemGrade + 1)
             ? 3
@@ -742,9 +880,15 @@ public static class UpgradeMath
     ///     Gets the grace a scroll above the item's grade banks on an upgrade item, which stops past
     ///     <see cref="UPGRADE_SCROLL_GRACE_MAX_LEVEL" />.
     /// </summary>
-    /// <param name="scrollGrade">The scroll's grade.</param>
-    /// <param name="itemGrade">The item's grade at the level it is leaving.</param>
-    /// <param name="newLevel">The level being reached.</param>
+    /// <param name="scrollGrade">
+    ///     The scroll's grade.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The item's grade at the level it is leaving.
+    /// </param>
+    /// <param name="newLevel">
+    ///     The level being reached.
+    /// </param>
     /// <returns>
     ///     The banked grace, or 0 when the scroll does not outrank the item or the level is past the cutoff.
     /// </returns>
@@ -758,8 +902,12 @@ public static class UpgradeMath
     /// <summary>
     ///     Gets the grace a scroll above the copies' grade banks on a compound, at any level.
     /// </summary>
-    /// <param name="scrollGrade">The scroll's grade.</param>
-    /// <param name="itemGrade">The copies' grade at the level they are leaving.</param>
+    /// <param name="scrollGrade">
+    ///     The scroll's grade.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The copies' grade at the level they are leaving.
+    /// </param>
     /// <returns>
     ///     The banked grace, or 0 when the scroll does not outrank the copies.
     /// </returns>
@@ -773,9 +921,15 @@ public static class UpgradeMath
     /// <summary>
     ///     Gets the grace a scroll above the item's grade banks on it, up to a cutoff level.
     /// </summary>
-    /// <param name="scrollGrade">The scroll's grade.</param>
-    /// <param name="itemGrade">The item's grade at the level it is leaving.</param>
-    /// <param name="newLevel">The level being reached.</param>
+    /// <param name="scrollGrade">
+    ///     The scroll's grade.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The item's grade at the level it is leaving.
+    /// </param>
+    /// <param name="newLevel">
+    ///     The level being reached.
+    /// </param>
     /// <param name="maxLevel">
     ///     The highest level being reached that still banks the grace.
     /// </param>
@@ -802,8 +956,12 @@ public static class UpgradeMath
     /// <param name="copiesPerAttempt">
     ///     The copies one attempt consumes, from <see cref="GetCopiesPerAttempt" />.
     /// </param>
-    /// <returns>The copies needed.</returns>
-    /// <exception cref="System.ArgumentNullException">chances</exception>
+    /// <returns>
+    ///     The copies needed.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     chances
+    /// </exception>
     public static double CalculateCopiesNeeded(IEnumerable<double> chances, int copiesPerAttempt)
     {
         ArgumentNullException.ThrowIfNull(chances);
@@ -822,7 +980,9 @@ public static class UpgradeMath
     /// <param name="compound">
     ///     Specifies whether the attempt is a compound rather than an upgrade.
     /// </param>
-    /// <returns>The copies consumed.</returns>
+    /// <returns>
+    ///     The copies consumed.
+    /// </returns>
     public static int GetCopiesPerAttempt(bool compound) => compound ? CONSTANTS.ITEMS_PER_COMPOUND : 1;
 
     /// <summary>
@@ -834,8 +994,12 @@ public static class UpgradeMath
     /// <param name="levelChances">
     ///     Each level and its base chance in level order, as <see cref="GetLevelChances(GItem)" /> returns them.
     /// </param>
-    /// <param name="copiesPerAttempt">The copies one attempt consumes.</param>
-    /// <returns>The copies keyed by level, from +0.</returns>
+    /// <param name="copiesPerAttempt">
+    ///     The copies one attempt consumes.
+    /// </param>
+    /// <returns>
+    ///     The copies keyed by level, from +0.
+    /// </returns>
     internal static IReadOnlyDictionary<int, double> CalculateCopiesPerLevel(
         IReadOnlyList<(int Level, double Chance)> levelChances,
         int copiesPerAttempt)
@@ -864,7 +1028,9 @@ public static class UpgradeMath
     /// <summary>
     ///     Calculates the copies at +0 one copy of the item at each level costs at base chance.
     /// </summary>
-    /// <param name="item">The item.</param>
+    /// <param name="item">
+    ///     The item.
+    /// </param>
     /// <returns>
     ///     The copies keyed by level, from +0 up to the first level with no base chance.
     /// </returns>
@@ -880,14 +1046,18 @@ public static class UpgradeMath
     /// <param name="copiesPerAttempt">
     ///     The copies one attempt consumes, from <see cref="GetCopiesPerAttempt" />.
     /// </param>
-    /// <param name="scrollPrice">The price of the attempt's scroll.</param>
+    /// <param name="scrollPrice">
+    ///     The price of the attempt's scroll.
+    /// </param>
     /// <param name="offeringPrice">
     ///     The price of the attempt's offering, or 0 for none.
     /// </param>
     /// <param name="depositCost">
     ///     The cost of the offerings banked without a scroll before the attempt, or 0 for none.
     /// </param>
-    /// <param name="chance">The attempt's chance of success.</param>
+    /// <param name="chance">
+    ///     The attempt's chance of success.
+    /// </param>
     /// <returns>
     ///     The expected cost of one copy at the level reached.
     /// </returns>
@@ -903,21 +1073,33 @@ public static class UpgradeMath
     /// <summary>
     ///     Calculates a build's expected cost at each level, at the given copy price.
     /// </summary>
-    /// <param name="steps">The build's steps.</param>
+    /// <param name="steps">
+    ///     The build's steps.
+    /// </param>
     /// <param name="compound">
     ///     Specifies whether the item compounds rather than upgrades.
     /// </param>
-    /// <param name="copyPrice">The price of one copy.</param>
-    /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
+    /// <param name="copyPrice">
+    ///     The price of one copy.
+    /// </param>
+    /// <param name="scrollPrices">
+    ///     Scroll prices indexed by scroll grade.
+    /// </param>
     /// <param name="offerings">
     ///     The offerings available. The cheapest prices the deposits.
     /// </param>
     /// <returns>
     ///     The expected gold to own one copy at each level reached, in step order.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">steps</exception>
-    /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
-    /// <exception cref="System.ArgumentNullException">offerings</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     steps
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     scrollPrices
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     offerings
+    /// </exception>
     public static IReadOnlyList<double> CalculateExpectedTotals(
         IReadOnlyList<UpgradeBuildStep> steps,
         bool compound,
@@ -942,14 +1124,18 @@ public static class UpgradeMath
     /// <summary>
     ///     Tries to find the cheapest priced offering, which is what a grace deposit spends.
     /// </summary>
-    /// <param name="offerings">The offerings available.</param>
+    /// <param name="offerings">
+    ///     The offerings available.
+    /// </param>
     /// <param name="offering">
     ///     The cheapest offering priced above zero, or null when there is none.
     /// </param>
     /// <returns>
-    ///     <c>true</c> if any offering is priced above zero; otherwise, <c>false</c> .
+    ///     <c>true</c> if any offering is priced above zero; otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">offerings</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     offerings
+    /// </exception>
     public static bool TryFindCheapestOffering(IReadOnlyList<OfferingChoice> offerings, [MaybeNullWhen(false)] out OfferingChoice offering)
     {
         ArgumentNullException.ThrowIfNull(offerings);
@@ -966,9 +1152,15 @@ public static class UpgradeMath
     /// <summary>
     ///     Represents one attempt's chance and the figures it was built from.
     /// </summary>
-    /// <param name="Chance">The chance the server rolls against.</param>
-    /// <param name="Uncapped">The chance before the caps.</param>
-    /// <param name="Base">The base chance the attempt started from.</param>
+    /// <param name="Chance">
+    ///     The chance the server rolls against.
+    /// </param>
+    /// <param name="Uncapped">
+    ///     The chance before the caps.
+    /// </param>
+    /// <param name="Base">
+    ///     The base chance the attempt started from.
+    /// </param>
     /// <param name="FlatCap">
     ///     The base chance plus a fixed amount, wider when something outranks the item.
     /// </param>
@@ -1013,7 +1205,7 @@ public static class UpgradeMath
         public double Ceiling => Math.Min(FlatCap, MultiplierCap);
 
         /// <summary>Whether the flat cap is the lower one.</summary>
-        public bool FlatBinds => FlatCap <= MultiplierCap;
+        public bool IsFlatCapLower => FlatCap <= MultiplierCap;
     }
 
     /// <summary>

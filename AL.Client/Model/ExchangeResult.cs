@@ -7,5 +7,7 @@ namespace AL.Client.Model;
 ///     Each item received, with <see cref="SocketClient.Model.Item.Quantity" /> set to the count received. More than one
 ///     when the table rolled a bonus drop beside the main one.
 /// </param>
-/// <param name="Gold">The gold received.</param>
+/// <param name="Gold">
+///     The gold received.
+/// </param>
 public sealed record ExchangeResult(IReadOnlyList<InventoryIndexer> Items, long Gold);

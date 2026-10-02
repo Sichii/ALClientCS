@@ -5,33 +5,31 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     One tavern frame. The event name is shared by the reply to an info request and by the round's own bet/won/lost
-///     broadcasts, so <see cref="Event" /> is the discriminator, not the message type.
+///     Represents one tavern frame. The info reply and the bet, won and lost broadcasts share one event name, so
+///     <see cref="Event" /> tells them apart.
 /// </summary>
 public sealed record TavernData
 {
     /// <summary>
-    ///     <c>up</c> or <c>down</c> .
+    ///     The bet's direction, <c>up</c> or <c>down</c>.
     /// </summary>
     [JsonPropertyName("dir")]
     public string? Direction { get; init; }
 
     /// <summary>
-    ///     On an <c>info</c> frame, the percentage of a win's profit the house keeps. Steps down as the bank grows - 2 at or
-    ///     below a billion, then 1.5, 1 and 0.5 (node/server_functions.js:1245).
+    ///     On an <c>info</c> frame, the percentage of a win's profit the house keeps. Steps down as the bank grows: 2 at or
+    ///     below a billion, then 1.5, 1 and 0.5.
     /// </summary>
     [JsonPropertyName("edge")]
     public float Edge { get; init; }
 
     /// <summary>
-    ///     Which frame this is: <c>info</c> is the reply to a query, and <c>bet</c> , <c>won</c> and <c>lost</c> are broadcast
+    ///     The kind of frame: <c>info</c> is the reply to a query, and <c>bet</c>, <c>won</c> and <c>lost</c> are broadcast
     ///     to everyone in the tavern.
     /// </summary>
     /// <remarks>
-    ///     Absent on one shape - the roulette handler echoes the raw bet record back to the bettor's own socket
-    ///     (node/server.js:11511), and that record has a <c>state</c> where every other frame has an <c>event</c> . So this
-    ///     can read null: guard for it before comparing, and keep the literal on the left, because <c>EqualsI</c> throws on a
-    ///     null receiver.
+    ///     Null on the raw bet record the roulette handler echoes to the bettor, which has a <c>state</c> instead. Keep the
+    ///     literal on the left when comparing.
     /// </remarks>
     [JsonPropertyName("event")]
     public string? Event { get; init; }
@@ -43,24 +41,23 @@ public sealed record TavernData
     public long Gold { get; init; }
 
     /// <summary>
-    ///     On an <c>info</c> frame, the largest net win the bank will cover: 40% of <c>S.gold - house_debt()</c> . The bet
-    ///     handler refuses anything above it (node/server.js:11540).
+    ///     On an <c>info</c> frame, the largest net win the bank will cover: 40% of <c>S.gold - house_debt()</c>. The bet
+    ///     handler refuses anything above it.
     /// </summary>
     /// <remarks>
-    ///     Moves with every other player's open bets, not only this character's, because <c>house_debt</c> sums what the house
-    ///     stands to lose across the whole server.
+    ///     Moves with every player's open bets, because <c>house_debt</c> sums what the house stands to lose server-wide.
     /// </remarks>
     [JsonPropertyName("max")]
     public long Max { get; init; }
 
     /// <summary>
-    ///     Whose bet a <c>bet</c> , <c>won</c> or <c>lost</c> frame is about.
+    ///     The bettor a <c>bet</c>, <c>won</c> or <c>lost</c> frame is about.
     /// </summary>
     [JsonPropertyName("name")]
     public string? Name { get; init; }
 
     /// <summary>
-    ///     Profit after the house edge and the stake, on a <c>won</c> frame only (node/server_functions.js:1347).
+    ///     Profit after the house edge and the stake, on a <c>won</c> frame only.
     /// </summary>
     [JsonPropertyName("net")]
     public long Net { get; init; }

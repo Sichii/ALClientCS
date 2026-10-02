@@ -5,14 +5,12 @@ using System.Text.Json.Nodes;
 namespace AL.MemberGenerator;
 
 /// <summary>
-///     The previous fetches of G, kept under <c>snapshots/</c> in the working directory so a fresh payload can be diffed
-///     against the one before it. The member files say which keys moved; only the earlier payload can say which values
-///     moved behind the keys that stayed.
+///     Provides the previous fetches of G, kept under <c>snapshots/</c> in the working directory, and diffs a fresh
+///     payload against the one before it.
 /// </summary>
 /// <remarks>
 ///     The baseline is the newest snapshot whose version is below the fresh payload's, so running twice on one payload
-///     prints the same diff. Only the two newest are kept. Presentation sections get a count and no lines: nobody plays
-///     against a sprite offset.
+///     prints the same diff.
 /// </remarks>
 public static class Snapshots
 {
@@ -20,16 +18,9 @@ public static class Snapshots
     public const int KEEP = 2;
 
     /// <summary>
-    ///     Detail lines printed per section before the rest is folded into a count.
+    ///     The sections holding presentation data, which the report shows as counts only.
     /// </summary>
-    private const int DETAIL_CAP = 60;
-
-    private const int VALUE_WIDTH = 72;
-
-    /// <summary>
-    ///     Presentation data: a count per section is all the report wants.
-    /// </summary>
-    private static readonly HashSet<string> Quiet = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> PresentationSections = new(StringComparer.OrdinalIgnoreCase)
     {
         "sprites",
         "imagesets",
@@ -44,21 +35,38 @@ public static class Snapshots
     };
 
     /// <summary>
-    ///     The newest snapshot below <paramref name="version" />, or null on a first run.
+    ///     Finds the newest snapshot below a version.
     /// </summary>
-    public static string? BaselineFor(int version)
-        => Kept()
+    /// <param name="version">
+    ///     The version of the fresh payload.
+    /// </param>
+    /// <returns>
+    ///     The path of the snapshot, or null on a first run.
+    /// </returns>
+    public static string? FindBaseline(int version)
+        => GetKeptSnapshots()
            .Where(snapshot => snapshot.Version < version)
            .OrderByDescending(snapshot => snapshot.Version)
            .Select(snapshot => snapshot.Path)
            .FirstOrDefault();
 
     /// <summary>
-    ///     What a refresh reports about the values: a header per section that moved with its counts, the moved entries beneath
-    ///     it as <c>entry.path: old -> new</c>, and a closing summary line.
+    ///     Builds the report of value changes: a header per section that moved with its counts, the moved entries beneath
+    ///     it as <c>entry.path: old -&gt; new</c>, and a closing summary line.
     /// </summary>
+    /// <param name="old">
+    ///     The earlier payload.
+    /// </param>
+    /// <param name="fresh">
+    ///     The fresh payload.
+    /// </param>
+    /// <returns>
+    ///     The report lines.
+    /// </returns>
     public static IReadOnlyList<string> Diff(JsonObject old, JsonObject fresh)
     {
+        const int DETAIL_CAP = 60;
+
         var lines = new List<string>();
         var summary = new List<string>();
 
@@ -71,8 +79,8 @@ public static class Snapshots
         {
             //a section that is a list or a scalar (levels, inflation) is one entry named after itself
             var bothObjects = old[section] is JsonObject && fresh[section] is JsonObject;
-            var oldEntries = bothObjects ? (JsonObject)old[section]! : Single(section, old[section]);
-            var newEntries = bothObjects ? (JsonObject)fresh[section]! : Single(section, fresh[section]);
+            var oldEntries = bothObjects ? (JsonObject)old[section]! : CreateSingleEntry(section, old[section]);
+            var newEntries = bothObjects ? (JsonObject)fresh[section]! : CreateSingleEntry(section, fresh[section]);
 
             var added = newEntries.Keys
                                   .Except(oldEntries.Keys)
@@ -120,7 +128,7 @@ public static class Snapshots
             summary.Add($"{section} {counts}");
             lines.Add($"== {section}: {counts}");
 
-            if (Quiet.Contains(section))
+            if (PresentationSections.Contains(section))
                 continue;
 
             var detail = added.Select(name => $"  + {name}")
@@ -134,10 +142,10 @@ public static class Snapshots
 
                     detail.Add(
                         before is null
-                            ? $"  {where}: (new) {Scalar(after)}"
+                            ? $"  {where}: (new) {FormatValue(after)}"
                             : after is null
-                                ? $"  {where}: {Scalar(before)} (gone)"
-                                : $"  {where}: {Scalar(before)} -> {Scalar(after)}");
+                                ? $"  {where}: {FormatValue(before)} (gone)"
+                                : $"  {where}: {FormatValue(before)} -> {FormatValue(after)}");
                 }
 
             lines.AddRange(detail.Take(DETAIL_CAP));
@@ -153,20 +161,27 @@ public static class Snapshots
     }
 
     /// <summary>
-    ///     Writes the payload as <c>G-{version}.json</c> and drops every snapshot but the newest <see cref="KEEP" />.
+    ///     Asynchronously writes the payload as <c>G-{version}.json</c> and drops every snapshot but the newest
+    ///     <see cref="KEEP" />.
     /// </summary>
+    /// <param name="payload">
+    ///     The G json.
+    /// </param>
+    /// <param name="version">
+    ///     The payload's version.
+    /// </param>
     public static async Task FileAwayAsync(string payload, int version)
     {
         Directory.CreateDirectory(FOLDER_NAME);
         await File.WriteAllTextAsync(Path.Combine(FOLDER_NAME, $"G-{version}.json"), payload);
 
-        foreach (var stale in Kept()
+        foreach (var stale in GetKeptSnapshots()
                               .OrderByDescending(snapshot => snapshot.Version)
                               .Skip(KEEP))
             File.Delete(stale.Path);
     }
 
-    private static IEnumerable<(int Version, string Path)> Kept()
+    private static IEnumerable<(int Version, string Path)> GetKeptSnapshots()
     {
         if (!Directory.Exists(FOLDER_NAME))
             yield break;
@@ -179,14 +194,16 @@ public static class Snapshots
                 yield return (version, path);
     }
 
-    private static string Scalar(JsonNode? node)
+    private static string FormatValue(JsonNode? node)
     {
+        const int VALUE_WIDTH = 72;
+
         var text = node?.ToJsonString() ?? "null";
 
         return text.Length <= VALUE_WIDTH ? text : text[..(VALUE_WIDTH - 3)] + "...";
     }
 
-    private static IDictionary<string, JsonNode?> Single(string name, JsonNode? node)
+    private static IDictionary<string, JsonNode?> CreateSingleEntry(string name, JsonNode? node)
         => new Dictionary<string, JsonNode?>
         {
             [name] = node
@@ -195,6 +212,18 @@ public static class Snapshots
     /// <summary>
     ///     Appends (path, old, new) for every leaf that differs. Arrays of unequal length count as one leaf.
     /// </summary>
+    /// <param name="old">
+    ///     The earlier node.
+    /// </param>
+    /// <param name="fresh">
+    ///     The fresh node.
+    /// </param>
+    /// <param name="path">
+    ///     The path of the node within its entry.
+    /// </param>
+    /// <param name="leaves">
+    ///     The list the differing leaves are appended to.
+    /// </param>
     private static void Walk(
         JsonNode? old,
         JsonNode? fresh,

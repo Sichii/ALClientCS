@@ -36,7 +36,9 @@ public abstract class AsyncDeltaLoop
     /// <param name="client">
     ///     The instance of the <see cref="Client" /> this loop is for.
     /// </param>
-    /// <exception cref="ArgumentNullException">client</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     client
+    /// </exception>
     protected AsyncDeltaLoop(ALClient client)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -56,9 +58,8 @@ public abstract class AsyncDeltaLoop
     {
         try
         {
-            //StopAsync cancels this source and nothing else replaces it, so a restart - which is what a reconnect
-            //does, having stopped the loops on the way in - would otherwise fall straight out of the while below.
-            //The stale source is left to the GC rather than disposed: a StopAsync may still be inside CancelAsync
+            //a stopped loop's source stays cancelled, so a restart needs a new one
+            //the old one is not disposed, a StopAsync may still be inside CancelAsync
             if (Ctx.IsCancellationRequested)
                 Ctx = new CancellationTokenSource();
 

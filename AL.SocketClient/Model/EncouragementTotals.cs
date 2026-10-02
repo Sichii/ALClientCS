@@ -9,7 +9,7 @@ namespace AL.SocketClient.Model;
 /// </summary>
 /// <remarks>
 ///     These multiply on top of the character's own <c>goldm</c> , <c>xpm</c> and <c>luckm</c> rather than folding into
-///     them, so a reward estimate built on those three alone is short by whatever is here. 1 means no bonus.
+///     them. 1 means no bonus.
 /// </remarks>
 public sealed record EncouragementTotals
 {

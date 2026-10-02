@@ -6,20 +6,16 @@ using AL.Core.Json;
 namespace AL.APIClient.Json.SystemTextJson;
 
 /// <summary>
-///     The REST client's System.Text.Json configuration: the canonical <see cref="ALJson.Options" /> layered with the
-///     API-only converters that AL.Core cannot reference (they target types in this assembly). Used by request-body
-///     serialization and every response deserialize.
+///     Provides the REST client's serializer options: <see cref="ALJson.Options" /> plus the converters for this
+///     assembly's types, which AL.Core cannot reference.
 /// </summary>
 /// <remarks>
-///     The API converters are inserted at the front so they win the first-CanConvert-wins resolution over the base
-///     factories. <see cref="LoginResponseConverter" /> and <see cref="StringOrObjectMailItemConverter" /> each target a
-///     single type used only in this shape, so global registration matches the Newtonsoft per-property
-///     <c>[JsonConverter]</c> they replace.
+///     The API converters go first, so they win over the base factories.
 /// </remarks>
 public static class ApiJson
 {
     /// <summary>
-    ///     The REST options instance. Built once from a copy of the shared options.
+    ///     The REST serializer options, built once from a copy of the shared options.
     /// </summary>
     public static JsonSerializerOptions Options { get; } = Create();
 

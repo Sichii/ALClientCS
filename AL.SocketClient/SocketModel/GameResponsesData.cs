@@ -18,22 +18,15 @@ namespace AL.SocketClient.SocketModel;
 public sealed record GameResponseData : IOptionalObject
 {
     /// <summary>
-    ///     The account's full cosmetics unlock dictionary, sent as a wholesale replacement rather than a delta by
-    ///     <c>cx_new</c> , <c>cx_sent</c> and <c>cx_received</c> (node/server.js:7243, :7984, :7991).
-    ///     <br />
-    ///     Wholesale is load-bearing: a send decrements the sender's count and deletes the key at zero
-    ///     (node/server.js:7966-7969) before shipping the whole object, so merging would put the traded-away cosmetic straight
-    ///     back.
-    ///     <br />
-    ///     Named for its wire key rather than matching <see cref="StartData.OwnedCosmetics" />, which is the same <c>acx</c>
-    ///     field under a spelled-out name.
+    ///     The account's full cosmetics unlock dictionary, sent by <c>cx_new</c>, <c>cx_sent</c> and <c>cx_received</c> as
+    ///     a replacement rather than a delta; a send deletes the key at zero, so merging would restore a traded-away cosmetic.
     /// </summary>
     [JsonPropertyName("acx")]
     public Dictionary<string, int>? Acx { get; init; }
 
     /// <summary>
     ///     The bank slot a bank item operation moved an item out of or into, echoed back from the emit. Null on the gold
-    ///     operations, which name no slot, so it is what correlates one item swap's answer to its own emit.
+    ///     operations, which name no slot.
     /// </summary>
     [JsonPropertyName("str")]
     public int? BankSlot { get; init; }
@@ -67,8 +60,7 @@ public sealed record GameResponseData : IOptionalObject
     public float? CooldownMS { get; init; }
 
     /// <summary>
-    ///     The cost of the item bought, and on a correlated slots settlement the gold that pull cost - the machine's fixed
-    ///     price, echoed back so a caller need not have read it off the game data.
+    ///     The cost of the item bought, or on a correlated slots settlement the machine's fixed price for that pull.
     /// </summary>
     public int Cost { get; init; }
 
@@ -85,30 +77,26 @@ public sealed record GameResponseData : IOptionalObject
     public float Duration { get; init; }
 
     /// <summary>
-    ///     On a correlated tavern info reply, the percentage of a win's profit the house keeps; see
-    ///     <see cref="TavernData.Edge" />, which is the same number off the uncorrelated tavern event. On a correlated dice
-    ///     settlement it is instead the gold the house took out of that one bet, already subtracted from the payout - a
-    ///     different unit under the same name, so read it as a percentage only on the tavern info reply. Zero on every other
-    ///     frame.
+    ///     On a correlated tavern info reply, the percentage of a win's profit the house keeps (<see cref="TavernData.Edge" />).
+    ///     On a correlated dice settlement, the gold the house took out of that bet, already subtracted from the payout.
+    ///     Zero on every other frame.
     /// </summary>
     [JsonPropertyName("edge")]
     public float Edge { get; init; }
 
     /// <summary>
-    ///     What an <c>equip_batch</c> did with each of the equips it was given, in the order the emit listed them
-    ///     (node/server.js:7316). Null on every other frame.
+    ///     What an <c>equip_batch</c> did with each of the equips it was given, in the order the emit listed them. Null on
+    ///     every other frame.
     /// </summary>
     /// <remarks>
-    ///     This is what tells one batch's answer from another's. <c>equip_batch</c> echoes no <see cref="RequestId" /> and is
-    ///     answered whether it was taken or refused, so a character swapping gear on two slots at once has nothing else to
-    ///     match its own answer on.
+    ///     <c>equip_batch</c> echoes no <see cref="RequestId" />, so this is the only way to tell one batch's answer from
+    ///     another's.
     /// </remarks>
     [JsonPropertyName("slots")]
     public EquipBatchEntry[]? EquipBatchEntries { get; init; }
 
     /// <summary>
-    ///     Whether the operation failed. Set by every <c>fail_response</c> , so it is the one universal failure discriminator;
-    ///     the failing operation is named by <see cref="Place" />.
+    ///     Whether the operation failed. Set by every <c>fail_response</c>; <see cref="Place" /> names the failing operation.
     /// </summary>
     [JsonPropertyName("failed")]
     public bool Failed { get; init; }
@@ -125,16 +113,15 @@ public sealed record GameResponseData : IOptionalObject
     public float Grace { get; init; }
 
     /// <summary>
-    ///     The server this character now calls home, sent on <c>home_set</c> (node/server.js:5293) as
-    ///     <c>region + server_name</c> . Null on every other frame.
+    ///     The server this character now calls home, sent on <c>home_set</c> as <c>region + server_name</c>. Null on every
+    ///     other frame.
     /// </summary>
     [JsonPropertyName("home")]
     public string? Home { get; init; }
 
     /// <summary>
-    ///     How many hours a pending operation still has to run. Two frames set it: the locksmith's <c>locksmith_unsealing</c>
-    ///     (node/server.js:6317), and the set-home cooldown's <c>sh_time</c> (node/server.js:5288), which is
-    ///     <see cref="GameResponseType.SetHomeCooldown" />. It reads zero on every other frame.
+    ///     The hours a pending operation still has to run, on <c>locksmith_unsealing</c> and on the set-home cooldown's
+    ///     <c>sh_time</c> (<see cref="GameResponseType.SetHomeCooldown" />). Zero on every other frame.
     /// </summary>
     [JsonPropertyName("hours")]
     public float Hours { get; init; }
@@ -152,9 +139,8 @@ public sealed record GameResponseData : IOptionalObject
     public bool InProgress { get; init; }
 
     /// <summary>
-    ///     The inventory slot a bank item operation moved an item into, or null when the operation moved no item. The server
-    ///     picks the slot itself when the emit names none, which is the one way a withdraw folds into a stack the inventory
-    ///     already holds.
+    ///     The inventory slot a bank item operation moved an item into, or null when it moved no item. The server picks the
+    ///     slot when the emit names none, which is how a withdraw folds into a stack the inventory already holds.
     /// </summary>
     [JsonPropertyName("inv")]
     public int? InventorySlot { get; init; }
@@ -205,24 +191,24 @@ public sealed record GameResponseData : IOptionalObject
     public string? Name { get; init; }
 
     /// <summary>
-    ///     What a settled wager changed the character's gold by, on a correlated slots settlement: <see cref="Payout" /> less
-    ///     <see cref="Cost" />, so it is negative on a loss and equals minus the stake when nothing was won.
+    ///     The change a settled wager made to the character's gold, on a correlated slots settlement: <see cref="Payout" />
+    ///     less <see cref="Cost" />, negative on a loss.
     /// </summary>
     /// <remarks>
-    ///     Read this rather than differencing the character's gold. The server applies the payout before it sends the
-    ///     settlement, so anything that both reads this and watches the balance counts the same win twice.
+    ///     The server applies the payout before it sends the settlement, so reading this and watching the balance counts
+    ///     the same win twice.
     /// </remarks>
     [JsonPropertyName("net")]
     public long Net { get; init; }
 
     /// <summary>
-    ///     Bank pack key echoed by unlock success (<c>bank_new_pack</c>), e.g. <c>items3</c>.
+    ///     The bank pack key echoed by an unlock success (<c>bank_new_pack</c>), e.g. <c>items3</c>.
     /// </summary>
     [JsonPropertyName("pack")]
     public string? Pack { get; init; }
 
     /// <summary>
-    ///     What a settled wager paid, in gold, on a correlated slots settlement. Zero on a loss.
+    ///     The gold a settled wager paid, on a correlated slots settlement. Zero on a loss.
     /// </summary>
     [JsonPropertyName("payout")]
     public long Payout { get; init; }
@@ -248,9 +234,6 @@ public sealed record GameResponseData : IOptionalObject
     /// <summary>
     ///     The correlation token this frame's emit supplied, echoed back verbatim. Null on every frame the server produced on
     ///     its own, and on every handler that does not support correlation.
-    ///     <br />
-    ///     An awaiting method that supplied one may match on it alone; the shape-matching predicates elsewhere in this record
-    ///     exist for the emits that cannot.
     /// </summary>
     [JsonPropertyName("request_id")]
     public string? RequestId { get; init; }
@@ -278,7 +261,7 @@ public sealed record GameResponseData : IOptionalObject
     public ALAttribute StatType { get; init; }
 
     /// <summary>
-    ///     Whether the operation succeeded. Not set by the skills that answer with a collapsed action frame - see
+    ///     Whether the operation succeeded. Not set by the skills that answer with a collapsed action frame; see
     ///     <see cref="Place" />.
     /// </summary>
     [JsonPropertyName("success")]
@@ -310,8 +293,8 @@ public sealed record GameResponseData : IOptionalObject
     public CaveVisit? Visit { get; init; }
 
     /// <summary>
-    ///     Whether a settled wager won, on a correlated slots settlement. Distinct from <see cref="Success" />, which says
-    ///     only that the pull was accepted and is true on a loss as well.
+    ///     Whether a settled wager won, on a correlated slots settlement. <see cref="Success" /> only says the pull was
+    ///     accepted.
     /// </summary>
     [JsonPropertyName("won")]
     public bool Won { get; init; }

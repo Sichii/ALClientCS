@@ -46,7 +46,7 @@ public class TriangleMeshTests
     public void CentroidIsTheMeanOfTheCorners()
     {
         (var x, var y) = Square()
-            .Centroid(0);
+            .CalculateCentroid(0);
 
         x.Should()
          .BeApproximately(200f / 3f, 0.001f);
@@ -60,12 +60,12 @@ public class TriangleMeshTests
     {
         var mesh = Square();
 
-        mesh.EdgesFrom(0)
+        mesh.GetVertexEdges(0)
             .ToArray()
             .Should()
             .Equal(1, 2, 3);
 
-        mesh.EdgesFrom(2)
+        mesh.GetVertexEdges(2)
             .ToArray()
             .Should()
             .Equal(0, 1, 3);
@@ -78,7 +78,7 @@ public class TriangleMeshTests
 
         for (var vertex = 0; vertex < mesh.Vertices.Length; vertex++)
         {
-            var triangle = mesh.TriangleOfVertex(vertex);
+            var triangle = mesh.GetVertexTriangle(vertex);
 
             ((mesh.Corners[triangle * 3] == vertex)
              || (mesh.Corners[triangle * 3 + 1] == vertex)
@@ -93,7 +93,7 @@ public class TriangleMeshTests
         var mesh = Square();
 
         //already inside: the point itself
-        mesh.TryNearestInside(
+        mesh.TryFindNearestInside(
                 50,
                 50,
                 24,
@@ -109,7 +109,7 @@ public class TriangleMeshTests
          .Be(50);
 
         //five left of the left edge: just inside it, in the triangle that owns that edge
-        mesh.TryNearestInside(
+        mesh.TryFindNearestInside(
                 -5,
                 50,
                 24,
@@ -124,12 +124,12 @@ public class TriangleMeshTests
         y.Should()
          .BeApproximately(50, 1);
 
-        mesh.TriangleAt(x, y)
+        mesh.FindTriangle(x, y)
             .Should()
             .Be(1);
 
         //past the range: nothing
-        mesh.TryNearestInside(
+        mesh.TryFindNearestInside(
                 -30,
                 50,
                 24,
@@ -144,17 +144,17 @@ public class TriangleMeshTests
     {
         var mesh = Square();
 
-        mesh.NearestVertex(10, 10, _ => true)
+        mesh.FindNearestVertex(10, 10, _ => true)
             .Should()
             .Be(0);
 
         //v0 is nearest but refused, so v1 at 90 units beats v3 at 90 units only by index order; refuse it too
-        mesh.NearestVertex(10, 10, index => index is not 0 and not 1)
+        mesh.FindNearestVertex(10, 10, index => index is not 0 and not 1)
             .Should()
             .Be(3);
 
         //nothing accepted: the nearest of all
-        mesh.NearestVertex(10, 10, _ => false)
+        mesh.FindNearestVertex(10, 10, _ => false)
             .Should()
             .Be(0);
     }
@@ -182,28 +182,28 @@ public class TriangleMeshTests
     {
         var mesh = BowTie();
 
-        mesh.EdgesFrom(2)
+        mesh.GetVertexEdges(2)
             .ToArray()
             .Should()
             .BeEmpty();
 
         //the other vertices keep the edges between themselves, none towards the pinch
-        mesh.EdgesFrom(0)
+        mesh.GetVertexEdges(0)
             .ToArray()
             .Should()
             .Equal(1);
 
-        mesh.EdgesFrom(1)
+        mesh.GetVertexEdges(1)
             .ToArray()
             .Should()
             .Equal(0);
 
-        mesh.EdgesFrom(3)
+        mesh.GetVertexEdges(3)
             .ToArray()
             .Should()
             .Equal(4);
 
-        mesh.EdgesFrom(4)
+        mesh.GetVertexEdges(4)
             .ToArray()
             .Should()
             .Equal(3);
@@ -239,19 +239,19 @@ public class TriangleMeshTests
     {
         var mesh = Square();
 
-        mesh.TriangleAt(90, 10)
+        mesh.FindTriangle(90, 10)
             .Should()
             .Be(0);
 
-        mesh.TriangleAt(10, 90)
+        mesh.FindTriangle(10, 90)
             .Should()
             .Be(1);
 
-        mesh.TriangleAt(-5, 50)
+        mesh.FindTriangle(-5, 50)
             .Should()
             .Be(-1);
 
-        mesh.TriangleAt(50, 50)
+        mesh.FindTriangle(50, 50)
             .Should()
             .BeOneOf(0, 1);
     }

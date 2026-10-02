@@ -7,7 +7,9 @@ using AL.Core.Model;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>Represents information about a boss monster.</summary>
+/// <summary>
+///     Represents information about a boss monster.
+/// </summary>
 /// <seealso cref="ILocation" />
 /// <seealso cref="IMutable{TMutator}" />
 /// <remarks>Mutated by <see cref="Mutation" /></remarks>

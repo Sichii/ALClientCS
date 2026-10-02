@@ -18,8 +18,8 @@ public class SkillTimeoutData
     public string SkillName { get; set; } = null!;
 
     /// <summary>
-    ///     The <c>attack_ms</c> correction sends <c>attack_ms</c> minus <c>mssince</c> , which is routinely negative and
-    ///     fractional.
+    ///     The timeout in milliseconds. The <c>attack_ms</c> correction sends <c>attack_ms</c> minus <c>mssince</c>, which
+    ///     is routinely negative and fractional.
     /// </summary>
     [JsonPropertyName("ms")]
     public float TimeoutMs { get; set; }

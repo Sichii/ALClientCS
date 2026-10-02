@@ -1,14 +1,13 @@
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents an inbound code-manager message - the channel AL bots use to coordinate a multi-character party
-///     (node/server.js:4502). The outbound half is <c>SendCmAsync</c> .
+///     Represents an inbound code-manager message, the channel bots use to coordinate a party. The outbound half is
+///     <c>SendCmAsync</c>.
 /// </summary>
 public sealed record CmData
 {
     /// <summary>
-    ///     The message payload. Senders typically JSON-encode a structured object into this string; the server forwards it
-    ///     verbatim as an opaque string.
+    ///     The message payload, forwarded verbatim. Senders typically JSON-encode an object into it.
     /// </summary>
     public string Message { get; init; } = null!;
 

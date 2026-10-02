@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     One piece of a generated map bundle. The server streams a daily dungeon's floors as a run of these under one run
-///     id, in index order; the pieces joined in that order are one JSON document (see <c>GeneratedMapBundle</c> ).
+///     Represents one piece of a generated map bundle. The server streams a daily dungeon's floors as a run of these under
+///     one run id; the pieces joined in index order are one JSON document (<c>GeneratedMapBundle</c>).
 /// </summary>
 public sealed record MapChunkData
 {

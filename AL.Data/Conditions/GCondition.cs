@@ -26,8 +26,7 @@ public sealed record GCondition : AttributedRecordBase
     public bool Aura { get; init; }
 
     /// <summary>
-    ///     Marks a condition that stops you acting entirely - stunned, deep freeze, fingered and stoned are the four that
-    ///     carry it.
+    ///     Whether the condition stops you acting entirely, as stunned, deep freeze, fingered and stoned do.
     /// </summary>
     public bool Blocked { get; init; }
 
@@ -35,15 +34,14 @@ public sealed record GCondition : AttributedRecordBase
     public bool Buff { get; init; }
 
     /// <summary>
-    ///     For the condition "Reflection", the ceiling on reflection while it holds. The published server source reads it
-    ///     nowhere, so take it as the data's intent rather than an observed rule.
+    ///     For the condition "Reflection", the ceiling on reflection while it holds. The server reads it nowhere.
     /// </summary>
     [JsonPropertyName("cap_reflection")]
     public int CapReflection { get; init; }
 
     /// <summary>
-    ///     Marks a channelled action - the town warp, fishing, mining and pickpocket carry it. These sit in the character's
-    ///     channelling collection rather than among its conditions.
+    ///     Whether this is a channelled action, such as the town warp, fishing, mining and pickpocket. These sit in the
+    ///     character's channelling collection rather than among its conditions.
     /// </summary>
     public bool Channel { get; init; }
 
@@ -61,7 +59,7 @@ public sealed record GCondition : AttributedRecordBase
 
     /// <summary>
     ///     If populated, the resistance stat that shrugs this condition off outright. The server rolls it as a flat percentage
-    ///     and, on a hit, does not apply the condition at all (node/server_functions.js:2715).
+    ///     and, on a hit, does not apply the condition at all.
     /// </summary>
     [JsonPropertyName("defense")]
     public ALAttribute Defense { get; init; }
@@ -74,8 +72,7 @@ public sealed record GCondition : AttributedRecordBase
     public int DurationMinMs { get; init; }
 
     /// <summary>
-    ///     The duration of this condition in milliseconds. Used whenever whatever applies the condition does not name a
-    ///     duration of its own (node/server_functions.js:2714).
+    ///     The duration of this condition in milliseconds, used when whatever applies it names no duration of its own.
     /// </summary>
     [JsonPropertyName("duration")]
     public int DurationMs { get; init; }
@@ -83,22 +80,15 @@ public sealed record GCondition : AttributedRecordBase
     /// <summary>
     ///     If populated, the game's own line about this condition.
     /// </summary>
-    /// <remarks>
-    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it describes is
-    ///     implemented elsewhere or not at all. Read it as the game's own words about the condition, not as a source of
-    ///     figures.
-    /// </remarks>
     public string? Explanation { get; init; }
 
     /// <summary>
-    ///     The amount this condition heals, once per <see cref="IntervalMS" />. An immune monster heals nothing
-    ///     (node/server.js:12522).
+    ///     The amount this condition heals, once per <see cref="IntervalMS" />. An immune monster heals nothing.
     /// </summary>
     public int Heal { get; init; }
 
     /// <summary>
-    ///     Names another condition. Only the fire-essence burn carries it, pointing at a name that is defined nowhere in the
-    ///     game data and read nowhere in the server, so nothing acts on it.
+    ///     Names another condition. Only the fire-essence burn carries it, and nothing acts on it.
     /// </summary>
     public string? Intensity { get; init; }
 
@@ -114,28 +104,26 @@ public sealed record GCondition : AttributedRecordBase
     public string Name { get; init; } = null!;
 
     /// <summary>
-    ///     If true, a cleanse does not strip this condition: both the purify skill and the debuff-clearing consumables skip it
-    ///     (node/server.js:3593, :7238).
+    ///     Whether a cleanse leaves this condition in place: the purify skill and the debuff-clearing consumables skip it.
     /// </summary>
     public bool Persistent { get; init; }
 
     /// <summary>
-    ///     Caps <see cref="ALAttribute.Speed" /> at this value - tangle sets 24, hard shell 10, dash 500. The published server
-    ///     source applies it nowhere, so take it as the data's intent, not an observed rule.
+    ///     Caps <see cref="ALAttribute.Speed" /> at this value - tangle sets 24, hard shell 10, dash 500. The server
+    ///     applies it nowhere.
     /// </summary>
     [JsonPropertyName("set_speed")]
     public int SetSpeed { get; init; }
 
     /// <summary>
-    ///     If populated, the name of this condition's icon art in <c>G.positions</c> . The browser client draws a condition's
-    ///     icon through the item pipeline by this name (js/html.js:439), preferring a skin carried on the live condition
-    ///     itself where the wire sends one.
+    ///     If populated, the name of this condition's icon art in <c>G.positions</c>. A skin carried on the live condition
+    ///     takes precedence.
     /// </summary>
     public string? Skin { get; init; }
 
     /// <summary>
-    ///     Marks a bookkeeping condition such as an unverified account. The client lists these on their own, apart from buffs
-    ///     and debuffs (js/html.js:4869).
+    ///     Whether this is a bookkeeping condition such as an unverified account, which the client lists apart from buffs and
+    ///     debuffs.
     /// </summary>
     public bool Technical { get; init; }
 
@@ -146,7 +134,7 @@ public sealed record GCondition : AttributedRecordBase
 
     /// <summary>
     ///     Whether moving leaves this channelled action running. Moving cancels every channel without it, and only the town
-    ///     warp has it (node/server.js:10051). True for anything that is not a channel at all.
+    ///     warp has it. True for anything that is not a channel at all.
     /// </summary>
     [JsonIgnore]
     public bool CanMove => !Channel || _canMove;

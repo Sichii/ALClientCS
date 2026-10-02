@@ -26,15 +26,16 @@ public sealed record Recipe
     ///     The NPC a craft recipe is run at - its quest NPC when it has a quest tag, the craftsman otherwise. Null on a
     ///     dismantle recipe, which the server still requires the craftsman for.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public GNPC NPC { get; internal set; } = null!;
 
     /// <summary>
     ///     If populated, the item this recipe really produces, which is not the one it is filed under.
     /// </summary>
     /// <remarks>
-    ///     A recipe without this makes the item it is named for, which is nearly all of them. The server's craft reply names
-    ///     whatever came out, so anything matching that reply against a recipe name has to come through here first.
+    ///     The server's craft reply names this item rather than the recipe.
     /// </remarks>
     public RecipeOutput? Output { get; init; }
 

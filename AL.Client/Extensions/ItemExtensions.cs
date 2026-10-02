@@ -17,21 +17,34 @@ namespace AL.Client.Extensions;
 public static class ItemExtensions
 {
     /// <summary>
-    ///     Whether the server would merge <paramref name="item" /> onto <paramref name="other" />.
+    ///     Determines whether the server would merge <paramref name="item" /> onto <paramref name="other" />.
     /// </summary>
     /// <remarks>
-    ///     Restates <c>can_stack</c> (js/old_common_functions.js:407): a stackable name, the two quantities fitting under the
-    ///     stack size, the same title once any title marked stackable ("Cave-found") is dropped, the same data, the PvP mark on both or neither, and no lock on either. The server only
-    ///     reads data on a cxjar; it is compared on everything here, which never offers a merge the server refuses. A merge
-    ///     asked for against a pile that fails this lands as <c>storage_full</c> whenever the pack has no empty slot
-    ///     (node/server.js:8919), whatever the rest of the vault holds.
-    ///     <br />
-    ///     <paramref name="ignorePvp" /> drops the PvP mark from the comparison, as <c>can_stack</c>'s <c>ignore_pvp</c> does.
-    ///     A bank deposit wants it: the bank handler deletes <c>v</c> from the item before storing it (node/server.js:9172).
+    ///     Requires a stackable name, quantities fitting under the stack size, the same title ignoring stackable titles, the
+    ///     same data, the PvP mark on both or neither, and no lock on either.
     /// </remarks>
+    /// <param name="item">
+    ///     The item to merge.
+    /// </param>
+    /// <param name="other">
+    ///     The pile to merge it onto.
+    /// </param>
+    /// <param name="ignorePvp">
+    ///     Specifies whether the PvP mark is left out of the comparison, as for a bank deposit, which strips <c>v</c>.
+    /// </param>
+    /// <returns>
+    ///     true if the server would merge the two; otherwise, false.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     other
+    /// </exception>
     public static bool CanStackWith(this IInventoryItem item, IInventoryItem other, bool ignorePvp = false)
     {
         ArgumentNullException.ThrowIfNull(item);
+
         ArgumentNullException.ThrowIfNull(other);
 
         var stackSize = item.GetData()
@@ -54,9 +67,17 @@ public static class ItemExtensions
     }
 
     /// <summary>
-    ///     The item's title as <c>can_stack</c> compares it: null when the item has none, or when its title is one the game
-    ///     marks stackable ("Cave-found") and so never keeps two piles apart.
+    ///     Gets the item's title as the server compares it for stacking.
     /// </summary>
+    /// <param name="item">
+    ///     The item to read.
+    /// </param>
+    /// <returns>
+    ///     The title, or null when the item has none or its title is one the game marks stackable ("Cave-found").
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
     public static string? GetStackingTitle(this IInventoryItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -69,14 +90,20 @@ public static class ItemExtensions
         return title;
     }
 
-    /// <summary>Gets the "G" data for this item.</summary>
-    /// <param name="item">The item to get the data for.</param>
+    /// <summary>
+    ///     Gets the "G" data for this item.
+    /// </summary>
+    /// <param name="item">
+    ///     The item to get the data for.
+    /// </param>
     /// <returns>
     ///     <see cref="GItem" />
     ///     <br />
     ///     The "G" data for this item from <see cref="GameData" />.
     /// </returns>
-    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
     public static GItem? GetData(this ISimpleItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -93,7 +120,9 @@ public static class ItemExtensions
     /// <returns>
     ///     The grade of the item, or <see cref="Grade.None" /> when it has no upgrade or compound track.
     /// </returns>
-    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
     public static Grade GetGrade(this ICommonItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -104,14 +133,20 @@ public static class ItemExtensions
         return (Grade)UpgradeMath.CalculateGrade(thresholds, item.Level);
     }
 
-    /// <summary>Checks if the item is compoundable.</summary>
-    /// <param name="item">The item to check.</param>
+    /// <summary>
+    ///     Checks if the item is compoundable.
+    /// </summary>
+    /// <param name="item">
+    ///     The item to check.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
     ///     <c>true</c> if the item is compoundable, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
     public static bool IsCompoundable(this ISimpleItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -121,14 +156,20 @@ public static class ItemExtensions
                != null;
     }
 
-    /// <summary>Checks if the item is stackable.</summary>
-    /// <param name="item">The item to check.</param>
+    /// <summary>
+    ///     Checks if the item is stackable.
+    /// </summary>
+    /// <param name="item">
+    ///     The item to check.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
     ///     <c>true</c> if the item is stackable, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
     public static bool IsStackable(this ISimpleItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -138,14 +179,20 @@ public static class ItemExtensions
                > 1;
     }
 
-    /// <summary>Checks if the item is upgradeable.</summary>
-    /// <param name="item">The item to check.</param>
+    /// <summary>
+    ///     Checks if the item is upgradeable.
+    /// </summary>
+    /// <param name="item">
+    ///     The item to check.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
     ///     <c>true</c> if the item is upgradeable, otherwise <c>false</c> .
     /// </returns>
-    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     item
+    /// </exception>
     public static bool IsUpgradeable(this ISimpleItem item)
     {
         ArgumentNullException.ThrowIfNull(item);

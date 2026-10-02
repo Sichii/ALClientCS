@@ -21,21 +21,18 @@ namespace AL.Data.Items;
 public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
 {
     /// <summary>
-    ///     If populated, the named effect this item grants while it is worn - <c>burn</c> , <c>freeze</c> ,
-    ///     <c>secondchance</c> . Thirty items carry one.
+    ///     If populated, the named effect this item grants while it is worn, such as <c>burn</c>, <c>freeze</c> or
+    ///     <c>secondchance</c>.
     /// </summary>
     /// <remarks>
-    ///     Equipping files the item's own <c>attr0</c> and <c>attr1</c> under this name on the player (
-    ///     <c>node/server.js:1230</c> ), summed across every worn piece naming it, and each ability is then read by name
-    ///     wherever combat implements it - burn rolls <c>attr0</c> as a percentage per hit, scaled by the map's burn
-    ///     multiplier ( <c>node/server.js:3062</c> ). So this names an effect rather than describing one: what the numbers
-    ///     mean is the ability's own rule, and the two attributes are the only figures the item contributes to it.
+    ///     The item's <c>attr0</c> and <c>attr1</c> are summed across every worn piece naming the ability, and what they mean
+    ///     is the ability's own rule.
     /// </remarks>
     public string? Ability { get; init; }
 
     /// <summary>
-    ///     This item's key in the game's item table - <c>hpot0</c> , <c>firebow</c> . Filled in from that key by this library
-    ///     rather than sent by the server.
+    ///     This item's key in the game's item table, such as <c>hpot0</c>. Filled in from that key rather than sent by the
+    ///     server.
     /// </summary>
     public string Accessor { get; internal set; } = null!;
 
@@ -44,19 +41,17 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     <see cref="GameData.Conditions" />. In PvP it reaches only the wearer's own side.
     /// </summary>
     /// <remarks>
-    ///     The item's <c>attr0</c> is how much of the condition's one stat the aura hands out - <c>sanguine</c> gives that
-    ///     much lifesteal ( <c>node/server.js:15011</c> ).
+    ///     The item's <c>attr0</c> is how much of the condition's one stat the aura hands out: <c>sanguine</c> gives that
+    ///     much lifesteal.
     /// </remarks>
     public string? Aura { get; init; }
 
     /// <summary>
-    ///     The stats this item adds on top of its own for one class or on one map, keyed by the class's or the map's key -
-    ///     <c>rogue</c> , <c>cave</c> . Empty for most items.
+    ///     The stats this item adds on top of its own for one class or on one map, keyed by the class's or the map's key, such
+    ///     as <c>rogue</c> or <c>cave</c>. Empty for most items.
     /// </summary>
     /// <remarks>
-    ///     The server asks both on every stat pass, with the wearer's class and the map they stand on (
-    ///     <c>node/server.js:1459</c> ), and adds a match into the item before anything else is worked out (
-    ///     <c>js/progression/stats.js:19-30</c> ). A bonus that names a class the item is locked away from is never reached.
+    ///     The server adds a match for the wearer's class and map into the item before any other stat is worked out.
     /// </remarks>
     [JsonIgnore]
     public IReadOnlyDictionary<string, GItemBonus> Bonuses { get; internal set; } = new Dictionary<string, GItemBonus>();
@@ -65,8 +60,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     The item's price in shells if it is a cash-shop item, otherwise zero.
     /// </summary>
     /// <remarks>
-    ///     A nonzero value also changes how the item is valued: the buy-to-sell discount is not applied to cash items, and the
-    ///     second-hands NPC charges a 3x multiplier rather than 2x.
+    ///     The buy-to-sell discount is not applied to cash items, and the second-hands NPC charges 3x for them rather than 2x.
     /// </remarks>
     public float Cash { get; init; }
 
@@ -74,16 +68,14 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     The classes allowed to equip this item, or null where any class may.
     /// </summary>
     /// <remarks>
-    ///     Null rather than an empty list for "anybody", which is what the def means by leaving the key out - 92 stattable
-    ///     items do. Several classes is real and not always a formality: <c>fury</c> names four whose <c>MainStat</c> does not
-    ///     agree, so a caller deriving anything from this owes that case an answer.
+    ///     Several classes may disagree on main stat: <c>fury</c> names four whose <c>MainStat</c> differ.
     /// </remarks>
     [JsonPropertyName("class")]
     public IReadOnlyList<ALClass>? Classes { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b> . If null, this item is not compoundable. If NOT null, the <see cref="ALAttribute" /> gain added
-    ///     once per compound level, scaled up past +4 - 1.25x at +5, 1.5x at +6, 2x at +7, 3x from +8 on.
+    ///     <b>NULLABLE</b>. If null, this item is not compoundable. If NOT null, the <see cref="ALAttribute" /> gain added
+    ///     once per compound level, scaled up past +4: 1.25x at +5, 1.5x at +6, 2x at +7, 3x from +8 on.
     /// </summary>
     [JsonPropertyName("compound")]
     public IReadOnlyDictionary<ALAttribute, float>? CompoundModifiers { get; init; }
@@ -95,8 +87,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     If this item is a booster, the duration an inactive copy contributes when compounded, in days
-    ///     (node/server.js:6595). Activation itself uses a flat 30 days plus two per level instead.
+    ///     If this item is a booster, the duration an inactive copy contributes when compounded, in days.
+    ///     Activation itself uses a flat 30 days plus two per level instead.
     /// </summary>
     public int? Days { get; init; }
 
@@ -109,7 +101,9 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     /// <summary>
     ///     If populated, this item can be exchanged at this NPC.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public GNPC? ExchangeAtNPC { get; internal set; }
 
     /// <summary>
@@ -118,27 +112,26 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     This is the amount of the item that is exchanged at once.
     ///     <br />
     ///     Check <see cref="ExchangeAtNPC" /> for the npc to exchange at, and <see cref="ExchangeRewards" /> for what comes
-    ///     back - which depends on the level exchanged when the item compounds or upgrades (node/server.js:6067).
+    ///     back.
     /// </summary>
     [JsonPropertyName("e")]
     public int? ExchangeCount { get; init; }
 
     /// <summary>
     ///     If populated, what an exchange of this item rolls on, keyed by the level exchanged. An item that neither compounds
-    ///     nor upgrades carries a single entry at 0; one that does carries an entry per level the game has a table for, and a
-    ///     level absent from it cannot be exchanged at all.
+    ///     nor upgrades has a single entry at 0, and a level absent from the table cannot be exchanged.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewards { get; internal set; }
 
     /// <summary>
-    ///     If populated, the line the game writes under this item's name in its own tooltip. Flavour and rules both - "Rains
-    ///     fire upon the enemy", "Thanks to its stealth capabilities, no one can track your endeavours any more" - and around
-    ///     half the items carry one.
+    ///     If populated, the line the game writes under this item's name in its own tooltip, such as "Rains fire upon the
+    ///     enemy".
     /// </summary>
     /// <remarks>
-    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an effect it describes is
-    ///     implemented elsewhere or not at all. Read it as the game's own words about the item, not as a source of figures.
+    ///     Written for a player; the server parses nothing here, so it is not a source of figures.
     /// </remarks>
     public string? Explanation { get; init; }
 
@@ -149,20 +142,20 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public IReadOnlyList<(ALAttribute Attribute, float Amount)>? Gives { get; init; }
 
     /// <summary>
-    ///     What an NPC charges for one of this item. Selling one back pays 60% of it - see
-    ///     <see cref="AL.Data.Multipliers.GMultipliers.BuyToSell" />.
+    ///     What an NPC charges for one of this item. Selling one back pays the
+    ///     <see cref="AL.Data.Multipliers.GMultipliers.BuyToSell" /> fraction of it.
     /// </summary>
     [JsonPropertyName("g")]
     public float GoldValue { get; init; }
 
     /// <summary>
-    ///     If populated, this item's own fixed grade - scrolls, offerings, chrysalises. A fractional wire value is rounded, so
-    ///     <c>scroll4</c> 's 3.6 arrives here as 4.
+    ///     If populated, this item's own fixed grade, as scrolls, offerings and chrysalises carry. A fractional wire value is
+    ///     rounded.
     /// </summary>
     public int? Grade { get; set; }
 
     /// <summary>
-    ///     <b>NULLABLE</b> . If populated, this item is compoundable or upgradeable. Four levels: the ones at which the item's
+    ///     <b>NULLABLE</b>. If populated, this item is compoundable or upgradeable. Four levels: the ones at which the item's
     ///     grade steps to 1, 2, 3 and 4. When absent the server uses 9, 10, 11, 12.
     /// </summary>
     public IReadOnlyList<int>? Grades { get; init; }
@@ -174,7 +167,7 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
 
     /// <summary>
     ///     If populated, the key of the NPC tied to this item. The server reads it only to find the NPC on main that redeems a
-    ///     token, defaulting to the item's own name plus "s".
+    ///     token, defaulting to the item's own name plus <c>s</c>.
     ///     <br />
     ///     Check <see cref="ObtainableFromNPC" /> for that NPC's data.
     /// </summary>
@@ -189,16 +182,19 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     How <see cref="ObtainableFromNPC" /> was reached: bought from that NPC's shop, crafted from a recipe, exchanged for
     ///     tokens, or handed over for a quest. Unknown when no NPC was found.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public ObtainType ObtainType { get; internal set; }
 
     /// <summary>
-    ///     If populated, one NPC this item can be obtained from. Several NPCs may sell the same item; this library picks one
-    ///     of them, preferring a seller that is actually placed on a map. The server does not choose it.
+    ///     If populated, one NPC this item can be obtained from. Where several sell it, one placed on a map is preferred.
     ///     <br />
     ///     Check <see cref="ObtainType" /> for the method of obtaining.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public GNPC? ObtainableFromNPC { get; internal set; }
 
     /// <summary>
@@ -214,10 +210,11 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public Quest? Quest { get; init; }
 
     /// <summary>
-    ///     If populated, the recipe that crafts this item. Only the craft table is wired up here - an item's dismantle recipe
-    ///     is not reachable from this property.
+    ///     If populated, the recipe that crafts this item. The item's dismantle recipe is not reachable from here.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public Recipe? Recipe { get; internal set; }
 
     /// <summary>
@@ -236,34 +233,23 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     ///     Which icon this item draws, as a key into <see cref="GameData.Positions" />.
     /// </summary>
     /// <remarks>
-    ///     Usually the item's own key, but a couple of dozen items borrow another's art - every candy re-release draws the
-    ///     original candy - so this is not a name to guess at.
+    ///     Usually the item's own key, but some items borrow another's art, such as every candy re-release.
     /// </remarks>
     public string? Skin { get; init; }
 
     /// <summary>
     ///     The number of this item that can be placed in a stack.
     /// </summary>
-    /// <remarks>
-    ///     The design tables spell most stackables <c>"s":true</c> , and the converter here reads a boolean as its falsy
-    ///     default of 1 - which would report "not stackable" for the majority of stackable items. That never happens, and
-    ///     reading the converter alone genuinely suggests otherwise: the game data's own trailing pass rewrites
-    ///     <c>s === true</c> to 9999 as <c>G</c> is built ( <c>design/items.js:7441</c> , reached because the server evals the
-    ///     file whole), so this property only ever receives a number or no <c>s</c> at all. <c>Phase3IntegrationTests</c> pins
-    ///     that against the committed wire snapshot.
-    /// </remarks>
     [JsonPropertyName("s")]
     [JsonConverter(typeof(StjConverters.FalsyStackSizeConverter))]
     public int StackSize { get; init; } = 1;
 
     /// <summary>
-    ///     Whether this item can be thrown at a spot on the ground, consuming one (node/server.js:8039).
+    ///     Whether this item can be thrown at a spot on the ground, consuming one.
     /// </summary>
     /// <remarks>
-    ///     The def's own flag, and not something derived from <see cref="Type" />: <c>whiteegg</c> is a
-    ///     <see cref="ItemType.Material" /> that throws, and <c>snowball</c> is an <see cref="ItemType.Throw" /> that does not
-    ///     - it is spent by the <c>snowball</c> skill instead. Four items carry it: confetti, firecrackers, smoke and
-    ///     whiteegg.
+    ///     Not derived from <see cref="Type" />: <c>whiteegg</c> is a <see cref="ItemType.Material" /> that throws, and
+    ///     <c>snowball</c> is an <see cref="ItemType.Throw" /> that does not.
     /// </remarks>
     [JsonPropertyName("throw")]
     public bool Throw { get; init; }
@@ -279,8 +265,8 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public ItemType Type { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b> . If null, this item is not upgradeable. If NOT null, the <see cref="ALAttribute" /> gain added
-    ///     once per upgrade level, scaled up past +6 - 1.25x at +7, 1.5x at +8, 2x at +9, 3x at +10, 1.25x at +11 and +12.
+    ///     <b>NULLABLE</b>. If null, this item is not upgradeable. If NOT null, the <see cref="ALAttribute" /> gain added
+    ///     once per upgrade level, scaled up past +6: 1.25x at +7, 1.5x at +8, 2x at +9, 3x at +10, 1.25x at +11 and +12.
     /// </summary>
     [JsonPropertyName("upgrade")]
     public IReadOnlyDictionary<ALAttribute, float>? UpgradeModifiers { get; init; }
@@ -293,24 +279,28 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public WeaponType WeaponType { get; init; }
 
     /// <summary>
-    ///     Every key no declared member binds, as it arrived. <see cref="Bonuses" /> is built from it: the wire files a bonus
-    ///     under the class's or the map's own name, beside the item's stats, so there is no fixed key to declare.
+    ///     Every key no declared member binds, as it arrived. <see cref="Bonuses" /> is built from it, since the wire files a
+    ///     bonus under the class's or the map's own name.
     /// </summary>
     /// <remarks>
-    ///     Cleared to null by <c>GameData.EnrichItems</c> once <see cref="Bonuses" /> is built, which keeps raw JSON off the
-    ///     game-data explorer.
+    ///     Cleared to null by <see cref="GameData.EnrichItems" /> once <see cref="Bonuses" /> is built.
     /// </remarks>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? WireExtras { get; set; }
 
     /// <summary>
-    ///     Recovers the scroll's target stat when the server sends its name in the numeric <c>stat</c> slot. The
-    ///     System.Text.Json attributed-object converter strips that key before binding (the float
-    ///     <see cref="ALAttribute.Stat" /> attribute would otherwise abort the item) and calls this. It replaces a Newtonsoft
-    ///     <c>[OnError]</c> handler that let the bind throw and then scraped the stat name out of the exception message.
+    ///     Sets <see cref="ScrollStat" /> from the stat name a scroll sends in the numeric <c>stat</c> slot.
     /// </summary>
+    /// <param name="statName">
+    ///     The stat name as sent. A name that is not an <see cref="ALAttribute" /> is ignored.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     statName
+    /// </exception>
     public void RecoverScrollStat(string statName)
     {
+        ArgumentNullException.ThrowIfNull(statName);
+
         if (EnumHelper.TryParse(statName, out ALAttribute attribute))
             ScrollStat = attribute;
     }

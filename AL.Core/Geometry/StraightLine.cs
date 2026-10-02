@@ -7,7 +7,9 @@ using AL.Core.Json.Attributes;
 
 namespace AL.Core.Geometry;
 
-/// <summary><inheritdoc cref="ILine" /> (a straight line)</summary>
+/// <summary>
+///     <inheritdoc cref="ILine" /> (a straight line)
+/// </summary>
 /// <seealso cref="AL.Core.Interfaces.ILine" />
 public sealed record StraightLine : ILine
 {
@@ -21,7 +23,7 @@ public sealed record StraightLine : ILine
     ///     Whether or not this line is an "X Line"
     /// </summary>
     /// <value>
-    ///     <c>true</c> if <see cref="On" /> represents an X coordinate; otherwise, <c>false</c> .
+    ///     <c>true</c> if <see cref="On" /> represents an X coordinate; otherwise, <c>false</c>.
     /// </value>
     [JsonIgnore]
     public bool IsVertical { get; init; }
@@ -48,9 +50,15 @@ public sealed record StraightLine : ILine
     /// <param name="on">
     ///     The X or Y value the line starts on. denoted by "isX"
     /// </param>
-    /// <param name="start">The starting X or Y value of the line.</param>
-    /// <param name="end">The ending X or Y value of the line.</param>
-    /// <param name="isVertical">Whether or not the line starts "on" an X value.</param>
+    /// <param name="start">
+    ///     The starting X or Y value of the line.
+    /// </param>
+    /// <param name="end">
+    ///     The ending X or Y value of the line.
+    /// </param>
+    /// <param name="isVertical">
+    ///     Whether or not the line starts "on" an X value.
+    /// </param>
     public StraightLine(
         int on,
         int start,
@@ -66,11 +74,15 @@ public sealed record StraightLine : ILine
     /// <summary>
     ///     Calculates the farthest distance between this straight line and another.
     /// </summary>
-    /// <param name="other">Another straight line</param>
+    /// <param name="other">
+    ///     Another straight line
+    /// </param>
     /// <returns>
     ///     <see cref="int" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">other</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     other
+    /// </exception>
     public int MaxDistance(StraightLine other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -89,15 +101,23 @@ public sealed record StraightLine : ILine
     /// <summary>
     ///     Merges this straight line with another straight line.
     /// </summary>
-    /// <param name="other">The other.</param>
+    /// <param name="other">
+    ///     The other.
+    /// </param>
     /// <returns>
     ///     <see cref="StraightLine" />
     ///     <br />
     ///     A new <see cref="StraightLine" /> denoted by the minimum start value, and maximum end value.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">other</exception>
-    /// <exception cref="System.ArgumentException">On and other.On must be equal.</exception>
-    /// <exception cref="System.ArgumentException">IsX and other.IsX must be equal.</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     other
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    ///     On and other.On must be equal.
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    ///     IsX and other.IsX must be equal.
+    /// </exception>
     public StraightLine Merge(StraightLine other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -126,12 +146,18 @@ public sealed record StraightLine : ILine
     /// <summary>
     ///     Determines whether this straight line overlaps another straight line.
     /// </summary>
-    /// <param name="other">Another straight line.</param>
+    /// <param name="other">
+    ///     Another straight line.
+    /// </param>
     /// <returns>
     ///     <c>true</c> if this straight line overlaps the <paramref name="other" />, <c>false</c> otherwise.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">other</exception>
-    /// <exception cref="System.ArgumentException">IsX and other.IsX must be equal.</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     other
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    ///     IsX and other.IsX must be equal.
+    /// </exception>
     public bool Overlaps(StraightLine other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -145,13 +171,19 @@ public sealed record StraightLine : ILine
     /// <summary>
     ///     Determines whether this straight line is perpindicular to another straight line and intersects it.
     /// </summary>
-    /// <param name="other">Another straight line.</param>
+    /// <param name="other">
+    ///     Another straight line.
+    /// </param>
     /// <returns>
     ///     <c>true</c> if this straight line is perpindicular to, and intersects the <paramref name="other" />, <c>false</c>
     ///     otherwise.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">other</exception>
-    /// <exception cref="System.ArgumentException">IsX and other.IsX must NOT be equal.</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     other
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    ///     IsX and other.IsX must NOT be equal.
+    /// </exception>
     public bool PerpindicularIntersects(StraightLine other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -162,7 +194,9 @@ public sealed record StraightLine : ILine
         return (other.Start <= On) && (On <= other.End) && (Start <= other.On) && (other.On <= End);
     }
 
-    /// <summary>Lazily generates all points on a straight line.</summary>
+    /// <summary>
+    ///     Lazily generates all points on a straight line.
+    /// </summary>
     /// <returns>
     ///     <see cref="IEnumerable{T}" /> of <see cref="IPoint" />
     /// </returns>

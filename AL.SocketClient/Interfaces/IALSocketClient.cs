@@ -6,16 +6,17 @@ using AL.SocketClient.SocketModel;
 
 namespace AL.SocketClient.Interfaces;
 
-/// <summary>Represents a socket connection to Adventure.Land</summary>
+/// <summary>
+///     Represents a socket connection to Adventure.Land.
+/// </summary>
 public interface IALSocketClient : IAsyncDisposable
 {
-    /// <summary>Whether or not the socket is currently open.</summary>
+    /// <summary>Whether the socket is currently open.</summary>
     bool Connected { get; }
 
     /// <summary>
-    ///     The application-level reason the server gave for the last disconnect (e.g. <c>"limitdc"</c> , <c>"limits"</c> ),
-    ///     captured from the <c>disconnect_reason</c> event just before the socket dropped. <c>null</c> if the server sent
-    ///     none. Reconnect policy branches on this.
+    ///     The reason the server gave for the last disconnect (e.g. <c>"limitdc"</c>, <c>"limits"</c>), from the
+    ///     <c>disconnect_reason</c> event just before the socket dropped. <c>null</c> if the server sent none.
     /// </summary>
     string? LastDisconnectReason { get; }
 
@@ -38,22 +39,32 @@ public interface IALSocketClient : IAsyncDisposable
     /// <summary>
     ///     Serializes the data and Emits a message to the server via socket.io protocol.
     /// </summary>
-    /// <param name="emitType">A value indicating the title of the message.</param>
-    /// <param name="data">The data to serialize.</param>
-    /// <typeparam name="T">The type of the data being serialized.</typeparam>
+    /// <param name="emitType">
+    ///     A value indicating the title of the message.
+    /// </param>
+    /// <param name="data">
+    ///     The data to serialize.
+    /// </param>
+    /// <typeparam name="T">
+    ///     The type of the data being serialized.
+    /// </typeparam>
     Task EmitAsync<T>(ALSocketEmitType emitType, T data);
 
     /// <summary>
     ///     Emits a message to the server via socket.io protocol.
     /// </summary>
-    /// <param name="emitType">A value indicating the title of the message.</param>
+    /// <param name="emitType">
+    ///     A value indicating the title of the message.
+    /// </param>
     Task EmitAsync(ALSocketEmitType emitType);
 
     /// <summary>
     ///     Handles a received socket event based on the title of the message, and how certain messages are set up to be
     ///     handled via <see cref="On{T}" />.
     /// </summary>
-    /// <param name="rawJson">The rawJson json of the received message.</param>
+    /// <param name="rawJson">
+    ///     The raw JSON of the received message.
+    /// </param>
     public ValueTask HandleEventAsync(string rawJson);
 
     /// <summary>
@@ -64,7 +75,9 @@ public interface IALSocketClient : IAsyncDisposable
     ///     <br />
     ///     If any given handler returns <c>true</c> , execution will stop. (it signals that the event was handled)
     /// </summary>
-    /// <param name="messageType">The type of message.</param>
+    /// <param name="messageType">
+    ///     The type of message.
+    /// </param>
     /// <param name="callback">
     ///     A function to be called when receiving the specified message type.
     /// </param>
@@ -84,23 +97,26 @@ public interface IALSocketClient : IAsyncDisposable
     event EventHandler<string> OnDisconnected;
 
     /// <summary>
-    ///     Raised after each emit reaches the wire, carrying what was sent. Every one of those is billed against the server's
-    ///     <see cref="CallCost.LIMIT" />, so this is the hook for metering who is spending the budget.
+    ///     Occurs after an emit reaches the wire, where it is billed against the server's <see cref="CallCost.LIMIT" />.
     /// </summary>
     event EventHandler<ALSocketEmitType>? OnEmit;
 
     /// <summary>
-    ///     Raised when the server sends a rate-limit kick report immediately before disconnecting.
+    ///     Occurs when the server sends a rate-limit kick report, just before it disconnects.
     /// </summary>
     event EventHandler<LimitDcReportData>? OnLimitDcReport;
 
     /// <summary>
     ///     If certain constraints restrict you from using the disposable pattern, this can be used to unsubscribe a callback.
     /// </summary>
-    /// <param name="messageType">The message type to unsubscribe from.</param>
+    /// <param name="messageType">
+    ///     The message type to unsubscribe from.
+    /// </param>
     /// <param name="callback">
     ///     The callback to remove from the subscription list.
     /// </param>
-    /// <typeparam name="T">The type of data that was expected.</typeparam>
+    /// <typeparam name="T">
+    ///     The type of data that was expected.
+    /// </typeparam>
     void Unsub<T>(ALSocketMessageType messageType, Func<T, Task<bool>> callback);
 }

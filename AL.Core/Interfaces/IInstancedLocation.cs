@@ -7,7 +7,7 @@ namespace AL.Core.Interfaces;
 public interface IInstancedLocation : ILocation
 {
     /// <summary>
-    ///     Which instance this object is in.
+    ///     The instance this object is in.
     ///     <br />
     ///     If it's a dungeon, it's a unique ID, otherwise it's the <see cref="ILocation.Map" />.
     /// </summary>

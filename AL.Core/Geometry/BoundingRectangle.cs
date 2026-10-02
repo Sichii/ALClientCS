@@ -49,7 +49,9 @@ public record BoundingRectangle : IBounding, IRectangle
     /// <param name="y">
     ///     The y coordinate of the center of the bounding box.
     /// </param>
-    /// <param name="halfWidth">Half of the width of the bounding box.</param>
+    /// <param name="halfWidth">
+    ///     Half of the width of the bounding box.
+    /// </param>
     /// <param name="verticalNorth">
     ///     The distance between the center and top of the bounding box.
     /// </param>
@@ -68,10 +70,18 @@ public record BoundingRectangle : IBounding, IRectangle
     /// <summary>
     ///     Initializes a new instance of the <see cref="BoundingRectangle" /> class.
     /// </summary>
-    /// <param name="center">The center point of the bounding box.</param>
-    /// <param name="boundingBase">The measurements of the bounding box.</param>
-    /// <exception cref="System.ArgumentNullException">center</exception>
-    /// <exception cref="System.ArgumentNullException">boundingBase</exception>
+    /// <param name="center">
+    ///     The center point of the bounding box.
+    /// </param>
+    /// <param name="boundingBase">
+    ///     The measurements of the bounding box.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    ///     center
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     boundingBase
+    /// </exception>
     public BoundingRectangle(IPoint center, BoundingBase boundingBase)
     {
         Center = center ?? throw new ArgumentNullException(nameof(center));

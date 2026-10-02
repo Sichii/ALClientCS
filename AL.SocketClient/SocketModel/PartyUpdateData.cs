@@ -12,15 +12,14 @@ namespace AL.SocketClient.SocketModel;
 public sealed record PartyUpdateData
 {
     /// <summary>
-    ///     True when this update was caused by a member leaving the party; absent (false) otherwise.
+    ///     Whether this update was caused by a member leaving the party. The server sends the integer <c>1</c>.
     /// </summary>
-    /// <remarks>
-    ///     The server sends the integer <c>1</c> on the wire; Newtonsoft coerces it to <c>true</c> .
-    /// </remarks>
     [JsonPropertyName("leave")]
     public bool Leave { get; init; }
 
-    /// <summary>A list of the names of everyone in your party.</summary>
+    /// <summary>
+    ///     A list of the names of everyone in your party.
+    /// </summary>
     /// <remarks>
     ///     Arrives as <c>false</c> rather than an empty array when the party dissolves.
     /// </remarks>

@@ -7,8 +7,8 @@ namespace AL.SocketClient.Interfaces;
 public interface ISimplePlayer
 {
     /// <summary>
-    ///     What the server last said about this player being away, which is four answers rather than two - a character running
-    ///     CODE carries the flag for its whole session, and a frame that never mentioned it says nothing either way.
+    ///     The server's last word on whether this player is away. A character running CODE carries the flag for its whole
+    ///     session, and a frame that omits it says nothing either way.
     /// </summary>
     AfkState AFK { get; }
 

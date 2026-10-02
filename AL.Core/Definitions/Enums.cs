@@ -84,9 +84,8 @@ public enum ALAttribute
     StatusResistance,
 
     /// <summary>
-    ///     Percent chance to shrug off stunned outright, rolled as the condition lands. Stun is the only condition that names
-    ///     it. The wire key and the game's "impact resistance" label both suggest physical damage reduction, which this is not
-    ///     - that is Armor's job.
+    ///     Percent chance to shrug off stunned outright, rolled as the condition lands. Not physical damage reduction, despite
+    ///     the key and the game's "impact resistance" label; that is <see cref="Armor" />.
     /// </summary>
     [EnumMember(Value = "phresistance")]
     StunResistance,
@@ -319,11 +318,13 @@ public enum ALAttribute
     /// </summary>
     Awesomeness,
 
-    //needed because AL.Data.Classes. doublehands/mainhand/offhand use it as a mod
     /// <summary>
     ///     Mp spent per normal attack. The class sets the base and gear adjusts it, then it grows with level and with your
     ///     crit, lifesteal and piercing.
     /// </summary>
+    /// <remarks>
+    ///     Needed because a class's <c>doublehands</c>, <c>mainhand</c> and <c>offhand</c> modifiers carry it.
+    /// </remarks>
     [EnumMember(Value = "mp_cost")]
     MpCost,
 
@@ -347,12 +348,13 @@ public enum ALAttribute
     [Obsolete("Data bug, don't use.")]
     Breaks,
 
-    //appended rather than placed beside Courage: a numeric wire value is parsed as an ordinal, so inserting a
-    //member mid-enum silently repoints every member after it
     /// <summary>
     ///     How many magical attackers this can be engaged by before fear sets in. The server counts magical attackers
     ///     separately from physical and pure ones, and compares each count against its own limit.
     /// </summary>
+
+    //appended rather than placed beside Courage: a numeric wire value is parsed as an ordinal, so inserting a
+    //member mid-enum silently repoints every member after it
     [EnumMember(Value = "mcourage")]
     MagicalCourage,
 
@@ -363,19 +365,20 @@ public enum ALAttribute
     [EnumMember(Value = "pcourage")]
     PureCourage,
 
-    //appended for the same reason as the courages
     /// <summary>
     ///     Percent chance to shrug off any incoming attack, physical or magical, as a miss - the splash of an explosion
     ///     included, which rolls it again on every monster it reaches. Nothing wearable carries it; a handful of monsters do,
     ///     at 98 and up.
     /// </summary>
+
+    //appended for the same reason as the courages
     Avoidance
 }
 
 /// <summary>
-///     What stops an item being disposed of, read from the socket item field <c>l</c> . The server deletes the field
+///     Represents what stops an item being disposed of, read from the socket item field <c>l</c> . The server deletes the field
 ///     rather than clearing it, so an item whose unlock has run to completion arrives carrying no <c>l</c> at all and
-///     reads back as <see cref="None" /> (node/server.js:6313, :6324).
+///     reads back as <see cref="None" />.
 /// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum ItemLockType
@@ -389,10 +392,8 @@ public enum ItemLockType
     Sealed,
 
     /// <summary>
-    ///     A seal 48 hours into being lifted - not a lock that has been lifted. The countdown starts when the unseal is paid
-    ///     for, and the item stays fully protected for every hour of it: the branches that refuse a locked item test
-    ///     <c>item.l</c> for truthiness rather than for one particular letter, so a sale and a fresh lock are refused here
-    ///     exactly as they are on <see cref="Locked" /> (node/server.js:6307-6318, :6328).
+    ///     A seal partway through its 48-hour unseal, which starts when the unseal is paid for. The server refuses a sale or a
+    ///     fresh lock on any set <c>item.l</c>, so the item stays as protected as on <see cref="Locked" /> until the timer ends.
     /// </summary>
     /// <remarks>
     ///     The deadline itself is <c>item.ld</c> , which this library does not model. How long is left has to come from the
@@ -403,8 +404,8 @@ public enum ItemLockType
 }
 
 /// <summary>
-///     What stops you walking through a door, read from index 7 of a map's door array. Shares no wire value with
-///     <see cref="ItemLockType" />, which is why the two are separate enums.
+///     Represents what stops you walking through a door, read from index 7 of a map's door array. Shares no wire value
+///     with <see cref="ItemLockType" />.
 /// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum DoorLockType
@@ -412,9 +413,8 @@ public enum DoorLockType
     None,
 
     /// <summary>
-    ///     A bank level the account has not unlocked. The server refuses the transport when the door reads <c>"ulocked"</c>
-    ///     and <c>player.user.unlocked</c> holds no entry for the destination (node/server.js:5510-5518), so the pathfinder
-    ///     leaves these doors out of the navmesh entirely.
+    ///     A bank level the account has not unlocked. The server refuses the transport while <c>player.user.unlocked</c> holds
+    ///     no entry for the destination, so the pathfinder leaves these doors out of the navmesh entirely.
     /// </summary>
     [EnumMember(Value = "ulocked")]
     AccountLocked,
@@ -453,7 +453,7 @@ public enum KeyType
 }
 
 /// <summary>
-///     The three things the locksmith can do to an item (node/server.js:6279).
+///     The three things the locksmith can do to an item.
 /// </summary>
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]
 public enum LocksmithOperation
@@ -814,8 +814,7 @@ public enum Condition
 ///     each maps to the condition of the same name.
 /// </summary>
 /// <remarks>
-///     No tolerant converter, unlike its neighbours: this never arrives on the wire. The client spells it out itself when
-///     casting, and a consumer's configuration is the only JSON it ever sits in.
+///     Carries no tolerant converter because it never arrives on the wire; the client writes it itself when casting.
 /// </remarks>
 public enum PaladinAuraForm
 {
@@ -1254,14 +1253,11 @@ public enum ExitType
 }
 
 /// <summary>
-///     What the server's <c>afk</c> field says about a player. It is not a boolean: it is absent, a boolean, or the name
-///     of what is driving the character, and those are not the same question.
+///     Represents the server's <c>afk</c> field, which is absent, a boolean, or the name of what is driving the character.
 /// </summary>
 /// <remarks>
-///     The server's own eligibility rules are truthiness tests on the raw field (<c>!p.afk</c>), so everything but
-///     <see cref="Unknown" /> and <see cref="Active" /> reads as away to it. A headless client needs the difference all
-///     the same: a character running CODE is flagged for the whole session and is not idle in any sense a person would
-///     recognise.
+///     The server's own rules test the raw field for truthiness (<c>!p.afk</c>), so every state but <see cref="Unknown" />
+///     and <see cref="Active" /> reads as away to it.
 /// </remarks>
 public enum AfkState
 {

@@ -36,7 +36,7 @@ public record ActionData : IPoint
     public float Heal { get; init; }
 
     /// <summary>
-    ///     True when the projectile is instant, which is why <see cref="ETA" /> is 0.
+    ///     Whether the projectile is instant, with an <see cref="ETA" /> of 0.
     /// </summary>
     public bool Instant { get; init; }
 
@@ -44,7 +44,7 @@ public record ActionData : IPoint
     public float M { get; init; }
 
     /// <summary>
-    ///     True when the action is beneficial (heal/buff) rather than damage.
+    ///     Whether the action is beneficial (heal or buff) rather than damage.
     /// </summary>
     public bool Positive { get; init; }
 

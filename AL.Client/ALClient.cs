@@ -53,19 +53,16 @@ namespace AL.Client;
 public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 {
     /// <summary>
-    ///     Slots in one bank pack. Not derivable from the pack the server sent: it pushes items on (
-    ///     <c>node/server.js:2018</c> ) and pads nothing, so the array is only as long as the pack's highest occupied slot and
-    ///     a pack bought but never used arrives as an empty one.
+    ///     The number of slots in one bank pack. The server pads nothing, so a pack's array is only as long as its highest
+    ///     occupied slot.
     /// </summary>
     private const int BANK_PACK_SIZE = 42;
 
     private readonly EntityManager EntityManager;
 
     /// <summary>
-    ///     Monsters a killing hit removed, kept until the death frame names them: the server sends the hit first, and the
-    ///     death frame carries only the id.
+    ///     The monsters a killing hit removed, kept until the death frame names them, since that frame carries only the id.
     /// </summary>
-
     //ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
     private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
 
@@ -78,9 +75,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public BankInfo? Bank { get; private set; }
 
     /// <summary>
-    ///     Whether a bank door has been answered "in progress" and its map change is still to come. The server moves the
-    ///     character to the bank from wherever it stands once the bank has loaded, so while this is up a magiport is refused:
-    ///     accepted, the ride would land beside the mage and the bank would pull the character away seconds later.
+    ///     Whether a bank door has been answered "in progress" and its map change is still to come. While set, a magiport is
+    ///     refused, because the server pulls the character into the bank from wherever it stands once the bank loads.
     /// </summary>
     public bool BankCrossingPending { get; internal set; }
 
@@ -94,11 +90,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
 
     /// <summary>
-    ///     The emotions this character has unlocked and their unlock timestamps. Populated from <c>start</c> .
+    ///     The emotions this character has unlocked and their unlock timestamps. Populated from <c>start</c> only; the server
+    ///     never re-sends it on a <c>player</c> frame.
     /// </summary>
-    /// <remarks>
-    ///     Start-only data (node/server.js:10577); the server never re-sends it on a <c>player</c> frame.
-    /// </remarks>
     public IReadOnlyDictionary<Emotion, float> Emotion { get; private set; }
 
     /// <summary>
@@ -107,26 +101,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public EventAndBossInfo EventsAndBosses { get; private set; }
 
     /// <summary>
-    ///     The cosmetics this account may wear without owning a copy of any of them. Populated from <c>start</c> .
+    ///     The cosmetics this account may wear without owning a copy of any of them. Populated from <c>start</c> only; the
+    ///     server never re-sends it on a <c>player</c> frame.
     /// </summary>
     /// <remarks>
-    ///     Start-only data (node/server.js:10757); the server never re-sends it on a <c>player</c> frame. A flat list of
-    ///     names, unlike the counted <see cref="OwnedCosmetics" /> dictionary, and only half of what a character may wear for
-    ///     free - the rest reaches it through <see cref="AL.Data.Classes.GClass.ExclusiveCosmetics" />.
+    ///     Only half of what a character may wear for free; the rest comes from
+    ///     <see cref="AL.Data.Classes.GClass.ExclusiveCosmetics" />.
     /// </remarks>
     public IReadOnlyList<string> ExclusiveCosmetics { get; private set; }
 
     /// <summary>
-    ///     The names of the characters on this account's friends list. Populated from <c>start</c> .
+    ///     The names of the characters on this account's friends list. Populated from <c>start</c> only; the server never
+    ///     re-sends it on a <c>player</c> frame.
     /// </summary>
-    /// <remarks>
-    ///     Start-only data (node/server.js:10574); the server never re-sends it on a <c>player</c> frame.
-    /// </remarks>
     public IReadOnlyList<string> Friends { get; private set; }
 
     /// <summary>
-    ///     The server this character calls home, as <c>region + server_name</c> (node/server.js:11161). Populated from
-    ///     <c>start</c> and rewritten on <c>home_set</c> . Never on a <c>player</c> frame.
+    ///     The server this character calls home, as <c>region + server_name</c>. Populated from <c>start</c> and rewritten
+    ///     on <c>home_set</c>, never on a <c>player</c> frame.
     /// </summary>
     public string? Home { get; private set; }
 
@@ -139,17 +131,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Whether this is a PvP server. Populated from <c>welcome</c> .
     /// </summary>
     /// <remarks>
-    ///     Only half of the game's own rule — the server counts you as in PvP when either this or the map's own <c>pvp</c>
-    ///     flag is set (node/server_functions.js:470).
+    ///     The server counts a character as in PvP when either this or the map's own <c>pvp</c> flag is set.
     /// </remarks>
     public bool IsPvPServer { get; private set; }
 
     /// <summary>
-    ///     A collection of all of the cosmetics owned by this character. Populated from <c>start</c> .
+    ///     A collection of all of the cosmetics owned by this character. Populated from <c>start</c> only; the server never
+    ///     re-sends it on a <c>player</c> frame.
     /// </summary>
-    /// <remarks>
-    ///     Start-only data (node/server.js:10575); the server never re-sends it on a <c>player</c> frame.
-    /// </remarks>
     public IReadOnlyDictionary<string, int> OwnedCosmetics { get; private set; }
 
     /// <summary>Contains information about the party.</summary>
@@ -170,9 +159,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The proxy this character reaches the game through, or null for the machine's own connection.
     /// </summary>
     /// <remarks>
-    ///     Set once at login and read by every socket built afterwards. Held here rather than on <c>IALSocketClient</c>
-    ///     because the socket is single use and the client outlives it: a change of server and a reconnect both build a
-    ///     replacement, and the replacement has to be routed the same way the original was.
+    ///     Set once at login and read by every replacement socket a reconnect or a change of server builds.
     /// </remarks>
     protected internal IWebProxy? SocketProxy { get; internal set; }
 
@@ -187,9 +174,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public ConcurrentDictionary<string, AchievementProgressData> AchievementProgress { get; }
 
     /// <summary>
-    ///     What this character has spent of the server's call budget in the last <see cref="CallCost.WINDOW" />, broken down
-    ///     by whoever <see cref="CallMeter.SourceResolver" /> names and by emit type. Fed off <see cref="OnEmit" />, so it
-    ///     counts what reached the wire and survives a reconnect.
+    ///     The server call budget this character spent in the last <see cref="CallCost.WINDOW" />, by source and emit type.
+    ///     Fed off <see cref="OnEmit" />, so it counts what reached the wire and survives a reconnect.
     /// </summary>
     public CallMeter CallMeter { get; }
 
@@ -235,17 +221,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public CallBudgetSnapshot CallBudget => CallMeter.Snapshot(Character.CodeCost);
 
     /// <summary>
-    ///     Whether the server has this character's <c>player.computer</c> set, which waives the distance check on eleven NPC
-    ///     handlers.
+    ///     Whether the server has this character's <c>player.computer</c> set, which waives the NPC distance check.
     /// </summary>
     /// <remarks>
-    ///     Read off the bags because the flag is never on the wire: <c>player_to_client</c> (node/server.js:755) whitelists
-    ///     neither <c>computer</c> nor <c>tracker</c> on either the stranger or the own-character list. Not a proxy for the
-    ///     flag - the server derives it from exactly this scan of <c>player.items</c> in <c>calculate_player_stats</c>
-    ///     (node/server.js:1328), which reruns on every resend. The bank is not scanned, so a banked one counts for nothing.
-    ///     <br />
-    ///     Both names, because a supercomputer sets <c>player.computer</c> as well as <c>player.tracker</c> . A spelling that
-    ///     listed one name would send a supercomputer-carrying merchant on trips it does not owe.
+    ///     The flag is never on the wire; the server derives it from a computer or supercomputer in the bags, never the bank.
     /// </remarks>
     public bool HasComputer => Character.Inventory.ContainsItem("computer") || Character.Inventory.ContainsItem("supercomputer");
 
@@ -253,10 +232,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     A fast socket round trip for this connection: the 5th percentile of the last fifty pings, floored at 100ms until
     ///     the first one lands.
     /// </summary>
-    /// <remarks>
-    ///     Exposed because a behaviour that holds a distance from something has to know how much ground that something covers
-    ///     between a read of its position and the server acting on the move produced from that read.
-    /// </remarks>
     public TimeSpan LowPercentileRoundTrip => PingManager.LowPercentileOffset;
 
     /// <summary>
@@ -264,7 +239,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Empty until the first ping lands.
     /// </summary>
     /// <remarks>
-    ///     Exposed for display. <see cref="PingManager.PercentileOf" /> reads any percentile off it.
+    ///     <see cref="PingManager.CalculatePercentile" /> reads any percentile off it.
     /// </remarks>
     public IReadOnlyList<TimeSpan> PingHistory => PingManager.History;
 
@@ -274,7 +249,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="characterName">The name of the character.</param>
     /// <param name="apiClient">An API client implementation.</param>
     /// <param name="socketClient">A socket client implementation.</param>
-    /// <exception cref="ArgumentNullException">name</exception>
+    /// <exception cref="ArgumentNullException">characterName</exception>
     /// <exception cref="ArgumentNullException">apiClient</exception>
     /// <exception cref="ArgumentNullException">socketClient</exception>
     protected ALClient(string characterName, IAlApiClient apiClient, IALSocketClient socketClient)
@@ -303,8 +278,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         Character = new Character();
 
-        //two boxes, because the game uses two: the small foot-print everything walks and pathfinds with, and the whole
-        //sprite that range is resolved against
+        //two boxes: the small foot-print everything walks and pathfinds with, and the whole sprite range is resolved against
         Character.SetBoundingBase(PATHFINDING_CONSTANTS.DEFAULT_BOUNDING_BASE);
         Character.SetHitBox(GameData.DEFAULT_CHARACTER_HIT_BOX);
 
@@ -321,9 +295,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <inheritdoc />
     public void Update(TimeSpan delta)
     {
-        //in-place: ToList on Cooldowns throws when a socket write grows it mid-copy. The projectile sweep went through
-        //Values, which copies under lock and was never at risk - it is here for the saved allocation only
-        Cooldowns.TickAndTryRemoveWhere(delta, cooldown => cooldown.CanUse());
+        //in place: ToList on Cooldowns throws when a socket write grows it mid-copy
+        Cooldowns.UpdateAndTryRemoveWhere(delta, cooldown => cooldown.CanUse());
         Projectiles.TryRemoveWhere(projectile => projectile.Created.AddMilliseconds(projectile.ETA) < DateTime.UtcNow);
 
         Character.Update(delta);
@@ -368,8 +341,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public event EventHandler<InviteData>? OnPartyInvite;
 
     /// <summary>
-    ///     An event fired when another character requests to join your party (the counterpart of <see cref="OnPartyInvite" />
-    ///     ).
+    ///     An event fired when another character requests to join your party, the counterpart of
+    ///     <see cref="OnPartyInvite" />.
     /// </summary>
     public event EventHandler<RequestData>? OnPartyRequest;
 
@@ -382,26 +355,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     #region Checks
     /// <summary>
-    ///     Whether the open bank frame refuses the emit outright, whatever the distance says.
+    ///     Determines whether the open bank refuses an NPC trade, which the server answers with <c>cant_in_bank</c> before any
+    ///     distance check, computer or not.
     /// </summary>
     /// <param name="distanceCheck">
-    ///     The caller's own distance flag. False means the caller is asking what a stall would answer, so this answers false
-    ///     too.
+    ///     The caller's distance flag; false asks what a stall would answer, which the bank does not refuse.
     /// </param>
+    /// <returns>
+    ///     <c>true</c> if the bank refuses the trade; otherwise, <c>false</c>.
+    /// </returns>
     /// <remarks>
-    ///     Every handler <see cref="CanBuy" />, <see cref="CanCraft" />, <see cref="CanExchange" /> and <see cref="CanSell" />
-    ///     stand in for tests <c>player.user</c> and answers <c>cant_in_bank</c> before it reaches the distance arm - buy at
-    ///     node/server.js:8014, sell at :7673, craft at :6227, exchange at :6312 - and <see cref="HasComputer" /> waives none
-    ///     of it. The flag is set on entering the vault and cleared on leaving (:15645, :15702), so it covers a whole visit
-    ///     rather than an instant.
-    ///     <br />
-    ///     Worth asking in its own right because the two used to share one answer: a character out of position walked, and the
-    ///     walk left the vault on its way. One that no longer has to walk no longer leaves.
-    ///     <br />
-    ///     <c>Character.Bank</c> and never <see cref="Bank" />: the second is populated on the first visit and never cleared,
-    ///     so it would refuse everything the character did for the rest of the session.
+    ///     Reads <c>Character.Bank</c>, not <see cref="Bank" />, which stays populated after the first visit.
     /// </remarks>
-    private bool BankFrameRefuses(bool distanceCheck) => distanceCheck && Character.Bank is not null;
+    private bool IsRefusedInBank(bool distanceCheck) => distanceCheck && Character.Bank is not null;
 
     /// <summary>Determines if you should be able to buy an item.</summary>
     /// <param name="itemName">The name of the buyable item.</param>
@@ -420,8 +386,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (string.IsNullOrEmpty(itemName))
             throw new ArgumentNullException(nameof(itemName));
 
-        //not == 0: esize is isize minus the bag's length, so a bag holding more than isize reports it negative
-        //(node/server.js:1322), and there is less than no room in that one, not an unknown amount
+        //not == 0: esize goes negative when the bag holds more than isize
         if (Character.EmptySlots <= 0)
             return false;
 
@@ -439,20 +404,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (price > Character.Gold)
             return false;
 
-        if (BankFrameRefuses(distanceCheck))
+        if (IsRefusedInBank(distanceCheck))
             return false;
 
-        //no computer arm here, and that is the whole of why Ponty is checked before it: sbuy tests one hardcoded 500
-        //against the pool's own NPC and carries no player.computer branch (node/server.js:7965), unlike every handler
-        //below. A merchant that took the waiver here would walk nowhere and be refused at the counter
+        //ahead of the computer check: sbuy tests a hardcoded 500 against Ponty and has no computer waiver
         if (fromPonty)
             return !distanceCheck
                    || GameData.NPCs["secondhands"]!.Locations.Any(location
                        => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE);
 
-        //ahead of the distance arms rather than behind them, because the server asks it in that order too: buy fails
-        //buy_cant_npc on a name outside can_buy (node/server.js:8022) whatever the distance says, and can_buy holds
-        //every name any NPC lists - which is what the seller-first pass in GameData.EnrichItems writes as Buy
+        //the server refuses a name no NPC sells with buy_cant_npc before it checks distance
         if (data.ObtainType != ObtainType.Buy)
             return false;
 
@@ -502,7 +463,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (!includeBank || (Bank?.FindItem(name, level, quantityMin: (int)quantity) == null))
                     return false;
 
-        return !BankFrameRefuses(distanceCheck)
+        return !IsRefusedInBank(distanceCheck)
                && (!distanceCheck
                    || HasComputer
                    || data.ObtainableFromNPC.Locations.Any(location
@@ -513,7 +474,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Determines if you should be able to exchange an item.
     /// </summary>
     /// <param name="itemName">The name of the exchangeable item.</param>
-    /// <param name="distanceCheck">Whether or not to include a distance chack.</param>
+    /// <param name="distanceCheck">Whether or not to include a distance check.</param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
@@ -530,13 +491,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if ((data?.ExchangeCount == null) || (data.ExchangeAtNPC == null))
             return false;
 
-        //a single slot holding the whole count, not a total across several - the server refuses a submitted slot
-        //short of it (node/server.js:6078) rather than summing, so two half-stacks that pass CountOf still fail
-        //the emit
+        //one slot must hold the whole count; the server does not sum stacks
         if (Character.Inventory.FindItem(itemName, quantityMin: data.ExchangeCount.Value) == null)
             return false;
 
-        return !BankFrameRefuses(distanceCheck)
+        return !IsRefusedInBank(distanceCheck)
                && (!distanceCheck
                    || HasComputer
                    || data.ExchangeAtNPC.Locations.Any(location => location.DistanceWithMapCheck(Character) < CORE_CONSTANTS.NPC_RANGE));
@@ -559,7 +518,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!Character.Inventory.ContainsItem(itemName))
             return false;
 
-        if (BankFrameRefuses(distanceCheck))
+        if (IsRefusedInBank(distanceCheck))
             return false;
 
         if (!distanceCheck || HasComputer)
@@ -585,8 +544,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </param>
     /// <param name="checkSlotItems">
     ///     Whether or not to check that one of the items the skill names is worn in its slot. (if it names any) False for a
-    ///     caller that is about to equip one for the cast, the same way <paramref name="checkWeapon" /> is - otherwise the
-    ///     answer is no for exactly the character that is one swap away from yes.
+    ///     caller about to equip one for the cast, like <paramref name="checkWeapon" />.
     /// </param>
     /// <returns>
     ///     <c>true</c> if the skill can be used, otherwise <c>false</c> .
@@ -719,24 +677,47 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data == null)
             return false;
 
-        var cooldownKey = data.CooldownKey(skillName);
+        var cooldownKey = data.GetCooldownKey(skillName);
 
         return !Cooldowns.TryGetValue(cooldownKey, out var cooldown) || cooldown.CanUse();
     }
 
-    /// <summary>Checks if a target is within trade range</summary>
-    public bool WithinTradeRange(Player player) => Character.HitBox.EdgeToEdgeDistance(player.HitBox) < CORE_CONSTANTS.TRADE_RANGE;
+    /// <summary>
+    ///     Determines whether a player is within trade range.
+    /// </summary>
+    /// <param name="player">The player to trade with.</param>
+    /// <returns>
+    ///     <c>true</c> if the player is within trade range; otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">player</exception>
+    public bool WithinTradeRange(Player player)
+    {
+        ArgumentNullException.ThrowIfNull(player);
 
-    /// <summary>Checks if a target is within range</summary>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+        return Character.HitBox.EdgeToEdgeDistance(player.HitBox) < CORE_CONSTANTS.TRADE_RANGE;
+    }
+
+    /// <summary>Determines whether a target is within a range.</summary>
+    /// <param name="target">The target to measure to.</param>
+    /// <param name="range">The range to compare against.</param>
+    /// <param name="distanceType">The type of distance to calculate.</param>
+    /// <returns>
+    ///     <c>true</c> if the target is within range; otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">target</exception>
+    /// <exception cref="ArgumentOutOfRangeException">distanceType</exception>
     public bool WithinRange(EntityBase target, float range, DistanceType distanceType)
-        => distanceType switch
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        return distanceType switch
         {
             DistanceType.CenterToCenter => Character.Distance(target) < range,
             DistanceType.EdgeToCenter => Character.HitBox.EdgeToCenterDistance(target) < range,
             DistanceType.EdgeToEdge => Character.HitBox.EdgeToEdgeDistance(target.HitBox) < range,
             _ => throw new ArgumentOutOfRangeException(nameof(distanceType), distanceType, "Invalid distance type")
         };
+    }
 
     /// <summary>Checks if a target is within range of a skill.</summary>
     /// <param name="target">
@@ -776,14 +757,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         range += data.RangeBonus;
 
-        //sized to how far the two can drift while the cast is in flight rather than a flat shave: two standing still
-        //read where the server has them and spend nothing, two walking apart spend the whole 5%. RangeSafety holds
-        //the rule, and its tightest margin is what every stopping distance is sized with
-        range *= RangeSafety.MarginFor(Character.Movement, target.Movement);
+        //shaved by how far the two can drift apart while the cast is in flight
+        range *= RangeSafety.CalculateMargin(Character.Movement, target.Movement);
 
-        //hit boxes, the same pair WithinRange resolves against. Measured off the collision foot-print instead - which
-        //is what this did - a warrior reads about half its real reach and never closes the difference, because every
-        //movement component stops where this says it may stop
+        //hit boxes, not the collision foot-print
         return distanceType switch
         {
             DistanceType.CenterToCenter => Character.Distance(target) < range,
@@ -797,26 +774,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Checks if you are within range of an NPC, using a range depending on the NPC.
     /// </summary>
     /// <param name="npcId">
-    ///     The id of the NPC - its key in <c>G.npcs</c> , which is also what an NPC entity carries in its
-    ///     <see cref="Player.NPCName" />.
+    ///     The id of the NPC, its key in <c>G.npcs</c>, which an NPC entity carries in <see cref="Player.NPCName" />.
     /// </param>
+    /// <returns>
+    ///     <c>true</c> if the character is within range of one of the NPC's placements; otherwise, <c>false</c>.
+    /// </returns>
     /// <remarks>
-    ///     Measured against the game data's placements rather than against the live entity, and that is a fix rather than a
-    ///     preference: an NPC <i>is</i> in <see cref="Players" />, but never under this id. It is keyed by its display name -
-    ///     <c>Cue</c> , <c>Ponty</c> , <c>Ace</c> - while the key this takes is the one in <c>G.npcs</c> , which the entity
-    ///     carries in its <see cref="Player.NPCName" /> instead. So the <c>TryGetValue</c> this used to do missed every time
-    ///     and the method answered false for every NPC on every map, silently.
-    ///     <br />
-    ///     What that id looks like exactly is unsettled, which is the other reason not to key off it. The captured start frame
-    ///     in <c>AL.Tests</c> holds <c>{"npc":"pvp","id":"Ace"}</c> where <c>G.npcs.pvp.name</c> is <c>Ace</c> ; the cloned
-    ///     server's <c>create_npc</c> would make that <c>$Ace</c> ( <c>node/server_functions.js:1495</c> ), and
-    ///     <c>player_to_client</c> carries a commented-out <c>data.id="$"+data.id</c> from some earlier arrangement (
-    ///     <c>node/server.js:803</c> ). The capture also lacks the <c>name</c> that the same <c>is_npc</c> branch sets, so it
-    ///     did not come through that branch as written and its age is unknown. The display name is the constant across all of
-    ///     it; the prefix is not.
-    ///     <br />
-    ///     Placements are also the better source. They do not need the NPC to be inside the client's vision radius, and they
-    ///     carry the map, which the entity comparison did not check. <c>CanBuy</c> already measures this way.
+    ///     Measured against the game data's placements, because <see cref="Players" /> keys an NPC by its display name, not
+    ///     by this id.
     /// </remarks>
     /// <exception cref="ArgumentNullException">npcId</exception>
     /// <exception cref="InvalidOperationException">Missing npc metadata for {npcId}</exception>
@@ -835,9 +800,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (nData.Role == NPCRole.Transport)
             range = CORE_CONSTANTS.TRANSPORTER_RANGE;
 
-        //centre to centre, unlike everything combat resolves: the server splits these two apart, measuring what an
-        //attack or a trade reaches with hit boxes but what an NPC will serve you from with plain positions. Measuring
-        //this one edge to edge asks for a shorter distance than the server does and gets refused at the counter
+        //centre to centre: the server measures NPC range between positions, not hit boxes
         return nData.Locations.Any(location => Character.DistanceWithMapCheck(location)
                                                         .IsLess(range, CORE_CONSTANTS.EPSILON));
     }
@@ -876,42 +839,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     How many logins <see cref="ChangeServerAsync" /> attempts on the far server before giving up, and how long it waits
-    ///     between them. Together they outlast the 24s sync_loop pass the old server's logout can be deferred to.
+    ///     Asynchronously moves this character to another server without rebuilding the client. The socket is replaced and
+    ///     <see cref="OnReconnected" /> is raised, the same as after an automatic reconnect.
     /// </summary>
-    private const int CHANGE_SERVER_ATTEMPTS = 10;
-
-    private const int CHANGE_SERVER_RETRY_MS = 3000;
-
-    /// <summary>
-    ///     Moves this character to another server without rebuilding the client. The socket is replaced and
-    ///     <see cref="OnReconnected" /> is raised, which is the road an automatic reconnect already takes - so a consumer that
-    ///     re-registers its subscriptions on that event needs no second code path for this.
-    ///     <br />
-    ///     <see cref="LoggedIn" /> is false for the whole swap, so anything gating work on it stands down and picks itself
-    ///     back up. What the character owns travels with it: inventory, gold, the bank and the position are on the character's
-    ///     own record rather than on the server it was last seen from.
-    /// </summary>
+    /// <param name="region">
+    ///     The region to move to.
+    /// </param>
+    /// <param name="identifier">
+    ///     The identifier within the region to move to.
+    /// </param>
     /// <remarks>
-    ///     The intentional disconnect is what keeps the automatic reconnect out of this. <c>ALSocketClient</c> clears its
-    ///     <c>Connected</c> flag before the transport drops, so its own handler suppresses <see cref="OnDisconnected" /> and
-    ///     nothing races us back to the server we are leaving.
-    ///     <br />
-    ///     What is <b>not</b> guarded is a genuine drop landing in the same moment. <see cref="ReconnectAsync" /> takes no
-    ///     lock, so both would be assigning <see cref="Socket" /> and the last writer decides where the character ends up.
-    ///     Nothing here can detect that; a caller that cares should re-read <see cref="Server" /> afterwards and ask again.
-    ///     Closing it properly means putting <see cref="ReconnectAsync" /> under <c>Sync</c> too, which is a wider change than
-    ///     this one.
-    ///     <br />
-    ///     A refused login on the far server is retried for <see cref="CHANGE_SERVER_ATTEMPTS" /> attempts, since the old
-    ///     server's logout lands after the drop and the far one answers "ingame" until it has. One that outlasts the retries
-    ///     throws, leaving the client holding a socket that never authenticated and <see cref="LoggedIn" /> false.
-    ///     Deliberately not handled past that - the socket we came from is already gone, so there is nothing to fall back to
-    ///     at this level. The caller decides.
+    ///     A genuine drop landing during the swap is not guarded: <see cref="ReconnectAsync" /> takes no lock, so the last
+    ///     writer of <see cref="Socket" /> decides the server. A login still refused after every retry throws, leaving
+    ///     <see cref="LoggedIn" /> false.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Server {region} {identifier} not found.</exception>
     public async Task ChangeServerAsync(ServerRegion region, ServerId identifier)
     {
+        //together they outlast the 24s pass the old server's logout can be deferred to
+        const int CHANGE_SERVER_ATTEMPTS = 10;
+        const int CHANGE_SERVER_RETRY_MS = 3000;
+
         await using var @lock = await Sync.WaitAsync();
 
         if ((Server.Region == region) && (Server.Identifier == identifier))
@@ -928,8 +876,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         LoggedIn = false;
 
-        //stopped ahead of the socket for the reason DisconnectAsync stops them there: the suppressed OnDisconnected
-        //never runs, so these two would go on polling a closed socket and log an EmitAsync throw every tick
+        //the suppressed OnDisconnected never stops these, so they would go on polling a closed socket
         await PingManager.StopAsync();
         await EntityManager.StopAsync();
 
@@ -943,19 +890,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         Server = serverInfo;
 
-        //the old server clears this character's seat in a transaction it runs after the socket drops
-        //(node/server.js:12266 → stop_call :15796), and until that lands every other server answers the login with
-        //"ingame" (:10911). Ordinarily sub-second, but a sync in flight at the drop defers it to the next sync_loop
-        //pass, 24s later (:15861, :15907). Retried rather than surfaced: past the disconnect above there is no
-        //socket to fall back to, so a refusal that clears itself otherwise strands the character.
-        //a seat left online by a crash rather than by an orderly drop has no backstop any more: the server retired
-        //both the cron that cleared a stuck record after 30 minutes and the takeover of one gone stale for 120, so
-        //the only thing that frees it is the owning server's own release path
+        //every other server answers the login with "ingame" until the old server clears this character's seat
         for (var attempt = 1;; attempt++)
         {
-            //a fresh one rather than the old one reconnected: ALSocketClient disposes its inner socket on disconnect
-            //and refuses to open again, which is why the reconnect path builds one too
-            Socket = NewSocket();
+            //ALSocketClient refuses to open again after a disconnect
+            Socket = CreateSocket();
 
             try
             {
@@ -964,8 +903,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 break;
             } catch (Exception e) when (FatalError is null && (attempt < CHANGE_SERVER_ATTEMPTS))
             {
-                //the attempt owns the socket it failed on, for ReconnectAsync's reason: left undisposed it is an
-                //unauthenticated session the server keeps counting against this character
+                //left undisposed, a failed socket is a session the server keeps counting against this character
                 try
                 {
                     await Socket.DisposeAsync();
@@ -992,15 +930,40 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Builds a character client of the requested type and logs it in. Every character class's StartAsync is this,
-    ///     differing only in which type <paramref name="createClient" /> constructs.
+    ///     Asynchronously builds a character client of the requested type and logs it in.
     /// </summary>
+    /// <typeparam name="T">
+    ///     The character client type.
+    /// </typeparam>
+    /// <param name="characterName">
+    ///     The name of the character.
+    /// </param>
+    /// <param name="region">
+    ///     The region to connect to.
+    /// </param>
+    /// <param name="identifier">
+    ///     The identifier within the region to connect to.
+    /// </param>
+    /// <param name="apiClient">
+    ///     An API client implementation.
+    /// </param>
+    /// <param name="createClientFunc">
+    ///     Constructs the client from the character name, the API client and the socket client.
+    /// </param>
+    /// <param name="proxy">
+    ///     The proxy every socket of this character connects through, or null for the machine's own connection.
+    /// </param>
+    /// <returns>
+    ///     The logged in client.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">characterName</exception>
+    /// <exception cref="ArgumentNullException">apiClient</exception>
     protected private static async Task<T> StartClientAsync<T>(
         string characterName,
         ServerRegion region,
         ServerId identifier,
         IAlApiClient apiClient,
-        Func<string, IAlApiClient, IALSocketClient, T> createClient,
+        Func<string, IAlApiClient, IALSocketClient, T> createClientFunc,
         IWebProxy? proxy = null) where T: ALClient
     {
         if (string.IsNullOrEmpty(characterName))
@@ -1010,7 +973,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var logger = new FormattedLogger(characterName, LogManager.GetLogger<ALSocketClient>());
         var socketClient = new ALSocketClient(logger, proxy);
-        var client = createClient(characterName, apiClient, socketClient);
+        var client = createClientFunc(characterName, apiClient, socketClient);
 
         //recorded before the first connect, so every socket built after this one is routed the same way
         client.SocketProxy = proxy;
@@ -1020,32 +983,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return client;
     }
 
-    /// <summary>The only place a replacement socket is built.</summary>
-    /// <remarks>
-    ///     "Replacement" because the first socket is built by <see cref="StartClientAsync{T}" />, before an
-    ///     <see cref="ALClient" /> instance exists to read <see cref="SocketProxy" /> from - that call site is handed the
-    ///     proxy directly instead. Every socket built after that one comes from here: the reconnect loop and the change of
-    ///     server, the two moments a dropped <see cref="SocketProxy" /> would go unnoticed. The character would come back up,
-    ///     successfully, on the address it was configured to leave.
-    /// </remarks>
-    private ALSocketClient NewSocket() => new(new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>()), SocketProxy);
+    /// <summary>
+    ///     Builds a replacement socket routed through <see cref="SocketProxy" />. Every socket after the first comes from
+    ///     here.
+    /// </summary>
+    /// <returns>The new socket.</returns>
+    private ALSocketClient CreateSocket() => new(new FormattedLogger(Name, LogManager.GetLogger<ALSocketClient>()), SocketProxy);
 
     /// <summary>
     ///     Throws if the socket about to connect was not built with this character's <see cref="SocketProxy" />.
     /// </summary>
     /// <remarks>
-    ///     Cheap and runs once per connect, so it costs nothing to keep in place - it is the only thing that would catch a
-    ///     socket built somewhere other than <see cref="NewSocket" /> (or <see cref="StartClientAsync{T}" />'s initial build).
-    ///     This feature's whole point is that a misrouted character fails to connect rather than silently rejoining the game
-    ///     on the machine's own IP; this is where that gets enforced, at the one funnel every connection path - the initial
-    ///     login, a change of server, and the reconnect loop - runs through. Skips fakes of <see cref="IALSocketClient" />:
-    ///     the interface carries no <c>Proxy</c> member, so only a concrete <see cref="ALSocketClient" /> can be checked here.
-    ///     <br />
-    ///     The comparison is <see cref="object.ReferenceEquals(object, object)" /> rather than value equality because it
-    ///     relies on <see cref="SocketProxy" /> being assigned exactly once, in <see cref="StartClientAsync{T}" />, and
-    ///     <see cref="NewSocket" /> threading that same instance into every replacement socket; a future change that
-    ///     constructs a fresh <see cref="WebProxy" /> per reconnect instead of reusing it would trip this guard and block the
-    ///     login.
+    ///     Compares by reference, and skips fakes of <see cref="IALSocketClient" />, which carry no proxy.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     ///     The socket about to connect does not carry this character's proxy.
@@ -1055,7 +1004,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Socket is ALSocketClient concrete && !ReferenceEquals(concrete.Proxy, SocketProxy))
             throw new InvalidOperationException(
                 $"'{Name}' is about to connect on a socket that does not carry this character's proxy. "
-                + "Something built an ALSocketClient outside of NewSocket() (or StartClientAsync's initial "
+                + "Something built an ALSocketClient outside of CreateSocket() (or StartClientAsync's initial "
                 + "build), so the proxy this character was configured to use got dropped along the way.");
     }
 
@@ -1065,8 +1014,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         LoggedIn = false;
 
-        //a disconnect always leaves the party server-side, and a party-less login gets no party_update,
-        //so the pre-disconnect roster must be cleared here or it stays stale across a reconnect
+        //a disconnect leaves the party server-side, and a party-less login gets no party_update
         Party = new PartyUpdateData();
         AttachListeners();
 
@@ -1080,9 +1028,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameLog,
             data =>
             {
-                //the auth handler answers two rejection paths with game_log, not game_error (node/server.js:10307,
-                //10310, 10313), so fail the handshake fast on exactly those. game_log also carries benign notices, so
-                //never abort on any of them. "Authorization in progress." is transient; "Wrong passphrase!" is not
+                //the auth handler answers these two rejections with game_log, which also carries benign notices
                 if (data.Message.EqualsI("Authorization in progress."))
                     source.TrySetResult(data.Message);
                 else if (data.Message.EqualsI("Wrong passphrase!"))
@@ -1126,9 +1072,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //a refused login is answered with disconnect_reason and a drop rather than game_error - "limits" when the
-        //account is over its character cap (node/server.js:10746) - so without this a refusal costs the whole
-        //handshake timeout and surfaces as one. The reason is emitted before the drop, so it is on the socket by now
+        //a refused login is answered with disconnect_reason and a drop rather than game_error, such as "limits" when the
+        //account is over its character cap
         void FailHandshake(object? _, string message)
         {
             var reason = Socket.LastDisconnectReason;
@@ -1140,8 +1085,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return;
             }
 
-            //the same verdict ReconnectAsync reaches for the reason on an established socket, so a reconnect refused
-            //this way stops retrying too
+            //so a reconnect refused this way stops retrying
             if ("limits".EqualsI(reason))
                 FatalError = "limits";
 
@@ -1152,9 +1096,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         try
         {
-            //timed out for the same reason the handshake below is: without one, a connect that never completes never
-            //throws either, so ReconnectAsync's retry loop never runs, FatalError is never set, and nothing anywhere
-            //learns the character is down. The socket is left open on a timeout - ReconnectAsync disposes it.
+            //a connect that never completes never throws; on a timeout the socket is left for ReconnectAsync to dispose
             await Socket.ConnectAsync(Server)
                         .WithTimeout(10000);
 
@@ -1172,47 +1114,37 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Set when the client has stopped and will not reconnect on its own: the server rejected this character terminally (
-    ///     <c>"limits"</c> / <c>"wrong_passphrase"</c> ) or every reconnect attempt was exhausted. A bot script should poll
-    ///     this and stop its loops - unlike a transient drop, the client will not recover without being recreated. <c>null</c>
-    ///     while the client is healthy.
+    ///     If populated, why the client stopped and will not reconnect on its own: a terminal refusal (<c>limits</c>,
+    ///     <c>wrong_passphrase</c>) or every reconnect attempt exhausted. Recover by recreating the client.
     /// </summary>
     public string? FatalError { get; private set; }
 
     /// <summary>
-    ///     Set by <see cref="DisconnectAsync" /> and never cleared: a client told to disconnect stays down.
+    ///     Whether <see cref="DisconnectAsync" /> has been called. Never cleared, so a client told to disconnect stays down.
     /// </summary>
     /// <remarks>
-    ///     Read by <see cref="ReconnectAsync" /> between attempts. Without it a disconnect that lands while a reconnect is
-    ///     waiting out its delay is undone by that reconnect's next attempt, and the character is back online with nothing
-    ///     holding a reference to it - still counted against the account's cap.
+    ///     Read by <see cref="ReconnectAsync" /> between attempts, so a disconnect during a reconnect delay is not undone.
     /// </remarks>
     public bool Disposed { get; private set; }
 
     /// <summary>
-    ///     Whether the handshake has completed and this character is actually in the world. False from the moment a drop is
-    ///     noticed until <c>start</c> arrives on the replacement socket.
-    ///     <br />
-    ///     <b>
-    ///         This is the readiness flag to gate work on, not <see cref="ALSocketClient.Connected" />.
-    ///     </b> That one is open for the whole connect, because the server's <c>welcome</c> can land before
-    ///     <c>ConnectAsync</c> returns and the auth emit answering it has to get out. So it reads true over a socket that has
-    ///     no transport yet, or one whose transport died before it ever authenticated - and a caller that treats it as "logged
-    ///     in" resumes a script into a socket every emit throws on.
-    ///     <br />
-    ///     The client maintains this across every connect, drop and reconnect; the setter is open so a harness driving a stub
-    ///     socket can stand a client up without one. Nothing inside the client branches on it.
+    ///     Whether the handshake has completed and this character is in the world. False from a drop until <c>start</c>
+    ///     arrives on the replacement socket.
     /// </summary>
+    /// <remarks>
+    ///     Gate work on this, not <see cref="ALSocketClient.Connected" />, which is true for the whole connect. The setter is
+    ///     open so a harness driving a stub socket can stand a client up.
+    /// </remarks>
     public bool LoggedIn { get; set; }
 
     /// <summary>
-    ///     Raised after a successful automatic reconnect. The socket object has been replaced; any subscriptions made against
-    ///     the previous socket are dead and must be re-registered.
+    ///     An event fired after a successful reconnect or change of server. The socket has been replaced, so subscriptions
+    ///     made against the previous one must be re-registered.
     /// </summary>
     public event EventHandler? OnReconnected;
 
     /// <summary>
-    ///     Raised when the server supplied a parting reason for a disconnect (e.g. <c>"limitdc"</c> ).
+    ///     An event fired when the server gives a parting reason for a disconnect, such as <c>limitdc</c>.
     /// </summary>
     public event EventHandler<string>? OnDisconnectReason;
 
@@ -1230,8 +1162,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         LoggedIn = false;
 
-        //read the server's parting reason off the old socket before disposing it - dispose does not clear
-        //the captured value, but the field must be read before Socket is reassigned below.
+        //read before Socket is reassigned below
         var reason = Socket.LastDisconnectReason;
 
         if (reason != null)
@@ -1240,8 +1171,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 OnDisconnectReason?.Invoke(this, reason);
             } catch (Exception e)
             {
-                //a subscriber's failure must not escape ReconnectAsync - that would skip the dispose,
-                //the "limits" fatal check, and the retry loop below
+                //a subscriber's failure must not skip the dispose and retry loop below
                 Logger.Error($"OnDisconnectReason subscriber threw. {e}");
             }
 
@@ -1253,8 +1183,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             //ignored
         }
 
-        //"limits": the server refused this character for this session (node/server.js:10564). Retrying
-        //cannot help, so surface it and stop rather than hammering the connection.
+        //"limits": the server refused this character for this session
         if ("limits".EqualsI(reason!))
         {
             Logger.Fatal("Server refused this character (\"limits\"); not reconnecting.");
@@ -1263,8 +1192,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
         }
 
-        //a terminal auth failure (e.g. wrong passphrase) may already have been flagged during a prior
-        //handshake - do not attempt to reconnect into it.
+        //a terminal auth failure, such as a wrong passphrase, flagged during a prior handshake
         if (FatalError != null)
         {
             Logger.Fatal($"Not reconnecting ({FatalError}).");
@@ -1272,9 +1200,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
         }
 
-        //"limitdc": a rate-limit kick. An immediate reconnect re-enters the kick condition at 4x sensitivity while
-        //unauthenticated (node/server.js:4330) and dc_players is only cleared roughly every 24s (:14883), so honor a
-        //cooldown before the first attempt - the browser waits ~20s (js/game.js:2779 + :224-249)
+        //"limitdc": a rate-limit kick, which an unauthenticated socket re-triggers at 4x sensitivity until the server
+        //clears it, roughly every 24s; the game's own client waits about 20s
         if ("limitdc".EqualsI(reason!))
         {
             Logger.Warn("Rate-limit disconnect (\"limitdc\"); waiting 20s before reconnecting.");
@@ -1287,8 +1214,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         while (reconnectCount < 10)
             try
             {
-                //checked before every attempt, and again after one lands: a disconnect can arrive during either delay
-                //above or while the handshake is in flight, and a client that was disposed must not come back
+                //checked before every attempt and after one lands, since a disconnect can arrive during any delay
                 if (Disposed)
                 {
                     Logger.Info("Not reconnecting: the client was disconnected.");
@@ -1296,7 +1222,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     return;
                 }
 
-                Socket = NewSocket();
+                Socket = CreateSocket();
                 Logger.Info($"Attempting to reconnect. (Retry: {++reconnectCount})");
 
                 await InternalConnectAsync();
@@ -1314,7 +1240,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     OnReconnected?.Invoke(this, EventArgs.Empty);
                 } catch (Exception e)
                 {
-                    //a subscriber's failure is not a failed reconnect - do not let it re-enter the retry loop
+                    //a subscriber's failure is not a failed reconnect
                     Logger.Error($"OnReconnected subscriber threw. {e}");
                 }
 
@@ -1329,9 +1255,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     return;
                 }
 
-                //the attempt owns the socket it failed on: a connect that timed out is still open, and Socket is
-                //about to be overwritten by the next pass. Left undisposed it is an unauthenticated session the
-                //server keeps counting against this character.
+                //left undisposed, a failed socket is a session the server keeps counting against this character
                 try
                 {
                     await Socket.DisposeAsync();
@@ -1340,14 +1264,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     //ignored
                 }
 
-                //the browser's base reconnect delay is a 3-4s wait (js/game.js:224-249), not the flat 10s this
-                //used - which, stacked on the 10s login timeout, cost 20s on every transient drop.
+                //the game's own client waits 3-4s between reconnects
                 Logger.Error("Reconnect failed, waiting 4s to retry...");
 
                 await Task.Delay(1000 * 4);
             }
 
-        //a library must not kill the host process; surface the terminal state and let the bot decide.
         Logger.Fatal("Reconnect attempts failed.");
         FatalError = "reconnect_failed";
     }
@@ -1363,9 +1285,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         Disposed = true;
         Logger.Warn("Disconnecting");
 
-        //stopped here rather than left to OnDisconnected: an intentional disconnect clears Connected before the
-        //socket raises its event, so these two would go on polling a closed socket and logging a throw every tick.
-        //Before the disconnect, so an in-flight request finishes rather than failing on its way out
+        //an intentional disconnect suppresses OnDisconnected, so these would go on polling a closed socket
         await PingManager.StopAsync();
         await EntityManager.StopAsync();
 
@@ -1380,21 +1300,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="TimeoutException">
     ///     The server did not answer within <see cref="ALClientSettings.NetworkTimeoutMS" />.
     /// </exception>
+    /// <exception cref="InvalidOperationException">A bank door is still landing.</exception>
     /// <exception cref="Exception">The server refused the accept.</exception>
     /// <remarks>
-    ///     The server files the offer under the mage's name when the cast is read and refuses an accept it has no offer for as
-    ///     gone (node/server.js:11292), so this belongs after <see cref="OnMagiport" /> has delivered the offer - the cast and
-    ///     the accept travel on different sockets, and nothing else orders them. The refusal lands on <c>game_response</c>
-    ///     with <c>failed: true</c> under the <c>magiport</c> place, and is listened for so a refused accept says why rather
-    ///     than burning the timeout.
+    ///     The server refuses an accept it holds no offer for, so call this after <see cref="OnMagiport" /> has delivered one.
     /// </remarks>
     public async Task AcceptMagiportAsync(string from)
     {
         if (string.IsNullOrEmpty(from))
             throw new ArgumentNullException(nameof(from));
 
-        //the server's own check reads the map the character stands on now, and the bank it is about to be moved to is
-        //not that map - see BankCrossingPending
+        //the bank is about to pull the character away from wherever the magiport lands
         if (BankCrossingPending)
             throw new InvalidOperationException($"Failed to accept magiport from {from}. (a bank door is still landing)");
 
@@ -1815,12 +1731,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Information about the item that was bought.
     /// </returns>
     /// <remarks>
-    ///     What this costs is not in the listing and is never sent: the server prices it at
-    ///     <c>calculate_item_value * secondhands_mult</c> the moment the emit lands ( <c>node/server.js:7145</c> ). That is
-    ///     twice the item's value, and <c>calculate_item_value</c> has already taken the 0.6 buy-to-sell discount off a
-    ///     non-cash item, so an unleveled one leaves the purse at <see cref="CONSTANTS.PONTY_MARKUP" /> times its <c>g</c> -
-    ///     not the 20% an earlier version of this comment claimed. A cash item skips the discount and pays
-    ///     <see cref="CONSTANTS.PONTY_CASH_MARKUP" />.
+    ///     The price is never sent: the server charges <see cref="CONSTANTS.PONTY_MARKUP" /> times the item's <c>g</c>, or
+    ///     <see cref="CONSTANTS.PONTY_CASH_MARKUP" /> for a cash item.
     /// </remarks>
     /// <exception cref="ArgumentNullException">item</exception>
     /// <exception cref="InvalidOperationException">Failed to buy {item.Name}. ({reason})</exception>
@@ -1837,43 +1749,41 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Information about the item that was bought.
     /// </returns>
     /// <remarks>
-    ///     One handler serves both second-hand pools and <c>data.f</c> is the whole of what picks between them (
-    ///     <c>node/server.js:7112-7130</c> ), so this is <see cref="BuyFromPontyAsync" /> with one extra field on the same
-    ///     emit. Three things differ on the far side of it. The price is
-    ///     <see cref="AL.Data.Multipliers.GMultipliers.LostAndFoundMult" /> rather than
-    ///     <see cref="AL.Data.Multipliers.GMultipliers.SecondHandsMult" />, and the cash-item branch at <c>:7143</c> tests
-    ///     <c>mult == 2</c> , so it never fires for this pool - a cash item here keeps the ordinary rate. Hopsickness refuses
-    ///     this buy outright ( <c>:7134</c> ) and leaves Ponty alone. And the distance test at <c>:7136</c> carries no
-    ///     <c>player.computer</c> branch, so unlike most NPC handlers this one has to be walked to.
+    ///     Priced at <see cref="AL.Data.Multipliers.GMultipliers.LostAndFoundMult" />, cash items included. Refused while
+    ///     hopsick, and the distance check has no computer waiver.
     /// </remarks>
     /// <exception cref="ArgumentNullException">item</exception>
     /// <exception cref="InvalidOperationException">Failed to buy {item.Name}. ({reason})</exception>
     public Task<InventoryIndexer> BuyFromLostAndFoundAsync(TradeItem item) => BuySecondHandAsync(item, true);
 
     /// <summary>
-    ///     The <c>sbuy</c> handler both second-hand pools share, with <paramref name="lostAndFound" /> its <c>data.f</c> .
+    ///     Asynchronously buys an item through <c>sbuy</c>, the handler both second-hand pools share.
     /// </summary>
+    /// <param name="item">
+    ///     The item to buy.
+    /// </param>
+    /// <param name="lostAndFound">
+    ///     Specifies whether to buy from the lost and found rather than Ponty, sent as <c>data.f</c>.
+    /// </param>
+    /// <returns>
+    ///     Information about the item that was bought.
+    /// </returns>
     /// <remarks>
-    ///     The emit carries a <c>request_id</c> , which moves every refusal onto <c>game_response</c> at the pool's own place.
-    ///     Two of them used to arrive elsewhere and no longer do: <c>no_space</c> was a <c>disappearing_text</c> and
-    ///     <c>item_gone</c> a <c>game_log</c> , so the callbacks that read those two frames were removed rather than kept
-    ///     beside these arms.
-    ///     <br />
-    ///     It also turns on a refusal that does not otherwise run: the lost-and-found arm answers <c>lostandfound_donate</c>
-    ///     to a connection that has not donated, where the uncorrelated arm would have sold.
+    ///     The emit carries a <c>request_id</c>, which moves every refusal onto <c>game_response</c> at the pool's own place.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">item</exception>
+    /// <exception cref="InvalidOperationException">Failed to buy {item.Name}. ({reason})</exception>
     private async Task<InventoryIndexer> BuySecondHandAsync(TradeItem item, bool lostAndFound)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        //named in every refusal below, because the two pools fail for different reasons and a line that does not say
-        //which one was asked cannot be read afterwards
+        //named in every refusal below, since the two pools fail for different reasons
         var seller = lostAndFound ? "the lost and found" : "Ponty";
 
         //the place every correlated answer carries: the handler's own event name for the pool that was asked
         var place = lostAndFound ? "lostandfound" : "secondhands";
 
-        var requestId = RequestId.New();
+        var requestId = RequestId.Create();
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var existingCount = Character.Inventory.CountOf(item.Name);
@@ -1883,34 +1793,26 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //place as well as the token, because both are needed to be sure: a frame carrying someone else's token
-                //belongs to that call, and one with no token at all is a handler that does not echo - which the listing
-                //reads for these same two pools do not, so an ungated arm would end this buy on a read's refusal. The
-                //literal is the receiver: Place can be null and EqualsI throws on a null receiver
+                //place as well as token: the listing reads for these pools answer without a token
                 if (!place.EqualsI(data.Place!) || ((data.RequestId != null) && !requestId.EqualsI(data.RequestId)))
                     return TaskCache.FALSE;
 
                 var result = data.ResponseType switch
                 {
-                    //correlated-only, and the one refusal worth a million gold rather than a walk: the lost-and-found
-                    //arm will not sell to a connection that has not donated
+                    //the lost and found will not sell to a connection that has not donated
                     GameResponseType.LostAndFoundDonate => source.TrySetResult(
                         $"Failed to buy {item.Name} from {seller}. ({LOSTANDFOUND_DONATION_REQUIRED}; one of 1,000,000 gold or more unlocks it)"),
                     GameResponseType.BuyCost => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (not enough gold)"),
 
-                    //no_space and item_gone used to arrive as a disappearing_text and a game_log; the token moves both
-                    //onto game_response and stops the loose frames, so this is where they are read now
                     GameResponseType.NoSpace  => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (no space)"),
                     GameResponseType.ItemGone => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (item gone)"),
 
-                    //hopsickness is refused for the lost-and-found pool alone; Ponty is served the same handler and is
-                    //deliberately left selling through it
+                    //refused for the lost and found alone
                     GameResponseType.CantWhenSick => source.TrySetResult(
                         $"Failed to buy {item.Name} from {seller}. (hopsickness; the lost and found will not sell while it is up)"),
                     GameResponseType.Distance => source.TrySetResult($"Failed to buy {item.Name} from {seller}. (get closer)"),
 
-                    //carries no reason of its own, so the catch-all below would put the bare enum name in front of
-                    //whoever is reading the failure
+                    //carries no reason of its own
                     GameResponseType.CantInBank => source.TrySetResult(
                         $"Failed to buy {item.Name} from {seller}. (the character is standing in the bank)"),
                     _ when data.Failed => source.TrySetResult(
@@ -1921,8 +1823,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return Task.FromResult(result);
             });
 
-        //the success frame names the item but not the slot it landed in, so arrival is still read off the inventory
-        //rather than off the reply
+        //the success frame does not name the slot the item landed in
         using var characterCallback = Socket.On<CharacterData>(
             ALSocketMessageType.Character,
             data =>
@@ -1939,8 +1840,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //f is omitted rather than sent false for Ponty: the handler tests it for truthiness, and the browser client
-        //sends the field only for the lost and found
+        //f is omitted for Ponty rather than sent false: the handler tests it for truthiness
         await Socket.EmitAsync(
             ALSocketEmitType.SecondHandsBuy,
             lostAndFound
@@ -1990,8 +1890,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 num = inventorySlot
             });
 
-        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
-        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        //unwrap explicitly: the implicit conversion to bool yields IsSuccessful and drops the failure reason
         var expectation = await source.Task.WithTimeout(60000);
         expectation.ThrowIfUnsuccessful();
 
@@ -2073,8 +1972,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 offering_num = offeringIndex
             });
 
-        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
-        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        //unwrap explicitly: the implicit conversion to bool yields IsSuccessful and drops the failure reason
         var expectation = await source.Task.WithTimeout(60000);
         expectation.ThrowIfUnsuccessful();
 
@@ -2185,9 +2083,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         foreach ((var quantity, var name, var level) in recipe.Items)
         {
-            //exact stack preferred, over-sized one as fallback: the server only consults can_add_item when no
-            //submitted slot is exact (node/server.js:6021-6031), so an exact match keeps space true and a full
-            //inventory craftable. The fallback is legal because the server's own rule is at-least rather than exact
+            //an exact stack first: the server only checks for bag space when no submitted slot is exact
             var result = Character.Inventory.FindItem(name, level, (int?)quantity)
                          ?? Character.Inventory.FindItem(name, level, quantityMin: (int)quantity);
 
@@ -2208,12 +2104,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     One inventory slot per recipe input, in the recipe's own order.
     /// </param>
     /// <remarks>
-    ///     For a caller that keeps part of its inventory out of play. The overload above scans from index 0 and prefers a slot
-    ///     holding exactly the recipe amount - which for a non-stackable input is every slot holding one - so it will consume
-    ///     a low-indexed copy in preference to a higher-indexed over-sized one, and nothing on this side knows which slots a
-    ///     caller considers off limits. Choosing the slots is the only way to say so without restating the
-    ///     exact-before-over-sized preference, which exists to keep the server's <c>space</c> flag true and is not the
-    ///     caller's to re-derive.
+    ///     For a caller that keeps part of its inventory out of play; the overload above picks slots from index 0.
     /// </remarks>
     /// <returns>
     ///     <see cref="InventoryIndexer" />
@@ -2221,19 +2112,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Information about the item that was crafted, and it's position in the inventory.
     /// </returns>
     /// <exception cref="ArgumentNullException">itemName</exception>
+    /// <exception cref="ArgumentNullException">inventorySlots</exception>
     /// <exception cref="InvalidOperationException">Failed to craft {itemName}. ({reason})</exception>
     public async Task<InventoryIndexer> CraftAsync(string itemName, IReadOnlyList<int> inventorySlots)
     {
         if (string.IsNullOrEmpty(itemName))
             throw new ArgumentNullException(nameof(itemName));
 
+        ArgumentNullException.ThrowIfNull(inventorySlots);
+
         var recipe = GameData.Craft[itemName];
 
         if (recipe == null)
             throw new InvalidOperationException($"Failed to craft {itemName}. (not craftable)");
 
-        //the emit is a grid of (position, slot) pairs one per input, so a short or long list is a malformed craft
-        //rather than one the server can refuse intelligibly
+        //the emit is one (position, slot) pair per recipe input
         if (inventorySlots.Count != recipe.Items.Count)
             throw new InvalidOperationException(
                 $"Failed to craft {itemName}. (expected {recipe.Items.Count} slots, got {inventorySlots.Count})");
@@ -2247,11 +2140,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //resolved off the server's own reply rather than by diffing inventory frames. Item's value equality
-                //never holds across two deserializations (see Item.PossiblePrefixes), so a diff read every slot as
-                //new and answered with the first copy already held - before this craft had landed, and the next
-                //craft then re-sent the slots this one had consumed. The server re-sends the inventory
-                //(node/server.js:6299) before it answers success (:6300), so the slot named here is already filled
+                //the server re-sends the inventory before it answers success, so the slot named here is already filled
                 if ((data.ResponseType == GameResponseType.Craft) && data.Success)
                 {
                     if (Character.Inventory[data.SlotNum] is { } crafted)
@@ -2344,12 +2233,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Unlocks a paid bank pack with gold on the pack's floor map (node/server.js bank <c>operation: "unlock"</c> branch).
-    ///     Gold-only — shells and key items are out of scope.
+    ///     Asynchronously unlocks a paid bank pack with gold, standing on the pack's floor map. Shells and key items are not
+    ///     supported.
     /// </summary>
     /// <param name="pack">
     ///     The bank pack to unlock, e.g. <see cref="BankPack.Items3" />.
     /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">pack</exception>
     /// <exception cref="InvalidOperationException">Failed to unlock bank pack {pack}. ({reason})</exception>
     public async Task UnlockBankPackAsync(BankPack pack)
     {
@@ -2359,7 +2249,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Character.Bank == null)
             throw new InvalidOperationException($"Failed to unlock bank pack {packWire}. (not in bank)");
 
-        //bank_packs (js/old_common_functions.js:54) puts items0-7 on "bank", items8-23 on "bank_b" and items24-47 on "bank_u"
+        //bank_packs puts items0-7 on "bank", items8-23 on "bank_b" and items24-47 on "bank_u"
         var requiredMap = (int)pack switch
         {
             >= 1 and <= 8   => "bank",
@@ -2437,10 +2327,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     Information about the item and it's index in the bank.
     /// </returns>
     /// <remarks>
-    ///     Naming an occupied slot is a swap, not an error: the server writes the displaced item straight back into
-    ///     <paramref name="inventorySlot" /> (node/server.js:8531). The returned indexer describes only the deposited half, so
-    ///     this call is not necessarily inventory-reducing and a loop that treats it as such - one walking occupied slots, say
-    ///     - will not terminate on its own.
+    ///     Naming an occupied slot is a swap: the server writes the displaced item back into
+    ///     <paramref name="inventorySlot" />, and the returned indexer describes only the deposited half.
     /// </remarks>
     /// <exception cref="ArgumentException">
     ///     If specifying bankSlot), must also specify bankPack.
@@ -2454,10 +2342,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Character.Bank == null)
             throw new InvalidOperationException($"Failed to deposit item {inventorySlot}. (not in bank)");
 
-        //the bank handler clamps inv to isize-1 rather than refusing it (node/server.js:8899), so an index past the
-        //bags deposits the last bag slot's item under the name of the one that was asked for - it banked a merchant's
-        //stand computer that way. Slots past isize are real: add_item pushes onto the end when the bags are full
-        //(node/server.js:1933), and imove is the only handler that addresses one, so move it down into the bags first
+        //the bank handler clamps inv to isize-1 rather than refusing it, so an overflow slot is moved into the bags first
         if (inventorySlot >= Character.InventorySize)
         {
             var freeSlot = Enumerable.Range(0, Math.Min(Character.InventorySize, Character.Inventory.Count))
@@ -2482,9 +2367,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             Item = item
         };
 
-        //the caller's own intent, and deliberately not the sign of what FindOptimalBankIndex returned. An auto-picked
-        //slot is empty by construction, so keying off the result would put the auto path through the swap arm below,
-        //where the displaced-occupant half is dead code and a one-frame-stale cached Bank times a completed deposit out
+        //the caller's own intent, not whether FindOptimalBankIndex returned an occupied slot
         var namedSlot = bankSlot is >= 0;
 
         var optimalIndexes = FindOptimalBankIndex(indexedItem, bankPack, bankSlot);
@@ -2505,9 +2388,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //every refusal, not just "invalid": depositing onto an occupied slot is now the supported path, so
-                //item_placeholder and item_blocked are ordinary here, and storage_full and bank_unavailable have
-                //always been. fail_response sets failed on all of them and names the handler in place
+                //every refusal: fail_response sets failed and names the handler in place
                 if (data.Failed && "bank".EqualsI(data.Place!))
                     source.TrySetResult($"Failed to deposit item {item.Name}. ({data.ResponseType})");
 
@@ -2522,24 +2403,27 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     source.TrySetResult($"Failed to deposit item {item.Name}. (not in bank)");
                 else if (data.Bank.TryGetValue(bankPack.Value, out var bankedItems))
                 {
-                    //an explicit slot is a swap with whatever was there, so the inventory slot is empty only when
-                    //the target was empty. Name/level/quantity, not Item == : prefixes compare by reference.
+                    //an explicit slot swaps, so the inventory slot is empty only when the target was. Compared by
+                    //name, level and quantity, since prefixes compare by reference
                     if (namedSlot)
                     {
-                        var at = bankSlot.Value < bankedItems.Count ? bankedItems[bankSlot.Value] : null;
-                        var invNow = inventorySlot < data.Inventory.Count ? data.Inventory[inventorySlot] : null;
+                        var bankedItem = bankSlot.Value < bankedItems.Count ? bankedItems[bankSlot.Value] : null;
+                        var inventoryItem = inventorySlot < data.Inventory.Count ? data.Inventory[inventorySlot] : null;
 
-                        if (at is null || !at.Name.EqualsI(item.Name) || (at.Level != item.Level) || (at.Quantity < item.Quantity))
+                        if (bankedItem is null
+                            || !bankedItem.Name.EqualsI(item.Name)
+                            || (bankedItem.Level != item.Level)
+                            || (bankedItem.Quantity < item.Quantity))
                             return TaskCache.FALSE;
 
                         if (occupant is null)
                         {
-                            if (invNow is not null)
+                            if (inventoryItem is not null)
                                 return TaskCache.FALSE;
-                        } else if (invNow is null
-                                   || !invNow.Name.EqualsI(occupant.Name)
-                                   || (invNow.Level != occupant.Level)
-                                   || (invNow.Quantity != occupant.Quantity))
+                        } else if (inventoryItem is null
+                                   || !inventoryItem.Name.EqualsI(occupant.Name)
+                                   || (inventoryItem.Level != occupant.Level)
+                                   || (inventoryItem.Quantity != occupant.Quantity))
                             return TaskCache.FALSE;
 
                         source.TrySetResult(
@@ -2547,7 +2431,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                             {
                                 BankPack = bankPack.Value,
                                 Index = bankSlot.Value,
-                                Item = at
+                                Item = bankedItem
                             });
                     } else if ((inventorySlot < data.Inventory.Count) && (data.Inventory[inventorySlot] == null))
                     {
@@ -2606,23 +2490,19 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.DisappearingText,
             data =>
             {
-                //Name is the receiver: an anchorless disappearing_text carries no id, and EqualsI throws on a
-                //null receiver while tolerating a null argument
+                //Name is the receiver, since an anchorless disappearing_text carries no id
                 if (Name.EqualsI(data.Id!) && data.Message.EqualsI("can't equip"))
                     source.TrySetResult($"Failed to equip item {item.Name}. (wrong slot)");
 
                 return TaskCache.FALSE;
             });
 
-        //the refusal arm, and it has to be this event: every refusal in the equip handler is a fail_response
-        //(node/server.js:7054-7274), landing as a game_response with failed:true and place:"equip". Place is the
-        //filter because a gear swap keeps an unequip and an equip in flight on one socket at the same time
+        //every equip refusal is a game_response with place "equip"; a gear swap keeps an unequip in flight beside it
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
-                //tolerating a null argument
+                //the literal is the receiver, since Place can be null
                 if (!data.Failed || !"equip".EqualsI(data.Place!))
                     return TaskCache.FALSE;
 
@@ -2687,7 +2567,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <returns>
     ///     What the server announced the exchange paid. Empty items and zero gold when it paid nothing, shells or a cx.
     /// </returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">Failed to exchange. ({reason})</exception>
     public async Task<ExchangeResult> ExchangeAsync(int inventorySlot)
     {
         if (inventorySlot >= Character.InventorySize)
@@ -2703,9 +2583,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (itemData == null)
             throw new InvalidOperationException("Failed to exchange. (no data, contact me)");
 
-        //exchangeability is the count alone. Asking for ExchangeAtNPC beside it refused 31 of the committed game
-        //data's 38 exchangeables outright, since it is enriched only from an npc's token or the item's own quest.
-        //Where an item is exchanged is a distance question the server settles itself (node/server.js:6072-6077)
+        //exchangeability is the count alone; ExchangeAtNPC is missing for most exchangeables
         if (!itemData.ExchangeCount.HasValue)
             throw new InvalidOperationException("Failed to exchange. (item not exchangeable)");
 
@@ -2761,9 +2639,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     && data.QueuedActions.Exchange.CurrentMS.IsNear(data.QueuedActions.Exchange.LengthMS, CORE_CONSTANTS.EPSILON))
                     exchangeStarted = true;
 
-                //the server logs the payout and sends this frame in the one tick that finishes the exchange
-                //(node/server.js:14542-14552), so only the logs since the previous frame are the exchange's. A stand sale
-                //logs received_gold too, and its own frame follows it
+                //the server logs the payout and sends this frame in the tick that finishes the exchange, so only the logs
+                //since the previous frame are the exchange's
                 if (data.QueuedActions?.Exchange != null)
                 {
                     payoutLogs.Clear();
@@ -2794,29 +2671,36 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     The <c>game_log</c> phrase for gold paid by an exchange, a stand sale or a trade.
+    ///     Reads what an exchange paid from the payout logs the server sent with the frame that finished it. The logs name
+    ///     what was paid, and the inventory supplies the item key, level and slot.
     /// </summary>
-    private const string RECEIVED_GOLD_PHRASE = "server.game_log.received_gold";
-
-    /// <summary>
-    ///     The <c>game_log</c> phrase for an item an exchange paid, followed by <c>a</c>, <c>an</c> or <c>many</c>. Only an
-    ///     exchange payout sends it (server_functions.js:3973).
-    /// </summary>
-    private const string RECEIVED_ITEM_PHRASE_PREFIX = "server.item.received.";
-
-    /// <summary>
-    ///     Reads what an exchange paid from the payout logs the server sent with the frame that finished it.
-    /// </summary>
-    /// <remarks>
-    ///     The inventory alone cannot say: anything handed over or looted during the exchange's seconds-long wait lands the
-    ///     same way a prize does. The logs name what was paid, and the inventory supplies the item key, level and slot.
-    /// </remarks>
+    /// <param name="payoutLogs">
+    ///     The <c>game_log</c> frames received since the previous character frame.
+    /// </param>
+    /// <param name="before">
+    ///     The inventory as it stood before the exchange.
+    /// </param>
+    /// <param name="consumedSlot">
+    ///     The inventory slot of the exchanged item.
+    /// </param>
+    /// <param name="consumedCount">
+    ///     How many of the exchanged item the exchange consumed.
+    /// </param>
+    /// <returns>
+    ///     The items and gold the exchange paid.
+    /// </returns>
     private ExchangeResult ReadExchangePayout(
         IReadOnlyList<GameMessageData> payoutLogs,
         IReadOnlyList<Item?> before,
         int consumedSlot,
         int consumedCount)
     {
+        //gold paid by an exchange, a stand sale or a trade
+        const string RECEIVED_GOLD_PHRASE = "server.game_log.received_gold";
+
+        //an item only an exchange pays, followed by a, an or many
+        const string RECEIVED_ITEM_PHRASE_PREFIX = "server.item.received.";
+
         var items = new List<InventoryIndexer>();
         long gold = 0;
 
@@ -2876,12 +2760,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Whether an item is the one a payout log named, rendered the way the server names it (server_functions.js:4392).
+    ///     Determines whether an item is the one a payout log named, rendered the way the server names it.
     /// </summary>
-    /// <remarks>
-    ///     The log carries the display name, not the item key: title-cased property and <c>+level</c> for a single item, the
-    ///     bare name for a stack.
-    /// </remarks>
+    /// <param name="item">
+    ///     The inventory item to test.
+    /// </param>
+    /// <param name="announcedName">
+    ///     The display name the log carried: title-cased property and <c>+level</c> for a single item, the bare name for a
+    ///     stack.
+    /// </param>
+    /// <param name="quantity">
+    ///     The quantity the log carried.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the item renders as the announced name; otherwise, <c>false</c>.
+    /// </returns>
     internal static bool IsAnnouncedItem(Item item, string announcedName, int quantity)
     {
         if (item.GetData() is not { } data)
@@ -3025,11 +2918,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <br />
     ///     The point we ended up on after this operation either completed, failed, or was canceled.
     /// </returns>
+    /// <exception cref="ArgumentNullException">point</exception>
     /// <exception cref="InvalidOperationException">Failed to move to {point}. ({reason})</exception>
     [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
     [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
     public async Task MoveAsync(IPoint point, CancellationToken? token = null, bool skipWallCheck = false)
     {
+        ArgumentNullException.ThrowIfNull(point);
+
         //the game's own client refuses the move outright while the dungeon is paused for a vote
         if (Character.Cave is { Paused: true })
             throw new InvalidOperationException($"Failed to move to {point}. (the dungeon is paused for a vote)");
@@ -3039,46 +2935,34 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var currentMap = Character.Map;
         var startLoc = new Location(Character.Map, Character.ToPoint());
 
-        //the vertex this leg was planned to end on. Fixed for the whole call, so the guard before the emit and the
-        //jail diagnostic after it are reading the same one rather than each building their own
         var goingLoc = new Location(currentMap, point);
         DateTime? setMovingAt = default;
         var correctionAttempted = false;
 
-        //the server's move_num as of this leg's emit. Stamped only by start_moving_element, so a frame still
-        //carrying this number was generated before the server accepted this leg and cannot be describing it -
-        //which is what separates a frame that is merely late from one telling us something new
+        //the server's move_num as of this leg's emit; a frame still carrying it predates the server accepting this leg
         ulong moveNumAtEmit = 0;
 
-        //whether the ground moved under this leg. transport_player_to relocates the character without setting abs, so
-        //a transport, door or magiport reaches the staleness test below looking exactly like a stale frame. Read from
-        //new_map rather than the frame's own m, which a frame generated before the transport still holds stale
+        //set from new_map, since a transport relocates the character without setting abs
         var mapChanged = false;
 
         var delay = new DynamicDelay();
 
-        //how far this leg is, fixed at the emit. The remaining time below is measured against this and the clock
-        //rather than against Character, and that is the whole point of it being here
+        //how far this leg is, fixed at the emit
         var legLength = 0f;
 
-        //how long is left of this leg, exactly: the next leg's emit then reaches the server as it finishes this one.
-        //Landing early is forgiven, landing late stands the character there for the difference. Read off the clock
-        //rather than off Character, which every frame re-anchors to where the server was one round trip ago
-        TimeSpan RemainingDelay()
+        //read off the clock rather than off Character, which every frame re-anchors to where the server was one round
+        //trip ago
+        TimeSpan CalculateRemainingDelay()
         {
             var speed = Character.Speed;
 
-            //a stopped character never finishes the leg on its own; the callers all bound this with their own gates
             if (speed <= 0)
                 return TimeSpan.Zero;
 
-            //before the leg starts ticking there is no elapsed to measure it against
             if (setMovingAt is not { } startedAt)
                 return TimeSpan.FromSeconds(legLength / speed);
 
-            //the current speed applied to the whole leg rather than integrated over it, so a change mid-leg is
-            //answered approximately - the leg it lands in ends a little early or late and the next one is exact
-            //again. That is the point of keeping the reset: a slowness is a real answer to "how long is left"
+            //the current speed applied to the whole leg, so a speed change mid-leg is answered approximately
             var covered = speed * (DateTime.UtcNow - startedAt).TotalSeconds;
 
             return TimeSpan.FromSeconds(Math.Max(0d, (legLength - covered) / speed));
@@ -3095,9 +2979,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 var elapsed = now.Subtract(setMovingAt.Value);
 
-                //already standing on it, so the leg is over whatever the rest of the frame says. Both ways here are
-                //ordinary: the server ends a walk by clearing moving at the destination, and it drops a move to
-                //where the character already is. Read off the frame, since our own position is compensated forward
+                //already standing on it, whatever the rest of the frame says; read off the frame, since our own position
+                //is compensated forward
                 if (data.X.IsNear(point.X, CORE_CONSTANTS.EPSILON) && data.Y.IsNear(point.Y, CORE_CONSTANTS.EPSILON))
                 {
                     source.TrySetResult(Expectation.Success);
@@ -3126,34 +3009,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         return false;
                     }
 
-                    //a frame the server generated before it accepted this leg carries the position it was standing
-                    //on, and the merge above has already taken it - a rewind read as truth until the leg ends.
-                    //move_num proves the frame is the stale kind: a number we already held cannot describe this leg
+                    //a frame generated before the server accepted this leg rewinds the position the merge already took
                     if (!mapChanged && !data.ABS && (data.MoveNum <= moveNumAtEmit))
                         Character.UpdateLocation(startLoc.OffsetTowards(point, Character.Speed / 1000f * (float)elapsed.TotalMilliseconds));
 
-                    //if we should have reasonably received correct movement data. LowPercentileOffset is a fast round
-                    //trip for this connection, so this grace is a multiple of the best case being asked to
-                    //cover the typical one - the multiplier is what absorbs the jitter between them
+                    //if we should have reasonably received correct movement data
                     if (elapsed > (PingManager.LowPercentileOffset * 4))
                     {
-                        //what the frame actually said, not just that it disagreed - three faults reach here and read
-                        //identically without it: the walk reported over, a frame describing the leg before this one,
-                        //and a destination neither side asked for. Carries the grace it cleared
                         Logger.Debug(
                             $"Correcting position: frame says moving={data.Moving} going=({data.GoingX:N0}, {data.GoingY:N0}), "
                             + $"leg wants {point.ToPoint()}, {elapsed.TotalMilliseconds:N0}ms in "
                             + $"(grace {(PingManager.LowPercentileOffset * 4).TotalMilliseconds:N0}ms). "
 
-                            //where our own simulation thinks it is when the server says the walk is over. A
-                            //remaining distance near zero means the timer lost a race it was about to win; a large
-                            //one means the simulation is lagging and the compensation is the thing to look at
                             + $"We think {Character.Distance(point):N1} left at speed {Character.Speed:N0}, "
-                            + $"{RemainingDelay().TotalMilliseconds:N0}ms on the clock, fastPing {PingManager.LowPercentileOffset.TotalMilliseconds:N0}ms. "
+                            + $"{CalculateRemainingDelay().TotalMilliseconds:N0}ms on the clock, "
+                            + $"fastPing {PingManager.LowPercentileOffset.TotalMilliseconds:N0}ms. "
 
-                            //which arm of the staleness test the frame landed in, since the distance above is read
-                            //back off a position the repair may have just rewritten - without this the two cases
-                            //are indistinguishable in the log, and they mean opposite things
                             + $"move_num {data.MoveNum} vs {moveNumAtEmit} at emit, abs={data.ABS}, mapChanged={mapChanged} "
                             + $"({(mapChanged || data.ABS || (data.MoveNum > moveNumAtEmit) ? "believed" : "position repaired")})");
 
@@ -3170,13 +3041,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     else
                         Character.SetMoving(point);
 
-                    //a frame this branch has just decided not to believe must not move the deadline either. The reset
-                    //below restarts the leg from now, against a position the merge has already rewound - so a stale
-                    //frame buys most of the distance twice. Frames that agree still reset, which is what it is for
+                    //a disbelieved frame must not move the deadline either
                     return false;
                 }
 
-                await delay.SetDelayAsync(RemainingDelay());
+                await delay.SetDelayAsync(CalculateRemainingDelay());
 
                 return false;
             });
@@ -3185,15 +3054,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.NewMap,
             data =>
             {
-                //every path that gets here relocated the character, so nothing this leg reckoned about where it is
-                //survives - set before the jail branch, which returns a result rather than falling through
+                //set before the jail branch, which returns a result
                 mapChanged = true;
 
                 if (data.Map.EqualsI("jail"))
                 {
-                    //this leg's own two endpoints, which are the pair the server hashed. Reading them back off
-                    //Character answers about the jail spawn instead: OnNewMapAsync is subscribed at setup and so
-                    //runs ahead of this one, and it has already relocated the character by the time this asks
+                    //this leg's own endpoints; OnNewMapAsync has already moved Character to the jail spawn
                     var standingOnWall = Pathfinder.GetNavMesh(startLoc.Map) is not null && Pathfinder.IsWall(startLoc);
                     var validPath = Pathfinder.CanMove(startLoc, goingLoc);
 
@@ -3204,22 +3070,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //one coherent read: a frame landing between the two would put a position on the wire the character never
-        //stood on, and the server quantises both ends of a move onto a 10-unit lattice and jails you for landing
-        //off its flood fill
+        //one read, so x and y come from the same frame
         var from = Character.Movement;
 
-        //the pair the server is about to hash, and it validates the line between them rather than the endpoints.
-        //from is a live read, so a leg whose timer ran out, a repaired position or a reconnect all hand this a start
-        //the path never chose - and the server answers that with defeat_player and a transport to jail
+        //the server validates the line between the two ends and jails the character for crossing a wall
         var fromLoc = new Location(currentMap, new Point(from.X, from.Y));
 
-        //a map with no mesh cannot answer, and refusing every walk on one would strand the character there
+        //a map with no mesh cannot answer
         if (!skipWallCheck && Pathfinder.GetNavMesh(currentMap) is not null)
         {
-            //CanMove traces outward from the start's own cell and refuses on the first walled one, so a character the
-            //raster puts inside a wall is refused every destination, the ones leading back out included. FillWalls
-            //pads by the collision base, so an ordinary graze leaves a legal position inside the padding
+            //CanMove refuses every destination from a start inside a wall, the ones leading back out included
             if (Pathfinder.IsWall(fromLoc))
                 Logger.Warn($"Walking from {fromLoc} to {goingLoc} unguarded. (the raster has this standing inside a wall)");
             else if (!Pathfinder.CanMove(fromLoc, goingLoc))
@@ -3237,20 +3097,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 m = Character.MapChangeCount
             });
 
-        //fixed from the position the emit above just claimed, and before anything reads the remaining time: this is
-        //the one measurement of this leg that no later frame is allowed to move
+        //from the position the emit claimed, before anything reads the remaining time
         legLength = new Point(from.X, from.Y).Distance(point);
 
-        var initialDelay = RemainingDelay();
+        var initialDelay = CalculateRemainingDelay();
 
-        //taken off the write itself rather than read back afterwards: a frame landing between the two would raise
-        //this past the number this leg was started with, which flips the staleness test above from "position
-        //repaired" to "believed" for a genuinely stale frame
+        //taken off the write itself, so a frame landing in between cannot raise it
         moveNumAtEmit = Character.SetMoving(point)
                                  .MoveNum;
 
-        //set beside moveNumAtEmit rather than before the emit: the callback below is gated on setMovingAt having a
-        //value, so the two have to become true together or a frame could be judged against an unset baseline
+        //set beside moveNumAtEmit, since the callback above is gated on it
         setMovingAt = DateTime.UtcNow;
 
         var delayTask = delay.WaitAsync(initialDelay, token);
@@ -3280,16 +3136,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
         }
 
-        //one read for the destination and the moving flag both: stillOurs below is exactly the question of whether
-        //those two agree, and a frame landing between two separate reads answers it with halves of different states
+        //one read, so the destination and the moving flag come from the same frame
         var arrival = Character.Movement;
 
         //find out where we're going
         var going = new Point(arrival.GoingX, arrival.GoingY);
 
-        //a destination that is no longer ours means something took the character over - a transport, or a second walk
-        //if one ever overlapped this one - and neither may have this leg's endpoint stamped over it. A leg past the
-        //grace is the exception, and Moving is what keeps that exception from swallowing a real supersession
+        //a destination that is no longer ours means something else took the character over, unless a corrected leg has
+        //stopped
         var stillOurs = going.Equals(point) || (correctionAttempted && !mapChanged && !arrival.Moving);
 
         if (stillOurs)
@@ -3303,9 +3157,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             Character.StopMoving();
 
-            //only where the leg is believed to have run its course. On the correction path going holds whatever the
-            //disagreeing frame said, so stamping it would restore the rewind the repair above just undid - and the
-            //StopMoving on the line before has already left the character coherent at its reckoned position
+            //on the correction path going holds whatever the disagreeing frame said
             if (going.Equals(point))
                 Character.UpdateLocation(going);
         }
@@ -3322,8 +3174,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="InvalidOperationException">Failed to open chest {chestId}. ({reason})</exception>
     /// <exception cref="TimeoutException">Network operation timed out after {timeout}ms.</exception>
     /// <remarks>
-    ///     Only a chest_opened frame removes the chest from <see cref="Chests" />, so an open that fails or times out prunes
-    ///     it here instead - otherwise the chest stays in the collection and every later sweep retries it.
+    ///     Only a <c>chest_opened</c> frame removes the chest from <see cref="Chests" />, so an open that fails or times out
+    ///     prunes it here instead.
     /// </remarks>
     public async Task<ChestOpenedData> OpenChestAsync(string chestId)
     {
@@ -3332,8 +3184,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation<ChestOpenedData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //the reason the server refused, so the decision below can tell a chest that is gone from one that is merely
-        //out of reach for a moment
+        //the reason the server refused, so a chest that is gone can be told from one that is out of reach for a moment
         string? refusal = null;
 
         using var chestOpenedCallback = Socket.On<ChestOpenedData>(
@@ -3349,9 +3200,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //a refused open answers on game_response and never on chest_opened, so without this arm every refusal burned
-        //the whole network timeout before it was noticed. loot_failed and loot_no_space were already costing that;
-        //cave_paused made it lossy, since the chest was then pruned and a cave chest holds the party's shared purse
+        //a refused open answers on game_response, never on chest_opened
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -3384,9 +3233,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw;
         }
 
-        //a gone frame prunes itself through OnChestOpened, and any other failure would leave the chest behind - except
-        //a dungeon vote, which freezes the instance and refuses every open for up to a minute. The chest is still
-        //there and still ours, so it is kept for the next sweep
+        //a dungeon vote refuses every open for up to a minute, and the chest is still there afterwards
         if (!expectation.IsSuccessful)
         {
             if (!"cave_paused".EqualsI(refusal ?? string.Empty))
@@ -3398,9 +3245,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Charges the opener for the whole party's share of the chest. The emit hook priced a solo open of an empty chest;
-    ///     the server resends every member and bills the opener for all of it, and the response says who received what.
+    ///     Charges the opener for the whole party's share of the chest, beyond the solo open the emit hook already priced.
     /// </summary>
+    /// <param name="opened">
+    ///     The chest frame, which says who received what.
+    /// </param>
     private void ChargeChestOpen(ChestOpenedData opened)
     {
         var looters = opened.Items
@@ -3411,9 +3260,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var openerGotItem = looters.Any(name => name!.EqualsI(Character.Name));
         var partySize = opened.Party ? Math.Max(1, Party.MemberNames.Count) : 1;
-        var cost = CallCost.OfChestOpen(partySize, looters.Count - (openerGotItem ? 1 : 0), openerGotItem);
+        var cost = CallCost.CalculateChestOpenCost(partySize, looters.Count - (openerGotItem ? 1 : 0), openerGotItem);
 
-        CallMeter.Charge(ALSocketEmitType.OpenChest, cost - CallCost.Of(ALSocketEmitType.OpenChest));
+        CallMeter.Charge(ALSocketEmitType.OpenChest, cost - CallCost.CalculateCost(ALSocketEmitType.OpenChest));
     }
 
     /// <summary>Asynchronously pings the server.</summary>
@@ -3485,33 +3334,28 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task<IReadOnlyList<TradeItem>> RequestPontyItemsAsync()
     {
-        var requestId = RequestId.New();
+        var requestId = RequestId.Create();
         var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //a frame carrying someone else's token is that call's to resolve, not this one's - sbuy refuses with
-                //place "secondhands" and failed set, so an ungated arm below would end this read on an unrelated buy's
-                //refusal. A frame with no token at all is a handler that does not echo one and still has to land here
+                //a frame carrying someone else's token belongs to that call, such as a buy's refusal
                 if ((data.RequestId != null) && !requestId.EqualsI(data.RequestId))
                     return TaskCache.FALSE;
 
                 var result = data.ResponseType switch
                 {
-                    //the token moves the listing onto game_response; the bare secondhands event is no longer sent
                     GameResponseType.Data when (data.RequestId != null) && data.Items is not null =>
 
-                        //reversed back because the server ships it newest-first (csold.slice().reverse()) while the
-                        //bare event shipped it oldest-first, and callers buy down the list in the order they get it
+                        //the server ships it newest-first
                         source.TrySetResult(
                             data.Items
                                 .Reverse()
                                 .ToArray()),
 
-                    //the null-id branch is dead for this arm: once a token is sent the server always echoes it back on
-                    //the refusal, so an un-tokened distance frame on this socket is some other call's to answer
+                    //an untokened distance frame belongs to some other call
                     GameResponseType.Distance when data.RequestId != null => source.TrySetResult("Failed to get ponty items. (get closer)"),
                     _ when data.Failed && "secondhands".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to get ponty items. ({data.Reason ?? data.ResponseType.ToString()})"),
@@ -3532,8 +3376,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously fetches the lost-and-found stock, mirroring <see cref="RequestPontyItemsAsync" />
-    ///     (node/server.js:6882).
+    ///     The phrase <see cref="RequestLostAndFoundItemsAsync" /> and <see cref="BuyFromLostAndFoundAsync" /> put in the one
+    ///     refusal a donation would fix, for a caller to match the exception message against.
+    /// </summary>
+    public const string LOSTANDFOUND_DONATION_REQUIRED = "no donation on this connection";
+
+    /// <summary>
+    ///     Asynchronously fetches the lost-and-found stock, mirroring <see cref="RequestPontyItemsAsync" />.
     /// </summary>
     /// <returns>
     ///     <see cref="IReadOnlyList{T}" /> of <see cref="TradeItem" />
@@ -3541,46 +3390,28 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The items currently in lost-and-found.
     /// </returns>
     /// <remarks>
-    ///     Two gates ahead of the listing, and both throw here rather than time out. The first is a single donation of
-    ///     1,000,000 gold or more, which sets <c>player.donation</c> ( <c>node/server.js:7399-7402</c> ); that flag lives on
-    ///     the live player and never on <c>player.p</c> , so <b>it is spent again on every reconnect</b> and an account that
-    ///     donated an hour ago is refused after a dropped socket. The second is distance, and it carries no
-    ///     <c>player.computer</c> branch ( <c>:6893</c> ), so this has to be asked from woffice.
+    ///     Refused unless this connection has donated 1,000,000 gold or more at once, <b>which a reconnect resets</b>, and
+    ///     unless the character stands near the NPC; there is no computer waiver.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Failed to get lost-and-found items. ({reason})</exception>
-    /// <summary>
-    ///     The phrase <see cref="RequestLostAndFoundItemsAsync" /> puts in the one refusal that a donation would fix.
-    /// </summary>
-    /// <remarks>
-    ///     A caller has to tell that refusal from the other ways the call can fail, because it is the only one worth spending
-    ///     a million gold on - and what reaches the caller is an exception message, so the sentence is all there is to match.
-    ///     Named here so the match is against a constant both sides compile against rather than against a string typed out
-    ///     twice.
-    /// </remarks>
-    public const string LOSTANDFOUND_DONATION_REQUIRED = "no donation on this connection";
-
     public async Task<IReadOnlyList<TradeItem>> RequestLostAndFoundItemsAsync()
     {
-        var requestId = RequestId.New();
+        var requestId = RequestId.Create();
         var source = new TaskCompletionSource<Expectation<IReadOnlyList<TradeItem>>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //a frame carrying someone else's token is that call's to resolve, not this one's - sbuy answers both
-                //distance and lostandfound_donate from the same counter, so an ungated arm below would end this read
-                //on an unrelated buy's refusal. A frame with no token is a handler that does not echo one and lands here
+                //a frame carrying someone else's token belongs to that call, such as a buy's refusal
                 if ((data.RequestId != null) && !requestId.EqualsI(data.RequestId))
                     return TaskCache.FALSE;
 
                 var result = data.ResponseType switch
                 {
-                    //the token moves the listing onto game_response; the bare lostandfound event is no longer sent
                     GameResponseType.Data when (data.RequestId != null) && data.Items is not null =>
 
-                        //reversed back because the server ships it newest-first (cfound.slice().reverse()) while the
-                        //bare event shipped it oldest-first, and callers read down the list in the order they get it
+                        //the server ships it newest-first
                         source.TrySetResult(
                             data.Items
                                 .Reverse()
@@ -3606,10 +3437,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously fetches the server's gold reserve (node/server.js:7334), the pool that gates merchant donation xp
-    ///     rate, slots odds, the maximum dice bet, and the dice house edge. Unlike
-    ///     <see cref="RequestLostAndFoundItemsAsync" />, the info branch returns before either the donation or the distance
-    ///     check runs, so this needs no prior donation and no proximity to the lost-and-found NPC.
+    ///     Asynchronously fetches the server's gold reserve, the pool that gates merchant donation xp rate, slots odds, the
+    ///     maximum dice bet and the dice house edge. Needs no donation and no proximity to the lost-and-found NPC.
     /// </summary>
     /// <returns>The server's current gold reserve.</returns>
     public async Task<float> RequestServerGoldAsync()
@@ -3635,7 +3464,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously fetches this character's merchant trade history (node/server.js:8292).
+    ///     Asynchronously fetches this character's merchant trade history.
     /// </summary>
     /// <returns>
     ///     <see cref="IReadOnlyList{T}" /> of <see cref="TradeHistoryEntry" />
@@ -3662,8 +3491,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Asynchronously fetches the monster/drop tracker snapshot (node/server.js:4987). Requires the tracker item
-    ///     server-side; without it the server replies nothing and this call faults on timeout.
+    ///     Asynchronously fetches the monster/drop tracker snapshot. Requires the tracker item; without it the
+    ///     server replies nothing and this call times out.
     /// </summary>
     /// <returns>
     ///     <see cref="TrackerData" />
@@ -3907,9 +3736,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.Distance when "send".EqualsI(data.Place!) => source.TrySetResult(
                         $"Failed to send {quantity} of item {item.Name} to {toPlayerId}. (get closer)"),
 
-                    //the quantity is the server's, not ours: it clamps the order to the stack it actually holds, so a
-                    //stack that shrank between our read and its handler is acknowledged for less than we asked - a
-                    //send that happened, not one that failed. Demanding equality spent the full network timeout
+                    //the server clamps the order to the stack it holds, so it may acknowledge less than we asked
                     GameResponseType.ItemSent when toPlayerId.EqualsI(data.Name!)
                                                    && (data.Item?.Name.EqualsI(item.Name) == true)
                                                    && (data.Quantity <= quantity) => source.TrySetResult(Expectation.Success),
@@ -3956,9 +3783,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //only the path that actually sends the invite emits the game_log above; the other three answer with a
-        //game_response and nothing else (node/server.js:10914-10929), so without these every invite to someone
-        //offline, already partied, or over the cap costs a full network timeout
+        //only a sent invite emits the game_log above; the refusals answer with a game_response alone
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -4001,13 +3826,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
-    /// <exception cref="ArgumentNullException">locations</exception>
+    /// <exception cref="ArgumentNullException">point</exception>
     public Task SmartMoveAsync(
         IPoint point,
         float distance = 0,
         PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync([new Destination(new Location(Character.Map, point), distance)], options, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(point);
+
+        return SmartMoveAsync([new Destination(new Location(Character.Map, point), distance)], options, cancellationToken);
+    }
 
     /// <summary>
     ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -4024,16 +3853,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
-    /// <exception cref="ArgumentNullException">locations</exception>
+    /// <exception cref="ArgumentNullException">endPoints</exception>
     public Task SmartMoveAsync(
         IEnumerable<IPoint> endPoints,
         float distance = 0,
         PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync(
+    {
+        ArgumentNullException.ThrowIfNull(endPoints);
+
+        return SmartMoveAsync(
             endPoints.Select(point => new Destination(new Location(Character.Map, point), distance)),
             options,
             cancellationToken);
+    }
 
     /// <summary>
     ///     Asynchronously begins moving to a location that may or may not require complex pathfinding.
@@ -4047,14 +3880,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
-    /// <exception cref="ArgumentNullException">locations</exception>
+    /// <exception cref="ArgumentNullException">location</exception>
     [OverloadResolutionPriority(1)]
     public Task SmartMoveAsync(
         ILocation location,
         float distance = 0,
         PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync([new Destination(location, distance)], options, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        return SmartMoveAsync([new Destination(location, distance)], options, cancellationToken);
+    }
 
     /// <summary>
     ///     Asynchronously begins moving to any number of points on the current map that may or may not require complex
@@ -4069,13 +3906,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
-    /// <exception cref="ArgumentNullException">locations</exception>
+    /// <exception cref="ArgumentNullException">endLocations</exception>
     public Task SmartMoveAsync(
         IEnumerable<ILocation> endLocations,
         float distance = 0,
         PathOptions? options = null,
         CancellationToken? cancellationToken = null)
-        => SmartMoveAsync(endLocations.Select(l => new Destination(l, distance)), options, cancellationToken);
+    {
+        ArgumentNullException.ThrowIfNull(endLocations);
+
+        return SmartMoveAsync(endLocations.Select(l => new Destination(l, distance)), options, cancellationToken);
+    }
 
     /// <summary>
     ///     Asynchronously moves to an number of locations that may or may not require complex pathfinding.
@@ -4086,20 +3927,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     character's own speed and ignores blink on anything but a mage.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
-    /// <exception cref="ArgumentNullException">locations</exception>
+    /// <exception cref="ArgumentNullException">endDestinations</exception>
     public Task SmartMoveAsync<T>(IEnumerable<T> endDestinations, PathOptions? options = null, CancellationToken? cancellationToken = null)
         where T: ILocation, ICircle
-        => SmartMoveAsync(
+    {
+        ArgumentNullException.ThrowIfNull(endDestinations);
+
+        return SmartMoveAsync(
             endDestinations,
             options ?? PathOptions.Default,
             null,
             cancellationToken);
-
-    /// <summary>
-    ///     How far from a leg's planned start the character may stand before the walk waits a round trip for the position to
-    ///     settle.
-    /// </summary>
-    private const float LEG_START_TOLERANCE = 5f;
+    }
 
     /// <summary>
     ///     Asynchronously moves to any number of locations that may or may not require complex pathfinding, with town recall
@@ -4107,21 +3946,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     /// <param name="endDestinations">A collection of potential end locations.</param>
     /// <param name="options">
-    ///     How the route is priced: recall, walking speed, blink. What the caller asked for, kept whole across a refusal. The
-    ///     walker fills in the character's own speed and ignores blink on anything but a mage.
+    ///     How the route is priced: recall, walking speed, blink, as the caller asked, kept whole across a refusal.
     /// </param>
     /// <param name="townBlockedOn">
-    ///     The map a recall was just refused on, or null. The server refuses one while more than five things are targeting the
-    ///     character, which is a fact about standing here rather than about the trip - so it is the map that carries the
-    ///     suppression, and leaving it brings the option back.
+    ///     The map a recall was just refused on, or null. The server refuses a recall while more than five things target the
+    ///     character, so leaving the map brings the option back.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
+    /// <exception cref="ArgumentNullException">endDestinations</exception>
     private async Task SmartMoveAsync<T>(
         IEnumerable<T> endDestinations,
         PathOptions options,
         string? townBlockedOn,
         CancellationToken? cancellationToken) where T: ILocation, ICircle
     {
+        //how far from a leg's planned start the character may stand before the walk waits for the position to settle
+        const float LEG_START_TOLERANCE = 5f;
+
         if (endDestinations.Equals(default))
             throw new ArgumentNullException(nameof(endDestinations));
 
@@ -4145,21 +3986,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var start = Character.ToLocation();
 
-        //the suppression decided here covers the whole route rather than the map being left: recall off leaves no
-        //recall leg anywhere on it. Priced against this character's own speed: the channel is a fixed three seconds,
-        //so what it is worth is however far this character would have walked in them. Blink is priced only for a
-        //mage, since the client ignores the cast for every other class. The cooldown, pending penalty and mana bar
-        //are read from the character here too, so a re-plan after a leg fails prices blink against where they
-        //stand now, not where they stood when the trip started
+        //recall off covers the whole route; blink is priced for a mage alone, against the character's current
+        //cooldown, penalty and mana
         var path = Pathfinder.FindPathAsync(
             start,
             ends,
             options with
             {
                 WalkSpeed = Character.Speed,
-                UseTown = options.UseTown && (townBlockedOn?.EqualsI(start.Map) != true) && !TownRecentlyFailedOn(start.Map),
+                UseTown = options.UseTown && (townBlockedOn?.EqualsI(start.Map) != true) && !HasTownFailedRecently(start.Map),
                 BlinkCost = this is Mage ? options.BlinkCost : null,
-                BlinkReadyInMs = Cooldowns.TryGetValue(GameData.Skills.Blink.CooldownKey("blink"), out var blinkCooldown)
+                BlinkReadyInMs = Cooldowns.TryGetValue(GameData.Skills.Blink.GetCooldownKey("blink"), out var blinkCooldown)
                     ? Math.Max(0f, blinkCooldown.RemainingMS)
                     : 0f,
                 PenaltyMs = Character.Conditions.TryGetValue(Condition.PenaltyCooldown, out var penalty)
@@ -4169,8 +4006,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 MaxMp = Character.MaxMP
             });
 
-        //a walk that neither throws nor arrives is otherwise indistinguishable from one that never started: both of
-        //the silent exits below are ordinary, and a caller only ever sees this method return
         var edgesWalked = 0;
 
         await foreach (var edge in path)
@@ -4178,16 +4013,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (cancellationToken is { IsCancellationRequested: true })
                 break;
 
-            //MoveAsync has no already-there guard, so the zero-length walk a start already inside its end is answered
-            //with would emit a move to the position the character is already on
+            //a start already inside its end is answered with a zero-length walk
             if (edge is { Type: EdgeType.Walk, Cost: 0f } && (edge.Start.DistanceWithMapCheck(edge.End) == 0f))
                 continue;
 
             try
             {
-                //a leg ends on a dead-reckoned timer, so its emit can land while the character is still short of the
-                //point the search planned this leg to start from - and the server re-aims the walk from wherever it
-                //has the character, over a line the search never validated. Standing still lets the position settle
+                //a leg ends on a timer, so the character can still be short of where the next leg starts
                 if ((edge.Type == EdgeType.Walk) && (Character.DistanceWithMapCheck(edge.Start) > LEG_START_TOLERANCE))
                     await Task.Delay(PingManager.LowPercentileOffset * 2, cancellationToken ?? CancellationToken.None);
 
@@ -4200,14 +4032,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 Logger.Debug($"Path leg {edge.Type} to {edge.End} failed after {edgesWalked} leg(s). {e.Message}");
 
-                //the rest of the trip is walked, but the refusal is only carried as far as this map. A recall that
-                //timed out is carried the same way as one that was refused: the confirmation is the only thing
-                //missing either way, and abandoning the trip over it leaves the character where it started
+                //a refused or timed out recall is suppressed on this map, and the rest of the trip walked
                 if ((edge.Type == EdgeType.Town) || e.Message.ContainsI("failed to town"))
                 {
-                    //remembered past this call as well as inside it. The suppression above lives for one call, so a
-                    //lane polling at 10Hz re-planned straight onto the same town edge and emitted again. Measured at
-                    //a recall every 400ms for forty seconds against a monster that broke each one
+                    //remembered past this call, so the next call does not plan the same recall again
                     TownFailures[Character.Map] = Stopwatch.GetTimestamp();
 
                     await SmartMoveAsync(
@@ -4217,9 +4045,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         cancellationToken);
                 }
 
-                //a refused cast drops the cast from the rest of the trip rather than from one map: the refusals that
-                //remain are the character's own - dampened, dead, or a bar the wait gave up on - and every one of
-                //them is as true on the next map as on this one. Without this the re-plan chooses the same cast again
+                //a refused blink is dropped from the rest of the trip, since its causes follow the character
                 else if (edge.Type == EdgeType.Blink)
                     await SmartMoveAsync(
                         ends,
@@ -4230,9 +4056,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         townBlockedOn,
                         cancellationToken);
 
-                //the planner and the line test disagree about the ground here, so every plan from this spot starts with
-                //the same refused leg and the character never moves again. Sent unchecked, the server either accepts it
-                //or kills the character, and both end the loop
+                //the planner and the line test disagree here, so every plan from this spot starts with the same refused
+                //leg; sent unchecked, the server either accepts it or kills the character
                 else if ((edgesWalked == 0)
                          && (edge.Type == EdgeType.Walk)
                          && !Character.Moving
@@ -4248,8 +4073,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 break;
             }
 
-            //whatever was targeting the character is gone with the map, so recall is worth planning around again -
-            //and the path in hand was planned without it, so getting the option back means planning again
+            //whatever was targeting the character is gone with the map, so re-plan with recall
             if (townBlockedOn?.EqualsI(Character.Map) == false)
             {
                 await SmartMoveAsync(
@@ -4262,10 +4086,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             }
         }
 
-        //a start already inside one of its ends is answered with a zero-length walk, skipped above - an arrival rather
-        //than a failure, and the one case that repeats: a mover standing on its destination re-plans every tick, and
-        //every one of those plans is correctly empty. 5,297 lines of it in one night's log. A walk cancelled before
-        //its first leg - a tracking walk re-aiming at a roaming target - is neither: it never looked for a path
+        //a start already inside one of its ends is an arrival, and a cancelled walk never looked for a path
         if ((edgesWalked == 0) && (cancellationToken is not { IsCancellationRequested: true })
             && !ends.Any(end => start.DistanceWithMapCheck(end) <= end.Radius))
             Logger.Debug($"No path walked from {start} to {string.Join(", ", ends.Select(end => end.ToString()))}.");
@@ -4383,11 +4204,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     public Task SmartMoveNearAreaAsync(InscribedBoundary boundary, PathOptions? options = null, CancellationToken? cancellationToken = null)
-        => SmartMoveAsync(
+    {
+        ArgumentNullException.ThrowIfNull(boundary);
+
+        return SmartMoveAsync(
             boundary,
             boundary.Radius,
             options,
             cancellationToken);
+    }
 
     /// <summary>
     ///     Asynchronously swaps the items between two bank slots, or moves an item from one slot to another.
@@ -4414,13 +4239,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if ((uint)bankSlot2 >= BANK_PACK_SIZE)
             throw new ArgumentOutOfRangeException(nameof(bankSlot2));
 
-        //the server refuses a == b outright (node/server.js:8463), and a sort loop emits exactly that whenever an
-        //item is already where it belongs. Nothing to move is this call succeeding, not failing
+        //the server refuses a == b outright, and there is nothing to move
         if (bankSlot1 == bankSlot2)
             return;
 
-        var item1 = At(bank, bankSlot1);
-        var item2 = At(bank, bankSlot2);
+        var item1 = GetItem(bank, bankSlot1);
+        var item2 = GetItem(bank, bankSlot2);
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -4444,24 +4268,23 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (!data.Bank.TryGetValue(bankPack, out var cBank))
                     return TaskCache.FALSE;
 
-                var at1 = At(cBank, bankSlot1);
-                var at2 = At(cBank, bankSlot2);
+                var cItem1 = GetItem(cBank, bankSlot1);
+                var cItem2 = GetItem(cBank, bankSlot2);
 
-                if (SameContents(at1, item2) && SameContents(at2, item1))
+                if (HasSameContents(cItem1, item2) && HasSameContents(cItem2, item1))
                 {
                     source.TrySetResult(Expectation.Success);
 
                     return TaskCache.FALSE;
                 }
 
-                //the server merges rather than swaps when the two stack, and unlike the inventory's imove it merges
-                //into b and empties a (node/server.js:8472 against :8354). That is this call succeeding, not failing
+                //two items that stack merge into b and empty a, unlike the inventory's imove
                 if ((item1 != null)
                     && (item2 != null)
-                    && (at1 == null)
-                    && (at2 != null)
-                    && at2.Name.EqualsI(item2.Name)
-                    && (at2.Quantity == (item1.Quantity + item2.Quantity)))
+                    && (cItem1 == null)
+                    && (cItem2 != null)
+                    && cItem2.Name.EqualsI(item2.Name)
+                    && (cItem2.Quantity == (item1.Quantity + item2.Quantity)))
                     source.TrySetResult(Expectation.Success);
 
                 return TaskCache.FALSE;
@@ -4481,7 +4304,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
 
         //a pack arrives trimmed to its highest occupied slot, so a valid slot past the array's end reads as empty
-        static Item? At(IReadOnlyList<Item?> pack, int slot) => (uint)slot < (uint)pack.Count ? pack[slot] : null;
+        static Item? GetItem(IReadOnlyList<Item?> pack, int slot) => (uint)slot < (uint)pack.Count ? pack[slot] : null;
     }
 
     /// <summary>
@@ -4493,8 +4316,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <exception cref="ArgumentOutOfRangeException">inventorySlot2</exception>
     public async Task SwapInventorySlotsAsync(int inventorySlot1, int inventorySlot2)
     {
-        //imove takes any index below items.length, not just below isize (node/server.js:8699), and it is the only
-        //handler that does - so this is the one call that can reach a slot the bags overflowed into and move it back
+        //imove takes any index below items.length, not just below isize, so it can reach a slot the bags overflowed into
         var addressable = Math.Max(Character.InventorySize, Character.Inventory.Count);
 
         if ((inventorySlot1 < 0) || (inventorySlot1 >= addressable))
@@ -4512,8 +4334,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.Character,
             data =>
             {
-                //bounds-checked: a frame carrying a shorter inventory than the one these slots were read from would
-                //otherwise throw inside the callback, and the emit is already with the server by then
+                //a frame can carry a shorter inventory than the one these slots were read from
                 // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
                 if ((data.Inventory == null) || (inventorySlot1 >= data.Inventory.Count) || (inventorySlot2 >= data.Inventory.Count))
                     return TaskCache.FALSE;
@@ -4521,15 +4342,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var cItem1 = data.Inventory[inventorySlot1];
                 var cItem2 = data.Inventory[inventorySlot2];
 
-                if (SameContents(cItem1, item2) && SameContents(cItem2, item1))
+                if (HasSameContents(cItem1, item2) && HasSameContents(cItem2, item1))
                 {
                     source.TrySetResult(Expectation.Success);
 
                     return TaskCache.FALSE;
                 }
 
-                //the server merges rather than swaps when the two stack, landing the whole stack in the first slot
-                //and emptying the second (node/server.js:8354). That is this call succeeding, not failing
+                //two items that stack merge into the first slot and empty the second
                 if ((item1 != null)
                     && (item2 != null)
                     && (cItem2 == null)
@@ -4616,7 +4436,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 s = spawnIndex
             });
 
-        NewMapData newMap = await DoorWait.ForLandingAsync(
+        NewMapData newMap = await DoorWait.WaitForLandingAsync(
             source.Task,
             inProgress.Task,
             ALClientSettings.NetworkTimeoutMS,
@@ -4630,7 +4450,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             return;
 
         //the emit hook priced the door; the mount or unmount the server bills beside it depends on both ends
-        CallMeter.Charge(ALSocketEmitType.Transport, CallCost.OfBankCrossing(fromBank, newData.Mount));
+        CallMeter.Charge(ALSocketEmitType.Transport, CallCost.CalculateBankCrossingCost(fromBank, newData.Mount));
 
         if (newMap.Map.ContainsI("bank") && newData.Mount)
             await WaitForBankAsync();
@@ -4644,20 +4464,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </param>
     /// <param name="instance">
     ///     An existing instance's id to join, or null to open a new one. Joining consumes nothing; opening consumes that
-    ///     dungeon's key (node/server.js:5585).
+    ///     dungeon's key.
     /// </param>
     /// <returns>
     ///     The instance id we landed in, read off the new map frame.
     /// </returns>
     /// <remarks>
-    ///     Separate from <see cref="TransportAsync" /> because these are two different socket events: <c>transport</c> walks
-    ///     static doors and takes a map and a spawn index (node/server.js:5630), <c>enter</c> creates and joins instances and
-    ///     takes a place and an optional instance name (:5783). Sending this payload to <c>transport</c> answers
-    ///     <c>cant_enter</c> on the handler's first guard, because a dungeon payload carries no <c>to</c>. Both forms here
-    ///     refuse from further than 120 units of the dungeon's fixed reference point.
+    ///     Uses <c>enter</c>, not <c>transport</c>, which refuses a dungeon payload. Refused from further than 120 units of the
+    ///     dungeon's fixed reference point.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">place</exception>
+    /// <exception cref="DungeonEntryException">The server refused the entry.</exception>
     public async Task<string> EnterDungeonAsync(string place, string? instance = null)
     {
+        ArgumentNullException.ThrowIfNull(place);
+
         //ahead of the callbacks below, which would otherwise listen through whatever the hook emits
         await RaiseBeforeEscapeAsync(CancellationToken.None);
 
@@ -4701,8 +4522,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //the server reads the absence of `name` as "make me a new one", so an empty string would be a join against
-        //an instance called "" and is refused rather than opening anything
+        //an absent name opens a new instance, while an empty one joins an instance called "" and is refused
         await Socket.EmitAsync(
             ALSocketEmitType.Enter,
             string.IsNullOrWhiteSpace(instance)
@@ -4720,22 +4540,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         NewMapData newMap = await source.Task.WithNetworkTimeout();
 
-        //`in` is what tells one copy of a dungeon from another. It is declared non-nullable on NewMapData but
-        //initialized `null!`, so it is optional in practice - hence the test rather than a `??`, which would read as
-        //a null check the compiler can see is redundant. Joining a named instance already says which one that is,
-        //so a missing `in` there falls back to the name asked for rather than to the bare map name - the map name
-        //is only the right answer for the create form, where there is nothing else to fall back to
+        //in tells one copy of a dungeon from another, and can be missing; a join falls back to the name asked for
         var resolvedInstance = !string.IsNullOrWhiteSpace(newMap.In)
             ? newMap.In
             : !string.IsNullOrWhiteSpace(instance)
                 ? instance
                 : newMap.Map;
 
-        //the NewMap subscription that feeds Character (OnNewMapAsync, registered at setup) sees this same frame and
-        //already applied whatever `in` it carried - empty, on the join form above. Left uncorrected, every reader of
-        //Character.In from here on (not least the dungeon run's own "am I in this copy" check) would see the wrong
-        //copy or none at all, even though the join itself succeeded. Character.In can genuinely be null here, which
-        //EqualsI treats as a receiver rather than an argument would - hence the plain comparison
+        //OnNewMapAsync already applied whatever in the frame carried, empty on a join; Character.In can be null
         if (!string.Equals(Character.In, resolvedInstance, StringComparison.OrdinalIgnoreCase))
             Character.UpdateMap(resolvedInstance, Character.Map);
 
@@ -4764,23 +4576,18 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation<InventoryIndexer>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //indexes rather than items: a character frame replaces Inventory with freshly deserialized Items, so a
-        //set-difference against a snapshot of them subtracts nothing (see the Item == remarks). Which slots were
-        //occupied is the durable fact, and it is what FindLandedItem tells identical items apart with
+        //indexes rather than items, since items compare by reference across frames
         var occupiedBefore = Character.Inventory
                                       .AsIndexed()
                                       .Select(indexed => indexed.Index)
                                       .ToHashSet();
 
-        //the refusal arm, and it has to be this event: every refusal in the unequip handler is a fail_response
-        //(node/server.js:7298-7314), landing as a game_response with failed:true and place:"unequip", and the
-        //character frame below only ever answers for success. Place is the filter, since a swap keeps two in flight
+        //every unequip refusal is a game_response with place "unequip"; a gear swap keeps an equip in flight beside it
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
-                //tolerating a null argument
+                //the literal is the receiver, since Place can be null
                 if (!data.Failed || !"unequip".EqualsI(data.Place!))
                     return TaskCache.FALSE;
 
@@ -4807,9 +4614,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 if (slotItem == null)
                 {
-                    //a gear swap keeps an equip in flight beside this unequip, and the item that equip displaces
-                    //can be an identical twin of the one coming off - FindLandedItem tells them apart by which
-                    //slot was empty before the emit
+                    //an equip in flight beside this can displace an identical item, so match by the slot that was empty
                     var inventoryItem = Character.Inventory.FindLandedItem(occupiedBefore, item.Name, item.Level);
 
                     if (inventoryItem != null)
@@ -4884,8 +4689,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 clevel = item?.Level ?? 0
             });
 
-        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
-        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        //unwrap explicitly: the implicit conversion to bool yields IsSuccessful and drops the failure reason
         var expectation = await source.Task.WithTimeout(60000);
         expectation.ThrowIfUnsuccessful();
 
@@ -4893,15 +4697,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Sacrifices an offering on an upgradable item with no scroll, banking a flat +0.5 grace on it. The item's level does
-    ///     not change and the item is never at risk - the server rolls nothing, it only runs the usual 1 second upgrade
-    ///     animation and answers <c>upgrade_offering_success</c> beside the generic success frame.
+    ///     Asynchronously sacrifices an offering on an upgradable item with no scroll, banking a flat +0.5 grace on it. The
+    ///     server rolls nothing, so the item's level does not change and the item is never at risk.
     /// </summary>
     /// <param name="inventorySlot">The slot of the item receiving the grace.</param>
     /// <param name="offeringSlot">
-    ///     The slot of the offering to consume. Every offering banks the same +0.5, so the cheapest is the right one.
+    ///     The slot of the offering to consume. Every offering banks the same +0.5.
     /// </param>
-    /// <returns><c>true</c> when the grace landed.</returns>
+    /// <returns>
+    ///     <c>true</c> if the grace landed; otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">Failed to deposit grace. ({reason})</exception>
     public async Task<bool> DepositGraceAsync(int inventorySlot, int offeringSlot)
     {
         var item = Character.Inventory[inventorySlot];
@@ -4943,15 +4749,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 item_num = inventorySlot,
 
-                //the server reads player.items[scroll_num]; -1 lands on nothing, and an absent scroll with an
-                //offering present is what selects its scroll-less grace branch
+                //-1 names no scroll, which with an offering present selects the server's grace branch
                 scroll_num = -1,
                 offering_num = offeringSlot,
                 clevel = item?.Level ?? 0
             });
 
-        //unwrap explicitly - the implicit Expectation<bool?> -> bool conversion yields IsSuccessful,
-        //which silently swallows the failure reason and inverts a legitimate "it failed" result
+        //unwrap explicitly: the implicit conversion to bool yields IsSuccessful and drops the failure reason
         var expectation = await source.Task.WithTimeout(60000);
         expectation.ThrowIfUnsuccessful();
 
@@ -5029,20 +4833,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     generator.
     /// </summary>
     /// <remarks>
-    ///     The same emit as <see cref="EquipAsync" />, <c>equip</c> with <c>num</c> and no slot; the server picks the branch
-    ///     from the item's type (node/server.js:7321-7536). Every branch ends on the same <c>
-    ///         {response:"data", place:"equip", success:true, num}
-    ///     </c> frame and every refusal is a <c>fail_response</c> carrying <c>place:"equip"</c>, so one waiter serves them
-    ///     all. <c>num</c> ties the success to this call rather than to another equip in flight on the same socket. A refusal
-    ///     carries no <c>num</c>, so one from a concurrent equip can end this call early - the exposure
-    ///     <see cref="EquipAsync" /> already has.
-    ///     <br />
-    ///     Whatever a branch sends beside the success - a jar's <c>cx_new</c>, a potion's <c>pot_timeout</c> - lands on the
-    ///     client's own handlers. An equippable item handed to this goes to its default slot, which is what the handler does
-    ///     with no slot; <see cref="EquipAsync" /> is the call for that.
-    ///     <br />
-    ///     Call cost is the equip row, billed by the emit hook, less one unit for a potion: that branch alone resends with
-    ///     <c>nc</c>.
+    ///     The same <c>equip</c> emit as <see cref="EquipAsync" /> with no slot; the server picks the branch from the item's
+    ///     type. A refusal carries no <c>num</c>, so one from a concurrent equip can end this call early.
     /// </remarks>
     /// <param name="inventorySlot">The inventory index of the item to use.</param>
     /// <exception cref="InvalidOperationException">Failed to use item {slotOrName}. ({reason})</exception>
@@ -5098,8 +4890,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();
 
-        //a potion resends with nc where every other branch does not (node/server.js:7506), one unit under the equip
-        //row the emit hook billed. The server's rule is gives-and-not-xp; among shipped items that is the pot type
+        //a potion alone resends with nc, one unit under the equip row the emit hook billed
         if (item.GetData() is { Type: ItemType.Pot })
             CallMeter.Charge(ALSocketEmitType.Equip, -1d);
     }
@@ -5131,22 +4922,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             "regen_mp");
 
     /// <summary>
-    ///     How many monsters may be targeting the character and still let it off the map.
+    ///     The most monsters that may target the character and still let it leave the map by door, dungeon entry or recall.
+    ///     Past it the server answers <c>cant_escape</c>.
     /// </summary>
-    /// <remarks>
-    ///     The server's own bound, and it guards all four ways out - leaving a map, a door or transporter, a dungeon entry,
-    ///     and the town recall (node/server.js:5368, 5389, 5538, 5720). Over it, each is refused with <c>cant_escape</c> .
-    /// </remarks>
     private const int MAX_ESCAPE_TARGETS = 5;
 
     /// <summary>
-    ///     Whether the server would let this character off the map right now.
+    ///     Whether the server would let this character off the map right now, read off the server's own <c>targets</c>
+    ///     counter.
     /// </summary>
-    /// <remarks>
-    ///     Exact rather than a guess. <c>targets</c> is the server's own counter and it ships on every update of this
-    ///     character, so this is the number the refusal branches on rather than a recount of what is in sight - a monster that
-    ///     has lost interest comes off it a beat after the screen says so, and that lag is the server's as well.
-    /// </remarks>
     public bool CanEscape => Character.AggroTargets <= MAX_ESCAPE_TARGETS;
 
     /// <summary>
@@ -5154,18 +4938,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     <see cref="CanEscape" /> is false. A consumer's chance to shed aggro so the emit goes through.
     /// </summary>
     /// <remarks>
-    ///     Raised on the refusal's own condition rather than on every escape, so a door that was never going to be refused
-    ///     costs one comparison and nothing else.
-    ///     <br />
-    ///     Awaited, so the emit waits on it and a hook that throws takes the emit down with it. Whatever it arranges has to
-    ///     reach the wire ahead of the emit: one socket carries them in the order they were written, and the server reads
-    ///     <c>targets</c> when it handles the escape rather than when it was sent.
+    ///     Awaited, so a hook that throws takes the emit down with it. Whatever it arranges must reach the wire ahead of the
+    ///     emit.
     /// </remarks>
     public Func<CancellationToken, Task>? BeforeEscape { get; set; }
 
     /// <summary>
-    ///     Gives <see cref="BeforeEscape" /> its chance, when there is anything for it to fix.
+    ///     Invokes <see cref="BeforeEscape" /> when the character cannot escape.
     /// </summary>
+    /// <param name="token">
+    ///     A token used to cancel the hook.
+    /// </param>
+    /// <returns>
+    ///     The hook's task, or a completed task when there is nothing to fix.
+    /// </returns>
     private Task RaiseBeforeEscapeAsync(CancellationToken token)
     {
         if (CanEscape || BeforeEscape is not { } hook)
@@ -5179,29 +4965,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     before the three second channel starts.
     /// </summary>
     /// <remarks>
-    ///     Anything that hits the character deletes every channel it has, and so does equipping an item, so a defence against
-    ///     either has to be standing before the emit - there is no point inside the channel at which it can be arranged. This
-    ///     is the one seam every recall passes through, a pathfound one included.
-    ///     <br />
-    ///     Awaited, so the recall waits on it and a hook that throws takes the recall down with it.
-    ///     <br />
-    ///     Second of the two hooks the recall runs. <see cref="BeforeEscape" /> goes first and answers a different question -
-    ///     whether the server will permit the recall at all - where this one protects the channel it opens.
+    ///     A hit or an equip deletes the channel, so a defence has to stand before the emit. Awaited, so a hook that throws
+    ///     takes the recall down with it. Runs after <see cref="BeforeEscape" />.
     /// </remarks>
     public Func<CancellationToken, Task>? BeforeTownRecall { get; set; }
 
     /// <summary>
-    ///     True from the moment a recall is emitted until it has landed, been refused, or been given up on.
+    ///     Whether a recall has been emitted and has not yet landed, been refused or been given up on.
     /// </summary>
     /// <remarks>
-    ///     <c>Character.Channeling</c> carries the recall only once the server has answered for it, so anything reading that
-    ///     to decide whether to stand down is blind for the round trip after the emit - and an attack, a drink or an equip
-    ///     landing inside that window empties the whole channel dictionary on the server before the client ever knew there was
-    ///     one to protect. That is a cancellation the character causes itself, and it reads as a recall failing for no reason.
-    ///     <br />
-    ///     This is the same question asked about intent rather than about confirmation, so it covers the window as well. Not
-    ///     raised until <see cref="BeforeTownRecall" /> has returned, since the cover that hook arranges is itself a cast that
-    ///     would stand down against it.
+    ///     Covers the round trip before <c>Character.Channeling</c> confirms the recall. Not raised until
+    ///     <see cref="BeforeTownRecall" /> has returned.
     /// </remarks>
     public bool IsRecalling { get; private set; }
 
@@ -5211,20 +4985,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private readonly ConcurrentDictionary<string, long> TownFailures = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     How long a failed recall keeps the channel off the table for the map it failed on.
+    ///     How long a failed recall keeps recall out of route planning on the map it failed on. Its causes, too many targets or
+    ///     a hit inside the channel, outlast the attempt.
     /// </summary>
-    /// <remarks>
-    ///     Every reason a recall fails is a fact about standing here that outlives the attempt: more than five things
-    ///     targeting the character, or one of them landing a hit inside the three second channel. Long enough that a mover
-    ///     polling at 10Hz cannot spend a fight re-emitting the same recall, short enough that a character which has since
-    ///     walked clear gets the option back without anything having to notice.
-    /// </remarks>
     private static readonly TimeSpan TOWN_FAILURE_MEMORY = TimeSpan.FromSeconds(20);
 
     /// <summary>
-    ///     Whether the channel is still being kept off the table for <paramref name="map" />.
+    ///     Determines whether a recall failed on a map within <see cref="TOWN_FAILURE_MEMORY" />.
     /// </summary>
-    private bool TownRecentlyFailedOn(string map)
+    /// <param name="map">
+    ///     The map to check.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if a recall failed there recently; otherwise, <c>false</c>.
+    /// </returns>
+    private bool HasTownFailedRecently(string map)
         => TownFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
 
     /// <summary>
@@ -5233,28 +5008,25 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private const string WALL_REFUSAL = "leg crosses a wall";
 
     /// <summary>
-    ///     How many wall refusals in a row, standing on one spot, mark the character as wedged. A lane polls at 10Hz, so this
-    ///     is about a second of standing still.
-    /// </summary>
-    private const int WEDGED_REFUSALS = 10;
-
-    /// <summary>
     ///     Where the current run of wall refusals started, and how long it is.
     /// </summary>
-    private (Point At, int Refusals) Wedge;
+    private (Point Start, int Refusals) Wedge;
 
     /// <summary>
     ///     Counts a wall refusal at the character's position.
     /// </summary>
     /// <returns>
-    ///     true once <see cref="WEDGED_REFUSALS" /> have landed on one spot, which also starts the count again; otherwise,
-    ///     false.
+    ///     <c>true</c> once enough refusals have landed on one spot to mark the character as wedged, which also starts the
+    ///     count again; otherwise, <c>false</c>.
     /// </returns>
     private bool CountWedged()
     {
+        //about a second of standing still at a 10Hz poll
+        const int WEDGED_REFUSALS = 10;
+
         var here = Character.ToPoint();
 
-        Wedge = (Wedge.Refusals > 0) && (Wedge.At.Distance(here) < 1f) ? (Wedge.At, Wedge.Refusals + 1) : (here, 1);
+        Wedge = (Wedge.Refusals > 0) && (Wedge.Start.Distance(here) < 1f) ? (Wedge.Start, Wedge.Refusals + 1) : (here, 1);
 
         if (Wedge.Refusals < WEDGED_REFUSALS)
             return false;
@@ -5265,33 +5037,30 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     How often the wait at a blink leg re-reads the bar and the cooldown.
+    ///     Asynchronously walks one blink leg of a route: stands still until mana and the cooldown allow the cast, casts, and
+    ///     waits for the landing.
     /// </summary>
-    private const int BLINK_WAIT_POLL_MS = 250;
-
-    /// <summary>
-    ///     How long after the cast is accepted a landing may take to arrive. The server holds a blink for 200ms before it
-    ///     moves the character, and the frame then has a round trip to make.
-    /// </summary>
-    private const int BLINK_LANDING_TIMEOUT_MS = 3000;
-
-    /// <summary>
-    ///     One blink leg of a route: stand still until the bar and the cooldown allow the cast, cast, and wait for the
-    ///     landing.
-    /// </summary>
+    /// <param name="edge">
+    ///     The blink leg.
+    /// </param>
+    /// <param name="mpReserve">
+    ///     The mana to keep beyond the cast's own cost.
+    /// </param>
+    /// <param name="token">
+    ///     A token used to cancel the wait.
+    /// </param>
     /// <remarks>
-    ///     Dampened is a refusal rather than a wait: Lucinda's aura and Franky's fieldgens set it, and standing still never
-    ///     clears it. Death is a refusal for the same reason. Everything else is waited out without a cap - the cancellation
-    ///     token is what ends the wait early, and a cancelled walk leaves the character standing anyway. Dampened is re-read
-    ///     inside the wait, since an aura can arrive during it.
-    ///     <br />
-    ///     The server answers blink_failed before charging when it finds nowhere to put the character; the skill core turns
-    ///     that into the thrown failure the leg loop catches. A cast it accepts lands after its hold as a new_map frame whose
-    ///     effect is the blink's, on the pattern <see cref="UseTownAsync" /> uses for its own effect - the landing is that
-    ///     frame, not a position poll.
+    ///     Dampened and death are refused rather than waited out, since standing still clears neither. A cast the server
+    ///     accepts lands as a <c>new_map</c> frame with the blink's effect.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Failed to blink. ({reason})</exception>
     private async Task BlinkLegAsync(PathEdge edge, float mpReserve, CancellationToken? token)
     {
+        const int BLINK_WAIT_POLL_MS = 250;
+
+        //the server holds a blink for 200ms before it moves the character, and the frame then has a round trip to make
+        const int BLINK_LANDING_TIMEOUT_MS = 3000;
+
         if (this is not Mage mage)
             throw new InvalidOperationException("Failed to blink. (not a mage)");
 
@@ -5342,36 +5111,25 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     public async Task UseTownAsync(CancellationToken? token = null)
     {
-        //first of the two, because they answer different questions and only one decides whether the recall is allowed
-        //at all. This one sheds the aggro the server refuses on; the cover below keeps the channel it opens from
-        //being broken. This order usually saves the cover its work as well
+        //sheds the aggro the server refuses a recall on, ahead of the cover that protects the channel
         await RaiseBeforeEscapeAsync(token ?? CancellationToken.None);
 
-        //before anything else this method sets up: the hook is allowed to spend time, and a callback registered
-        //around it would be listening through frames belonging to whatever it does. Ahead of IsRecalling as well,
-        //since the cover the hook arranges is itself a cast the flag would stand down
+        //before any callback is registered, and before IsRecalling, which the cover's own cast would stand down for
         if (BeforeTownRecall is not null)
             await BeforeTownRecall(token ?? CancellationToken.None);
 
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //read before the emit: the frame handler below has already merged the incoming counter onto Character by
-        //the time our callback runs, so the comparison has to be against where we started
+        //the frame handler merges the incoming counter onto Character before our callback runs
         var mapChangeCountAtStart = Character.MapChangeCount;
 
-        //how long after the channel is confirmed an absent channel is still read as a frame predating the
-        //confirmation rather than as a cancellation. Frames are dispatched on their own tasks, so the two routinely
-        //arrive in either order. Measured at 0ms to 52ms across three characters, on recalls that then landed
+        //frames run on their own tasks, so a frame predating the confirmation can arrive after it; measured at 0-52ms
         const double CONFIRMATION_RACE_GRACE_MS = 250d;
 
-        //zero means unconfirmed, so this is both the confirmation flag and the instant it happened. One variable
-        //rather than two because frames are dispatched concurrently: with a separate flag written first, a frame
-        //could see the flag up and the timestamp still zero, and report a landed recall as canceled
+        //zero means unconfirmed; one variable, so a concurrent frame cannot see a flag without its timestamp
         var confirmedAt = 0L;
 
-        //the channel is over the moment its outcome is known. Lowering IsRecalling in the finally instead leaves it
-        //up across the hop that reschedules the awaiter, and everything that stands down for a recall - the gear
-        //swap, the skill cast, the mover's own town edge - stays stood down for a channel that is already over
+        //lowered with the outcome rather than in the finally, which runs only after the awaiter is rescheduled
         void Resolve(Expectation outcome)
         {
             IsRecalling = false;
@@ -5386,9 +5144,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (data.Channeling?.ContainsKey("town") == true)
                     Interlocked.CompareExchange(ref confirmedAt, Stopwatch.GetTimestamp(), 0);
 
-                //the channel ending is not the same thing as the channel being interrupted - the server deletes it
-                //and then transports, so a recall that lands also produces a frame with no channel. The map change
-                //tells the two apart, and it is stamped before either completion frame goes out
+                //a recall that lands also deletes the channel; the map change, stamped first, tells it from a cancel
                 else if (Volatile.Read(ref confirmedAt) is var confirmation and not 0 && (data.MapChangeCount == mapChangeCountAtStart))
                 {
                     var sinceConfirmed = Stopwatch.GetElapsedTime(confirmation)
@@ -5408,9 +5164,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 if ((Volatile.Read(ref confirmedAt) != 0) && (data.Effect == DisappearEffect.Town))
                 {
-                    //one that lands says the channel is usable here after all, so an older failure stops speaking for
-                    //the map. Keyed on where the recall was started rather than where it landed - they are the same
-                    //map, since town is this map's own spawn, but the intent is the map that was left
+                    //a landed recall clears an older failure on this map
                     TownFailures.TryRemove(data.Map, out _);
 
                     Resolve(Expectation.Success);
@@ -5423,9 +5177,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //cant_escape is the tank's refusal: the server refuses a recall while more than five things are
-                //targeting you. Without an arm here it matched nothing, so a character holding aggro burned the whole
-                //timeout on every attempt and never fell back to walking
+                //cant_escape: more than five things are targeting the character
                 if (data.ResponseType is GameResponseType.TransportFailed)
                     Resolve("Failed to town. (failed)");
                 else if (data.ResponseType is GameResponseType.CantEscape)
@@ -5434,15 +5186,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        //raised before the emit rather than off the server's answer, which is the whole reason it exists
+        //raised before the emit rather than off the server's answer
         IsRecalling = true;
 
         try
         {
             await Socket.EmitAsync(ALSocketEmitType.ReturnToTown);
 
-            //disposed with the call: an undisposed registration outlives the recall it was for and fires on whatever
-            //cancels that token next, stopping a town nobody is channeling
+            //disposed with the call, or it fires on whatever cancels that token next
             using var cancelRegistration = token?.Register(() =>
                                            {
                                                _ = Socket.EmitAsync(
@@ -5529,8 +5280,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
             throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
 
-        //a pack arrives trimmed to its highest occupied slot, so a valid slot can sit past the array's end. Empty is
-        //the answer there, and the same InvalidOperationException an empty slot inside the array already gives
+        //a pack arrives trimmed to its highest occupied slot, so a valid slot past the array's end reads as empty
         var item = (uint)bankSlot < (uint)bankedItems.Count ? bankedItems[bankSlot] : null;
 
         if (item == null)
@@ -5592,12 +5342,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     ///     The inventory slot the item landed in - an existing stack's slot whenever it merged.
     /// </returns>
     /// <remarks>
-    ///     <see cref="WithdrawItemAsync" /> cannot do this: naming <c>inv</c> takes the server's raw swap branch, which
-    ///     assigns the slot outright, where an unnamed one takes the pull branch and its <c>add_item</c> (
-    ///     <c>node/server.js:8548</c> ). That merge is what puts a whole quantity in the one slot a craft or an exchange reads
-    ///     it from, and it needs no free slot at all when a stacking partner is held ( <c>js/old_common_functions.js:405</c>
-    ///     ). The cost is that the reserved-range discipline a caller gets by naming the slot does not apply - the server
-    ///     merges into the first partner it finds, reserved or not.
+    ///     Needs no free slot when a stacking partner is held, but the server merges into the first partner it finds, in any
+    ///     slot.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Failed to withdraw item {item}. ({reason})</exception>
     public async Task<int> WithdrawItemMergingAsync(BankPack bankPack, int bankSlot)
@@ -5610,8 +5356,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (!availableBanks.Contains(bankPack) || !Bank!.TryGetValue(bankPack, out var bankedItems))
             throw new InvalidOperationException($"Failed to withdraw item {bankPack}:{bankSlot}. (wrong bank)");
 
-        //a pack arrives trimmed to its highest occupied slot, so a valid slot can sit past the array's end. Empty is
-        //the answer there, and the same InvalidOperationException an empty slot inside the array already gives
+        //a pack arrives trimmed to its highest occupied slot, so a valid slot past the array's end reads as empty
         var item = (uint)bankSlot < (uint)bankedItems.Count ? bankedItems[bankSlot] : null;
 
         if (item == null)
@@ -5619,9 +5364,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var source = new TaskCompletionSource<Expectation<int>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //the game_response is the only frame that can settle this. The character frame the server sends first
-        //(node/server.js:8556) carries no slot number, and the destination is not known here to watch one. Both
-        //outcomes land on this message, and place names the socket method either was answered from
+        //only the game_response names the landing slot; the character frame sent first does not
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -5629,9 +5372,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (data.Place?.EqualsI("bank") != true)
                     return TaskCache.FALSE;
 
-                //the server echoes str on every item branch of this handler and on none of the gold ones, so a
-                //frame naming a different bank slot is another operation's answer. A refusal names no slot at all
-                //and so settles on place alone, which is right: two bank refusals are the same outcome either way
+                //the server echoes str on every item branch, so a different slot is another operation's answer; a refusal
+                //names no slot
                 if (data.BankSlot is { } answered && (answered != bankSlot))
                     return TaskCache.FALSE;
 
@@ -5642,9 +5384,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                         data.InventorySlot is { } landed
                             ? new Expectation<int>(landed)
 
-                            //the bank slot was already empty by the time the emit landed: the server answers success
-                            //having moved nothing, so this is the refusal rather than a whole timeout spent waiting
-                            //for a frame that is never coming
+                            //the slot was already empty, which the server answers with a success that moved nothing
                             : new Expectation<int>($"Failed to withdraw item {item.Name}. (nothing in {bankPack}:{bankSlot})"));
 
                 return TaskCache.FALSE;
@@ -5670,8 +5410,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (Socket == null)
             throw new NullReferenceException(nameof(Socket));
 
-        //re-point the re-surfaced event at whichever socket is current. the named handler makes the
-        //detach exact, so re-attaching to the same socket cannot stack duplicate delegates
+        //detached first, so re-attaching to the same socket cannot stack duplicate delegates
         Socket.OnLimitDcReport -= RaiseLimitDcReport;
         Socket.OnLimitDcReport += RaiseLimitDcReport;
 
@@ -5774,9 +5513,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Handles a tavern frame. Returns false like every other permanent handler: true would consume the frame, and
-    ///     <see cref="RequestTavernInfoAsync" />'s own scoped handler is waiting on this same message type.
+    ///     Handles a tavern frame, raising <see cref="OnTavern" />.
     /// </summary>
+    /// <param name="data">
+    ///     The frame as the server sent it.
+    /// </param>
+    /// <returns>
+    ///     <c>false</c>, so the frame still reaches <see cref="RequestTavernInfoAsync" />'s own handler.
+    /// </returns>
     protected Task<bool> OnTavernReceived(TavernData data)
     {
         OnTavern?.Invoke(this, data);
@@ -5804,8 +5548,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         data.CompensateOnce(PingManager.LowPercentileOffset);
         ShallowMerge<Character>.Merge(data, Character);
 
-        //the merge no longer carries position/destination - those seven are excluded from it so every write to them
-        //goes through the one locked path. Applied here instead, exactly as sent, with no arbitration
+        //the merge excludes position and destination, so every write to them goes through the one locked path
         Character.AcceptMovement(data);
 
         //keep a copy of the bank data
@@ -5839,8 +5582,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnDeathAsync(DeathData data)
     {
-        //raised before the drop, since the id is all the frame carries and the type is on the entity. A killing hit has
-        //already dropped it by now, which is what KilledByHit is for
+        //raised before the drop, since the frame carries only the id; a killing hit has already dropped it
         if (KilledByHit.TryRemove(data.Id, out var monster) || Monsters.TryGetValue(data.Id, out monster))
             OnMonsterDeath?.Invoke(
                 this,
@@ -5871,9 +5613,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnEntitiesAsync(EntitiesData data)
     {
-        //a transport races new_map against in-flight entities for the previous instance (node/server.js:4177), so a
-        //frame whose instance no longer matches ours is stale and would corrupt the current map's entity state.
-        //The instance is stamped only AFTER the check passes; the first frame after login seeds it
+        //a transport races new_map against in-flight entities for the previous instance; the first frame after login
+        //seeds the instance
         if (!string.IsNullOrEmpty(Character.In) && !data.In.EqualsI(Character.In))
             return TaskCache.FALSE;
 
@@ -5889,10 +5630,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             data.Map,
             data.UpdateType);
 
-        //`in` is optional in practice on some frames - see EnterDungeonAsync's own remark on NewMapData.In, which
-        //this same value is one copy of. UpdateMap throws on an empty one, and this frame is not the only writer of
-        //Character.In: skipping the call here leaves whatever an earlier writer already set (empty included) rather
-        //than crashing this handler and, with it, every later subscriber this same raw frame would otherwise reach
+        //in can be missing, and UpdateMap throws on an empty one
         if (!string.IsNullOrEmpty(data.In))
             Character.UpdateMap(data.In, data.Map);
 
@@ -5921,10 +5659,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 SetCooldown(skillName);
         } else if ((match = RegexCache.POT_TIMEOUT.Match(data.Code)).Success)
         {
-            //the two names the eval covers, whichever of the four was used: a drink and a regen tick both come back
-            //as pot_timeout. Both route through the potion cooldown group, so on current data this writes one timer
-            const string? USE_HP = "use_hp";
-            const string? USE_MP = "use_mp";
+            //a drink and a regen both come back as pot_timeout
+            const string USE_HP = "use_hp";
+            const string USE_MP = "use_mp";
             var cooldownStr = match.Groups[1].Value;
 
             if (!float.TryParse(cooldownStr, out var cooldownMS))
@@ -5975,8 +5712,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 break;
             }
 
-            //all three carry the account's whole dictionary, so this replaces rather than merges - a merge would
-            //resurrect a cosmetic that was just traded away. A frame without acx leaves the last known set alone.
+            //all three carry the account's whole dictionary, so this replaces rather than merges
             case GameResponseType.CosmeticNew or GameResponseType.CosmeticSent or GameResponseType.CosmeticReceived
                 when data.Acx is { } cosmetics:
             {
@@ -6040,18 +5776,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected async Task<bool> OnNewMapAsync(NewMapData data)
     {
-        //read before the relocation below, which is what makes them the place the violation happened rather than
-        //the jail spawn - every entry this had ever written read "from jail", because by the time it asked, the
-        //character had already been moved there
+        //read before the relocation below, so they name where the violation happened rather than the jail spawn
         var wasAt = Character.ToLocation();
         var wasGoing = new Location(Character.Map, Character.GoingX, Character.GoingY);
 
         Projectiles.Clear();
         Character.UpdateLocation(data);
 
-        //after the relocation, and never before it: the mesh lookups below can throw, and a diagnostic that throws
-        //used to take the relocation down with it - which left the character holding the old map's coordinates
-        //while the server had it somewhere else, and those coordinates are what the next move emit claims
+        //after the relocation, since the mesh lookups below can throw
         if (data.Map.EqualsI("jail") && Pathfinder.GetNavMesh(wasAt.Map) is not null)
         {
             var standingOnWall = Pathfinder.IsWall(wasAt);
@@ -6077,9 +5809,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data.QueuedActionInfo != null)
             Character.Update(data.QueuedActionInfo);
 
-        //the other half of the frame, and the only place it is ever sent: the prediction under an in-progress upgrade
-        //or compound, carrying that operation's roll as its digits are revealed. Dropping it leaves the placeholder
-        //holding whatever it was deserialized with, and no other frame would correct it
+        //the prediction under an in-progress upgrade or compound, sent only here, as its roll's digits are revealed
         if (data.Prediction is { } prediction)
             Character.Update(data.Slot, prediction);
 
@@ -6108,27 +5838,21 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Handles a skill timeout frame, filing the cooldown it carries against the named skill.
     /// </summary>
+    /// <param name="data">
+    ///     The frame as the server sent it.
+    /// </param>
+    /// <returns>
+    ///     <c>false</c>, so the frame reaches every other handler.
+    /// </returns>
     /// <remarks>
-    ///     <b>
-    ///         The cooldown <c>consume_skill</c> sends for an attack is the one that stood when the request began.
-    ///     </b> It reads <c>G.skills.attack.cooldown</c> , which the skill handler sets from <c>attack_ms</c> on its first
-    ///     line - so a buff this very swing procced is not in the number. Sugar rush is the one that shows it: the swing that
-    ///     procs it waits out a whole unbuffed cooldown, and only the swings after that run fast. The correction that would
-    ///     have said otherwise is computed inside <c>commence_attack</c> , before <c>consume_skill</c> moves
-    ///     <c>last.attack</c> forward, so it measures against the previous swing, comes out negative, clamps to zero here, and
-    ///     is then overwritten by <c>consume_skill</c> 's own timeout.
-    ///     <br />
-    ///     The frame carrying the new frequency is emitted earlier in the same request, so it has already been merged by the
-    ///     time that timeout arrives, and the server gates the next swing on frequency as it stands rather than as it stood.
-    ///     Recomputing from the frame is therefore the honest figure. Only the shorter of the two is taken: too long costs a
-    ///     swing outright, where too short costs a rejected attack that answers with the real remaining time.
+    ///     An attack's timeout reflects the frequency from before this swing's own buffs, so the shorter of it and one
+    ///     recomputed from the current frequency is taken.
     /// </remarks>
     protected Task<bool> OnSkillTimeoutAsync(SkillTimeoutData data)
     {
         var timeoutMs = data.TimeoutMs;
 
-        //rounded the way the server rounds attack_ms, so an unbuffed swing lands on exactly the number it sent
-        //rather than a fraction under it
+        //rounded the way the server rounds attack_ms
         if (data.Reason is null && data.SkillName.EqualsI("attack") && (Character.Frequency > 0))
             timeoutMs = Math.Min(timeoutMs, data.Penalty + MathF.Round(1000f / Character.Frequency));
 
@@ -6137,10 +5861,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         var cooldownInfo = new CooldownInfo(Math.Max(0f, timeoutMs));
         cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
 
-        //a group still has to be applied: the server resolves share before it emits, never the group, so a frame
-        //naming use_hp is the whole potion set going down
+        //the server resolves share before it emits but never the group, so use_hp is the whole potion set
         var cooldownKey = GameData.Skills[data.SkillName]
-                                  ?.CooldownKey(data.SkillName)
+                                  ?.GetCooldownKey(data.SkillName)
                           ?? data.SkillName;
 
         Cooldowns.AddOrUpdate(cooldownKey, cooldownInfo, (_, _) => cooldownInfo);
@@ -6234,9 +5957,33 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     #region Helpers
     /// <summary>
-    ///     Subscribes, emits, and awaits the first matching message. <paramref name="handled" /> stops the message chain at
-    ///     this subscriber, which only a request that owns its message type may do.
+    ///     Asynchronously subscribes, emits, and awaits the first matching message.
     /// </summary>
+    /// <typeparam name="T">
+    ///     The message's data type.
+    /// </typeparam>
+    /// <param name="messageType">
+    ///     The message to await.
+    /// </param>
+    /// <param name="emitType">
+    ///     The emit to send.
+    /// </param>
+    /// <param name="emitData">
+    ///     The emit's payload, if any.
+    /// </param>
+    /// <param name="handled">
+    ///     Specifies whether the message chain stops at this subscriber, which only a request that owns its message type may
+    ///     do.
+    /// </param>
+    /// <param name="timeoutMS">
+    ///     The timeout, or null for the network timeout.
+    /// </param>
+    /// <param name="caller">
+    ///     The calling member, named in a timeout.
+    /// </param>
+    /// <returns>
+    ///     The first matching message.
+    /// </returns>
     private async Task<Expectation<T>> RequestAsync<T>(
         ALSocketMessageType messageType,
         ALSocketEmitType emitType,
@@ -6265,9 +6012,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Consumes a potion or regen. The server acknowledges it with an eval carrying the shared pot cooldown, and refuses
-    ///     it with a failed game_response. <paramref name="description" /> names the item in that failure.
+    ///     Asynchronously consumes a potion or regen. The server acknowledges it with an <c>eval</c> carrying the shared pot
+    ///     cooldown, and refuses it with a failed <c>game_response</c>.
     /// </summary>
+    /// <param name="emitType">
+    ///     The emit to send.
+    /// </param>
+    /// <param name="emitData">
+    ///     The emit's payload.
+    /// </param>
+    /// <param name="description">
+    ///     The item's name in a failure.
+    /// </param>
+    /// <param name="caller">
+    ///     The calling member, named in a timeout.
+    /// </param>
+    /// <exception cref="InvalidOperationException">Failed to use {description}. ({reason})</exception>
     private async Task ConsumeAsync(
         ALSocketEmitType emitType,
         object emitData,
@@ -6276,9 +6036,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //the refusal arm, and it has to be this event: the shared potion cooldown answers
-        //`fail_response("not_ready", {ms})` (node/server.js:7202), which is a game_response and nothing else. This
-        //used to watch for a "not ready" disappearing text, a string the server does not contain
+        //the shared potion cooldown refuses with a not_ready game_response
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
@@ -6334,33 +6092,52 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     protected EntityBase? GetEntity(string id) => Players.GetValueOrDefault(id) as EntityBase ?? Monsters.GetValueOrDefault(id);
 
     /// <summary>
-    ///     Whether two slots hold the same thing, across two frames.
+    ///     Determines whether two slots hold the same thing, across two frames, by name, level and quantity.
     /// </summary>
+    /// <param name="slot">
+    ///     The slot as one frame has it.
+    /// </param>
+    /// <param name="expected">
+    ///     The slot as the other frame has it.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if both are empty or both hold the same item; otherwise, <c>false</c>.
+    /// </returns>
     /// <remarks>
-    ///     Deliberately not <see cref="Item" />'s own equality. Item is a record, so the synthesized Equals folds in
-    ///     PossiblePrefixes - an <see cref="IReadOnlyList{T}" /> that <see cref="EqualityComparer{T}.Default" /> compares by
-    ///     reference. Two deserializations of the same item never share that list, so a whole-item comparison across two
-    ///     frames is false for everything except a pair of nulls, and a slot-move confirmation built on it could only ever
-    ///     time out and throw on a move that had in fact already happened.
+    ///     Not <see cref="Item" />'s own equality, which compares <c>PossiblePrefixes</c> by reference and so never holds
+    ///     across two deserializations.
     /// </remarks>
-    private static bool SameContents(Item? slot, Item? expected)
+    private static bool HasSameContents(Item? slot, Item? expected)
         => (slot == null == (expected == null))
            && ((slot == null)
                || (slot.Name.EqualsI(expected!.Name) && (slot.Level == expected.Level) && (slot.Quantity == expected.Quantity)));
 
     /// <summary>
-    ///     Finds a bank slot for the given inventory item: validates an explicit pack/slot pair, otherwise prefers stacking
-    ///     onto an existing partial stack, else the first empty slot in an accessible pack on the current bank map. Requires
-    ///     being in the bank ( <see cref="Bank" /> populated).
+    ///     Finds a bank slot for an inventory item: validates an explicit pack and slot, otherwise prefers stacking onto an
+    ///     existing stack, else the first empty slot in an accessible pack. Requires <see cref="Bank" /> to be populated.
     /// </summary>
+    /// <param name="indexedInventoryItem">
+    ///     The inventory item to bank.
+    /// </param>
+    /// <param name="bankPack">
+    ///     If specified, the only pack to look in.
+    /// </param>
+    /// <param name="bankSlot">
+    ///     If specified with <paramref name="bankPack" />, the slot to validate; <c>-1</c> lets the server pick.
+    /// </param>
+    /// <returns>
+    ///     The pack and slot, with <c>-1</c> as the slot when the server should stack it; otherwise, <c>null</c>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">indexedInventoryItem</exception>
     public (BankPack BankPack, int BankSlot)? FindOptimalBankIndex(
         IIndexer<IInventoryItem> indexedInventoryItem,
         BankPack? bankPack = null,
         int? bankSlot = null)
     {
-        //if both indexes are specified, the caller named a slot. Occupied is allowed: the emit's swap branch exchanges
-        //the two slots raw (node/server.js:8528). -1 is allowed too - it is this method's own stacking sentinel below,
-        //and the server's "let me pick" (node/server.js:8503). Past the pack, or a pack this map does not serve, is not
+        ArgumentNullException.ThrowIfNull(indexedInventoryItem);
+
+        //a named slot may be occupied, since the emit swaps; -1 lets the server pick. Past the pack, or a pack this map
+        //does not serve, is not
         if (bankPack.HasValue && bankSlot.HasValue)
         {
             if (!Bank!.TryGetValue(bankPack.Value, out _) || (bankSlot.Value < -1) || (bankSlot.Value >= BANK_PACK_SIZE))
@@ -6383,9 +6160,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             if (!Bank!.TryGetValue(bankPackIndex, out var bankItems))
                 continue;
 
-            //every slot of the pack, not every entry of the array the server sent. bank_add_item pushes
-            //(node/server.js:2018) and pads nothing, so a pack arrives trimmed to its highest occupied slot. The
-            //server counts all 42 either way, so anything past the array's end is a free slot rather than no slot
+            //a pack arrives trimmed to its highest occupied slot, so anything past the array's end is a free slot
             for (var itemSlotIndex = 0; itemSlotIndex < BANK_PACK_SIZE; itemSlotIndex++)
             {
                 var bankedItem = itemSlotIndex < bankItems.Count ? bankItems[itemSlotIndex] : null;
@@ -6403,10 +6178,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     firstEmptySlot ??= (bankPackIndex, itemSlotIndex);
                 }
 
-                //the server's own stacking rule, not a name match: -1 makes the server pick, and it picks an empty slot
-                //of this pack or a pile can_stack accepts. A pile this refuses in a pack with no empty slot is
-                //storage_full however much room the other packs have, and it was - a cxjar holding one appearance
-                //against a banked cxjar holding another
+                //the server's own stacking rule, not a name match: a pile it refuses in a full pack is storage_full
                 else if (item.CanStackWith(bankedItem, true))
 
                     //-1 allows the item to automatically stack
@@ -6457,9 +6229,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data == null)
             return;
 
-        //resolved before the share hop below rewrites skillName, because a group is a property of the skill that was
-        //used rather than of the one it borrows its length from
-        var cooldownKey = data.CooldownKey(skillName);
+        //resolved before the share hop below rewrites skillName, since a group belongs to the skill that was used
+        var cooldownKey = data.GetCooldownKey(skillName);
 
         if (!string.IsNullOrEmpty(data.SharedCooldown))
         {
@@ -6544,7 +6315,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (string.IsNullOrEmpty(Character.Map))
             throw new ArgumentNullException(nameof(Character.Map));
 
-        //bank_packs (js/old_common_functions.js:54) puts items0-7 on "bank", items8-23 on "bank_b" and items24-47
+        //bank_packs puts items0-7 on "bank", items8-23 on "bank_b" and items24-47
         //on "bank_u". BankPack.None occupies 0, so each pack's enum value is its number plus one
         return (Character.Map switch
         {
@@ -6556,9 +6327,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
-    ///     Completes when bank data is populated after entering a bank map. Times out with the network timeout if the bank
-    ///     frame never arrives.
+    ///     Asynchronously waits for bank data to be populated after entering a bank map.
     /// </summary>
+    /// <exception cref="TimeoutException">The bank frame did not arrive within the network timeout.</exception>
     public async Task WaitForBankAsync()
     {
         //check if bank is already populated

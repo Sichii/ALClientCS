@@ -35,15 +35,15 @@ public class OddsAndGoldDatumTests
             .Should()
             .BeNull();
 
-        compounds.ChanceOf(2, 1)
+        compounds.GetChance(2, 1)
                  .Should()
                  .Be(0.8);
 
-        compounds.ChanceOf(1, 1)
+        compounds.GetChance(1, 1)
                  .Should()
                  .BeNull("the payload carried no grade 1 row");
 
-        compounds.ChanceOf(0, 3)
+        compounds.GetChance(0, 3)
                  .Should()
                  .BeNull("the grade 0 row stops at +2");
     }
@@ -88,7 +88,7 @@ public class OddsAndGoldDatumTests
                 .Should()
                 .Be(0.1);
 
-        upgrades.ChanceOf(1, 12)
+        upgrades.GetChance(1, 12)
                 .Should()
                 .Be(0.1);
 

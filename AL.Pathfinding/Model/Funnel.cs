@@ -7,25 +7,38 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     The simple stupid funnel: string-pulls a corridor of triangles into the shortest polyline through the portals
-///     between them. Every corner it emits is a mesh vertex, and mesh vertices are the centres of walkable raster cells a
-///     unit clear of the padded walls, which is what lets every leg pass the exact line test.
+///     Provides the simple stupid funnel, which pulls a corridor of triangles into the shortest polyline through the portals
+///     between them. Every corner it emits is a mesh vertex.
 /// </summary>
 public static class Funnel
 {
-    /// <summary>
-    ///     Appends <paramref name="point" /> unless it would duplicate the last point already in <paramref name="path" />.
-    /// </summary>
     private static void Append(List<Point> path, Point point)
     {
-        if ((path.Count == 0) || !Same(path[^1], point))
+        if ((path.Count == 0) || !IsSamePoint(path[^1], point))
             path.Add(point);
     }
 
     /// <summary>
-    ///     Pulls the corridor into <paramref name="path" />, which is cleared first. The corridor lists triangle ids from the
-    ///     one containing <paramref name="start" /> to the one containing <paramref name="end" />, each adjacent to the next.
+    ///     Pulls a corridor of triangles into the shortest polyline from <paramref name="start" /> to <paramref name="end" />.
     /// </summary>
+    /// <param name="mesh">
+    ///     The mesh the corridor runs through.
+    /// </param>
+    /// <param name="corridor">
+    ///     Triangle ids from the one containing the start to the one containing the end, each adjacent to the next.
+    /// </param>
+    /// <param name="start">
+    ///     The start of the path.
+    /// </param>
+    /// <param name="end">
+    ///     The end of the path.
+    /// </param>
+    /// <param name="path">
+    ///     The list the polyline is written into, cleared first.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     Two consecutive triangles in the corridor are not adjacent.
+    /// </exception>
     public static void Pull(
         TriangleMesh mesh,
         ReadOnlySpan<int> corridor,
@@ -68,14 +81,13 @@ public static class Funnel
             {
                 var from = corridor[i];
                 var to = corridor[i + 1];
-                var slot = SlotOf(mesh, from, to);
+                var slot = FindPortalSlot(mesh, from, to);
                 var a = mesh.Vertices[mesh.Corners[from * 3 + (slot + 1) % 3]];
                 var b = mesh.Vertices[mesh.Corners[from * 3 + (slot + 2) % 3]];
-                (var cx, var cy) = mesh.Centroid(from);
+                (var cx, var cy) = mesh.CalculateCentroid(from);
 
-                //portals: one per triangle boundary, plus the end as a zero-width portal. left and right are chosen
-                //so that TriArea2(previous centroid, left, right) > 0, which is the orientation the pull below assumes
-                //a zero-area result (a sliver so thin the centroid is collinear with the portal) falls to the else and picks a side arbitrarily
+                //one portal per triangle boundary, oriented so TriArea2(centroid, left, right) > 0 as the pull assumes
+                //a sliver whose centroid is collinear with the portal picks a side arbitrarily
                 if (TriArea2(
                         cx,
                         cy,
@@ -110,7 +122,7 @@ public static class Funnel
                 //tighten the right side
                 if (TriArea2(apex, right, nextRight) <= 0f)
                 {
-                    if (Same(apex, right) || (TriArea2(apex, left, nextRight) > 0f))
+                    if (IsSamePoint(apex, right) || (TriArea2(apex, left, nextRight) > 0f))
                     {
                         right = nextRight;
                         rightIndex = i;
@@ -133,7 +145,7 @@ public static class Funnel
                 //tighten the left side
                 if (TriArea2(apex, left, nextLeft) >= 0f)
                 {
-                    if (Same(apex, left) || (TriArea2(apex, right, nextLeft) < 0f))
+                    if (IsSamePoint(apex, left) || (TriArea2(apex, right, nextLeft) < 0f))
                     {
                         left = nextLeft;
                         leftIndex = i;
@@ -164,13 +176,10 @@ public static class Funnel
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool Same(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
+    private static bool IsSamePoint(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
 
-    /// <summary>
-    ///     The slot of <paramref name="from" /> that faces <paramref name="to" />.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int SlotOf(TriangleMesh mesh, int from, int to)
+    private static int FindPortalSlot(TriangleMesh mesh, int from, int to)
     {
         for (var slot = 0; slot < 3; slot++)
             if (mesh.Neighbour(from, slot) == to)

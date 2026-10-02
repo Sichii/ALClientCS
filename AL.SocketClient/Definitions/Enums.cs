@@ -24,8 +24,7 @@ public enum GameResponseType
     CantEscape,
 
     /// <summary>
-    ///     The generic <c>data</c> response. Its wire name is written out so that attaching a naming strategy to this
-    ///     converter could never silently unbind it.
+    ///     The generic <c>data</c> response.
     /// </summary>
     [EnumMember(Value = "data")]
     Data,
@@ -220,8 +219,7 @@ public enum GameResponseType
     SealClosed,
 
     /// <summary>
-    ///     The generic <c>invalid</c> refusal. Its wire name is written out so that attaching a naming strategy to this
-    ///     converter could never silently unbind it.
+    ///     The generic <c>invalid</c> refusal.
     /// </summary>
     [EnumMember(Value = "invalid")]
     Invalid,
@@ -237,7 +235,7 @@ public enum GameResponseType
 
     /// <summary>
     ///     The single code that replaced every <c>*_get_closer</c>. Nine of its emit sites send a bare string rather than an
-    ///     object, so it must be matched without requiring Failed, and Place must stay optional.
+    ///     object, so it must be matched without requiring <c>failed</c> or <c>place</c>.
     /// </summary>
     [EnumMember(Value = "distance")]
     Distance,
@@ -246,8 +244,8 @@ public enum GameResponseType
     CantInBank,
 
     /// <summary>
-    ///     A bank door opened while the previous one is still loading or saving the bank (node/server.js:5708). The load or
-    ///     save failing afterwards is BankOperation, which carries the reason and no failed flag (node/server.js:15655).
+    ///     A bank door opened while the previous one is still loading or saving the bank. The load or save failing afterwards
+    ///     is <see cref="BankOperation" />, which carries the reason and no <c>failed</c> flag.
     /// </summary>
     [EnumMember(Value = "bank_opi")]
     BankOperationInProgress,
@@ -277,7 +275,7 @@ public enum GameResponseType
     InventoryFull,
 
     /// <summary>
-    ///     A bank store into a pack with no empty slot and no pile the item stacks onto (node/server.js:8919).
+    ///     A bank store into a pack with no empty slot and no pile the item stacks onto.
     /// </summary>
     [EnumMember(Value = "storage_full")]
     StorageFull,
@@ -413,30 +411,29 @@ public enum GameResponseType
     InProgressResponse,
 
     /// <summary>
-    ///     The lost-and-found gold reserve read (node/server.js:7334). Needs no prior donation and no distance check.
+    ///     The lost-and-found gold reserve read. Needs no prior donation and no distance check.
     /// </summary>
     [EnumMember(Value = "lostandfound_info")]
     LostAndFoundInfo,
 
     /// <summary>
-    ///     The lost-and-found listing's refusal for an account that has not donated on this connection (node/server.js:6891).
-    ///     The uncorrelated branch is built by hand and carries neither place nor failed; the correlated one goes through
-    ///     <c>fail_response</c> and carries both, plus reason <c>donation_required</c>.
+    ///     The lost-and-found listing's refusal for an account that has not donated on this connection. The uncorrelated
+    ///     branch carries neither <c>place</c> nor <c>failed</c>; the correlated one goes through <c>fail_response</c> and
+    ///     carries both, plus reason <c>donation_required</c>.
     /// </summary>
     [EnumMember(Value = "lostandfound_donate")]
     LostAndFoundDonate,
 
     /// <summary>
-    ///     Hopsickness refusing a lost-and-found buy (node/server.js:7134). Ponty is served the same handler and is
-    ///     deliberately not refused, so this arrives only from the lost-and-found branch.
+    ///     Hopsickness refusing a lost-and-found buy. Ponty shares the handler but is not refused, so this arrives only from
+    ///     the lost-and-found branch.
     /// </summary>
     [EnumMember(Value = "cant_when_sick")]
     CantWhenSick,
 
     /// <summary>
-    ///     The locksmith's generic refusal. Five of its nine codes arrive as a bare string rather than an object
-    ///     (node/server.js:6309, :6314, :6325, :6337, :6344), the shape Distance above already warns about, so nothing here
-    ///     may require Place or Failed to be present.
+    ///     The locksmith's generic refusal. Five of its nine codes arrive as a bare string rather than an object, like
+    ///     <see cref="Distance" />, so nothing here may require <c>place</c> or <c>failed</c>.
     /// </summary>
     [EnumMember(Value = "locksmith_cant")]
     LocksmithCant,
@@ -457,20 +454,20 @@ public enum GameResponseType
     LocksmithUnsealComplete,
 
     /// <summary>
-    ///     Sent through <c>success_response</c> with Success false and InProgress true (node/server.js:6317), so it is a
-    ///     "nothing happened yet" rather than a completion. Hours is how long is left.
+    ///     Sent through <c>success_response</c> with <c>success</c> false and <c>in_progress</c> true, so nothing has
+    ///     happened yet. <c>hours</c> is how long is left.
     /// </summary>
     [EnumMember(Value = "locksmith_unsealing")]
     LocksmithUnsealing,
 
     /// <summary>
-    ///     <c>fail_response</c> with reason <c>already_unlocked</c> (node/server.js:6300).
+    ///     A <c>fail_response</c> with reason <c>already_unlocked</c>.
     /// </summary>
     [EnumMember(Value = "locksmith_aunlocked")]
     LocksmithAlreadyUnlocked,
 
     /// <summary>
-    ///     <c>fail_response</c> with reason <c>already_locked</c> (node/server.js:6330).
+    ///     A <c>fail_response</c> with reason <c>already_locked</c>.
     /// </summary>
     [EnumMember(Value = "locksmith_alocked")]
     LocksmithAlreadyLocked,
@@ -479,7 +476,7 @@ public enum GameResponseType
     ScrollsmithCant,
 
     /// <summary>
-    ///     Carries Gold: the amount actually spent, and the only place the destat cost is reported (node/server.js:6274).
+    ///     Carries <c>gold</c>: the amount actually spent, and the only place the destat cost is reported.
     /// </summary>
     [EnumMember(Value = "scrollsmith_success")]
     ScrollsmithSuccess,
@@ -489,7 +486,7 @@ public enum GameResponseType
 
     /// <summary>
     ///     This, <c>cx_sent</c> and <c>cx_received</c> each carry a whole replacement <c>acx</c> dictionary rather than a
-    ///     delta (node/server.js:7243, :7981, :7988).
+    ///     delta.
     /// </summary>
     [EnumMember(Value = "cx_new")]
     CosmeticNew,
@@ -552,31 +549,28 @@ public enum GameResponseType
     OnlyInBank,
 
     /// <summary>
-    ///     Activate's own already-unlocked refusal, distinct from <c>locksmith_aunlocked</c>'s reason string of the same text
-    ///     (node/server.js:8871, :8884).
+    ///     Activate's own already-unlocked refusal, distinct from <c>locksmith_aunlocked</c>'s reason string of the same text.
     /// </summary>
     [EnumMember(Value = "already_unlocked")]
     AlreadyUnlocked,
 
     /// <summary>
-    ///     Activate's refusal when the class or level requirement for a cosmetic toggle is not met (node/server.js:8820).
+    ///     Activate's refusal when the class or level requirement for a cosmetic toggle is not met.
     /// </summary>
     [EnumMember(Value = "nothing")]
     Nothing,
 
     /// <summary>
-    ///     The only answer the signup emit gets (node/server.js:11335). No method consumes it; the member exists so the frame
-    ///     resolves to something other than Unknown.
+    ///     The only answer the signup emit gets. Nothing consumes it; it keeps the frame from resolving to
+    ///     <see cref="Unknown" />.
     /// </summary>
     [EnumMember(Value = "signed_up")]
     SignedUp,
 
     /// <summary>
-    ///     This and MailFailed are the mail emit's two terminal answers (node/server.js:5450-5610). The in-progress
-    ///     acknowledgement <c>mail_sending</c> is deliberately not a member: it only says the send started, so nothing may
-    ///     settle on it.
+    ///     This and <see cref="MailFailed" /> are the mail emit's two terminal answers. <c>mail_sending</c> is not a member: it
+    ///     only says the send started, so nothing may settle on it.
     /// </summary>
-
     //appended at the end, like every other late addition: members carry no explicit values, so inserting
     //above would renumber every later ordinal
     [EnumMember(Value = "mail_sent")]
@@ -586,9 +580,8 @@ public enum GameResponseType
     MailFailed,
 
     /// <summary>
-    ///     This and MailTakeItemFailed are <c>mail_take_item</c>'s two failure answers (node/server.js:5358-5450). The success
-    ///     answer <c>mail_item_taken</c> was already here for the item-sent-elsewhere case, so these two complete the
-    ///     take-item trio.
+    ///     This and <see cref="MailTakeItemFailed" /> are <c>mail_take_item</c>'s two failure answers; the success answer is
+    ///     <see cref="MailItemTaken" />.
     /// </summary>
     [EnumMember(Value = "mail_item_already_taken")]
     MailItemAlreadyTaken,
@@ -597,10 +590,9 @@ public enum GameResponseType
     MailTakeItemFailed,
 
     /// <summary>
-    ///     This and NotInTavern are the two refusals the bet handler answers before it reaches any game's own branch: the
-    ///     tavern has no running instance, and the character is not standing in it.
+    ///     This and <see cref="NotInTavern" /> are the bet handler's two refusals before any game's own branch: the tavern
+    ///     has no running instance, and the character is not standing in it.
     /// </summary>
-
     //appended rather than filed beside the other tavern codes, because inserting above would renumber every
     //later ordinal
     [EnumMember(Value = "tavern_unavailable")]
@@ -699,8 +691,7 @@ public enum ALSocketMessageType
     [EnumMember(Value = "limitdcreport")]
     LimitDcReport,
 
-    //Phase 10 - inbound event coverage (tier 1). Members whose wire name equals the lowercased C# name
-    //carry no [EnumMember]; only underscore wire names (kill_credit, trade_history, game_event) do.
+    //members whose wire name equals the lowercased C# name carry no [EnumMember]; only underscore wire names do
     Cm,
     Magiport,
     Request,
@@ -719,16 +710,14 @@ public enum ALSocketMessageType
 
     /// <summary>Private chat.</summary>
 
-    //appended rather than filed beside ChatLog because this enum has its own row in
-    //enum-tolerance-matrix.json pinning what raw ordinal 17 resolves to, and no member here carries an
-    //explicit value - so inserting above renumbers every later ordinal and fails that snapshot
+    //appended rather than filed beside ChatLog: no member carries an explicit value, so inserting above renumbers every
+    //later ordinal and fails enum-tolerance-matrix.json
     Pm,
 
     /// <summary>
     ///     The tavern's info reply and its bet, won and lost broadcasts all share this one event name, so the frame's own
     ///     <c>event</c> field is what tells them apart.
     /// </summary>
-
     //appended for the same ordinal reason as Pm
     Tavern,
 
@@ -740,7 +729,6 @@ public enum ALSocketMessageType
     /// <summary>
     ///     One piece of a generated map bundle. A daily dungeon's floors reach the client this way, not through G.
     /// </summary>
-
     //appended for the same ordinal reason as Pm
     [EnumMember(Value = "map_chunk")]
     MapChunk,
@@ -748,7 +736,6 @@ public enum ALSocketMessageType
     /// <summary>
     ///     The daily dungeon's run state: timer, purse, doors, objectives and the vote in progress.
     /// </summary>
-
     //appended for the same ordinal reason as Pm
     Cave
 }
@@ -825,9 +812,9 @@ public enum ALSocketEmitType
     Use,
     Merchant,
 
-    //Phase 9 - emit surface coverage (tier 1). Members whose wire name is just the lowercased C# name carry no
-    //[EnumMember]; only underscore names do. New members go here and not in the alphabetical run above: no member
-    //carries an explicit value, so inserting up there renumbers every later ordinal
+    //members whose wire name is just the lowercased C# name carry no [EnumMember]; only underscore names do. New members
+    //go here and not in the alphabetical run above: no member carries an explicit value, so inserting up there
+    //renumbers every later ordinal
     Bet,
     Cruise,
     Destroy,
@@ -863,10 +850,7 @@ public enum ALSocketEmitType
     TradeSell,
     Whistle,
 
-    //Endpoint coverage - the locksmith, scrollsmith, activate, cosmetics and tavern surfaces. Appended for the
-    //reason the block above is: no member here carries an explicit value, so inserting into the alphabetical run
-    //renumbers every later ordinal and rebinds enum-tolerance-matrix.json's pinned rows. Each of these eight wire
-    //names is already the lowercased C# name, so none needs an [EnumMember]
+    //appended for the same ordinal reason as the block above
     Activate,
     Blend,
     Cx,

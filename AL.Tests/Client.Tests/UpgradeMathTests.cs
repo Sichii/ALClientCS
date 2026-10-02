@@ -479,7 +479,7 @@ public class UpgradeMathTests
                    .Should()
                    .Equal(
                        GetChances(
-                           GameData.Compounds.ChanceOf,
+                           GameData.Compounds.GetChance,
                            0,
                            0,
                            0,
@@ -495,7 +495,7 @@ public class UpgradeMathTests
     [Test]
     public void TheLostEarringIsPinnedToRowTwo()
     {
-        UpgradeMath.GetCompoundRowAtZero(
+        UpgradeMath.GetCompoundBaseRow(
                        "lostearring",
                        [
                            0,
@@ -506,7 +506,7 @@ public class UpgradeMathTests
                    .Should()
                    .Be(2);
 
-        UpgradeMath.GetCompoundRowAtZero(
+        UpgradeMath.GetCompoundBaseRow(
                        null,
                        [
                            0,
@@ -599,7 +599,7 @@ public class UpgradeMathTests
                    .Should()
                    .Equal(
                        GetChances(
-                           GameData.Compounds.ChanceOf,
+                           GameData.Compounds.GetChance,
                            2,
                            2,
                            2,
@@ -622,7 +622,7 @@ public class UpgradeMathTests
                    .BeTrue();
 
         chance.Should()
-              .Be(GameData.Compounds.ChanceOf(2, 1));
+              .Be(GameData.Compounds.GetChance(2, 1));
     }
 
     [Test]
@@ -677,7 +677,7 @@ public class UpgradeMathTests
                    .Should()
                    .Equal(
                        GetChances(
-                           GameData.Upgrades.ChanceOf,
+                           GameData.Upgrades.GetChance,
                            Enumerable.Repeat(1, 12)
                                      .ToArray()));
 
@@ -694,7 +694,7 @@ public class UpgradeMathTests
                    .BeTrue();
 
         chance.Should()
-              .Be(GameData.Upgrades.ChanceOf(1, 12));
+              .Be(GameData.Upgrades.GetChance(1, 12));
     }
 
     [Test]
@@ -755,7 +755,7 @@ public class UpgradeMathTests
             .Should()
             .BeTrue();
 
-        odds.FlatBinds
+        odds.IsFlatCapLower
             .Should()
             .BeTrue();
 
@@ -917,7 +917,7 @@ public class UpgradeMathTests
             .Should()
             .BeTrue();
 
-        odds.FlatBinds
+        odds.IsFlatCapLower
             .Should()
             .BeFalse();
 

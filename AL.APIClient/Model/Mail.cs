@@ -27,7 +27,7 @@ public sealed record Mail
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    ///     When the mail was created, as the server's raw date string (a JS <c>Date.toString()</c> , not ISO-8601).
+    ///     When the mail was created, as the server's raw date string (a JS <c>Date.toString()</c>, not ISO-8601).
     /// </summary>
     public string? Sent { get; init; }
 

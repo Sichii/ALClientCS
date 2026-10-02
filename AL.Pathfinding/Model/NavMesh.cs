@@ -11,8 +11,8 @@ using AL.Pathfinding.Definitions;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     One map's navigation: the exact wall test and the triangle mesh, with the per-map search over it. Every method is
-///     safe to call from any thread; search state lives in <see cref="SearchScratch" />.
+///     Represents one map's navigation: the exact wall test and the triangle mesh, with the per-map search over it. Every
+///     method is safe to call from any thread.
 /// </summary>
 public sealed class NavMesh
 {
@@ -43,11 +43,37 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     Rotates round <paramref name="pivot" /> from the corridor's last triangle, appending each triangle passed, until
-    ///     one holds <paramref name="next" />, or is <paramref name="endTriangle" /> when there is no next vertex. Of the two
-    ///     ways round, the one keeping the turn at the pivot inside the corridor is taken, so the funnel pulls straight past
-    ///     it; the shorter way when the turn cannot be told, the only way at a boundary.
+    ///     Rotates round a vertex from the corridor's last triangle, appending each triangle passed, until one holds the next
+    ///     vertex. Takes the way round that keeps the turn at the pivot inside the corridor, else the shorter way.
     /// </summary>
+    /// <param name="corridor">
+    ///     The corridor to append to.
+    /// </param>
+    /// <param name="previous">
+    ///     The vertex before the pivot, or -1.
+    /// </param>
+    /// <param name="pivot">
+    ///     The vertex to rotate round.
+    /// </param>
+    /// <param name="next">
+    ///     The vertex after the pivot, or -1 to rotate until <paramref name="endTriangle" />.
+    /// </param>
+    /// <param name="endTriangle">
+    ///     The triangle holding the walk's end.
+    /// </param>
+    /// <param name="end">
+    ///     The walk's end.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the rotation reached its target; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     private bool AppendFan(
         List<int> corridor,
         int previous,
@@ -58,14 +84,14 @@ public sealed class NavMesh
     {
         var origin = corridor[^1];
 
-        if (Satisfies(origin))
+        if (IsTarget(origin))
             return true;
 
-        var slot = Mesh.SlotOfVertex(origin, pivot);
+        var slot = Mesh.FindVertexSlot(origin, pivot);
         var oneWay = Mesh.Neighbour(origin, (slot + 1) % 3);
         var otherWay = Mesh.Neighbour(origin, (slot + 2) % 3);
-        var oneSteps = Steps(oneWay);
-        var otherSteps = Steps(otherWay);
+        var oneSteps = CountSteps(oneWay);
+        var otherSteps = CountSteps(otherWay);
 
         if ((oneSteps < 0) && (otherSteps < 0))
             return false;
@@ -76,7 +102,7 @@ public sealed class NavMesh
             first = oneSteps >= 0 ? oneWay : otherWay;
         else
         {
-            var inside = InsideWay();
+            var inside = FindInsideWay();
 
             first = inside >= 0
                 ? inside
@@ -92,21 +118,18 @@ public sealed class NavMesh
         {
             corridor.Add(triangle);
 
-            if (Satisfies(triangle))
+            if (IsTarget(triangle))
                 return true;
 
-            var following = Following(triangle, last);
+            var following = FindFollowing(triangle, last);
             last = triangle;
             triangle = following;
         }
 
-        bool Satisfies(int candidate) => next >= 0 ? Mesh.SlotOfVertex(candidate, next) >= 0 : candidate == endTriangle;
+        bool IsTarget(int candidate) => next >= 0 ? Mesh.FindVertexSlot(candidate, next) >= 0 : candidate == endTriangle;
 
-        //the way round on which the funnel pulls straight past the pivot: the origin's corner that is neither the
-        //pivot nor the previous vertex lies on the same side of the incoming leg as the point ahead, so rotating
-        //past that corner keeps the turn inside the corridor; otherwise the way back across the incoming edge does.
-        //-1 with no previous vertex, or when the turn cannot be told
-        int InsideWay()
+        //the way round that keeps the turn inside the corridor, or -1 when it cannot be told
+        int FindInsideWay()
         {
             if (previous < 0)
                 return -1;
@@ -121,8 +144,8 @@ public sealed class NavMesh
             var pivotPoint = Mesh.Vertices[pivot];
             var previousPoint = Mesh.Vertices[previous];
             var ahead = next >= 0 ? Mesh.Vertices[next] : end;
-            var turn = Turn(previousPoint, pivotPoint, ahead);
-            var side = Turn(previousPoint, pivotPoint, Mesh.Vertices[third]);
+            var turn = CalculateTurn(previousPoint, pivotPoint, ahead);
+            var side = CalculateTurn(previousPoint, pivotPoint, Mesh.Vertices[third]);
 
             if ((turn == 0) || (side == 0))
                 return -1;
@@ -130,20 +153,20 @@ public sealed class NavMesh
             return (turn > 0) == (side > 0) ? pastThird : backAcross;
         }
 
-        //the z of (at - from) x (to - at): which side of the leg into at the point to lies on
-        static float Turn(Point from, Point at, Point to) => (at.X - from.X) * (to.Y - at.Y) - (at.Y - from.Y) * (to.X - at.X);
+        //the z of (at - from) x (to - at), the side of the leg into at that to lies on
+        static float CalculateTurn(Point from, Point at, Point to) => (at.X - from.X) * (to.Y - at.Y) - (at.Y - from.Y) * (to.X - at.X);
 
-        //the pivot's other edge in the triangle, which is the one not entered by
-        int Following(int current, int from)
+        //the triangle across the pivot's edge that was not entered by
+        int FindFollowing(int current, int from)
         {
-            var pivotSlot = Mesh.SlotOfVertex(current, pivot);
+            var pivotSlot = Mesh.FindVertexSlot(current, pivot);
             var across = Mesh.Neighbour(current, (pivotSlot + 1) % 3);
 
             return across == from ? Mesh.Neighbour(current, (pivotSlot + 2) % 3) : across;
         }
 
         //how many triangles the rotation passes before one satisfies, or -1 off the boundary or full circle
-        int Steps(int current)
+        int CountSteps(int current)
         {
             var from = origin;
             var steps = 0;
@@ -152,10 +175,10 @@ public sealed class NavMesh
             {
                 steps++;
 
-                if (Satisfies(current))
+                if (IsTarget(current))
                     return steps;
 
-                var following = Following(current, from);
+                var following = FindFollowing(current, from);
                 from = current;
                 current = following;
             }
@@ -165,8 +188,24 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     Whether a character can move in a straight line from start to end: the server's own test.
+    ///     Determines whether a character can move in a straight line from start to end, by the server's own test.
     /// </summary>
+    /// <param name="start">
+    ///     The start of the move.
+    /// </param>
+    /// <param name="end">
+    ///     The end of the move.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the move crosses no wall; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool CanMove(IPoint start, IPoint end)
         => Walls.CanMove(
             start.X,
@@ -178,8 +217,24 @@ public sealed class NavMesh
     /// <summary>
     ///     <inheritdoc cref="CanMove(IPoint, IPoint)" />
     ///     <br />
-    ///     The struct overload, so the search never boxes a point to ask.
+    ///     The struct overload, so the search never boxes a point.
     /// </summary>
+    /// <param name="start">
+    ///     The start of the move.
+    /// </param>
+    /// <param name="end">
+    ///     The end of the move.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the move crosses no wall; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     internal bool CanMove(Point start, Point end)
         => Walls.CanMove(
             start.X,
@@ -188,22 +243,31 @@ public sealed class NavMesh
             end.Y,
             CONSTANTS.DEFAULT_BOUNDING_BASE);
 
-    /// <summary>
-    ///     Keeps vertices 0..<paramref name="i" />, then ends <paramref name="polyline" /> on <paramref name="stop" />.
-    /// </summary>
     private static void Cut(List<Point> polyline, int i, Point stop)
     {
         if (polyline.Count > (i + 1))
             polyline.RemoveRange(i + 1, polyline.Count - i - 1);
 
-        if (!IsSame(polyline[i], stop))
+        if (!IsSamePoint(polyline[i], stop))
             polyline.Add(stop);
     }
 
     /// <summary>
-    ///     Turns a pulled polyline into the walk that is emitted: turned round for a search run from the far end, collapsed
-    ///     onto the legs the move test accepts unless it is only a price, then cut where it first gets inside the reach.
+    ///     Turns a pulled polyline into the emitted walk: reversed if asked, smoothed unless it is only a price, then cut where
+    ///     it first gets inside the reach.
     /// </summary>
+    /// <param name="polyline">
+    ///     The pulled polyline, edited in place.
+    /// </param>
+    /// <param name="reach">
+    ///     Where the walk counts as arrived.
+    /// </param>
+    /// <param name="reversed">
+    ///     Specifies whether the search ran from the far end.
+    /// </param>
+    /// <param name="pricing">
+    ///     Specifies whether the polyline is only a price.
+    /// </param>
     private void Finish(
         List<Point> polyline,
         in Reach reach,
@@ -219,29 +283,61 @@ public sealed class NavMesh
         TrimToReach(polyline, reach);
     }
 
-    internal static bool IsSame(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
+    internal static bool IsSamePoint(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
 
     /// <summary>
-    ///     Whether a walk may end at (x, y): inside the ground the mesh was built from. Water and enclosed pockets have no
-    ///     line to cross but are not ground either, so this, not <see cref="IsWall(float, float)" />, is the test a standing
-    ///     point needs.
+    ///     Determines whether a walk may end at a point, inside the ground the mesh was built from.
     /// </summary>
-    public bool IsWalkable(float x, float y) => Mesh.TriangleAt(x, y) >= 0;
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the point is on the mesh; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    /// <remarks>
+    ///     Water and enclosed pockets pass <see cref="IsWall(float, float)" />, so this is the test a standing point needs.
+    /// </remarks>
+    public bool IsWalkable(float x, float y) => Mesh.FindTriangle(x, y) >= 0;
 
     /// <inheritdoc cref="IsWalkable(float, float)" />
     public bool IsWalkable(IPoint point) => IsWalkable(point.X, point.Y);
 
     /// <summary>
-    ///     Whether a character standing at (x, y) has a wall inside its collision box, or is off the map. A point where this
-    ///     is true is one the client refuses every move out of.
+    ///     Determines whether a character standing at a point has a wall inside its collision box, or is off the map.
     /// </summary>
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the client refuses every move out of the point; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool IsWall(float x, float y)
         => (x < MinX) || (x > MaxX) || (y < MinY) || (y > MaxY) || Walls.BoxIntersects(x, y, CONSTANTS.DEFAULT_BOUNDING_BASE);
 
     /// <inheritdoc cref="IsWall(float, float)" />
     public bool IsWall(IPoint point) => IsWall(point.X, point.Y);
 
-    private bool LegsAreClear(List<Point> polyline)
+    private bool AreLegsClear(List<Point> polyline)
     {
         for (var i = 1; i < polyline.Count; i++)
             if (!CanMove(polyline[i - 1], polyline[i]))
@@ -250,8 +346,10 @@ public sealed class NavMesh
         return true;
     }
 
-    /// <summary>The total length of a polyline.</summary>
-    internal static float Length(List<Point> polyline)
+    /// <summary>Calculates the total length of a polyline.</summary>
+    /// <param name="polyline">The polyline to measure.</param>
+    /// <returns>The sum of its legs.</returns>
+    internal static float CalculateLength(List<Point> polyline)
     {
         var length = 0f;
 
@@ -263,13 +361,24 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     The triangle a search from (x, y) starts in, and the point it starts from. A point inside a triangle starts there;
-    ///     one outside every triangle starts at the nearest vertex it can reach in a straight line, or the nearest of all when
-    ///     none can be reached.
+    ///     Finds the triangle a search from a point starts in. A point outside every triangle starts at the nearest vertex it
+    ///     can reach in a straight line, or the nearest of all.
     /// </summary>
-    internal int Locate(float x, float y, out Point entry)
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <param name="entry">
+    ///     The point the search starts from.
+    /// </param>
+    /// <returns>
+    ///     The triangle's id, or -1 on an empty mesh.
+    /// </returns>
+    internal int FindStartTriangle(float x, float y, out Point entry)
     {
-        var triangle = Mesh.TriangleAt(x, y);
+        var triangle = Mesh.FindTriangle(x, y);
 
         if (triangle >= 0)
         {
@@ -279,7 +388,7 @@ public sealed class NavMesh
         }
 
         var origin = new Point(x, y);
-        var vertex = Mesh.NearestVertex(x, y, index => CanMove(origin, Mesh.Vertices[index]));
+        var vertex = Mesh.FindNearestVertex(x, y, index => CanMove(origin, Mesh.Vertices[index]));
 
         if (vertex < 0)
         {
@@ -290,10 +399,10 @@ public sealed class NavMesh
 
         entry = Mesh.Vertices[vertex];
 
-        return Mesh.TriangleOfVertex(vertex);
+        return Mesh.GetVertexTriangle(vertex);
     }
 
-    private void MidpointPolyline(
+    private void BuildMidpointPolyline(
         List<int> corridor,
         Point start,
         Point end,
@@ -324,14 +433,24 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     Dijkstra over the mesh's vertices along triangle edges, seeded from the corners of <paramref name="start" />, into
-    ///     the scratch's vertex arrays. The shortest walk through a polygon bends only at its vertices, so a path along
-    ///     triangle edges goes round the right side of every obstacle, and the funnel straightens it inside the corridor it
-    ///     traces. A search over the triangles themselves, priced portal to portal, settles a big triangle on whichever side
-    ///     is entered first, which sent walks the long way round an arena. Given <paramref name="stopTriangle" /> and
-    ///     <paramref name="stopPoint" /> the search stops as soon as that one target is settled; without them it runs the
-    ///     whole mesh, for a search read at many targets.
+    ///     Runs Dijkstra over the mesh's vertices along triangle edges, seeded from the corners of the start triangle, into the
+    ///     scratch's vertex arrays.
     /// </summary>
+    /// <param name="start">
+    ///     The triangle the search starts in.
+    /// </param>
+    /// <param name="entry">
+    ///     The point the search starts from.
+    /// </param>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <param name="stopTriangle">
+    ///     The one target's triangle, or -1 to search the whole mesh.
+    /// </param>
+    /// <param name="stopPoint">
+    ///     The one target's point.
+    /// </param>
     internal void Search(
         int start,
         Point entry,
@@ -351,7 +470,7 @@ public sealed class NavMesh
             var cost = entry.Distance(Mesh.Vertices[corner]);
             scratch.VertexCost[corner] = cost;
             scratch.VertexQueue.Enqueue(corner, cost);
-            Bound(corner, cost);
+            TightenBound(corner, cost);
         }
 
         while (scratch.VertexQueue.TryDequeue(out var vertex, out var cost))
@@ -365,7 +484,7 @@ public sealed class NavMesh
 
             var from = Mesh.Vertices[vertex];
 
-            foreach (var next in Mesh.EdgesFrom(vertex))
+            foreach (var next in Mesh.GetVertexEdges(vertex))
             {
                 var total = cost + from.Distance(Mesh.Vertices[next]);
 
@@ -375,13 +494,13 @@ public sealed class NavMesh
                 scratch.VertexCost[next] = total;
                 scratch.VertexParent[next] = vertex;
                 scratch.VertexQueue.Enqueue(next, total);
-                Bound(next, total);
+                TightenBound(next, total);
             }
         }
 
-        void Bound(int vertex, float cost)
+        void TightenBound(int vertex, float cost)
         {
-            if ((stopTriangle >= 0) && (Mesh.SlotOfVertex(stopTriangle, vertex) >= 0))
+            if ((stopTriangle >= 0) && (Mesh.FindVertexSlot(stopTriangle, vertex) >= 0))
                 bound = MathF.Min(
                     bound,
                     cost
@@ -392,10 +511,11 @@ public sealed class NavMesh
 
     /// <summary>
     ///     Collapses the polyline onto the fewest legs the move test accepts, scanning back from the end for the farthest
-    ///     vertex each one can reach in a straight line. The corridor is traced from a padded raster and is more conservative
-    ///     than the wall lines at every corner, so a pull that hugs its staircase vertices leaves legs a straight line would
-    ///     have cleared.
+    ///     vertex each one can reach in a straight line.
     /// </summary>
+    /// <param name="polyline">
+    ///     The polyline, edited in place.
+    /// </param>
     private void Smooth(List<Point> polyline)
     {
         if (polyline.Count < 3)
@@ -424,11 +544,15 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     Cuts the polyline where it first gets inside the reach. From each vertex in order: the near-edge point if it is
-    ///     walkable and the line to it is clear; else the first point of the next leg inside the reach, on the same terms.
-    ///     Failing both, the whole polyline: it ends on the entry the end resolved to, which is on the mesh, and is as near
-    ///     the end as a walk can get.
+    ///     Cuts the polyline where it first gets inside the reach: at each vertex, the nearest reach point, else the next leg's
+    ///     entry, whichever is walkable and clear first. Failing both, the polyline is left whole.
     /// </summary>
+    /// <param name="polyline">
+    ///     The polyline, edited in place.
+    /// </param>
+    /// <param name="reach">
+    ///     Where the walk counts as arrived.
+    /// </param>
     private void TrimToReach(List<Point> polyline, in Reach reach)
     {
         if (polyline.Count == 0)
@@ -444,7 +568,7 @@ public sealed class NavMesh
         for (var i = 0; i < polyline.Count; i++)
         {
             var vertex = polyline[i];
-            (var nx, var ny) = reach.NearEdge(vertex.X, vertex.Y);
+            (var nx, var ny) = reach.FindNearestEdgePoint(vertex.X, vertex.Y);
             var near = new Point(nx, ny);
 
             if (IsWalkable(nx, ny) && CanMove(vertex, near))
@@ -459,7 +583,7 @@ public sealed class NavMesh
 
             var next = polyline[i + 1];
 
-            if (reach.TryEntry(
+            if (reach.TryFindEntry(
                     vertex.X,
                     vertex.Y,
                     next.X,
@@ -480,11 +604,28 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     The corridor from the search's start triangle to <paramref name="end" /> in <paramref name="endTriangle" />, into
-    ///     the scratch list: the start triangle, then the fan round each vertex of the cheapest vertex path as far as the
-    ///     triangle holding the edge to the next vertex, ending in the end's own triangle. False when no corner of the end's
-    ///     triangle was reached.
+    ///     Builds the corridor from the search's start triangle to the end's, into the scratch list: the fan round each vertex
+    ///     of the cheapest vertex path.
     /// </summary>
+    /// <param name="endTriangle">
+    ///     The triangle holding the end.
+    /// </param>
+    /// <param name="end">
+    ///     The walk's end.
+    /// </param>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if a corner of the end's triangle was reached; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     private bool TryBuildCorridor(int endTriangle, Point end, SearchScratch scratch)
     {
         var corridor = scratch.Corridor;
@@ -501,7 +642,7 @@ public sealed class NavMesh
         {
             var corner = Mesh.Corners[endTriangle * 3 + slot];
 
-            //float.MaxValue is the unreached sentinel the search writes, so this is an identity test, not a measurement
+            //float.MaxValue is the unreached sentinel
             // ReSharper disable once CompareOfFloatsByEqualityOperator
             if (scratch.VertexCost[corner] == float.MaxValue)
                 continue;
@@ -548,8 +689,24 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     The nearest point inside the ground, within <see cref="CONSTANTS.MAX_UNSTICK_DISTANCE" />.
+    ///     Finds the nearest point inside the ground, within <see cref="CONSTANTS.MAX_UNSTICK_DISTANCE" />.
     /// </summary>
+    /// <param name="point">
+    ///     The point to start from.
+    /// </param>
+    /// <param name="walkable">
+    ///     The nearest walkable point, or <see cref="Point.None" />.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if a walkable point was found; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool TryFindNearestWalkable(IPoint point, out IPoint walkable)
     {
         if (IsWalkable(point))
@@ -559,7 +716,7 @@ public sealed class NavMesh
             return true;
         }
 
-        if (Mesh.TryNearestInside(
+        if (Mesh.TryFindNearestInside(
                 point.X,
                 point.Y,
                 CONSTANTS.MAX_UNSTICK_DISTANCE,
@@ -577,13 +734,42 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     After <see cref="Search" />, the string-pulled polyline from the search's start to <paramref name="end" />, the
-    ///     entry inside triangle <paramref name="endTriangle" /> that the walk's end resolved to, smoothed with the exact move
-    ///     test and trimmed to stop inside <paramref name="reach" />. Empty when the start is already inside the reach. False
-    ///     when the end was never reached. <paramref name="reversed" /> flips the polyline first, for a search run from the
-    ///     far end: the reach is then around the point the character walks toward. <paramref name="pricing" /> keeps the pull
-    ///     as it is, unsmoothed and unchecked, for a price rather than a walk.
+    ///     Builds the walk <see cref="Search" /> found to an end, pulled, smoothed and trimmed to stop inside the reach.
     /// </summary>
+    /// <param name="start">
+    ///     The search's start point.
+    /// </param>
+    /// <param name="endTriangle">
+    ///     The triangle holding the end.
+    /// </param>
+    /// <param name="end">
+    ///     The entry the walk's end resolved to.
+    /// </param>
+    /// <param name="reach">
+    ///     Where the walk counts as arrived.
+    /// </param>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <param name="polyline">
+    ///     The list the walk is written into; empty when the start is already inside the reach.
+    /// </param>
+    /// <param name="reversed">
+    ///     Specifies whether the search ran from the far end, which flips the polyline first.
+    /// </param>
+    /// <param name="pricing">
+    ///     Specifies whether the walk is only a price, which skips the smoothing and the leg check.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the end was reached; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     internal bool TryWalk(
         Point start,
         int endTriangle,
@@ -614,14 +800,11 @@ public sealed class NavMesh
             reversed,
             pricing);
 
-        //the pull keeps every leg inside the corridor, which is inside the walkable polygon, so this only fires
-        //on a corridor Poly2Tri shaped strangely; the portal midpoints are the fallback because a leg between two
-        //midpoints of one triangle cannot leave it. A price is not checked: one wrong on a corridor like that is
-        //a rounding error against what the checks cost on every exit of every search
-        if (pricing || LegsAreClear(polyline))
+        //a leg fails only on a malformed corridor; a leg between two portal midpoints of one triangle cannot leave it
+        if (pricing || AreLegsClear(polyline))
             return true;
 
-        MidpointPolyline(
+        BuildMidpointPolyline(
             corridor,
             start,
             end,
@@ -637,14 +820,31 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     The length of the walk <see cref="Search" /> found to <paramref name="end" /> in triangle
-    ///     <paramref name="triangle" />: pulled and trimmed as the emitted walk is, so it is a real walk's length and not the
-    ///     search's estimate, and a stop short of a door is priced as the stop and not the door. Infinity when the triangle
-    ///     was never reached. Every cost the portal search compares comes from here, at build and per search. Not smoothed:
-    ///     the smoothing takes about the same few percent off every walk and costs half of what pricing one takes, so the
-    ///     price is the pulled length the way the vertex graph's was.
+    ///     Calculates the length of the walk <see cref="Search" /> found to an end, pulled and trimmed as the emitted walk is
+    ///     but not smoothed.
     /// </summary>
-    internal float WalkCost(
+    /// <param name="start">
+    ///     The search's start point.
+    /// </param>
+    /// <param name="triangle">
+    ///     The triangle holding the end.
+    /// </param>
+    /// <param name="end">
+    ///     The entry the walk's end resolved to.
+    /// </param>
+    /// <param name="reach">
+    ///     Where the walk counts as arrived.
+    /// </param>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <param name="reversed">
+    ///     Specifies whether the search ran from the far end.
+    /// </param>
+    /// <returns>
+    ///     The walk's length, or <see cref="float.MaxValue" /> when the triangle was never reached.
+    /// </returns>
+    internal float CalculateWalkCost(
         Point start,
         int triangle,
         Point end,
@@ -660,6 +860,6 @@ public sealed class NavMesh
             scratch.Polyline,
             reversed,
             true)
-            ? Length(scratch.Polyline)
+            ? CalculateLength(scratch.Polyline)
             : float.MaxValue;
 }

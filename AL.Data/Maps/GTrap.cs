@@ -9,14 +9,12 @@ namespace AL.Data.Maps;
 public sealed record GTrap
 {
     /// <summary>
-    ///     <b>NULLABLE</b> . The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance
-    ///     tick (node/server.js:13632).
-    ///     <br />
+    ///     <b>NULLABLE</b>. The area a debuff trap covers. Standing anywhere inside it re-applies slowness every instance tick.
     /// </summary>
     public Polygon? Polygon { get; init; }
 
     /// <summary>
-    ///     Where a spikes trap sits. Standing on it costs 50 hp per instance tick (node/server.js:13623).
+    ///     Where a spikes trap sits. Standing on it costs 50 hp per instance tick.
     /// </summary>
     public Point Position { get; init; }
 

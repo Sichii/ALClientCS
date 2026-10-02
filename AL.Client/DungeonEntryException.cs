@@ -5,12 +5,10 @@ using AL.SocketClient.Definitions;
 namespace AL.Client;
 
 /// <summary>
-///     The server refused a dungeon entry. <see cref="Reason" /> is what it said.
+///     Represents a dungeon entry the server refused, with what it said in <see cref="Reason" />.
 /// </summary>
 /// <remarks>
-///     Typed rather than a message, because one refusal is worth acting on:
-///     <see cref="GameResponseType.TransportCantInvalid" /> means the copy no longer exists, which a bot wants to write
-///     down rather than retry.
+///     <see cref="GameResponseType.TransportCantInvalid" /> means the copy no longer exists, so retrying is pointless.
 /// </remarks>
 public sealed class DungeonEntryException(GameResponseType reason, string message) : InvalidOperationException(message)
 {

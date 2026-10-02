@@ -22,9 +22,9 @@ public class TownCostTests
     /// </summary>
     [Test]
     public void ASlowerCharacterPricesTheChannelLower()
-        => CONSTANTS.TownCost(30f)
+        => CONSTANTS.CalculateTownCost(30f)
                     .Should()
-                    .BeLessThan(CONSTANTS.TownCost(50f));
+                    .BeLessThan(CONSTANTS.CalculateTownCost(50f));
 
     /// <summary>
     ///     A frame that has not filled in yet reports no speed, and read literally that would make the channel free and win
@@ -33,11 +33,11 @@ public class TownCostTests
     [Test]
     public void AnUnreadableSpeedIsPricedAtTheNominalOne()
     {
-        CONSTANTS.TownCost(0f)
+        CONSTANTS.CalculateTownCost(0f)
                  .Should()
                  .Be(CONSTANTS.NOMINAL_TOWN_COST);
 
-        CONSTANTS.TownCost(-5f)
+        CONSTANTS.CalculateTownCost(-5f)
                  .Should()
                  .Be(CONSTANTS.NOMINAL_TOWN_COST);
     }
@@ -46,11 +46,11 @@ public class TownCostTests
     public void TheNominalCostIsTheCostAtTheNominalSpeed()
         => CONSTANTS.NOMINAL_TOWN_COST
                     .Should()
-                    .Be(CONSTANTS.TownCost(CONSTANTS.NOMINAL_WALK_SPEED));
+                    .Be(CONSTANTS.CalculateTownCost(CONSTANTS.NOMINAL_WALK_SPEED));
 
     [Test]
     public void ThreeSecondsOfWalkingIsWhatTheChannelCosts()
-        => CONSTANTS.TownCost(50f)
+        => CONSTANTS.CalculateTownCost(50f)
                     .Should()
                     .Be(3f * 50f * CONSTANTS.TOWN_RISK_PREMIUM);
 
@@ -59,7 +59,7 @@ public class TownCostTests
     /// </summary>
     [Test]
     public void TwiceTheSpeedDoublesTheCost()
-        => CONSTANTS.TownCost(100f)
+        => CONSTANTS.CalculateTownCost(100f)
                     .Should()
-                    .Be(2f * CONSTANTS.TownCost(50f));
+                    .Be(2f * CONSTANTS.CalculateTownCost(50f));
 }

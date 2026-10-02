@@ -5,17 +5,16 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Images;
 
 /// <summary>
-///     One character or monster sheet. <see cref="Matrix" /> says which skin sits in which cell of a <see cref="Rows" />
-///     by <see cref="Columns" /> grid.
+///     Represents one character or monster sheet. <see cref="Matrix" /> says which skin sits in which cell of a
+///     <see cref="Rows" /> by <see cref="Columns" /> grid.
 /// </summary>
 /// <remarks>
-///     Every cell holds the same animation - three frames across by four facings down - so a cell is twelve frames and a
-///     still image is the middle frame of the first facing. A sheet carrying a <see cref="Type" /> is a cosmetic laid out
-///     differently (a hat is one frame across, a tail is four); no monster is on one of those.
+///     Every cell holds three frames across by four facings down, and a still image is the middle frame of the first
+///     facing. A sheet carrying a <see cref="Type" /> is a cosmetic laid out differently.
 /// </remarks>
 public sealed record GSprite
 {
-    /// <summary>How many skins across the sheet is.</summary>
+    /// <summary>The number of skins across the sheet.</summary>
     public int Columns { get; init; }
 
     /// <summary>
@@ -24,47 +23,39 @@ public sealed record GSprite
     public string File { get; init; } = string.Empty;
 
     /// <summary>
-    ///     How many animation frames sit across one cell, for an animated hat or makeup sheet. Zero for a sheet that states
-    ///     none, which the client cuts three across (js/game.js load_game: <c>s_def.frames || 3</c> ). Every other kind of
-    ///     sheet has a fixed frame grid and ignores this.
+    ///     The number of animation frames across one cell of an animated hat or makeup sheet. Zero when the sheet states
+    ///     none, which the game's client reads as three.
     /// </summary>
     public int Frames { get; init; }
 
     /// <summary>
-    ///     Row-major, one skin name per cell. A null cell is grid the sheet does not use.
+    ///     The skin names, row-major, one per cell. A null cell is unused.
     /// </summary>
     public IReadOnlyList<IReadOnlyList<string?>> Matrix { get; init; } = [];
 
-    /// <summary>How many skins down the sheet is.</summary>
+    /// <summary>The number of skins down the sheet.</summary>
     public int Rows { get; init; }
 
     /// <summary>
-    ///     Which of the six body sizes every name in <see cref="Matrix" /> is drawn at, or null for a sheet that states none -
-    ///     which the game reads as <c>normal</c> .
+    ///     If populated, the body size every name in <see cref="Matrix" /> is drawn at. The game reads a null as
+    ///     <c>normal</c>.
     /// </summary>
     /// <remarks>
-    ///     What this decides is where a head sits on a body: the client shifts the head, hair and hat placements by a per-size
-    ///     amount (js/html.js:5877), and picks which of a head's three skin sheets to draw from by the same key ( <c>:5901</c>
-    ///     ). Two sizes have no skin sheet at all, so a body at one of those draws no skin layer rather than a wrongly-sized
-    ///     one.
+    ///     The size decides where a head sits on the body, and which of a head's skin sheets is drawn.
     /// </remarks>
     public string? Size { get; init; }
 
     /// <summary>
-    ///     Whether the game leaves this sheet out of its own skin lookup, which makes every name in <see cref="Matrix" />
+    ///     Whether the game leaves this sheet out of its skin lookup, which makes every name in <see cref="Matrix" />
     ///     unreachable through it.
     /// </summary>
     public bool Skip { get; init; }
 
     /// <summary>
-    ///     What every name in <see cref="Matrix" /> is, which is what a cosmetic's slot is resolved through. Null for a sheet
-    ///     the game types as nothing - most of them.
+    ///     If populated, the cosmetic type of every name in <see cref="Matrix" />, which resolves a cosmetic's slot.
     /// </summary>
     /// <remarks>
-    ///     The server substitutes <c>full</c> for the absence while building its name-to-type table
-    ///     (js/old_common_functions.js:191), and <c>full</c> is a type its own <c>cxtype_to_slot</c> map has no entry for.
-    ///     Keeping the absence as null rather than baking that placeholder in leaves the two distinguishable: a caller can
-    ///     tell a sheet nothing may be worn from off an untyped one it simply has not handled.
+    ///     The server treats a missing type as <c>full</c>, which maps to no slot.
     /// </remarks>
     public string? Type { get; init; }
 

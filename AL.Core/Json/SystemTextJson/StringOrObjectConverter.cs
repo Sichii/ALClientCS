@@ -11,18 +11,17 @@ using AL.Core.Json.Interfaces;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Handles a field the server sends as either a bare string or a full object. On a string, constructs T and assigns
-///     the string to the property named at construction; on an object, populates T normally and marks
-///     <see cref="IOptionalObject.ContainsData" />. The System.Text.Json replacement for the Newtonsoft
-///     <c>StringOrObjectConverter</c> . Register in the shared options (its property name cannot be passed through a
-///     System.Text.Json <c>[JsonConverter]</c> attribute), so the object branch drops this converter to avoid re-entering
-///     itself.
+///     Reads a field the server sends as either a bare string or a full object. A string fills the property named at
+///     construction; an object binds normally and sets <see cref="IOptionalObject.ContainsData" />.
 /// </summary>
+/// <remarks>
+///     Register it through <see cref="StringOrObjectConverterFactory" />, so the object branch can exclude it.
+/// </remarks>
 public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: class, IOptionalObject, new()
 {
     private readonly PropertyInfo? StringProperty;
 
-    public StringOrObjectConverter(string propertyForString) => StringProperty = typeof(T).GetProperty(propertyForString);
+    public StringOrObjectConverter(string stringPropertyName) => StringProperty = typeof(T).GetProperty(stringPropertyName);
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -56,19 +55,19 @@ public sealed class StringOrObjectConverter<T> : JsonConverter<T?> where T: clas
 }
 
 /// <summary>
-///     Registers <see cref="StringOrObjectConverter{T}" /> for the types the models mark with
-///     <see cref="JsonStringOrObjectAttribute" />, taking the string-property name from it. The parameter is why the
-///     marker exists: System.Text.Json's <c>[JsonConverter]</c> attribute requires a public parameterless constructor and
-///     so cannot carry it. The factory lives in AL.Core yet still covers the socket/API types (it reads the marker by
-///     reflection and closes the generic at runtime), so no cross-project reference is needed.
+///     Registers <see cref="StringOrObjectConverter{T}" /> for every type marked <see cref="JsonStringOrObjectAttribute" />,
+///     taking the string property's name from it.
 /// </summary>
+/// <remarks>
+///     It closes the generic at runtime, so it covers socket and API types without referencing them.
+/// </remarks>
 public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcludingConverterFactory
 {
     /// <summary>
-    ///     Shared across every <see cref="Excluding" /> copy; see <see cref="ArrayToObjectConverterFactory" /> for why the
-    ///     attribute read is cached.
+    ///     The cached answer to whether a type carries <see cref="JsonStringOrObjectAttribute" />, shared across every
+    ///     <see cref="Excluding" /> copy.
     /// </summary>
-    private static readonly ConcurrentDictionary<Type, bool> Dual = new();
+    private static readonly ConcurrentDictionary<Type, bool> Marked = new();
 
     private readonly Type? Excluded;
 
@@ -76,15 +75,12 @@ public sealed class StringOrObjectConverterFactory : JsonConverterFactory, IExcl
 
     private StringOrObjectConverterFactory(Type excluded) => Excluded = excluded;
 
-    /// <summary>
-    ///     Returns a copy that declines <paramref name="type" />, so the object branch's inner fill resolves it with the
-    ///     default object converter instead of re-entering this converter and recursing until the stack overflows.
-    /// </summary>
+    /// <inheritdoc />
     public JsonConverterFactory Excluding(Type type) => new StringOrObjectConverterFactory(type);
 
     public override bool CanConvert(Type typeToConvert)
         => (typeToConvert != Excluded)
-           && Dual.GetOrAdd(typeToConvert, type => type.GetCustomAttribute<JsonStringOrObjectAttribute>() is not null);
+           && Marked.GetOrAdd(typeToConvert, type => type.GetCustomAttribute<JsonStringOrObjectAttribute>() is not null);
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {

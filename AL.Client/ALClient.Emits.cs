@@ -14,19 +14,33 @@ using Chaos.Extensions.Common;
 namespace AL.Client;
 
 /// <summary>
-///     Phase 9 - emit surface coverage (tier 1). Thin senders for server handlers a parity client needs but could not
-///     previously reach. These emit the action; any confirmation arrives as a separate inbound event (Phase 10).
-///     <see cref="Slot" />/<see cref="TradeSlot" /> serialize lowercase via their own converters, so they can be placed
-///     straight into the payload.
+///     Provides thin senders for server handlers with no richer wrapper of their own. Most emit the action only; any
+///     confirmation arrives as a separate inbound event. <see cref="Slot" /> and <see cref="TradeSlot" /> serialize lowercase
+///     through their own converters, so they go straight into a payload.
 /// </summary>
 public abstract partial class ALClient
 {
     #region Misc
     /// <summary>
-    ///     Places a tavern bet (roulette/dice) (node/server.js:11456).
+    ///     Asynchronously places a tavern bet.
     /// </summary>
+    /// <param name="type">
+    ///     The game to bet on, such as <c>roulette</c> or <c>dice</c>.
+    /// </param>
+    /// <param name="gold">
+    ///     The stake.
+    /// </param>
+    /// <param name="odds">
+    ///     The odds to bet at, for the games that take them.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     type
+    /// </exception>
     public Task BetAsync(string type, long gold, string? odds = null)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Bet,
             new
             {
@@ -34,14 +48,24 @@ public abstract partial class ALClient
                 gold,
                 odds
             });
+    }
 
     /// <summary>
-    ///     Places a dice bet on <paramref name="number" />, with <paramref name="up" /> picking which side of it wins
-    ///     (node/server.js:11514). Only works on the tavern map. The server clamps the number to 0.01-99.99, raises the gold
-    ///     to at least 10,000, takes it at placement, and refuses a second bet while one is unresolved (
-    ///     <c>tavern_dice_exist</c> ) or outside the betting window ( <c>tavern_not_yet</c> / <c>tavern_too_late</c> ).
-    ///     Leaving the tavern with a bet unresolved refunds it in full (node/server.js:4131-4135).
+    ///     Asynchronously places a dice bet on <paramref name="number" />. Only works on the tavern map.
     /// </summary>
+    /// <param name="gold">
+    ///     The stake. The server raises it to at least 10,000 and takes it at placement.
+    /// </param>
+    /// <param name="number">
+    ///     The number to bet against, clamped by the server to 0.01-99.99.
+    /// </param>
+    /// <param name="up">
+    ///     Specifies whether a roll above the number wins.
+    /// </param>
+    /// <remarks>
+    ///     A second bet while one is unresolved is refused with <c>tavern_dice_exist</c>, and one outside the betting window
+    ///     with <c>tavern_not_yet</c> or <c>tavern_too_late</c>. Leaving the tavern with a bet unresolved refunds it in full.
+    /// </remarks>
     public Task BetDiceAsync(long gold, float number, bool up)
         => Socket.EmitAsync(
             ALSocketEmitType.Bet,
@@ -54,58 +78,73 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Stakes <paramref name="gold" /> on one side of the tavern's wheel and resolves once it settles.
-    ///     <paramref name="side" /> is one of <c>GameData.Games.Wheel.Sides</c> - <c>sun</c> or <c>moon</c> - and the stake
-    ///     has to reach <c>GameData.Games.Wheel.Min</c>. The wheel spins for <c>GameData.Games.Wheel.Spin</c> before it
-    ///     answers, so the wait outlasts the ordinary network timeout.
+    ///     Asynchronously stakes <paramref name="gold" /> on one side of the tavern's wheel and waits for it to settle.
     /// </summary>
+    /// <param name="gold">
+    ///     The stake, at least <c>GameData.Games.Wheel.Min</c>.
+    /// </param>
+    /// <param name="side">
+    ///     One of <c>GameData.Games.Wheel.Sides</c>, <c>sun</c> or <c>moon</c>.
+    /// </param>
+    /// <returns>
+    ///     The server's settlement.
+    /// </returns>
     /// <remarks>
-    ///     <b>The payload is inferred, not read off a handler.</b> The wheel is new enough that no published source carries
-    ///     its handler, so only part of this is settled. The <c>bet</c> event and the <c>type</c> discriminator are how both
-    ///     live siblings reach the same handler, and <c>gold</c> is what both name a stake; the field carrying the side is the
-    ///     guess, taken from the game data's own <c>sides</c> key. If the wheel answers <c>invalid</c> or settles against a
-    ///     side that was not asked for, that field name is the thing to correct, and it is written once here.
+    ///     The payload field carrying the side is inferred from the game data's own <c>sides</c> key; no published handler
+    ///     confirms it. If the wheel answers <c>invalid</c> or settles against the wrong side, that field is the one to fix.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     side
+    /// </exception>
     public Task<GameResponseData> BetWheelAsync(long gold, string side)
-        => WagerAsync(
+    {
+        ArgumentNullException.ThrowIfNull(side);
+
+        return PlaceWagerAsync(
             "wheel",
             new Dictionary<string, object?>
             {
                 ["gold"] = gold,
                 ["side"] = side
             });
+    }
 
     /// <summary>
-    ///     Pulls the tavern's slots machine and resolves once the reels settle. The price is fixed at
-    ///     <c>GameData.Games.Slots.Gold</c> and taken whatever the outcome, so there is no stake to pass. The reels spin for
-    ///     <c>GameData.Games.Slots.Spin</c> before the machine answers, which is why the wait outlasts the ordinary network
-    ///     timeout.
+    ///     Asynchronously pulls the tavern's slots machine and waits for the reels to settle. The price is fixed at
+    ///     <c>GameData.Games.Slots.Gold</c> and taken whatever the outcome.
     /// </summary>
+    /// <returns>
+    ///     The server's settlement, answered <c>slots_success</c> or <c>slots_fail</c>.
+    /// </returns>
     /// <remarks>
     ///     The settlement rides <see cref="GameResponseData.Won" />, <see cref="GameResponseData.Cost" />,
-    ///     <see cref="GameResponseData.Payout" /> and <see cref="GameResponseData.Net" />, and the response code is
-    ///     <c>slots_success</c> or <c>slots_fail</c> . Those are the fields the last published handler sent; the machine's
-    ///     prize table has been rewritten since, so it may now name which prize landed as well. The whole reply is handed back
-    ///     rather than a model of it, so a field grown since reaches a caller without a change here.
-    ///     <br />
-    ///     A second pull while one is still spinning is refused with <c>in_progress</c> rather than queued.
+    ///     <see cref="GameResponseData.Payout" /> and <see cref="GameResponseData.Net" />. A second pull while one is still
+    ///     spinning is refused with <c>in_progress</c> rather than queued.
     /// </remarks>
-    public Task<GameResponseData> PlaySlotsAsync() => WagerAsync("slots");
+    public Task<GameResponseData> PlaySlotsAsync() => PlaceWagerAsync("slots");
 
     /// <summary>
-    ///     Both machines settle on a timer rather than on the emit, so the wait has to outlast the spin. Ten seconds is what
-    ///     the game's own script functions allow, against a slots spin of 3.6 and a wheel spin of 4.
+    ///     The time to wait for a wager to settle. Both machines settle on a timer after their spin, and the game's own script
+    ///     functions allow this long.
     /// </summary>
     private const int WAGER_TIMEOUT_MS = 10_000;
 
     /// <summary>
-    ///     Asynchronously places a wager, correlated on the token alone: the published bet handler labels a slots reply's
-    ///     place <c>slots</c> and everything else <c>dice</c> , so a wheel reply's place cannot be predicted and gating on it
-    ///     would hang the await for the full timeout.
+    ///     Asynchronously places a wager, correlated on the request id alone, since a wheel reply's <c>place</c> cannot be
+    ///     predicted.
     /// </summary>
-    private async Task<GameResponseData> WagerAsync(string game, Dictionary<string, object?>? fields = null)
+    /// <param name="game">
+    ///     The game to wager on.
+    /// </param>
+    /// <param name="fields">
+    ///     The game's own payload fields, if it takes any.
+    /// </param>
+    /// <returns>
+    ///     The server's settlement.
+    /// </returns>
+    private async Task<GameResponseData> PlaceWagerAsync(string game, Dictionary<string, object?>? fields = null)
     {
-        var requestId = RequestId.New();
+        var requestId = RequestId.Create();
         var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
@@ -134,33 +173,27 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Asks the tavern for its current house rules (node/server.js:11589) and returns them.
+    ///     Asynchronously asks the tavern for its current house rules.
     /// </summary>
+    /// <returns>
+    ///     The house rules, with <see cref="TavernData.Event" /> set to <c>info</c> and only <see cref="TavernData.Edge" /> and
+    ///     <see cref="TavernData.Max" /> filled.
+    /// </returns>
     /// <remarks>
-    ///     Both numbers come from one quantity, the house's free bankroll <c>S.gold - house_debt()</c> , where
-    ///     <c>house_debt</c> sums what every unresolved dice bet on the server stands to pay out. So
-    ///     <see cref="TavernData.Max" /> falls while other players hold large bets open and recovers as those resolve, and it
-    ///     is the only way to know in advance whether a stake will be taken rather than refused with
-    ///     <c>tavern_gold_not_enough</c> . <b>Ask again per bet rather than caching it.</b>
+    ///     <see cref="TavernData.Max" /> is the house's free bankroll, which falls while other players hold large bets open, so
+    ///     ask again per bet rather than caching it.
     ///     <br />
-    ///     The request carries a <c>request_id</c> , which moves the reply onto <c>game_response</c> and takes it off the
-    ///     <c>tavern</c> event, which is then left carrying the round's bet, win and loss broadcasts and the roulette
-    ///     bet-record echo. The <see cref="TavernData" /> handed back is built from that reply, so it fills
-    ///     <see cref="TavernData.Event" /> with <c>info</c> , plus <see cref="TavernData.Edge" /> and
-    ///     <see cref="TavernData.Max" />, and nothing else.
-    ///     <br />
-    ///     The handler has no map, state or gold check, so it answers wherever the character is standing. It throws
-    ///     <see cref="TimeoutException" /> only when no reply comes at all, which on a live server means a tavern instance
-    ///     that never started: <c>house_debt</c> walks <c>tavern.dice.players</c> (node/server_functions.js:1229) and throws
-    ///     before the reply is built.
+    ///     The handler answers anywhere, but sends nothing at all when the tavern instance never started.
     /// </remarks>
+    /// <exception cref="TimeoutException">
+    ///     The server never answered.
+    /// </exception>
     public async Task<TavernData> RequestTavernInfoAsync()
     {
-        var requestId = RequestId.New();
+        var requestId = RequestId.Create();
         var source = new TaskCompletionSource<Expectation<TavernData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        //gated on the success code as well as the token: a refusal the handler grows later would otherwise resolve an
-        //all-zero reading, and a caller holding one treats it as authoritative rather than falling back
+        //gated on the success code as well as the token, so a refusal never resolves as an all-zero reading
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data => Task.FromResult(
@@ -187,134 +220,212 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Sets an upper cap on this character's movement speed (node/server.js:5122).
+    ///     Asynchronously sets an upper cap on this character's movement speed.
     /// </summary>
+    /// <param name="speed">
+    ///     The cap, or zero to clear it.
+    /// </param>
     /// <remarks>
-    ///     A cap and not a setting: the server applies it as <c>min(speed, cruise || 200000)</c> after every other modifier,
-    ///     so it can only ever slow the character. It persists on the player until changed, so a caller that stops wanting it
-    ///     has to clear it rather than falling silent - and <b>zero is the clear</b> , being falsy in that expression. The
-    ///     payload is a bare number, matching the handler's own <c>function (speed)</c> signature; the server parses it with
-    ///     <c>parseInt</c> and floors the resulting speed at 5.
-    ///     <br />
-    ///     It costs 10 call units of the 200 a character has every four seconds - the move emit costs 1.5.
+    ///     The server applies it as <c>min(speed, cruise || 200000)</c> after every other modifier and keeps it until changed,
+    ///     so it can only slow the character and has to be cleared with zero. It costs 10 call units; a move costs 1.5.
     /// </remarks>
     public Task CruiseAsync(int speed) => Socket.EmitAsync(ALSocketEmitType.Cruise, speed);
 
     /// <summary>
-    ///     Kills this character outright (node/server.js:11680-11691), running the same <c>defeat_player</c> and <c>rip</c> a
-    ///     monster kill would (:11685, :11687) - the normal death penalty, not a free trip to town. Refused while already
-    ///     dead, and takes no arguments.
+    ///     Asynchronously kills this character outright, with the normal death penalty. Refused while already dead.
     /// </summary>
-    /// <remarks>
-    ///     Wire coverage. Nothing in this client or the bot above it calls this; it exists so the emit surface is complete.
-    /// </remarks>
     public Task HarakiriAsync() => Socket.EmitAsync(ALSocketEmitType.Harakiri);
 
     /// <summary>
-    ///     Signs this character up at Bean (node/server.js:11326) and answers <c>signed_up</c> . Distinct from the giveaway
-    ///     join, which is its own emit.
+    ///     Asynchronously signs this character up at Bean, answered <c>signed_up</c>. Distinct from joining a giveaway.
     /// </summary>
-    /// <remarks>
-    ///     Wire coverage. Nothing in this client or the bot above it calls this.
-    /// </remarks>
     public Task SignUpAsync() => Socket.EmitAsync(ALSocketEmitType.Signup);
     #endregion
 
     #region Chat
     /// <summary>
-    ///     Sends a public chat message. <paramref name="code" /> flags it as code-manager output, which the server rate-limits
-    ///     to once per 15 seconds (node/server.js:4514).
+    ///     Asynchronously sends a public chat message.
     /// </summary>
+    /// <param name="message">
+    ///     The message to send.
+    /// </param>
+    /// <param name="code">
+    ///     Flags the message as code-manager output, which the server rate-limits to once per 15 seconds.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     message
+    /// </exception>
     public Task SayAsync(string message, int? code = null)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Say,
             new
             {
                 message,
                 code
             });
+    }
 
     /// <summary>
-    ///     Sends a message to the character's party chat (node/server.js:4524).
+    ///     Asynchronously sends a message to the character's party chat.
     /// </summary>
+    /// <param name="message">
+    ///     The message to send.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     message
+    /// </exception>
     public Task SayToPartyAsync(string message)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Say,
             new
             {
                 message,
                 party = true
             });
+    }
 
     /// <summary>
-    ///     Sends a private message to a named character (node/server.js:4529).
+    ///     Asynchronously sends a private message to a named character.
     /// </summary>
+    /// <param name="name">
+    ///     The name of the character.
+    /// </param>
+    /// <param name="message">
+    ///     The message to send.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     message
+    /// </exception>
     public Task WhisperAsync(string name, string message)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        ArgumentNullException.ThrowIfNull(message);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Say,
             new
             {
                 message,
                 name
             });
+    }
 
     /// <summary>
-    ///     Sends a code-manager message to one or more characters - the channel AL bots use to coordinate a multi-character
-    ///     party (node/server.js:4338, :4499).
+    ///     Asynchronously sends a code-manager message to one or more characters, the channel bots use to coordinate a party.
     /// </summary>
+    /// <param name="to">
+    ///     The names of the characters.
+    /// </param>
+    /// <param name="message">
+    ///     The message to send.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     to
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     message
+    /// </exception>
     public Task SendCmAsync(IEnumerable<string> to, object message)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(to);
+
+        ArgumentNullException.ThrowIfNull(message);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Command,
             new
             {
                 to = to.ToArray(),
                 message
             });
+    }
 
     /// <summary>
-    ///     Plays an unlocked emotion by name (node/server.js:8838).
+    ///     Asynchronously plays an unlocked emotion.
     /// </summary>
+    /// <param name="name">
+    ///     The name of the emotion.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
     public Task UseEmotionAsync(string name)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Emotion,
             new
             {
                 name
             });
+    }
     #endregion
 
     #region Movement / instances
     /// <summary>
-    ///     Enters instanced content (crypt, tomb, winter/spider instance, duelland, ...). This is the only path that creates
-    ///     an instance; <see cref="TransportAsync" /> covers static doors only (node/server.js:5526).
+    ///     Asynchronously enters instanced content such as a crypt, a tomb or duelland. This is the only path that creates an
+    ///     instance; <see cref="TransportAsync" /> covers static doors only.
     /// </summary>
+    /// <param name="place">
+    ///     The instance to enter.
+    /// </param>
+    /// <param name="instanceName">
+    ///     The name of an existing copy to join, if any.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     place
+    /// </exception>
     public Task EnterAsync(string place, string? instanceName = null)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(place);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Enter,
             new
             {
                 place,
                 name = instanceName
             });
+    }
 
     /// <summary>
-    ///     Joins ongoing event content by name (goobrawl, crabxx, arenas, ...) (node/server.js:11122).
+    ///     Asynchronously joins ongoing event content such as goobrawl, crabxx or an arena.
     /// </summary>
+    /// <param name="eventName">
+    ///     The name of the event.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     eventName
+    /// </exception>
     public Task JoinEventAsync(string eventName)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(eventName);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Join,
             new
             {
                 name = eventName
             });
+    }
 
     /// <summary>
-    ///     Sets this character's home to the current server (node/server.js:5282). The game refuses another change for 36
-    ///     hours.
+    ///     Asynchronously sets this character's home to the current server. The game refuses another change for 36 hours.
     /// </summary>
     /// <returns>
-    ///     <see langword="null" /> when <c>home_set</c> landed (and <see cref="Home" /> is already updated); otherwise the
-    ///     hours still to wait, from <c>sh_time</c>.
+    ///     <see langword="null" /> when <c>home_set</c> landed and <see cref="Home" /> is updated; otherwise the hours still to
+    ///     wait, from <c>sh_time</c>.
     /// </returns>
     public async Task<float?> SetHomeAsync()
     {
@@ -351,35 +462,49 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Triggers a seasonal map-object interaction by type (newyear_tree, redorb, ...) (node/server.js:9892).
+    ///     Asynchronously triggers a seasonal map-object interaction, such as <c>newyear_tree</c> or <c>redorb</c>.
     /// </summary>
+    /// <param name="type">
+    ///     The type of the interaction.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     type
+    /// </exception>
     public Task InteractionAsync(string type)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Interaction,
             new
             {
                 type
             });
+    }
     #endregion
 
     #region Inventory
     /// <summary>
-    ///     Equips up to 15 items in a single call (node/server.js:7256). A null slot lets the server pick the item's default
-    ///     slot. Directly supports the weapon-swap pattern.
+    ///     Asynchronously equips up to 15 items in a single call.
     /// </summary>
+    /// <param name="equips">
+    ///     Each inventory slot to equip from, and the slot to equip into, or null for the item's default slot.
+    /// </param>
     /// <remarks>
-    ///     The server applies the entries in order and stops at the first one it refuses, keeping everything it applied
-    ///     before that - so the batch is not atomic.
-    ///     <br />
-    ///     Its answer is a <c>success_response</c> either way, which is the trap: the universal <c>failed</c> discriminator
-    ///     is never set for a refused entry. What separates the two is
-    ///     <see cref="GameResponseData.EquipBatchEntries" /> , which also says which batch the answer belongs to.
+    ///     The server applies the entries in order and stops at the first one it refuses, keeping what it applied before that.
+    ///     Its answer is a <c>success_response</c> either way; only <see cref="GameResponseData.EquipBatchEntries" /> tells a
+    ///     refusal apart.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     equips
+    /// </exception>
     /// <exception cref="InvalidOperationException">
     ///     Failed to equip {count} items. ({reason})
     /// </exception>
     public async Task EquipBatchAsync(IEnumerable<(int InventorySlot, Slot? Slot)> equips)
     {
+        ArgumentNullException.ThrowIfNull(equips);
+
         var batch = equips.ToArray();
 
         if (batch.Length == 0)
@@ -398,9 +523,8 @@ public abstract partial class ALClient
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver while
-                //tolerating a null argument
-                if (!"equip_batch".EqualsI(data.Place!) || !AnswersEquipBatch(data.EquipBatchEntries, batch))
+                //the literal is the receiver because EqualsI throws on a null receiver
+                if (!"equip_batch".EqualsI(data.Place!) || !IsEquipBatchAnswer(data.EquipBatchEntries, batch))
                     return TaskCache.FALSE;
 
                 var answered = data.EquipBatchEntries!;
@@ -423,15 +547,22 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Whether <paramref name="answered" /> is the answer to <paramref name="batch" /> rather than to another batch the
-    ///     same character has in flight, judged on the inventory slots the server echoed back.
+    ///     Determines whether <paramref name="answered" /> answers <paramref name="batch" /> rather than another batch in
+    ///     flight, judged on the inventory slots the server echoed back.
     /// </summary>
+    /// <param name="answered">
+    ///     The entries the server answered.
+    /// </param>
+    /// <param name="batch">
+    ///     The batch that was sent.
+    /// </param>
+    /// <returns>
+    ///     true if the answer belongs to the batch; otherwise, false.
+    /// </returns>
     /// <remarks>
-    ///     A batch refused on its very first entry echoes no slot to match on, so two in flight can both claim that one
-    ///     answer. That needs a real refusal to land inside another batch's flight, and the loser reads a refusal where it
-    ///     used to read one anyway.
+    ///     A batch refused on its first entry echoes no slot, so two in flight can both claim that one answer.
     /// </remarks>
-    internal static bool AnswersEquipBatch(EquipBatchEntry[]? answered, (int InventorySlot, Slot? Slot)[] batch)
+    internal static bool IsEquipBatchAnswer(EquipBatchEntry[]? answered, (int InventorySlot, Slot? Slot)[] batch)
     {
         if (answered is not { Length: > 0 } || (answered.Length > batch.Length))
             return false;
@@ -445,15 +576,26 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Tops up an equip batch's charge to its real length. The emit hook saw only the type and charged a batch of one; the
-    ///     wrapper prices by length before the handler runs, so a refused batch is billed the same.
+    ///     Tops up an equip batch's charge to its real length, since the emit hook charged a batch of one. The server prices
+    ///     by length before the handler runs, so a refused batch is billed the same.
     /// </summary>
+    /// <param name="count">
+    ///     The number of entries in the batch.
+    /// </param>
     private void ChargeBatch(int count)
-        => CallMeter.Charge(ALSocketEmitType.EquipBatch, CallCost.OfEquipBatch(count) - CallCost.Of(ALSocketEmitType.EquipBatch));
+        => CallMeter.Charge(
+            ALSocketEmitType.EquipBatch,
+            CallCost.CalculateEquipBatchCost(count) - CallCost.CalculateCost(ALSocketEmitType.EquipBatch));
 
     /// <summary>
-    ///     Splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot (node/server.js:7350).
+    ///     Asynchronously splits a stackable item, moving <paramref name="quantity" /> into a new inventory slot.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the stack.
+    /// </param>
+    /// <param name="quantity">
+    ///     The number of items to move.
+    /// </param>
     public Task SplitAsync(int inventorySlot, int quantity)
         => Socket.EmitAsync(
             ALSocketEmitType.Split,
@@ -464,8 +606,14 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Permanently destroys an item (or <paramref name="quantity" /> of a stack) (node/server.js:7932).
+    ///     Asynchronously destroys an item, or part of a stack, for good.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item.
+    /// </param>
+    /// <param name="quantity">
+    ///     The number of items to destroy, or null for the whole stack.
+    /// </param>
     public Task DestroyAsync(int inventorySlot, int? quantity = null)
         => Socket.EmitAsync(
             ALSocketEmitType.Destroy,
@@ -476,11 +624,25 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Buys-and-exchanges a token/quest item atomically (node/server.js:6108). <paramref name="quantity" /> is a safety
-    ///     check against the current stack size.
+    ///     Asynchronously buys and exchanges a token or quest item in one step.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item.
+    /// </param>
+    /// <param name="name">
+    ///     The name of the item to buy.
+    /// </param>
+    /// <param name="quantity">
+    ///     The current stack size, checked by the server as a safeguard.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
     public Task ExchangeBuyAsync(int inventorySlot, string name, int quantity)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.ExchangeBuy,
             new
             {
@@ -488,18 +650,23 @@ public abstract partial class ALClient
                 name,
                 q = quantity
             });
+    }
 
     /// <summary>
-    ///     Activates a booster item, starting its expiry timer (node/server.js:8917-8944).
+    ///     Asynchronously activates a booster item, starting its expiry timer of 30 days plus two per level.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the booster.
+    /// </param>
+    /// <returns>
+    ///     The server's answer: <c>data</c> with <c>place</c> set to <c>booster</c>, or <c>invalid</c> for an empty slot or
+    ///     anything that is not a booster.
+    /// </returns>
     /// <remarks>
-    ///     The timer runs 30 days plus two per level. Answers <c>
-    ///         {response: "data", place: "booster", success: true, name}
-    ///     </c> , or <c>invalid</c> for an empty slot or anything that is not one of the three boosters. Activating a booster
-    ///     that is already running is a silent success: the expiry branch is skipped and the success frame still fires.
+    ///     Activating a booster that is already running succeeds without changing its expiry.
     /// </remarks>
     public Task<GameResponseData> ActivateBoosterAsync(int inventorySlot)
-        => BoosterAsync(
+        => UseBoosterAsync(
             new
             {
                 num = inventorySlot,
@@ -507,24 +674,38 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Turns a booster into one of the other two kinds in place (node/server.js:8930-8936). <paramref name="to" /> is
-    ///     <c>xpbooster</c> , <c>luckbooster</c> or <c>goldbooster</c> .
+    ///     Asynchronously turns a booster into one of the other two kinds in place, keeping its level and expiry.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the booster.
+    /// </param>
+    /// <param name="to">
+    ///     <c>xpbooster</c>, <c>luckbooster</c> or <c>goldbooster</c>.
+    /// </param>
+    /// <returns>
+    ///     The server's answer, as for <see cref="ActivateBoosterAsync" />, with <c>invalid</c> also covering a
+    ///     <paramref name="to" /> that is not a booster name.
+    /// </returns>
     /// <remarks>
-    ///     Level and expiry carry over. The swap resets <c>xpm</c> , <c>goldm</c> and <c>luckm</c> to 1 and adds 240ms to
-    ///     <c>penalty_cd</c> , capped at 120s. Answers as <see cref="ActivateBoosterAsync" /> does, with <c>invalid</c> also
-    ///     covering a <paramref name="to" /> that is not a booster name.
+    ///     The swap resets <c>xpm</c>, <c>goldm</c> and <c>luckm</c> to 1 and adds 240ms to <c>penalty_cd</c>, capped at 120s.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     to
+    /// </exception>
     public Task<GameResponseData> ShiftBoosterAsync(int inventorySlot, string to)
-        => BoosterAsync(
+    {
+        ArgumentNullException.ThrowIfNull(to);
+
+        return UseBoosterAsync(
             new
             {
                 num = inventorySlot,
                 action = "shift",
                 to
             });
+    }
 
-    private async Task<GameResponseData> BoosterAsync(object payload, [CallerMemberName] string? caller = null)
+    private async Task<GameResponseData> UseBoosterAsync(object payload, [CallerMemberName] string? caller = null)
     {
         var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -539,12 +720,14 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Converts a discontinued <c>stoneofxp</c> , <c>stoneofgold</c> or <c>stoneofluck</c> into shells
-    ///     (node/server.js:8945-8963): 3600 if never activated, otherwise prorated down from 600 by the hours since.
+    ///     Asynchronously converts a discontinued <c>stoneofxp</c>, <c>stoneofgold</c> or <c>stoneofluck</c> into shells:
+    ///     3600 if never activated, otherwise prorated down from 600 by the hours since.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the stone.
+    /// </param>
     /// <remarks>
-    ///     Nothing waits on an answer. The server sends no <c>game_response</c> , only the inventory resend, and any other
-    ///     item name is ignored outright.
+    ///     The server sends no <c>game_response</c>, only the inventory, and ignores any other item.
     /// </remarks>
     public Task ConvertStoneAsync(int inventorySlot)
         => Socket.EmitAsync(
@@ -555,15 +738,20 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Throws one throwable item at a point on the ground (node/server.js:8039), consuming it.
+    ///     Asynchronously throws one throwable item at a point on the ground, consuming it.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item.
+    /// </param>
+    /// <param name="x">
+    ///     The x coordinate to throw at.
+    /// </param>
+    /// <param name="y">
+    ///     The y coordinate to throw at.
+    /// </param>
     /// <remarks>
-    ///     Not <c>Merchant.ThrowAsync</c> , which sends the merchant's "Throw Stuff" skill at an entity. This is the handler
-    ///     behind the game's own THROW! button, and only items whose def carries <c>throw</c> reach it - firecrackers,
-    ///     whiteegg, confetti and smoke.
-    ///     <br />
-    ///     The reach is <c>str * 3</c> from the character. The too-far branch answers <c>too_far</c> and then falls through to
-    ///     throw anyway, and the item is consumed either way, so nothing here waits on an answer.
+    ///     The game's THROW! button, not <c>Merchant.ThrowAsync</c>; only items whose def carries <c>throw</c> reach it. The
+    ///     reach is <c>str * 3</c>, but a throw past it answers <c>too_far</c> and lands anyway.
     /// </remarks>
     public Task ThrowToGroundAsync(int inventorySlot, float x, float y)
         => Socket.EmitAsync(
@@ -578,15 +766,32 @@ public abstract partial class ALClient
 
     #region Merchant / trade
     /// <summary>
-    ///     Sells an item into another player's standing buy-order (node/server.js:8072) - the merchant-loop counterpart to
-    ///     buying from a stand.
+    ///     Asynchronously sells an item into another player's standing buy order.
     /// </summary>
+    /// <param name="buyerId">
+    ///     The id of the buyer.
+    /// </param>
+    /// <param name="slot">
+    ///     The trade slot holding the buy order.
+    /// </param>
+    /// <param name="quantity">
+    ///     The number of items to sell.
+    /// </param>
+    /// <param name="rid">
+    ///     The listing's <c>rid</c>, so a replaced listing is refused.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     buyerId
+    /// </exception>
     public Task TradeSellAsync(
         string buyerId,
         TradeSlot slot,
         int quantity,
         string? rid = null)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(buyerId);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.TradeSell,
             new
             {
@@ -595,25 +800,40 @@ public abstract partial class ALClient
                 q = quantity,
                 rid
             });
+    }
 
     /// <summary>
-    ///     Joins a giveaway posted in a player's stand slot (node/server.js:8087). Throws where the server refuses: out of
-    ///     range, seller gone, listing gone or replaced, or not a giveaway.
+    ///     Asynchronously joins a giveaway posted in a player's stand slot.
     /// </summary>
+    /// <param name="sellerId">
+    ///     The id of the player giving the item away.
+    /// </param>
+    /// <param name="slot">
+    ///     The trade slot holding the giveaway.
+    /// </param>
+    /// <param name="rid">
+    ///     The listing's <c>rid</c>, so a replaced listing is refused.
+    /// </param>
     /// <remarks>
-    ///     Every answer is a <c>game_response</c> whose place is the emit's own name: <c>failed</c> with the reason as the
-    ///     response, or <c>success</c>. The seller's participant list is not an acknowledgement: the server rewrites it on the
-    ///     live slot without re-caching the copy other players are sent, so a joiner never sees its own name arrive.
+    ///     A joiner never sees its own name arrive in the participant list, so only the <c>game_response</c> confirms it.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     sellerId
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The server refused: out of range, seller gone, listing gone or replaced, or not a giveaway.
+    /// </exception>
     public async Task JoinGiveawayAsync(string sellerId, TradeSlot slot, string? rid = null)
     {
+        ArgumentNullException.ThrowIfNull(sellerId);
+
         var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver
+                //the literal is the receiver because EqualsI throws on a null receiver
                 if (!"join_giveaway".EqualsI(data.Place!))
                     return TaskCache.FALSE;
 
@@ -639,22 +859,45 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Takes a trade offer on another player's stand, giving the item in <paramref name="inventorySlot" /> for the item
-    ///     the slot holds. Throws where the server refuses: out of range, the offer gone or replaced, the item not what the
-    ///     offer wants, or the merchant out of room.
+    ///     Asynchronously takes a trade offer on another player's stand, giving the item in <paramref name="inventorySlot" />
+    ///     for the item the slot holds.
     /// </summary>
+    /// <param name="merchantId">
+    ///     The id of the player whose stand holds the offer.
+    /// </param>
+    /// <param name="slot">
+    ///     The trade slot holding the offer.
+    /// </param>
+    /// <param name="rid">
+    ///     The listing's <c>rid</c>, so a replaced offer is refused.
+    /// </param>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item to give.
+    /// </param>
     /// <remarks>
-    ///     The emit names the item as this client saw it, the way the game's own stand does, so a bag reordered in between is
-    ///     refused rather than giving a different item. The name, level, stack, title and scroll stat are what is sent, keyed
-    ///     the way a bag item arrives; the server's comparison is not in any published source. Every answer is a
-    ///     <c>game_response</c> whose place is <c>trade_swap</c> , and anything but <c>failed</c> is the trade going through.
+    ///     The emit names the item as this client saw it, so a bag reordered in between is refused rather than giving a
+    ///     different item.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     merchantId
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     rid
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The slot is empty, or the server refused: out of range, the offer gone or replaced, the item not what the offer
+    ///     wants, or the merchant out of room.
+    /// </exception>
     public async Task SwapWithPlayerAsync(
         string merchantId,
         TradeSlot slot,
         string rid,
         int inventorySlot)
     {
+        ArgumentNullException.ThrowIfNull(merchantId);
+
+        ArgumentNullException.ThrowIfNull(rid);
+
         var item = Character.Inventory[inventorySlot];
 
         if (item == null)
@@ -666,7 +909,7 @@ public abstract partial class ALClient
             ALSocketMessageType.GameResponse,
             data =>
             {
-                //the literal is the receiver: Place can be null, and EqualsI throws on a null receiver
+                //the literal is the receiver because EqualsI throws on a null receiver
                 if (!"trade_swap".EqualsI(data.Place!))
                     return TaskCache.FALSE;
 
@@ -715,8 +958,11 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Donates gold at a shrine; a donation of 1,000,000+ unlocks lost-and-found access (node/server.js:7897).
+    ///     Asynchronously donates gold at a shrine. A donation of 1,000,000 or more unlocks lost-and-found access.
     /// </summary>
+    /// <param name="gold">
+    ///     The gold to donate.
+    /// </param>
     public Task DonateAsync(long gold)
         => Socket.EmitAsync(
             ALSocketEmitType.Donate,
@@ -728,15 +974,32 @@ public abstract partial class ALClient
 
     #region Mail
     /// <summary>
-    ///     Sends mail to a character, optionally attaching the item in inventory slot 0 (node/server.js:5184). Costs gold
-    ///     server-side.
+    ///     Asynchronously sends mail to a character, which costs gold.
     /// </summary>
+    /// <param name="to">
+    ///     The name of the character.
+    /// </param>
+    /// <param name="subject">
+    ///     The subject line.
+    /// </param>
+    /// <param name="message">
+    ///     The message body.
+    /// </param>
+    /// <param name="sendItem">
+    ///     Specifies whether the item in inventory slot 0 is attached.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     to
+    /// </exception>
     public Task MailAsync(
         string to,
         string? subject = null,
         string? message = null,
         bool sendItem = false)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(to);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Mail,
             new
             {
@@ -745,82 +1008,113 @@ public abstract partial class ALClient
                 message,
                 item = sendItem
             });
+    }
 
     /// <summary>
-    ///     Takes the item attached to a received mail into inventory (node/server.js:5146).
+    ///     Asynchronously takes the item attached to a received mail into the inventory.
     /// </summary>
+    /// <param name="mailId">
+    ///     The id of the mail.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     mailId
+    /// </exception>
     public Task TakeMailItemAsync(string mailId)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(mailId);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.TakeMailItem,
             new
             {
                 id = mailId
             });
+    }
     #endregion
 
     #region Social
     /// <summary>
-    ///     Sends a friend request to a nearby online character (node/server.js:10637).
+    ///     Asynchronously sends a friend request to a nearby online character.
     /// </summary>
+    /// <param name="name">
+    ///     The name of the character.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
     public Task SendFriendRequestAsync(string name)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Friend,
             new
             {
                 @event = "request",
                 name
             });
+    }
 
     /// <summary>
-    ///     Accepts a pending friend request from the named character (node/server.js:10655).
+    ///     Asynchronously accepts a pending friend request.
     /// </summary>
+    /// <param name="name">
+    ///     The name of the character who sent it.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
     public Task AcceptFriendRequestAsync(string name)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Friend,
             new
             {
                 @event = "accept",
                 name
             });
+    }
     #endregion
 
     #region Pets
     /// <summary>
-    ///     Spawns the character's active pet (node/server.js:11376).
+    ///     Asynchronously spawns the character's active pet.
     /// </summary>
     public Task SpawnPetAsync() => Socket.EmitAsync(ALSocketEmitType.Pet);
 
     /// <summary>
-    ///     Recalls (whistles) the character's pet to their location (node/server.js:11392).
+    ///     Asynchronously whistles the character's pet back to them.
     /// </summary>
     public Task WhistlePetAsync() => Socket.EmitAsync(ALSocketEmitType.Whistle);
 
     /// <summary>
-    ///     Requests the character's owned pets; the result arrives as a <c>players</c> event (node/server.js:11450).
+    ///     Asynchronously requests the character's owned pets; the result arrives as a <c>players</c> event.
     /// </summary>
     public Task RequestPetsAsync() => Socket.EmitAsync(ALSocketEmitType.Pets);
     #endregion
 
     #region Desertland
     /// <summary>
-    ///     Locks, seals or unlocks the item in <paramref name="inventorySlot" /> at the locksmith (node/server.js:6279).
-    ///     250,000 gold for every operation except the final clear of an expired seal.
+    ///     Asynchronously locks, seals or unlocks the item in <paramref name="inventorySlot" /> at the locksmith, for 250,000
+    ///     gold except the final clear of an expired seal.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item.
+    /// </param>
+    /// <param name="operation">
+    ///     The operation to perform.
+    /// </param>
+    /// <returns>
+    ///     The server's answer.
+    /// </returns>
     /// <remarks>
-    ///     Refused in the bank, and distance-gated to Smith in desertland at <c>B.sell_dist</c> unless a <c>computer</c> is in
-    ///     the bags. <c>uscroll</c> , <c>cscroll</c> , <c>pscroll</c> , <c>offering</c> and <c>tome</c> are refused outright
-    ///     with <c>locksmith_cant</c> .
+    ///     Refused in the bank, and distance-gated to Smith in desertland unless a <c>computer</c> is in the bags. Scrolls,
+    ///     offerings and tomes are refused with <c>locksmith_cant</c>.
     ///     <br />
-    ///     <b>
-    ///         The payload field is <c>num</c> .
-    ///     </b> The handler reads <c>data.item_num</c> first and then immediately redeclares both locals from <c>data.num</c>
-    ///     (node/server.js:6281-6293), so the first read is dead and a payload carrying only <c>item_num</c> answers
-    ///     <c>no_item</c> .
-    ///     <br />
-    ///     <b>
-    ///         <see cref="LocksmithOperation.Seal" /> validates nothing but the purse.
-    ///     </b> Unlike <see cref="LocksmithOperation.Lock" />, which refuses an already-flagged item, sealing one that is
-    ///     mid-unseal takes the gold and discards however much of the 48 hours had elapsed.
+    ///     <see cref="LocksmithOperation.Seal" /> checks only the purse: sealing an item mid-unseal takes the gold and discards
+    ///     however much of the 48 hours had elapsed.
     /// </remarks>
     public async Task<GameResponseData> LocksmithAsync(int inventorySlot, LocksmithOperation operation)
     {
@@ -863,20 +1157,19 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Strips the stat scroll off the item in <paramref name="inventorySlot" /> at the scrollsmith (node/server.js:6238)
-    ///     and refunds the scrolls.
+    ///     Asynchronously strips the stat scroll off the item in <paramref name="inventorySlot" /> at the scrollsmith and
+    ///     refunds the scrolls.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item.
+    /// </param>
+    /// <returns>
+    ///     The server's answer; <c>scrollsmith_success</c> carries the gold spent in <see cref="GameResponseData.Gold" />.
+    /// </returns>
     /// <remarks>
-    ///     Costs ten times the refund's market value: the item's grade at level zero picks a scroll count from
-    ///     <c>[1, 10, 100, 1000, 9999, 9999, 9999]</c> and the charge is that count times the scroll's <c>g</c> (
-    ///     <c>G.items</c> , every stat scroll: 8,000) times ten. So a base-grade item is 80,000 gold for one scroll back and a
-    ///     grade-2 item is 8,000,000 for a hundred.
-    ///     <br />
-    ///     Refused in the bank, distance-gated to Sir Bob in desertland at <c>B.sell_dist</c> with the same <c>computer</c>
-    ///     waiver as <see cref="LocksmithAsync" />, and refused with <c>inv_size</c> when there is no room for the refund. The
-    ///     scrolls stack, so that is one free slot rather than a hundred.
-    ///     <br />
-    ///     <c>scrollsmith_success</c> carries the gold actually spent in <see cref="GameResponseData.Gold" />.
+    ///     Costs ten times the refund's value: 80,000 gold for a base-grade item's one scroll, 8,000,000 for a grade-2 item's
+    ///     hundred. Refused in the bank, distance-gated like <see cref="LocksmithAsync" />, and refused with <c>inv_size</c>
+    ///     when there is no free slot for the refund.
     /// </remarks>
     public async Task<GameResponseData> DestatAsync(int inventorySlot)
     {
@@ -914,20 +1207,16 @@ public abstract partial class ALClient
 
     #region Activate
     /// <summary>
-    ///     Activates the cosmetic behaviour of an equipped item (node/server.js:8801-8859). Cosmetic only: every reachable
-    ///     branch of this arm writes <c>player.tskin</c> and nothing else - the one exception ( <c>etherealamulet</c> ,
-    ///     node/server.js:8806-8813, which grants a timed invisibility) is dead code, since that item name appears nowhere in
-    ///     game data and <c>item.name</c> can never equal it.
+    ///     Asynchronously activates the cosmetic behaviour of an equipped item, which only ever changes the character's
+    ///     temporary skin.
     /// </summary>
+    /// <param name="slot">
+    ///     The equipment slot holding the item. Trade slots are refused.
+    /// </param>
     /// <remarks>
-    ///     <c>angelwings</c> toggles the <c>snow_angel</c> skin, and needs a mage or priest with the cape at +8 or better -
-    ///     anything else answers <c>nothing</c> . <c>tristone</c> and <c>darktristone</c> roll a transform skin from a pool
-    ///     picked by level and gender, and clear instead of setting whenever a skin is already on or the activation count is
-    ///     exactly one hundred (node/server.js:8824, :8843) - an equality check, not a cap, so the hundred-and-first
-    ///     activation sets a skin again. That count is kept in <c>player.tactivations</c> (node/server.js:8840, :8855) and is
-    ///     never sent, so no caller can read where it stands.
-    ///     <br />
-    ///     Trade slots are rejected outright (node/server.js:8803).
+    ///     <c>angelwings</c> toggles the <c>snow_angel</c> skin for a mage or priest wearing it at +8 or better.
+    ///     <c>tristone</c> and <c>darktristone</c> roll a transform skin, and clear it instead whenever a skin is already on or
+    ///     the unsent activation count is exactly one hundred.
     /// </remarks>
     public Task ActivateEquippedAsync(Slot slot)
         => Socket.EmitAsync(
@@ -938,22 +1227,21 @@ public abstract partial class ALClient
             });
 
     /// <summary>
-    ///     Activates an inventory item (node/server.js:8860-8915). This is the arm with the permanent effects: the three bank
-    ///     keys.
+    ///     Asynchronously activates an inventory item. Only the three bank keys answer.
     /// </summary>
+    /// <param name="inventorySlot">
+    ///     The slot holding the item.
+    /// </param>
+    /// <returns>
+    ///     The server's answer.
+    /// </returns>
     /// <remarks>
-    ///     <c>bkey</c> and <c>ukey</c> open the second and third bank floors, and <c>dkey</c> opens the first of the
-    ///     forty-eight bank packs the account does not already have. All three are consumed, and all three answer
-    ///     <c>only_in_bank</c> unless the character is standing in the vault. <c>bkey</c> and <c>ukey</c> answer
-    ///     <c>already_unlocked</c> for a floor that is already open.
-    ///     <br />
-    ///     <b>
-    ///         Those three names are the only ones this arm answers at all
-    ///     </b> (node/server.js:8860-8915). Every other item name, an empty or out-of-range slot, and <c>dkey</c> with all
-    ///     forty-eight packs already taken fall through to a bare <c>resend</c> carrying no <c>game_response</c> , so the call
-    ///     throws <see cref="TimeoutException" /> rather than returning. <c>frozenstone</c> is the one that costs something -
-    ///     consumed for no effect (node/server.js:8863-8865).
+    ///     <c>bkey</c> and <c>ukey</c> open the second and third bank floors and <c>dkey</c> the next bank pack, all consumed,
+    ///     all answering <c>only_in_bank</c> outside the vault. <c>frozenstone</c> is consumed for nothing.
     /// </remarks>
+    /// <exception cref="TimeoutException">
+    ///     The item is not a bank key, or every bank pack is already open, so no <c>game_response</c> came.
+    /// </exception>
     public async Task<GameResponseData> ActivateItemAsync(int inventorySlot)
     {
         var source = new TaskCompletionSource<Expectation<GameResponseData>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -987,63 +1275,92 @@ public abstract partial class ALClient
 
     #region Cosmetics
     /// <summary>
-    ///     Equips an owned cosmetic into <paramref name="slot" /> (node/server.js:4843-4853).
+    ///     Asynchronously equips an owned cosmetic into <paramref name="slot" />.
     /// </summary>
+    /// <param name="slot">
+    ///     The cosmetic slot.
+    /// </param>
+    /// <param name="name">
+    ///     The name of the cosmetic.
+    /// </param>
     /// <remarks>
-    ///     Answers <c>cx_not_found</c> for anything the account does not own. Ownership is not the same as the <c>acx</c>
-    ///     dictionary: the server expands it through <c>G.cosmetics.bundle</c> and <c>G.cosmetics.map</c> and adds the
-    ///     account's and the class's exclusives before deciding, so a name absent from <c>acx</c> can still be equippable.
-    ///     <br />
-    ///     A body, armor or character sprite sent to the <c>skin</c> slot writes <c>player.skin</c> rather than the cosmetic
-    ///     map. Every call is followed server-side by a prune that silently drops any slot whose sprite type no longer matches
-    ///     it.
+    ///     Answers <c>cx_not_found</c> for anything the account does not own. Ownership includes bundles and exclusives, so a
+    ///     name absent from <c>acx</c> can still be equippable. The server then drops any slot whose sprite type no longer
+    ///     matches it.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     slot
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
     public Task SetCosmeticAsync(string slot, string name)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(slot);
+
+        ArgumentNullException.ThrowIfNull(name);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Cx,
             new
             {
                 slot,
                 name
             });
+    }
 
     /// <summary>
-    ///     Clears <paramref name="slot" /> (node/server.js:4835-4842). Sends no <c>name</c> , which is what the server reads
-    ///     as "clear" rather than "equip".
+    ///     Asynchronously clears <paramref name="slot" />, by sending no <c>name</c>.
     /// </summary>
+    /// <param name="slot">
+    ///     The cosmetic slot.
+    /// </param>
     /// <remarks>
-    ///     <b>Two slots clear two things.</b> Clearing <c>back</c> also deletes <c>tail</c> , and clearing <c>face</c> also
-    ///     deletes <c>makeup</c> . One call, two slots empty.
+    ///     Clearing <c>back</c> also clears <c>tail</c>, and clearing <c>face</c> also clears <c>makeup</c>.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     slot
+    /// </exception>
     public Task ClearCosmeticAsync(string slot)
-        => Socket.EmitAsync(
+    {
+        ArgumentNullException.ThrowIfNull(slot);
+
+        return Socket.EmitAsync(
             ALSocketEmitType.Cx,
             new
             {
                 slot
             });
+    }
 
     /// <summary>
-    ///     Asynchronously moves one owned copy of a cosmetic to another character on the same account
-    ///     (node/server.js:8430-8470).
+    ///     Asynchronously moves one owned copy of a cosmetic to another character on the same account.
     /// </summary>
     /// <param name="toPlayerId">
     ///     The receiving character, which must be on the same map and within <c>B.dist</c> of this one.
     /// </param>
     /// <param name="name">
-    ///     A sprite name, not an <c>acx</c> key. The server maps it back to the owned entry it came from and moves one count
-    ///     of that entry, so naming one member of a bundle moves the whole bundle.
+    ///     A sprite name, not an <c>acx</c> key. Naming one member of a bundle moves the whole bundle.
     /// </param>
     /// <returns>
     ///     The server's answer: <see cref="GameResponseType.CosmeticSent" /> on success, otherwise the failure, such as
     ///     <see cref="GameResponseType.SendNoCosmetic" /> for a cosmetic this character has no unworn copy of.
     /// </returns>
     /// <remarks>
-    ///     Anything worn blocks the send, however many copies are owned: the spare count the server checks treats an owned
-    ///     entry as one, then takes one off for every slot wearing it.
+    ///     Anything worn blocks the send, however many copies are owned.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     toPlayerId
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     name
+    /// </exception>
     public async Task<GameResponseData> SendCosmeticAsync(string toPlayerId, string name)
     {
+        ArgumentNullException.ThrowIfNull(toPlayerId);
+
+        ArgumentNullException.ThrowIfNull(name);
+
         var source = new TaskCompletionSource<GameResponseData>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         using var gameResponseCallback = Socket.On<GameResponseData>(
@@ -1069,17 +1386,12 @@ public abstract partial class ALClient
     }
 
     /// <summary>
-    ///     Copies the nearest monster's skin onto this character (node/server.js:11702).
+    ///     Asynchronously copies the nearest monster's skin in the instance onto this character, with no cost, cooldown or
+    ///     range check.
     /// </summary>
     /// <remarks>
-    ///     No cost, no cooldown and no range check - it walks every monster in the instance and takes the closest, needing
-    ///     only that the character is alive.
-    ///     <br />
-    ///     <b>It cannot be undone by itself.</b> The result lands on <c>player.tskin</c> , which outranks <c>player.skin</c>
-    ///     on the wire ( <c>data.skin = player.tskin || player.skin</c> , node/server.js:805). The cosmetic map goes out
-    ///     unchanged ( <c>data.cx = player.tcx || player.cx</c> , :806) - a blended skin hiding it is the client's own render
-    ///     rule, not something the server withholds. The only clears anywhere are activating a <c>tristone</c> or
-    ///     <c>darktristone</c> , or activating <c>angelwings</c> while the current skin is <c>snow_angel</c> .
+    ///     The skin lands on <c>player.tskin</c>, which outranks <c>player.skin</c>. Only activating a <c>tristone</c>,
+    ///     <c>darktristone</c>, or <c>angelwings</c> over the <c>snow_angel</c> skin clears it.
     /// </remarks>
     public Task BlendAsync() => Socket.EmitAsync(ALSocketEmitType.Blend);
     #endregion

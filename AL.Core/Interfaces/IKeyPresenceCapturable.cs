@@ -1,16 +1,20 @@
 namespace AL.Core.Interfaces;
 
 /// <summary>
-///     Implemented by objects whose deserializer must record which wire keys a frame actually carried, so a later merge
-///     can distinguish "the server sent 0" from "the server omitted this key". The server's entity encoders are sparse - a
-///     value equal to the G default is omitted - so a whitelist merge that copies every property unconditionally wipes
-///     live state on every partial delta.
+///     Represents an object that records which wire keys a frame carried, so a merge can tell a sent zero from an omitted
+///     key.
 /// </summary>
+/// <remarks>
+///     The server omits a value equal to its game-data default, so a merge that copies every property wipes live state.
+/// </remarks>
 public interface IKeyPresenceCapturable
 {
     /// <summary>
-    ///     Records that <paramref name="key" /> was present on the wire. Called once per top-level key during deserialization.
-    ///     Implementations must be allocation-free on this hot path.
+    ///     Records that a key was present on the wire. Called once per top-level key during deserialization, so it must not
+    ///     allocate.
     /// </summary>
+    /// <param name="key">
+    ///     The wire key.
+    /// </param>
     void MarkPresent(string key);
 }

@@ -14,9 +14,15 @@ public static class RectangleExtensions
     extension<T>(T rect) where T: IRectangle, allows ref struct
     {
         /// <summary>
-        ///     The separation between this rectangle and a point, taken per axis and clamped at zero. An axis the point already
-        ///     lies within contributes nothing, which is what makes this agree with the server.
+        ///     Calculates the distance between this rectangle and a point, taken per axis and clamped at zero, the way the
+        ///     server measures it.
         /// </summary>
+        /// <param name="other">
+        ///     A point.
+        /// </param>
+        /// <returns>
+        ///     The distance from the rectangle's edge to the point, zero when the point is inside.
+        /// </returns>
         public float EdgeToCenterDistance<T2>(T2 other) where T2: IPoint, allows ref struct
         {
             var dx = MathF.Max(MathF.Max(other.X - rect.Right, rect.Left - other.X), 0f);
@@ -26,9 +32,15 @@ public static class RectangleExtensions
         }
 
         /// <summary>
-        ///     The gap between two rectangles, taken per axis and clamped at zero, which is the measure the server resolves every
-        ///     attack, skill and aggro check with.
+        ///     Calculates the gap between two rectangles, taken per axis and clamped at zero. The server resolves every attack,
+        ///     skill and aggro range check with this measure.
         /// </summary>
+        /// <param name="other">
+        ///     Another rectangle.
+        /// </param>
+        /// <returns>
+        ///     The gap between the rectangles, zero when they overlap.
+        /// </returns>
         public float EdgeToEdgeDistance<T2>(T2 other) where T2: IRectangle, allows ref struct
         {
             var dx = MathF.Max(MathF.Max(other.Left - rect.Right, rect.Left - other.Right), 0f);
@@ -37,16 +49,30 @@ public static class RectangleExtensions
             return MathEx.Hypot(dx, dy);
         }
 
-        //top is the smaller y and bottom the larger, y growing downward, so the vertical terms pair top against bottom
-        /// <summary>Whether two rectangles touch or overlap.</summary>
+        /// <summary>
+        ///     Determines whether two rectangles touch or overlap.
+        /// </summary>
+        /// <param name="other">Another rectangle.</param>
+        /// <returns>
+        ///     <c>true</c> if the rectangles touch or overlap; otherwise, <c>false</c>.
+        /// </returns>
         public bool Intersects<T2>(T2 other) where T2: IRectangle, allows ref struct
             => (rect.Left <= other.Right) && (rect.Right >= other.Left) && (rect.Top <= other.Bottom) && (rect.Bottom >= other.Top);
 
         /// <summary>
         ///     Lazily generates the points inside the rectangle, one per unit by default.
         /// </summary>
+        /// <param name="widthStepNum">
+        ///     The number of steps across the width, or -1 for one per unit.
+        /// </param>
+        /// <param name="heightStepNum">
+        ///     The number of steps down the height, or -1 for one per unit.
+        /// </param>
+        /// <returns>
+        ///     The points inside the rectangle.
+        /// </returns>
         public IEnumerable<Point> Points(float widthStepNum = -1f, float heightStepNum = -1f)
-            => InnerPoints(
+            => GenerateInnerPoints(
                 rect.Left,
                 rect.Top,
                 rect.Right,
@@ -60,36 +86,52 @@ public static class RectangleExtensions
     /// <summary>
     ///     Determines whether a rectangle fully encompasses another rectangle.
     /// </summary>
-    /// <param name="rect">A rectangle.</param>
-    /// <param name="other">Another rectangle.</param>
+    /// <param name="rect">
+    ///     A rectangle.
+    /// </param>
+    /// <param name="other">
+    ///     Another rectangle.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>true</c> if this rectangle fully encompasses the other (or edges touch); otherwise, <c>false</c> .
+    ///     <c>true</c> if this rectangle fully encompasses the other (or edges touch); otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">rect</exception>
-    /// <exception cref="System.ArgumentNullException">other</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     rect
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     other
+    /// </exception>
     public static bool Contains(this IRectangle rect, IRectangle other)
     {
         ArgumentNullException.ThrowIfNull(rect);
 
         ArgumentNullException.ThrowIfNull(other);
 
-        return (rect.Bottom >= other.Bottom) && (rect.Left >= other.Left) && (rect.Right <= other.Right) && (rect.Top <= other.Top);
+        return (rect.Bottom >= other.Bottom) && (rect.Left <= other.Left) && (rect.Right >= other.Right) && (rect.Top <= other.Top);
     }
 
     /// <summary>
     ///     Determines whether a rectangle contains a given point.
     /// </summary>
-    /// <param name="rect">A rectangle.</param>
-    /// <param name="point">A point.</param>
+    /// <param name="rect">
+    ///     A rectangle.
+    /// </param>
+    /// <param name="point">
+    ///     A point.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>true</c> if the point lies within or on the edge of the rectangle; otherwise, <c>false</c> .
+    ///     <c>true</c> if the point lies within or on the edge of the rectangle; otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">rect</exception>
-    /// <exception cref="System.ArgumentNullException">point</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     rect
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     point
+    /// </exception>
     public static bool Contains(this IRectangle rect, IPoint point)
     {
         ArgumentNullException.ThrowIfNull(rect);
@@ -100,10 +142,31 @@ public static class RectangleExtensions
     }
 
     /// <summary>
-    ///     An extension member with a ref struct receiver cannot be an iterator, so the lazy overload hands its numbers to
-    ///     this.
+    ///     Generates the points for <c>Points</c>, which cannot be an iterator itself because an extension member with a
+    ///     ref struct receiver cannot be one.
     /// </summary>
-    private static IEnumerable<Point> InnerPoints(
+    /// <param name="left">
+    ///     The left edge.
+    /// </param>
+    /// <param name="top">
+    ///     The top edge.
+    /// </param>
+    /// <param name="right">
+    ///     The right edge.
+    /// </param>
+    /// <param name="bottom">
+    ///     The bottom edge.
+    /// </param>
+    /// <param name="horizontalStep">
+    ///     The distance between points along x.
+    /// </param>
+    /// <param name="verticalStep">
+    ///     The distance between points along y.
+    /// </param>
+    /// <returns>
+    ///     The points inside the rectangle.
+    /// </returns>
+    private static IEnumerable<Point> GenerateInnerPoints(
         float left,
         float top,
         float right,

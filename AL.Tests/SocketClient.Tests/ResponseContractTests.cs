@@ -71,11 +71,11 @@ public class ResponseContractTests
         (int InventorySlot, Slot? Slot)[] weaponSwap = [(12, Slot.MainHand)];
         (int InventorySlot, Slot? Slot)[] gloveSwap = [(30, Slot.Gloves)];
 
-        ALClient.AnswersEquipBatch(data.EquipBatchEntries, weaponSwap)
+        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, weaponSwap)
                 .Should()
                 .BeFalse();
 
-        ALClient.AnswersEquipBatch(data.EquipBatchEntries, gloveSwap)
+        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, gloveSwap)
                 .Should()
                 .BeTrue();
     }
@@ -120,7 +120,7 @@ public class ResponseContractTests
             (13, Slot.OffHand)
         ];
 
-        ALClient.AnswersEquipBatch(data.EquipBatchEntries, batch)
+        ALClient.IsEquipBatchAnswer(data.EquipBatchEntries, batch)
                 .Should()
                 .BeTrue();
     }
@@ -601,8 +601,8 @@ public class ResponseContractTests
     [Test]
     public void MintedRequestIdsAreDistinct()
     {
-        var first = RequestId.New();
-        var second = RequestId.New();
+        var first = RequestId.Create();
+        var second = RequestId.Create();
 
         first.Should()
              .NotBe(second);

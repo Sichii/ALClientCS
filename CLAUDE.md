@@ -163,7 +163,10 @@ var bounds = gMonster.BoundingBase;
 Built once by `Pathfinder.Initialize()`; every query after that is lock-free. The geometry queries (`CanMove`, `IsWall`, `IsWalkable`, `TryFindNearestWalkable`) are allocation-free once warm; a search allocates only its result legs.
 
 - **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall` are answered from it. The lines carry the local ice golem corridor carve.
-- **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at build. Flat arrays, neighbour ids, a uniform grid for `TriangleAt`. `IsWalkable` and `TryFindNearestWalkable` are containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled; where the two floods disagree, `GameData.CarveCorridors` closes the gap.
+- **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at
+  build. Flat arrays, neighbour ids, a uniform grid for `FindTriangle`. `IsWalkable` and `TryFindNearestWalkable` are
+  containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled; where
+  the two floods disagree, `GameData.CarveCorridors` closes the gap.
 - **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a rectangle band plus a range: a door is the real rounded rectangle the server opens from, a destination a circle).
 - **`PortalGraph`** joins maps: arrival nodes (spawns something lands on), departure nodes (exits), static walk costs
   funnelled at build, town and leave edges, and a blink-only edge wherever no walk joins an arrival to an exit. A search

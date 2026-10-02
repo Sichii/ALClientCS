@@ -8,7 +8,7 @@ using AL.Core.Json.Interfaces;
 namespace AL.SocketClient.Model;
 
 /// <summary>
-///     Represents what an <c>equip_batch</c> did with one of the equips it was given (node/server.js:7316).
+///     Represents what an <c>equip_batch</c> did with one of the equips it was given.
 /// </summary>
 /// <remarks>
 ///     An entry the server applied is an object echoing the emit's own inventory slot; one it refused is a bare reason

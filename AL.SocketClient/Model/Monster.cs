@@ -5,7 +5,9 @@ using AL.Core.Definitions;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>Represents a monster entity.</summary>
+/// <summary>
+///     Represents a monster entity.
+/// </summary>
 /// <seealso cref="EntityBase" />
 public class Monster : EntityBase, IEquatable<Monster>
 {
@@ -19,8 +21,7 @@ public class Monster : EntityBase, IEquatable<Monster>
 
     /// <summary>
     ///     Whether kills on this monster count for every attacker, not just the tag holder. Null when the frame did not carry
-    ///     it, which is the usual case: the server sends a soft property only when the instance differs from its definition,
-    ///     so read this through the extension that falls back to G rather than directly.
+    ///     it, which is usual: the server sends a soft property only when it differs from the monster's game data.
     /// </summary>
     [JsonPropertyName("cooperative")]
     public bool? Cooperative { get; init; }
@@ -84,13 +85,20 @@ public class Monster : EntityBase, IEquatable<Monster>
     /// <summary>
     ///     Merges a later frame into this live monster, its dungeon part included.
     /// </summary>
+    /// <param name="other">
+    ///     The later frame.
+    /// </param>
     /// <remarks>
-    ///     A dungeon actor's frame restates its room, side and gear whole every time (<c>monster_to_client</c>), and its side
-    ///     changes mid-sighting: a duel's survivor turns neutral. A frame without <c>cave</c> is a delta that says nothing
-    ///     about either.
+    ///     A dungeon actor's frame restates its room, side and gear whole, and its side can change mid-sighting. A frame
+    ///     without <c>cave</c> says nothing about them.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     other
+    /// </exception>
     public void Update(Monster other)
     {
+        ArgumentNullException.ThrowIfNull(other);
+
         if (other.Cave is not null)
         {
             Cave = other.Cave;

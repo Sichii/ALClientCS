@@ -1,6 +1,8 @@
 namespace AL.Core.Interfaces;
 
-/// <summary>Represents a polygon, concave or convex.</summary>
+/// <summary>
+///     Represents a polygon, concave or convex.
+/// </summary>
 /// <seealso cref="IEnumerable{T}" />
 public interface IPolygon : IEnumerable<IPoint>
 {

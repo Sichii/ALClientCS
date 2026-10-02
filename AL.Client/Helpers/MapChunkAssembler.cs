@@ -6,34 +6,40 @@ using AL.SocketClient.SocketModel;
 namespace AL.Client.Helpers;
 
 /// <summary>
-///     Joins a run of map_chunk frames back into the one JSON bundle the server split. The game's client restates the rule
-///     this keeps: a bundle starts at index zero, every later chunk must carry the same run and count and the next index,
-///     and anything else throws the pending pieces away rather than gluing a stale half onto a fresh one.
+///     Represents a run of <c>map_chunk</c> frames being joined back into the one JSON bundle the server split. A bundle
+///     starts at index zero, every later chunk carries the same run and count and the next index, and anything else
+///     discards the pending pieces.
 /// </summary>
 internal sealed partial class MapChunkAssembler
 {
-    /// <summary>
-    ///     The game client's own caps, so a malformed stream cannot grow the buffer without bound.
-    /// </summary>
-    private const int MAX_COUNT = 1400;
-
-    private const int MAX_TEXT_LENGTH = 12_000;
-    private const int MAX_BUNDLE_LENGTH = 16 * 1024 * 1024;
-
     private int Count;
     private List<string>? Parts;
     private string? Run;
     private int Size;
 
     /// <summary>
-    ///     Takes one chunk. Returns the joined bundle text when this chunk completes it, and null while more are due.
+    ///     Adds one chunk to the pending bundle.
     /// </summary>
+    /// <param name="chunk">
+    ///     The chunk as the server sent it.
+    /// </param>
+    /// <returns>
+    ///     The joined bundle text when this chunk completes it, or null while more are due.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     chunk
+    /// </exception>
     /// <exception cref="InvalidOperationException">
     ///     The chunk is malformed, or it does not follow the pending bundle - either way the pending bundle is discarded.
     /// </exception>
     public string? Add(MapChunkData chunk)
     {
         ArgumentNullException.ThrowIfNull(chunk);
+
+        //the game client's own caps, so a malformed stream cannot grow the buffer without bound
+        const int MAX_COUNT = 1400;
+        const int MAX_TEXT_LENGTH = 12_000;
+        const int MAX_BUNDLE_LENGTH = 16 * 1024 * 1024;
 
         // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         if (chunk.Run is null

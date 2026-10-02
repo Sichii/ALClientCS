@@ -13,17 +13,16 @@ using AL.Core.Interfaces;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Produces the System.Text.Json converter for every <see cref="IAttributed" /> type. Registered in the shared options
-///     (NOT applied as a <c>[JsonConverter]</c> attribute) so the inner declared-member fill can run under a copy of the
-///     options whose factory excludes only the type being filled — that type cannot re-enter its own converter, yet a
-///     NESTED <see cref="IAttributed" /> member is still routed through the factory and gets its attribute harvest
-///     (matching Newtonsoft's per-element <c>ItemConverterType</c> ).
+///     Produces the converter for every <see cref="IAttributed" /> type.
 /// </summary>
+/// <remarks>
+///     Registered in the shared options rather than as an attribute, so the inner member fill can exclude only the type
+///     being filled while nested <see cref="IAttributed" /> members still harvest.
+/// </remarks>
 public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 {
     /// <summary>
-    ///     Shared across every <see cref="Excluding" /> copy; see <see cref="ArrayToObjectConverterFactory" /> for why the
-    ///     type test is cached.
+    ///     The cached answer to <see cref="IsHarvestable" /> per type, shared across every <see cref="Excluding" /> copy.
     /// </summary>
     private static readonly ConcurrentDictionary<Type, bool> Harvestable = new();
 
@@ -37,12 +36,18 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
         => (typeToConvert != Excluded) && Harvestable.GetOrAdd(typeToConvert, IsHarvestable);
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        => (JsonConverter)Activator.CreateInstance(typeof(AttributedObjectStjConverter<>).MakeGenericType(typeToConvert), options)!;
+        => (JsonConverter)Activator.CreateInstance(typeof(AttributedObjectConverter<>).MakeGenericType(typeToConvert), options)!;
 
     /// <summary>
-    ///     A copy that also excludes <paramref name="type" /> — used by the inner options so the type being filled cannot
-    ///     re-enter its own converter, while nested <see cref="IAttributed" /> members still match.
+    ///     Returns a copy that declines <paramref name="type" />, so the type being filled cannot re-enter its own converter
+    ///     while nested <see cref="IAttributed" /> members still match.
     /// </summary>
+    /// <param name="type">
+    ///     The type the copy declines.
+    /// </param>
+    /// <returns>
+    ///     The excluding copy.
+    /// </returns>
     internal AttributedObjectConverterFactory Excluding(Type type) => new(type);
 
     private static bool IsHarvestable(Type typeToConvert)
@@ -52,16 +57,15 @@ public sealed class AttributedObjectConverterFactory : JsonConverterFactory
 }
 
 /// <summary>
-///     The System.Text.Json replacement for the Newtonsoft <c>AttributedObjectConverter</c> . Fills T's declared members
-///     via a recursion-safe inner deserialize, then walks every top-level wire key to (1) mark it present (
-///     <see cref="IKeyPresenceCapturable" />) and (2) harvest numeric <see cref="ALAttribute" /> keys into the
-///     <see cref="IAttributed.Attributes" /> dictionary. Read-only.
+///     Reads an <see cref="IAttributed" /> type: fills its declared members, then marks each top-level wire key present
+///     (<see cref="IKeyPresenceCapturable" />) and harvests numeric <see cref="ALAttribute" /> keys into
+///     <see cref="IAttributed.Attributes" />.
 /// </summary>
-public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: class, IAttributed, new()
+public sealed class AttributedObjectConverter<T> : JsonConverter<T> where T: class, IAttributed, new()
 {
     /// <summary>
-    ///     Per-T by necessity: the cached inner options exclude typeof(T) from the attributed factory, so one shared table
-    ///     would hand a converter for the wrong T's exclusion and let a type re-enter its own converter.
+    ///     The inner options per outer options instance. Kept per <typeparamref name="T" />, because each one excludes
+    ///     <typeparamref name="T" /> from the attributed factory.
     /// </summary>
 
     // ReSharper disable once StaticMemberInGenericType
@@ -71,21 +75,18 @@ public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: 
 
     private readonly JsonSerializerOptions InnerOptions;
 
-    public AttributedObjectStjConverter(JsonSerializerOptions options) => InnerOptions = InnerCache.GetValue(options, BuildInner);
+    public AttributedObjectConverter(JsonSerializerOptions options) => InnerOptions = InnerCache.GetValue(options, BuildInner);
 
     private static JsonSerializerOptions BuildInner(JsonSerializerOptions outer)
     {
         var inner = new JsonSerializerOptions(outer);
 
-        //keep the factory for NESTED IAttributed members (so they still harvest), but exclude T so the inner
-        //Deserialize<T> resolves the default object converter and cannot re-enter this converter
+        //exclude T so the inner deserialize cannot re-enter this converter; nested IAttributed members still match
         for (var i = 0; i < inner.Converters.Count; i++)
             if (inner.Converters[i] is AttributedObjectConverterFactory factory)
                 inner.Converters[i] = factory.Excluding(typeof(T));
 
-        //Newtonsoft's JToken->int populate path rounds a fractional number (Grade 3.6->4); the text-reader socket
-        //path throws instead, so this leniency belongs only here, never in the shared options. The number/bool to
-        //string leniency is universal in Newtonsoft, so LenientStringConverter is shared and copied in automatically
+        //rounds a fractional int (Grade 3.6 -> 4) here only; the socket path must still throw on one
         inner.Converters.Add(new LenientInt32Converter());
 
         return inner;
@@ -93,14 +94,12 @@ public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: 
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        //a non-object token (including JSON null) yields null, matching Newtonsoft's null short-circuit before
-        //the instance is ever constructed
+        //a non-object token, null included, yields null
         if (JsonNode.Parse(ref reader) is not JsonObject obj)
             return null;
 
-        //GItem sends a scroll-stat NAME in the numeric `stat` slot; strip it before binding (the float Stat
-        //target would throw and abort the whole object) and recover it after. Newtonsoft used [OnError] here,
-        //which resumes binding; System.Text.Json cannot, so the wire key is removed and re-handled explicitly.
+        //GItem sends a scroll-stat name in the numeric `stat` slot, which would abort binding the float Stat; strip it
+        //here and recover it after binding
         string? scrollStatName = null;
 
         if (RecoversScrollStat && obj.TryGetPropertyValue("stat", out var statNode) && (statNode?.GetValueKind() == JsonValueKind.String))
@@ -132,8 +131,7 @@ public sealed class AttributedObjectStjConverter<T> : JsonConverter<T> where T: 
         {
             presence?.MarkPresent(key);
 
-            //Number covers Newtonsoft's Integer|Float; a non-numeric ALAttribute-named G key (heal=true,
-            //courage=[...]) falls through the guard and never calls GetValue<float>, so it does not throw
+            //a non-numeric ALAttribute-named key (heal=true, courage=[...]) is skipped
             if (attributes is not null
                 && (child?.GetValueKind() == JsonValueKind.Number)
                 && EnumHelper.TryParse<ALAttribute>(key, out var attribute))

@@ -17,14 +17,14 @@ public sealed class ChestItem : ISimpleItem
     public string? LooterName { get; set; }
 
     /// <summary>
-    ///     True when the item could not be placed and was sent to lost-and-found.
+    ///     Whether the item could not be placed and was sent to lost-and-found.
     /// </summary>
     [JsonPropertyName("lostandfound")]
     public bool LostAndFound { get; set; }
 
     public string Name { get; set; } = null!;
 
-    /// <summary>True when the item is a PvP-loot award.</summary>
+    /// <summary>Whether the item is a PvP-loot award.</summary>
     [JsonPropertyName("pvp_loot")]
     public bool PvpLoot { get; set; }
 

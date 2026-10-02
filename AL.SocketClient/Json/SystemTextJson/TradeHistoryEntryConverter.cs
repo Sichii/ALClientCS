@@ -10,8 +10,7 @@ namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
 ///     Binds the server's positional <c>[event, name, item, price]</c> trade-history tuple to a
-///     <see cref="TradeHistoryEntry" />. The 4th element is <c>null</c> for giveaways. The System.Text.Json replacement
-///     for the Newtonsoft <c>TradeHistoryEntryConverter</c> .
+///     <see cref="TradeHistoryEntry" />. The price is <c>null</c> for giveaways.
 /// </summary>
 public sealed class TradeHistoryEntryConverter : JsonConverter<TradeHistoryEntry>
 {
@@ -28,10 +27,7 @@ public sealed class TradeHistoryEntryConverter : JsonConverter<TradeHistoryEntry
             Item = array[2]
                 .Deserialize<TradeItem>(options)!,
 
-            //giveaways send a JSON null price (null node -> null). Deserialize (not GetValue<long>) so a
-            //stringified price coerces via NumberHandling, matching Newtonsoft's lenient Value<long?>(). Anything
-            //else - a swap's fourth element, whose shape no published source shows - reads as no price rather than
-            //failing the whole history
+            //a stringified price coerces through NumberHandling; any other shape, such as a swap's, reads as no price
             Price = (array.Count > 3) && array[3] is { } price && IsPrice(price) ? price.Deserialize<long?>(options) : null,
             Received = (array.Count > 4) && array[4] is JsonObject received ? received.Deserialize<TradeItem>(options) : null
         };

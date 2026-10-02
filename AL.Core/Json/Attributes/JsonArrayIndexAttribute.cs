@@ -13,6 +13,8 @@ public sealed class JsonArrayIndexAttribute : Attribute
     /// <summary>
     ///     Initializes a new instance of the <see cref="JsonArrayIndexAttribute" /> class.
     /// </summary>
-    /// <param name="index">The index.</param>
+    /// <param name="index">
+    ///     The index.
+    /// </param>
     public JsonArrayIndexAttribute(int index) => Index = index;
 }

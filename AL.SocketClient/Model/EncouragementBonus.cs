@@ -25,12 +25,12 @@ public sealed record EncouragementBonus
     public string Id { get; init; } = null!;
 
     /// <summary>
-    ///     Why the bonus is not paying, or <c>active</c> when it is.
+    ///     Why the bonus is not paying, or <c>active</c> when it is. The other reasons are <c>checking</c>,
+    ///     <c>character_limit</c>, <c>expired</c>, <c>away</c>, <c>merchant</c> and <c>another_character</c>.
     /// </summary>
     /// <remarks>
-    ///     <c>checking</c> means the account lookup has not landed yet and is worth retrying; <c>character_limit</c> means the
-    ///     account holds 25 characters or more and no bonus will ever pay. The rest are settled facts about the character:
-    ///     <c>expired</c> , <c>away</c> , <c>merchant</c> , <c>another_character</c> .
+    ///     <c>checking</c> means the account lookup has not landed yet; <c>character_limit</c> means the account holds 25
+    ///     characters or more and no bonus will ever pay.
     /// </remarks>
     [JsonPropertyName("reason")]
     public string? Reason { get; init; }

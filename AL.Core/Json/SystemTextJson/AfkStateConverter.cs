@@ -7,9 +7,8 @@ using AL.Core.Definitions;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads the server's <c>afk</c> field into <see cref="AfkState" />. The field is absent, a bool, or one of two names,
-///     and the names are the reason this is not a bool: they say what is driving the character rather than whether anyone
-///     is at the keyboard.
+///     Reads the server's <c>afk</c> field, which is absent, a bool, or the name of what is driving the character, into
+///     <see cref="AfkState" />.
 /// </summary>
 public sealed class AfkStateConverter : JsonConverter<AfkState>
 {
@@ -26,14 +25,20 @@ public sealed class AfkStateConverter : JsonConverter<AfkState>
             JsonTokenType.True   => AfkState.Idle,
             JsonTokenType.String => ReadName(ref reader),
 
-            //a throw here would discard the whole socket frame, the exact failure this tolerant converter prevents
+            //a throw here would discard the whole socket frame
             JsonTokenType.Number => reader.GetDouble() != 0 ? AfkState.Idle : AfkState.Active,
             _                    => AfkState.Unknown
         };
 
     /// <summary>
-    ///     The two names the server writes. Any other is still a truthy afk and nothing more.
+    ///     Reads one of the two names the server writes; any other name reads as <see cref="AfkState.Idle" />.
     /// </summary>
+    /// <param name="reader">
+    ///     The reader, positioned on a string token.
+    /// </param>
+    /// <returns>
+    ///     The state the name stands for.
+    /// </returns>
     private static AfkState ReadName(ref Utf8JsonReader reader)
     {
         if (reader.ValueTextEquals("bot"))

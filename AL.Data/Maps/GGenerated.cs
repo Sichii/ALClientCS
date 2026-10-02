@@ -1,8 +1,8 @@
 namespace AL.Data.Maps;
 
 /// <summary>
-///     Which dungeon run a generated floor belongs to. The floor's map key is spelled from these two values as
-///     <c>zone_{run}_{floor}</c> .
+///     Represents the dungeon run a generated floor belongs to. The floor's map key is spelled from these values as
+///     <c>zone_{run}_{floor}</c>.
 /// </summary>
 public sealed record GGenerated
 {
@@ -15,7 +15,7 @@ public sealed record GGenerated
     public string Run { get; init; } = null!;
 
     /// <summary>
-    ///     Which dungeon generated the floor. "dreams" is the Cave of Many Dreams.
+    ///     The dungeon that generated the floor. <c>dreams</c> is the Cave of Many Dreams.
     /// </summary>
     public string Zone { get; init; } = null!;
 }

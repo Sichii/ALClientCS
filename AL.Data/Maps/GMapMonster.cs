@@ -17,7 +17,9 @@ public sealed record GMapMonster
     ///     <br />
     ///     If you're familiar with the original form of this data, it's boundary(if present) + boundaries(if present).
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     [JsonIgnore]
     public IReadOnlyList<InscribedBoundary> Boundaries { get; init; } = new List<InscribedBoundary>();
 
@@ -30,19 +32,21 @@ public sealed record GMapMonster
     /// <summary>
     ///     This monster's data from <see cref="GameData.Monsters" />
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     [JsonIgnore]
     public GMonster? Data { get; internal set; }
 
     /// <summary>
-    ///     While any monster from this entry is alive, a door marked "protected" on the same instance refuses passage with
-    ///     "transport_cant_protection" (node/server.js:5432).
+    ///     Whether a door marked <c>protected</c> on the same instance refuses passage while any monster from this entry is
+    ///     alive.
     /// </summary>
     public bool GateKeeper { get; init; }
 
     /// <summary>
-    ///     Keeps the pack full and its members weak. A kill respawns at once while the population is below two thirds, two
-    ///     extras spawn below half, and each level gained adds far less than usual (node/server.js:11872, :12114, :1656).
+    ///     Whether the pack is kept full and its members weak. A kill respawns at once while the population is below two
+    ///     thirds, two extras spawn below half, and each level gained adds far less than usual.
     /// </summary>
     public bool Grow { get; init; }
 
@@ -52,14 +56,13 @@ public sealed record GMapMonster
 
     /// <summary>
     ///     For an entry that gives a single position instead of a boundary, the half-width of the square the monster spawns
-    ///     and wanders in around it (node/server.js:12000, :12982).
+    ///     and wanders in around it.
     /// </summary>
     public int Radius { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b> . If populated, standing anywhere inside this rectangle makes every monster from this entry drop
-    ///     what it was doing and come for you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds per
-    ///     instance, and high enough bling against cuteness can cancel it (node/server.js:12432).
+    ///     <b>NULLABLE</b>. If populated, standing anywhere inside this rectangle makes every monster from this entry come for
+    ///     you at <see cref="GMonster.ChargeSpeed" />. Checked once every 4.2 seconds per instance.
     /// </summary>
     [JsonPropertyName("rage")]
     public MapRectangle? RageRect { get; init; }
@@ -70,15 +73,15 @@ public sealed record GMapMonster
     public bool Roam { get; init; }
 
     /// <summary>
-    ///     Specifies the way in which this monster spawns/respawns. "randomrespawn" picks one of the entry's boundaries at
-    ///     random each time, which chooses the map as well as the rectangle (node/server.js:11944).
+    ///     The way in which this monster spawns/respawns. <c>randomrespawn</c> picks one of the entry's boundaries, and so its
+    ///     map, at random each time.
     /// </summary>
     [JsonPropertyName("stype")]
     public SpawnType SpawnType { get; init; }
 
     /// <summary>
     ///     If true, monsters from this entry never respawn on their own once killed, the same as
-    ///     <see cref="GMonster.Special" /> but decided per map rather than per monster (node/server.js:11866).
+    ///     <see cref="GMonster.Special" /> but decided per map rather than per monster.
     /// </summary>
     public bool Special { get; init; }
 

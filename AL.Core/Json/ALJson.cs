@@ -10,29 +10,16 @@ using AL.Core.Json.SystemTextJson;
 namespace AL.Core.Json;
 
 /// <summary>
-///     The single canonical System.Text.Json configuration, shared by the socket transport, the REST client, and the
-///     game-data loader. It reproduces the Newtonsoft.Json defaults this codebase relied on: case-insensitive property
-///     matching, number-from-string coercion, and non-HTML-escaping output.
+///     Provides the System.Text.Json options shared by the socket transport, the REST client and the game-data loader.
 /// </summary>
 /// <remarks>
-///     Binding comes entirely from the models' own System.Text.Json attributes — <c>[JsonPropertyName]</c> for renames,
-///     <c>[JsonInclude]</c> for non-public setters and fields, <c>[JsonIgnore]</c> for exclusions. A member with a
-///     non-public setter and no <c>[JsonInclude]</c> (e.g. <c>EntityBase.In</c> ) stays unbound by construction, which is
-///     why the transitional resolver modifier could be removed outright rather than reproduced. The converters are
-///     registered here as type-matched factories/instances — <see cref="AttributedObjectConverterFactory" /> for every
-///     <see cref="AL.Core.Interfaces.IAttributed" />, and factories keyed on the AL-local markers (
-///     <c>[JsonStringOrObject]</c> , <c>[JsonArrayIndex]</c> , <c>[JsonForcedObject]</c> ) that carry a parameter a
-///     System.Text.Json <c>[JsonConverter]</c> attribute cannot. Tolerant enums need no marker — they carry <c>
-///         [JsonConverter(typeof(TolerantStringEnumConverterFactory))]
-///     </c> directly, and registering that factory here would make every enum tolerant. The self-recursive socket/REST
-///     converters (event/boss, disappear, trade history, bank, login) register from their own assemblies at the transport
-///     cutover, since AL.Core cannot reference their types.
+///     Tolerant enums carry <see cref="TolerantStringEnumConverterFactory" /> on the enum itself, since registering it here
+///     would make every enum tolerant. Converters for socket and REST types register from their own assemblies.
 /// </remarks>
 public static class ALJson
 {
     /// <summary>
-    ///     The shared options instance. Built once and cached — constructing options is expensive and the instance is frozen
-    ///     on first use.
+    ///     The shared options instance, built once and frozen on first use.
     /// </summary>
     public static JsonSerializerOptions Options { get; } = Create();
 
@@ -40,23 +27,19 @@ public static class ALJson
     {
         var options = new JsonSerializerOptions
         {
-            // Newtonsoft matched wire keys to members case-insensitively; STJ defaults to case-sensitive.
             PropertyNameCaseInsensitive = true,
 
-            // the server sends numbers as JSON strings (and the reverse); Newtonsoft coerced by default.
+            //the server sends some numbers as JSON strings
             NumberHandling = JsonNumberHandling.AllowReadingFromString,
 
-            // Newtonsoft tolerates a trailing comma before a closing ] or } by default; some frames carry one.
+            //some frames carry a trailing comma before a closing ] or }
             AllowTrailingCommas = true,
-
-            // Newtonsoft does not \uXXXX-escape < > & +; keep emitted payloads byte-identical for parity.
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 
             TypeInfoResolver = new DefaultJsonTypeInfoResolver()
         };
 
-        // ordering matters: System.Text.Json takes the first converter whose CanConvert returns true. The
-        // specific factories precede the type instances; none of their CanConvert predicates overlap.
+        //order matters: the first converter whose CanConvert matches wins
         options.Converters.Add(new AttributedObjectConverterFactory());
         options.Converters.Add(new ArrayToObjectConverterFactory());
         options.Converters.Add(new StringOrObjectConverterFactory());
@@ -69,8 +52,7 @@ public static class ALJson
         options.Converters.Add(new MapRectangleConverter());
         options.Converters.Add(new PolygonConverter());
 
-        // last: claims [JsonObject] types System.Text.Json would otherwise treat as collections (IRectangle
-        // containers like GGeometry), after every more specific converter has had its turn.
+        //last, so every more specific converter claims its type first
         options.Converters.Add(new ForcedObjectConverterFactory());
 
         return options;

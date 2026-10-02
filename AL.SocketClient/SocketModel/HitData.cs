@@ -10,7 +10,7 @@ namespace AL.SocketClient.SocketModel;
 /// </summary>
 /// <remarks>
 ///     The server emits six mutually incompatible shapes on this event (normal, reflect, evade, miss, avoid and burn
-///     tick), so every field below the near-universal hid/id/source is optional.
+///     tick), so every field below the near-universal <c>hid</c>, <c>id</c> and <c>source</c> is optional.
 /// </remarks>
 public sealed record HitData
 {
@@ -35,7 +35,7 @@ public sealed record HitData
     public bool Avoid { get; init; }
 
     /// <summary>
-    ///     If populated, the critical damage multiplier applied to this hit. This is a multiplier, not a damage figure.
+    ///     If populated, the critical damage multiplier applied to this hit.
     /// </summary>
     public float? Crit { get; init; }
 

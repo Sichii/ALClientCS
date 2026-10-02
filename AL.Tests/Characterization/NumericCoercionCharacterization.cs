@@ -13,7 +13,7 @@ namespace AL.Tests.Characterization;
 /// <summary>
 ///     Pins where a fractional JSON number still coerces into an <c>int</c> CLR target and where it no longer does. It
 ///     coerces on exactly one path: <see cref="LenientInt32Converter" /> is registered solely in
-///     <see cref="AttributedObjectStjConverter{T}" />'s inner options, so <see cref="GItem.Grade" /> still rounds while
+///     <see cref="AttributedObjectConverter{T}" />'s inner options, so <see cref="GItem.Grade" /> still rounds while
 ///     <see cref="Recipe.Items" />' <c>int</c> slot - read by <see cref="ArrayToTupleConverter{T1,T2,T3}" />, which
 ///     deserializes each element under the CALLER's options - throws. Where it does round, the direction is
 ///     round-half-to-even.
@@ -49,7 +49,7 @@ public class NumericCoercionCharacterization
 
     /// <summary>
     ///     Deserializes an item the way <see cref="ItemsDatum" /> does - through the shared options, which route every
-    ///     <c>IAttributed</c> type into <see cref="AttributedObjectStjConverter{T}" />, so the <c>grade</c> coercion under
+    ///     <c>IAttributed</c> type into <see cref="AttributedObjectConverter{T}" />, so the <c>grade</c> coercion under
     ///     test runs on the production lenient path and not the throwing shared one.
     /// </summary>
     private static GItem DeserializeItem(JsonObject wire) => TestJson.Data<GItem>(wire.ToJsonString())!;

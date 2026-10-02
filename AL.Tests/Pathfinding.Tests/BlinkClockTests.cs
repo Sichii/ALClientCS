@@ -154,11 +154,11 @@ public class BlinkClockTests : GameDataTestBed
                     .Should()
                     .Be(2500f);
 
-        clock.AtLeastAsWellPlaced(readyNow, waiting)
+        clock.IsAtLeastAsWellPlaced(readyNow, waiting)
              .Should()
              .BeFalse();
 
-        clock.AtLeastAsWellPlaced(
+        clock.IsAtLeastAsWellPlaced(
                  readyNow with
                  {
                      PenaltyMs = 1000f
@@ -176,11 +176,11 @@ public class BlinkClockTests : GameDataTestBed
     {
         var baseline = new TravelState(100f, 100f, 100f);
 
-        BlinkClock.AtLeastAsReady(baseline, baseline)
+        BlinkClock.IsAtLeastAsReady(baseline, baseline)
                   .Should()
                   .BeTrue();
 
-        BlinkClock.AtLeastAsReady(
+        BlinkClock.IsAtLeastAsReady(
                       baseline with
                       {
                           BlinkReadyInMs = 101f
@@ -189,7 +189,7 @@ public class BlinkClockTests : GameDataTestBed
                   .Should()
                   .BeFalse();
 
-        BlinkClock.AtLeastAsReady(
+        BlinkClock.IsAtLeastAsReady(
                       baseline with
                       {
                           PenaltyMs = 101f
@@ -198,7 +198,7 @@ public class BlinkClockTests : GameDataTestBed
                   .Should()
                   .BeFalse();
 
-        BlinkClock.AtLeastAsReady(
+        BlinkClock.IsAtLeastAsReady(
                       baseline with
                       {
                           Mp = 99f

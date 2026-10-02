@@ -1,8 +1,8 @@
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     One entry in a ranger 'track' skill result (node/server.js:9499). The result is an array of these, sorted ascending
-///     by <see cref="Dist" />, covering players within the skill's range.
+///     Represents one entry in a ranger <c>track</c> skill result, an array sorted ascending by <see cref="Dist" />
+///     covering players within the skill's range.
 /// </summary>
 public sealed record TrackData
 {
@@ -10,7 +10,7 @@ public sealed record TrackData
     public double Dist { get; init; }
 
     /// <summary>
-    ///     True when the tracked player is invisible. Absent (false) otherwise.
+    ///     Whether the tracked player is invisible.
     /// </summary>
     public bool Invis { get; init; }
 

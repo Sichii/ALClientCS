@@ -6,8 +6,8 @@ public abstract class ALSocketSubscription : IDisposable
     protected ALSocketSubscriptionList InvocationList { get; }
 
     /// <summary>
-    ///     Diverges from <see cref="ALSocketSubscriptionList.Type" /> when a later <c>On&lt;T&gt;</c> declared a different T,
-    ///     which is what makes the cast in <see cref="InvokeAsync" /> throw.
+    ///     The type this subscription declared. It differs from <see cref="ALSocketSubscriptionList.Type" /> when a later
+    ///     <c>On&lt;T&gt;</c> declared another, and then the cast in <see cref="InvokeAsync" /> throws.
     /// </summary>
     internal abstract Type SubscriptionType { get; }
 

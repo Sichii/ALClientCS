@@ -119,7 +119,7 @@ public class LeaveMapTests : PathfindingTestBed
     [Arguments("test", false)]
     [Arguments("main", false)]
     public void OnlyJailAndCyberlandTakeALeave(string map, bool accepted)
-        => CONSTANTS.AcceptsLeave(map)
+        => CONSTANTS.CanLeave(map)
                     .Should()
                     .Be(accepted);
 

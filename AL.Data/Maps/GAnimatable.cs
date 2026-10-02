@@ -6,18 +6,17 @@ using AL.Core.Geometry;
 namespace AL.Data.Maps;
 
 /// <summary>
-///     Represents a piece of composed scenery placed on a map, such as the dungeon gate on <c>main</c> .
+///     Represents a piece of composed scenery placed on a map, such as the dungeon gate on <c>main</c>.
 /// </summary>
 /// <remarks>
-///     Scenery is drawn from the map's own art, so most of it is presentation this client has no use for. What matters is
-///     <see cref="Collision" /> : the game folds those boxes into the map's wall lines while it processes the map, which
-///     means a piece of scenery blocks movement without appearing anywhere in <c>G.geometry</c> .
+///     The game folds the <see cref="Collision" /> boxes into the map's wall lines, so scenery blocks movement without
+///     appearing in <c>G.geometry</c>.
 /// </remarks>
 public sealed record GAnimatable
 {
     /// <summary>
     ///     If populated, the boxes this scenery blocks, each as <c>[x1, y1, x2, y2]</c> offsets from <see cref="X" /> and
-    ///     <see cref="Y" /> .
+    ///     <see cref="Y" />.
     /// </summary>
     [JsonPropertyName("collision")]
     public IReadOnlyList<IReadOnlyList<int>>? Collision { get; init; }
@@ -35,17 +34,13 @@ public sealed record GAnimatable
     //unmapped: position (obj), role (str) - both presentation
 
     /// <summary>
-    ///     The wall lines this scenery's collision boxes stand for, in map coordinates: each box's four sides.
+    ///     Builds the wall lines this scenery's collision boxes stand for, in map coordinates: each box's four sides.
     /// </summary>
-    /// <remarks>
-    ///     Duplicates and overlaps are left in. The caller merges them along with the map's own lines, which is where every
-    ///     other source of walls is reconciled too.
-    /// </remarks>
     /// <returns>
-    ///     One line per box side, or nothing when the scenery blocks nothing. A box of fewer than four numbers is skipped
-    ///     rather than guessed at - half a box is a wall in the wrong place, which is worse than no wall.
+    ///     One line per box side, or nothing when the scenery blocks nothing. A box of fewer than four numbers is skipped,
+    ///     and duplicates are left for the caller to merge.
     /// </returns>
-    public IEnumerable<StraightLine> CollisionLines()
+    public IEnumerable<StraightLine> BuildCollisionLines()
     {
         if (Collision is not { Count: > 0 } boxes)
             yield break;

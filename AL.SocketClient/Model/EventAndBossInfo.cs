@@ -11,7 +11,9 @@ public record EventAndBossInfo
 {
     public bool EggHunt { get; init; }
 
-    /// <summary>Whether the Halloween event is running.</summary>
+    /// <summary>
+    ///     Whether the Halloween event is running.
+    /// </summary>
     /// <remarks>
     ///     While it is, <c>mrpumpkin</c> and <c>mrgreen</c> are also keys on <see cref="BossInfo" /> - live, or carrying the
     ///     time they next spawn. Off it, they are absent entirely.

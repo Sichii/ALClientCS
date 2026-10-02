@@ -5,8 +5,8 @@ using AL.APIClient.Model;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     One entry in a merchant's trade history (node/server.js:8298). On the wire each entry is a positional array
-///     <c>[event, name, item, price]</c> , with a fifth element on a swap, not a keyed object - see
+///     Represents one entry in a merchant's trade history. On the wire it is a positional array
+///     <c>[event, name, item, price]</c>, with a fifth element on a swap; see
 ///     <see cref="AL.SocketClient.Json.SystemTextJson.TradeHistoryEntryConverter" />.
 /// </summary>
 public sealed record TradeHistoryEntry

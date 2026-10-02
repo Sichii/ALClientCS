@@ -6,10 +6,8 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Reads the bool-or-name fields where only the presence of the name matters - <c>rip</c> , whose string form is a
-///     gravestone cosmetic no headless client has a use for: <c>null</c> -&gt; false, any string -&gt; true, otherwise a
-///     bool. Named for <c>afk</c> , which it no longer reads: that field needs the names this one throws away, and has
-///     moved to <see cref="AfkStateConverter" />.
+///     Reads a bool-or-name field where only the presence of a name matters, such as <c>rip</c>: <c>null</c> reads as
+///     false, any string as true, and anything else as a bool.
 /// </summary>
 public sealed class AfkConverter : JsonConverter<bool>
 {
@@ -24,8 +22,7 @@ public sealed class AfkConverter : JsonConverter<bool>
             JsonTokenType.Null   => false,
             JsonTokenType.String => true,
 
-            //Newtonsoft's Deserialize<bool> coerced a number via Convert.ToBoolean (nonzero -> true); a throw
-            //here would discard the whole socket frame, the exact failure this tolerant converter prevents
+            //a throw here would discard the whole socket frame
             JsonTokenType.Number => reader.GetDouble() != 0,
             _                    => reader.GetBoolean()
         };

@@ -19,7 +19,7 @@ namespace AL.SocketClient.Model;
 public record SlotItem : ITradeItem, IInventoryItem
 {
     /// <summary>
-    ///     True when this item is account-locked and cannot be sent or traded across accounts.
+    ///     Whether this item is account-locked and cannot be sent or traded across accounts.
     /// </summary>
     [JsonPropertyName("acl")]
     public bool AccountLocked { get; init; }
@@ -85,15 +85,12 @@ public record SlotItem : ITradeItem, IInventoryItem
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
     /// <summary>
-    ///     Carries the item's title (e.g. "shiny", "legacy") via <see cref="Model.Prediction.Title" />. Null when the item has
-    ///     no title.
+    ///     Carries the item's title (e.g. <c>shiny</c>, <c>legacy</c>) via <see cref="Model.Prediction.Title" />. Null when the
+    ///     item has no title.
     /// </summary>
     /// <remarks>
-    ///     The same key <see cref="Item.Prediction" /> reads, and it is on a slot for the same reason: equipping moves the
-    ///     item object itself rather than a copy of some of it ( <c>player.slots[slot] = player.items[num]</c> ,
-    ///     <c>node/server.js:6581</c> ), so an equipped item keeps every field it carried in the bag. The upgrade-placeholder
-    ///     half of that overloaded key cannot reach a slot - nothing upgrades an equipped item - so in practice this is a
-    ///     title and nothing else.
+    ///     Equipping moves the item object itself, so an equipped item keeps every field it carried in the bag. Nothing
+    ///     upgrades an equipped item, so this is only ever a title.
     /// </remarks>
     [JsonPropertyName("p")]
     public Prediction? Prediction { get; init; }
@@ -104,7 +101,7 @@ public record SlotItem : ITradeItem, IInventoryItem
     public int Quantity { get; init; } = 1;
 
     /// <summary>
-    ///     True when this item is rented / offered for rent.
+    ///     Whether this item is rented or offered for rent.
     /// </summary>
     [JsonPropertyName("r")]
     public bool Rented { get; init; }

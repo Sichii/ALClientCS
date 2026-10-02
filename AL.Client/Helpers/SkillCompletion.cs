@@ -6,7 +6,9 @@ using AL.Data.Skills;
 
 namespace AL.Client.Helpers;
 
-/// <summary>How the server signals that it accepted a skill.</summary>
+/// <summary>
+///     Represents how the server signals that it accepted a skill.
+/// </summary>
 public enum SkillCompletionKind
 {
     /// <summary>
@@ -40,8 +42,7 @@ public enum SkillCompletionKind
 }
 
 /// <summary>
-///     The signal a skill is awaited on. Orthogonal to what the call returns — collecting projectiles is a separate
-///     concern from knowing the cast landed.
+///     Represents the signal a skill is awaited on, separate from what the call returns.
 /// </summary>
 public readonly struct SkillCompletion
 {
@@ -78,27 +79,35 @@ public readonly struct SkillCompletion
     /// <summary>
     ///     Awaits <paramref name="condition" /> appearing on the character.
     /// </summary>
-    /// <param name="condition">The condition the skill applies to the caster.</param>
+    /// <param name="condition">
+    ///     The condition the skill applies to the caster.
+    /// </param>
+    /// <returns>
+    ///     A completion awaiting the condition.
+    /// </returns>
     public static SkillCompletion OnCondition(Condition condition) => new(SkillCompletionKind.Condition, condition);
 
     /// <summary>
     ///     Picks the completion a skill uses from G data, mirroring the server's <c>consume_skill</c> : resolve <c>share</c>
     ///     first, then send no frame at all if the resolved cooldown is zero.
     /// </summary>
-    /// <param name="skillName">The name of the skill as the server knows it.</param>
+    /// <param name="skillName">
+    ///     The name of the skill as the server knows it.
+    /// </param>
+    /// <returns>
+    ///     The completion the skill uses.
+    /// </returns>
     /// <remarks>
-    ///     A cooldown outranks a condition because the frame acknowledges <i>this</i> cast, whereas a condition can be applied
-    ///     by someone else's skill. The skills that share <c>attack</c> resolve to no cooldown and so land on
-    ///     <see cref="Immediate" /> here — every one of them overrides this explicitly, because they answer with projectiles
-    ///     instead.
-    ///     <br />
-    ///     Two cases this gets wrong, all four of which have a dedicated method that overrides it: a skill carrying only
-    ///     <c>reuse_cooldown</c> ( <c>invis</c> , <c>pickpocket</c> , <c>fishing</c> , <c>mining</c> ) reads as
-    ///     <see cref="Timeout" /> here, but the server takes that cooldown when the skill finishes rather than when it is
-    ///     cast, so no frame arrives in time.
+    ///     The skills that share <c>attack</c> resolve to <see cref="Immediate" />, and a skill carrying only
+    ///     <c>reuse_cooldown</c> reads as <see cref="Timeout" />; each of those has a dedicated method that overrides this.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     skillName
+    /// </exception>
     public static SkillCompletion ForSkill(string skillName)
     {
+        ArgumentNullException.ThrowIfNull(skillName);
+
         var skill = GameData.Skills[skillName];
 
         //an unknown name is assumed to behave like the majority, and the caller finds out via the network timeout
@@ -115,16 +124,34 @@ public readonly struct SkillCompletion
     }
 
     /// <summary>
-    ///     The name the <c>skill_timeout</c> frame carries, which is the shared skill's name when there is one.
-    ///     <c>quickstab</c> is acknowledged as <c>quickpunch</c> , for instance.
+    ///     Resolves the name the <c>skill_timeout</c> frame carries, which is the shared skill's name when there is one;
+    ///     <c>quickstab</c> is acknowledged as <c>quickpunch</c>, for instance.
     /// </summary>
-    /// <param name="skillName">The name of the skill as the server knows it.</param>
-    public static string ResolveTimeoutName(string skillName) => GameData.Skills[skillName]?.SharedCooldown ?? skillName;
+    /// <param name="skillName">
+    ///     The name of the skill as the server knows it.
+    /// </param>
+    /// <returns>
+    ///     The name the frame carries.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     skillName
+    /// </exception>
+    public static string ResolveTimeoutName(string skillName)
+    {
+        ArgumentNullException.ThrowIfNull(skillName);
+
+        return GameData.Skills[skillName]?.SharedCooldown ?? skillName;
+    }
 
     /// <summary>
-    ///     The cooldown the server finds for a skill once <c>share</c> is resolved.
+    ///     Resolves the cooldown the server finds for a skill once <c>share</c> is resolved.
     /// </summary>
-    /// <param name="skill">The G entry for the skill.</param>
+    /// <param name="skill">
+    ///     The G entry for the skill.
+    /// </param>
+    /// <returns>
+    ///     The cooldown in milliseconds.
+    /// </returns>
     private static int ResolveCooldownMS(GSkill skill)
     {
         if (skill.SharedCooldown == null)

@@ -31,9 +31,15 @@ internal sealed class UpgradePlanner : PlannerBase
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">thresholds</exception>
-    /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
-    /// <exception cref="System.ArgumentNullException">offerings</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     thresholds
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     scrollPrices
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     offerings
+    /// </exception>
     public UpgradePlanner(
         IReadOnlyList<int> thresholds,
         IReadOnlyList<double> scrollPrices,

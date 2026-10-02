@@ -1,8 +1,8 @@
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents an inbound request from another character to join your party - the counterpart of
-///     <see cref="InviteData" /> (node/server.js:10945).
+///     Represents an inbound request from another character to join your party, the counterpart of
+///     <see cref="InviteData" />.
 /// </summary>
 public sealed record RequestData
 {

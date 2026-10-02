@@ -77,8 +77,7 @@ public class SetsDatum : DatumBase<GSet>
     {
         base.BuildLookupTable();
 
-        //the accessor comes off the key the server used, not the local spelling - the same arrangement ItemsDatum
-        //and MonstersDatum use. The lookup files the wire name first, so that is the one an entry keeps
+        //take the accessor from the wire key, which the lookup files first, not from the local spelling
         foreach ((var accessor, var set) in Entries)
             if (string.IsNullOrEmpty(set.Accessor))
                 set.Accessor = accessor;

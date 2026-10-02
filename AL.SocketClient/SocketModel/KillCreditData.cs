@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     Represents authoritative kill credit for a monster (node/server.js:2545). More reliable than inferring a kill from
-///     the 'death' event.
+///     Represents authoritative kill credit for a monster, more reliable than inferring a kill from the <c>death</c>
+///     event.
 /// </summary>
 public sealed record KillCreditData
 {

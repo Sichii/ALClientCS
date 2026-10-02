@@ -26,8 +26,7 @@ public sealed record AuthUser
     {
         LoginInfo = loginInfo;
 
-        //the server strips quotes and then splits the value on the first '-'
-        //so neither the id nor the token can itself contain one
+        //the server strips quotes and then splits the value on the first '-', so neither the id nor the token contains one
         var match = Regex.Match(cookie.Replace("\"", string.Empty), @"^auth=([^-;]+)-([^;]+)(?:;|$)", RegexOptions.IgnoreCase);
 
         //never put the cookie value itself in the message, it is a live credential

@@ -12,15 +12,12 @@ namespace AL.Client.Model;
 public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 {
     /// <summary>
-    ///     How far short of the round trip <see cref="CompensateOnce" /> stops, so the next use aims just past the server's
-    ///     expiry rather than exactly at it.
+    ///     The time, in milliseconds, <see cref="CompensateOnce" /> stops short of the round trip, so the next use aims just
+    ///     past the server's expiry rather than exactly at it.
     /// </summary>
     /// <remarks>
-    ///     Needed because the offset is a 5th percentile of the ping window rather than its minimum, and the server keeps no
-    ///     grace: any leg quicker than the offset reaches the server before its cooldown expires and is refused outright. The
-    ///     percentile sits a measured 2.5ms above the minimum on a typical window, which this covers, and under 7ms on 95% of
-    ///     them, which it does not - so a bad window still loses the occasional emit, traded for aiming that much closer to
-    ///     the expiry on every other one.
+    ///     The offset is a 5th percentile of the ping window and the server keeps no grace, so a leg quicker than the offset
+    ///     arrives before the cooldown expires and is refused.
     /// </remarks>
     private const float JITTER_GUARD_MS = 5f;
 
@@ -43,7 +40,9 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     /// <summary>
     ///     Initializes a new instance of the <see cref="CooldownInfo" /> class.
     /// </summary>
-    /// <param name="cooldownMs">The cooldown of the skill.</param>
+    /// <param name="cooldownMs">
+    ///     The cooldown of the skill.
+    /// </param>
     public CooldownInfo(float cooldownMs) => CooldownMs = cooldownMs;
 
     public void CompensateOnce(TimeSpan offset)
@@ -53,15 +52,15 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 
         IsCompensated = true;
 
-        //compensating the whole round trip would aim the next use at the exact instant the server's timer expires,
-        //which a leg quicker than the offset then beats and the server refuses. The guard holds back short of that
         Elapsed += offset - TimeSpan.FromMilliseconds(JITTER_GUARD_MS);
     }
 
     /// <inheritdoc />
     public void Update(TimeSpan delta) => Elapsed += delta;
 
-    /// <summary>Whether or not the skill can be used.</summary>
+    /// <summary>
+    ///     Whether or not the skill can be used.
+    /// </summary>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />

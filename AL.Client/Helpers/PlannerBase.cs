@@ -45,16 +45,30 @@ internal abstract class PlannerBase
     /// <summary>
     ///     Initializes a new instance of the <see cref="PlannerBase" /> class.
     /// </summary>
-    /// <param name="bench">The bench the climb is made on.</param>
-    /// <param name="thresholds">The item's thresholds.</param>
-    /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
-    /// <param name="offerings">The offerings available.</param>
+    /// <param name="bench">
+    ///     The bench the climb is made on.
+    /// </param>
+    /// <param name="thresholds">
+    ///     The item's thresholds.
+    /// </param>
+    /// <param name="scrollPrices">
+    ///     Scroll prices indexed by scroll grade.
+    /// </param>
+    /// <param name="offerings">
+    ///     The offerings available.
+    /// </param>
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">thresholds</exception>
-    /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
-    /// <exception cref="System.ArgumentNullException">offerings</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     thresholds
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     scrollPrices
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     offerings
+    /// </exception>
     protected PlannerBase(
         Bench bench,
         IReadOnlyList<int> thresholds,
@@ -85,7 +99,9 @@ internal abstract class PlannerBase
     ///     Every copy is assumed to carry <paramref name="startGrace" />, which is slightly optimistic when the graced copy is
     ///     one of a kind.
     /// </remarks>
-    /// <param name="targetLevel">The level to climb to.</param>
+    /// <param name="targetLevel">
+    ///     The level to climb to.
+    /// </param>
     /// <param name="copyPrice">
     ///     The price of one copy at <paramref name="startLevel" />.
     /// </param>
@@ -246,24 +262,44 @@ internal abstract class PlannerBase
     /// <summary>
     ///     Tries to get an attempt's base chance from the level it leaves.
     /// </summary>
-    /// <param name="level">The level the attempt leaves.</param>
-    /// <param name="chance">The base chance.</param>
+    /// <param name="level">
+    ///     The level the attempt leaves.
+    /// </param>
+    /// <param name="chance">
+    ///     The base chance.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if the server's table has a figure for the level; otherwise, <c>false</c> .
+    ///     <c>true</c> if the server's table has a figure for the level; otherwise, <c>false</c>.
     /// </returns>
     protected abstract bool TryGetBaseChance(int level, out double chance);
 
     /// <summary>
     ///     Calculates one attempt's chance on this bench, from the grace each staked copy carries.
     /// </summary>
-    /// <param name="baseChance">The attempt's base chance.</param>
-    /// <param name="newLevel">The level being reached.</param>
-    /// <param name="itemGrade">The item's grade at the level it leaves.</param>
-    /// <param name="scrollGrade">The scroll's grade.</param>
-    /// <param name="offeringGrade">The offering's grade, or null for none.</param>
-    /// <param name="grace">The grace each staked copy carries.</param>
-    /// <param name="ograce">The offering pity counter entering the attempt.</param>
-    /// <returns>The attempt's chance.</returns>
+    /// <param name="baseChance">
+    ///     The attempt's base chance.
+    /// </param>
+    /// <param name="newLevel">
+    ///     The level being reached.
+    /// </param>
+    /// <param name="itemGrade">
+    ///     The item's grade at the level it leaves.
+    /// </param>
+    /// <param name="scrollGrade">
+    ///     The scroll's grade.
+    /// </param>
+    /// <param name="offeringGrade">
+    ///     The offering's grade, or null for none.
+    /// </param>
+    /// <param name="grace">
+    ///     The grace each staked copy carries.
+    /// </param>
+    /// <param name="ograce">
+    ///     The offering pity counter entering the attempt.
+    /// </param>
+    /// <returns>
+    ///     The attempt's chance.
+    /// </returns>
     protected abstract double CalculateChance(
         double baseChance,
         int newLevel,
@@ -279,17 +315,17 @@ internal abstract class PlannerBase
         double baseChance,
         int itemGrade,
         double ograce,
-        ForcedStep? pinned)
+        ForcedStep? forcedStep)
     {
         var newLevel = level + 1;
 
         //a forced level is a search over one candidate
-        var scrollChoices = pinned is { } pinnedScroll ? [pinnedScroll.ScrollGrade] : Bench.ScrollGrades[itemGrade];
+        var scrollChoices = forcedStep is not null ? [forcedStep.ScrollGrade] : Bench.ScrollGrades[itemGrade];
 
         List<OfferingChoice?> offeringChoices;
 
-        if (pinned is { } pinnedOffering)
-            offeringChoices = [pinnedOffering.Offering is { } name ? Offerings.FirstOrDefault(candidate => candidate.Name == name) : null];
+        if (forcedStep is not null)
+            offeringChoices = [forcedStep.Offering is { } name ? Offerings.FirstOrDefault(candidate => candidate.Name == name) : null];
         else
         {
             offeringChoices = [null];
@@ -297,7 +333,7 @@ internal abstract class PlannerBase
         }
 
         //a forced step may name its own deposit offering
-        var depositPrice = (pinned is { DepositOffering: { } named }
+        var depositPrice = (forcedStep is { DepositOffering: { } named }
                                ? Offerings.FirstOrDefault(candidate => candidate.Name == named)
                                : DepositOffering)?.Price
                            ?? 0;
@@ -308,11 +344,11 @@ internal abstract class PlannerBase
 
         foreach (var plan in open)
         {
-            //grace past newLevel + 3 buys nothing
-            var depositFloor = pinned?.Deposits ?? 0;
+            var depositFloor = forcedStep?.Deposits ?? 0;
 
-            var depositCeiling = pinned is { } pinnedDeposits
-                ? pinnedDeposits.Deposits
+            //grace past newLevel + 3 buys nothing
+            var depositCeiling = forcedStep is not null
+                ? forcedStep.Deposits
                 : DepositOffering is null
                     ? 0
                     : (int)Math.Ceiling(Math.Max(0, newLevel + 3 - plan.Grace) / UpgradeMath.DEPOSIT_GRACE);
@@ -398,8 +434,12 @@ internal abstract class PlannerBase
     /// <summary>
     ///     Rounds grace to a millionth, so two plans that banked the same grace by different routes share one key.
     /// </summary>
-    /// <param name="grace">The grace.</param>
-    /// <returns>The grace in millionths.</returns>
+    /// <param name="grace">
+    ///     The grace.
+    /// </param>
+    /// <returns>
+    ///     The grace in millionths.
+    /// </returns>
     private static long RoundGrace(double grace) => (long)Math.Round(grace * 1_000_000);
 
     /// <summary>
@@ -425,7 +465,9 @@ internal abstract class PlannerBase
 /// <param name="ScrollGrades">
 ///     The scroll grades worth trying, indexed by item grade.
 /// </param>
-/// <param name="CopiesPerAttempt">The copies one attempt consumes.</param>
+/// <param name="CopiesPerAttempt">
+///     The copies one attempt consumes.
+/// </param>
 /// <param name="TakesDeposits">
 ///     Whether offerings can be used without a scroll before an attempt to bank grace.
 /// </param>
@@ -530,7 +572,9 @@ internal sealed record Bench(
     /// <param name="ograce">
     ///     The counter entering each level, overwritten in place. Its length sets the climb's.
     /// </param>
-    /// <param name="chances">The plan's chance at each level.</param>
+    /// <param name="chances">
+    ///     The plan's chance at each level.
+    /// </param>
     /// <param name="withOffering">
     ///     Whether the plan spends an offering at each level.
     /// </param>
@@ -538,7 +582,7 @@ internal sealed record Bench(
     ///     The level the climb restarts from after a failure.
     /// </param>
     /// <returns>
-    ///     <c>true</c> if any level's counter moved by more than a millionth; otherwise, <c>false</c> .
+    ///     <c>true</c> if any level's counter moved by more than a millionth; otherwise, <c>false</c>.
     /// </returns>
     internal bool UpdateOfferingPity(
         double[] ograce,
@@ -563,31 +607,31 @@ internal sealed record Bench(
 
         //a climb ends at its first failure or at the target; what it leaves and adds, averaged over where it ends
         var reached = 1.0;
-        var legLeaves = 0.0;
-        var legAdds = 0.0;
+        var shareLeft = 0.0;
+        var pityAdded = 0.0;
 
         for (var step = 0; step < levels; step++)
         {
             var failing = reached * (1 - chances[step]);
 
-            legLeaves += failing * carried[step];
+            shareLeft += failing * carried[step];
 
             if (withOffering[step])
-                legAdds += failing * PityFailureGain;
+                pityAdded += failing * PityFailureGain;
 
             reached *= chances[step];
         }
 
-        legLeaves += reached * carried[levels];
+        shareLeft += reached * carried[levels];
 
         //the floor keeps a degenerate plan from dividing by zero
-        var pile = legAdds / Math.Max(1e-9, 1 - legLeaves);
+        var averagePity = pityAdded / Math.Max(1e-9, 1 - shareLeft);
 
         var moved = false;
 
         for (var step = 0; step < levels; step++)
         {
-            var settled = pile * carried[step];
+            var settled = averagePity * carried[step];
 
             if (Math.Abs(settled - ograce[step]) > MIN_CHANGE)
                 moved = true;

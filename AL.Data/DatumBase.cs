@@ -9,13 +9,15 @@ namespace AL.Data;
 /// <summary>
 ///     Provides dictionary-like access to contained properties.
 /// </summary>
-/// <typeparam name="T"></typeparam>
+/// <typeparam name="T">
+///     The type of each entry.
+/// </typeparam>
 public abstract class DatumBase<T>
 {
     private IReadOnlyDictionary<string, T> LookupCache { get; set; } = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     Gets the backing lookup as a read-only dictionary for enumeration.
+    ///     Every entry, keyed by name.
     /// </summary>
     [JsonIgnore]
     public IReadOnlyDictionary<string, T> Entries => LookupCache;
@@ -29,10 +31,14 @@ public abstract class DatumBase<T>
     public IEnumerable<T> Values => LookupCache.Values;
 
     /// <summary>
-    ///     Adds an entry, copy-on-write like <see cref="Remove" />: a datum is read from every thread without a lock, so the
-    ///     entry lands in a fresh table and the reference is swapped, leaving whatever table a reader already holds intact and
-    ///     in order.
+    ///     Adds an entry by swapping in a copy of the table, so a reader without a lock keeps a consistent one.
     /// </summary>
+    /// <param name="key">
+    ///     The entry's name.
+    /// </param>
+    /// <param name="value">
+    ///     The entry.
+    /// </param>
     internal void Add(string key, T value)
         => LookupCache = new Dictionary<string, T>(LookupCache, StringComparer.OrdinalIgnoreCase)
         {
@@ -59,15 +65,12 @@ public abstract class DatumBase<T>
 
             var value = (T?)propertyInfo.GetValue(this);
 
-            //every T is a reference type or a nullable value type, and a datum property is null when its key is absent from
-            //the payload
+            //a datum property is null when its key is absent from the payload
             // ReSharper disable once CompareNonConstrainedGenericWithNull
             if (value == null)
                 continue;
 
-            //the wire name goes in first so that it is the key the entry keeps. This cache is case-insensitive, so
-            //writing the CLR spelling afterwards updates the value and leaves the original key in place - which is
-            //why every accessor read back off these keys used to come out PascalCase
+            //the wire name goes in first so it is the key the entry keeps; the cache is case-insensitive
             var jsonPropertyNameInfo = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>();
 
             if (jsonPropertyNameInfo != null)
@@ -80,14 +83,16 @@ public abstract class DatumBase<T>
     }
 
     /// <summary>Allows using a string to access properties.</summary>
-    /// <param name="datumName"></param>
+    /// <param name="datumName">The property's wire or CLR name.</param>
     [JsonIgnore]
     public T? this[string datumName] => LookupCache.TryGetValue(datumName, out var value) ? value : default;
 
     /// <summary>
     ///     Allows using string representation of an enum to access properties.
     /// </summary>
-    /// <param name="enum"></param>
+    /// <param name="enum">
+    ///     An enum value whose name is the property's name.
+    /// </param>
     [JsonIgnore]
     public T? this[Enum @enum] => this[EnumHelper.ToString(@enum)];
 

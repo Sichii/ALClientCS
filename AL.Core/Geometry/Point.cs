@@ -25,8 +25,12 @@ public readonly struct Point : IPoint, IEquatable<Point>
     /// <summary>
     ///     Initializes a new instance of the <see cref="Point" /> struct.
     /// </summary>
-    /// <param name="x">The x coordinate.</param>
-    /// <param name="y">The y coordinate.</param>
+    /// <param name="x">
+    ///     The x coordinate.
+    /// </param>
+    /// <param name="y">
+    ///     The y coordinate.
+    /// </param>
     public Point(float x, float y)
     {
         X = x;

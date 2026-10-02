@@ -157,6 +157,50 @@ public class CoreTests
                  .BeFalse();
     }
 
+    [Test]
+    public void ContainsRectangleTest()
+    {
+        IRectangle wide = new Rectangle(
+            0,
+            0,
+            100,
+            10);
+
+        IRectangle tall = new Rectangle(
+            0,
+            0,
+            10,
+            100);
+
+        IRectangle big = new Rectangle(
+            0,
+            0,
+            100,
+            100);
+
+        IRectangle small = new Rectangle(
+            0,
+            0,
+            10,
+            10);
+
+        big.Contains(small)
+           .Should()
+           .BeTrue();
+
+        small.Contains(big)
+             .Should()
+             .BeFalse();
+
+        tall.Contains(wide)
+            .Should()
+            .BeFalse();
+
+        big.Contains(big)
+           .Should()
+           .BeTrue();
+    }
+
     /// <summary>
     ///     The repair hands <see cref="EntityBase" /> a position the 30Hz simulation did not produce, so the closed form has
     ///     to agree with the stepwise one. A disagreement here is the repair teleporting the character somewhere the client

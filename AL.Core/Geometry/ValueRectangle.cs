@@ -11,8 +11,10 @@ namespace AL.Core.Geometry;
 ///     <inheritdoc cref="IRectangle" />
 ///     <br />
 ///     A stack-only rectangle defined by its centre and size. Converts implicitly from <see cref="Rectangle" />.
-///     <see cref="Vertices" /> is computed on demand and is the one member that allocates.
 /// </summary>
+/// <remarks>
+///     <see cref="Vertices" /> is computed on demand and allocates.
+/// </remarks>
 public readonly ref struct ValueRectangle : IRectangle
 {
     public float X { get; }
@@ -34,9 +36,20 @@ public readonly ref struct ValueRectangle : IRectangle
         ];
 
     /// <summary>
-    ///     Initializes a rectangle from its centre and size, the same shape <see cref="Rectangle" />'s primary constructor
-    ///     takes.
+    ///     Initializes a new instance of the <see cref="ValueRectangle" /> struct from its centre and size.
     /// </summary>
+    /// <param name="x">
+    ///     The centre's x coordinate.
+    /// </param>
+    /// <param name="y">
+    ///     The centre's y coordinate.
+    /// </param>
+    /// <param name="width">
+    ///     The width.
+    /// </param>
+    /// <param name="height">
+    ///     The height.
+    /// </param>
     public ValueRectangle(
         float x,
         float y,
@@ -57,8 +70,23 @@ public readonly ref struct ValueRectangle : IRectangle
             rectangle.Height);
 
     /// <summary>
-    ///     Initializes a rectangle from two opposing corners.
+    ///     Creates a rectangle from two opposing corners.
     /// </summary>
+    /// <param name="x1">
+    ///     The first corner's x coordinate.
+    /// </param>
+    /// <param name="y1">
+    ///     The first corner's y coordinate.
+    /// </param>
+    /// <param name="x2">
+    ///     The opposing corner's x coordinate.
+    /// </param>
+    /// <param name="y2">
+    ///     The opposing corner's y coordinate.
+    /// </param>
+    /// <returns>
+    ///     The rectangle spanning both corners.
+    /// </returns>
     public static ValueRectangle FromCorners(
         float x1,
         float y1,
@@ -73,12 +101,25 @@ public readonly ref struct ValueRectangle : IRectangle
     /// <summary>
     ///     Copies any <see cref="IRectangle" /> onto the stack.
     /// </summary>
+    /// <param name="rectangle">
+    ///     The rectangle to copy.
+    /// </param>
+    /// <returns>
+    ///     A <see cref="ValueRectangle" /> with the same values.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     rectangle
+    /// </exception>
     public static ValueRectangle From(IRectangle rectangle)
-        => new(
+    {
+        ArgumentNullException.ThrowIfNull(rectangle);
+
+        return new(
             rectangle.X,
             rectangle.Y,
             rectangle.Width,
             rectangle.Height);
+    }
 
     public bool Equals(IPoint? other) => other is not null && X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 

@@ -33,7 +33,7 @@ public class RangeSafetyTests
               .Should()
               .BeFalse();
 
-        RangeSafety.MarginFor(source, target)
+        RangeSafety.CalculateMargin(source, target)
                    .Should()
                    .Be(0.975f);
     }
@@ -57,7 +57,7 @@ public class RangeSafetyTests
             100f,
             -80f);
 
-        RangeSafety.MarginFor(source, target)
+        RangeSafety.CalculateMargin(source, target)
                    .Should()
                    .Be(0.975f);
     }
@@ -79,7 +79,7 @@ public class RangeSafetyTests
             150f,
             0f);
 
-        RangeSafety.MarginFor(source, target)
+        RangeSafety.CalculateMargin(source, target)
                    .Should()
                    .Be(0.95f);
     }
@@ -99,7 +99,7 @@ public class RangeSafetyTests
             60f,
             0f);
 
-        RangeSafety.MarginFor(source, target)
+        RangeSafety.CalculateMargin(source, target)
                    .Should()
                    .Be(0.975f);
     }
@@ -110,7 +110,7 @@ public class RangeSafetyTests
         var source = Standing(0f, 0f);
         var target = Standing(100f, 0f);
 
-        RangeSafety.MarginFor(source, target)
+        RangeSafety.CalculateMargin(source, target)
                    .Should()
                    .Be(1f);
     }
@@ -125,7 +125,7 @@ public class RangeSafetyTests
             0f);
         var target = Standing(100f, 0f);
 
-        RangeSafety.MarginFor(source, target)
+        RangeSafety.CalculateMargin(source, target)
                    .Should()
                    .Be(0.975f);
     }

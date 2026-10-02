@@ -5,7 +5,9 @@ using AL.Core.Interfaces;
 
 namespace AL.APIClient.Model;
 
-/// <summary>Represents a character this user owns.</summary>
+/// <summary>
+///     Represents a character this user owns.
+/// </summary>
 /// <seealso cref="IInstancedLocation" />
 public record CharacterInfo : IInstancedLocation
 {

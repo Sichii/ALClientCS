@@ -19,12 +19,11 @@ public record GDoor : IRectangle
 {
     /// <summary>
     ///     If a door is 2-way, this is the id of the spawn when coming back through this door. The server measures the door's
-    ///     range from that spawn rather than from the door, so a door carrying no such id is one it cannot resolve at all - it
-    ///     faults reading the spawn, and the door opens from nowhere.
-    ///     <br />
-    ///     An absent id deserializes to the same nought a real spawn 0 does, so the two are not distinguishable here. Nothing
-    ///     downstream needs them to be: see <c>GameData.DoorReachableRegion</c> .
+    ///     range from that spawn rather than from the door.
     /// </summary>
+    /// <remarks>
+    ///     An absent id reads as 0, the same as a real spawn 0.
+    /// </remarks>
     [JsonArrayIndex(6)]
     public float CurrentMapSpawnId { get; init; }
 
@@ -52,7 +51,6 @@ public record GDoor : IRectangle
 
     /// <summary>
     ///     What stops you walking through: a key, a gatekeeper monster, or a bank level you have not unlocked.
-    ///     <see cref="DoorLockType" /> carries the server citations.
     /// </summary>
     [JsonArrayIndex(7)]
     [JsonInclude]
@@ -71,38 +69,35 @@ public record GDoor : IRectangle
     public float Y { get; init; }
 
     /// <summary>
-    ///     The y coordinate of the lower edge. Y grows downward, so this is the larger of the two.
+    ///     The y coordinate of the lower edge.
     /// </summary>
     public float Bottom => Y + Height / 2;
 
     /// <summary>
-    ///     The x coordinate of the left edge - except it returns X + Width / 2, which is the right one. <see cref="Right" />
-    ///     has the same fault in reverse.
+    ///     The x coordinate of the left edge.
     /// </summary>
-    public float Left => X + Width / 2;
+    public float Left => X - Width / 2;
 
     /// <summary>
-    ///     The x coordinate of the right edge - except it returns X - Width / 2, which is the left one. See
-    ///     <see cref="Left" />.
+    ///     The x coordinate of the right edge.
     /// </summary>
-    public float Right => X - Width / 2;
+    public float Right => X + Width / 2;
 
     /// <summary>
-    ///     The y coordinate of the upper edge. Y grows downward, so this is the smaller of the two.
+    ///     The y coordinate of the upper edge.
     /// </summary>
     public float Top => Y - Height / 2;
 
     /// <summary>
-    ///     The four corners of the door rectangle. Each is built with its y value passed as x and its x value as y, so every
-    ///     corner comes back transposed.
+    ///     The four corners of the door rectangle, clockwise from the top left.
     /// </summary>
     public IReadOnlyList<IPoint> Vertices
         =>
         [
-            new Point(((IRectangle)this).Top, ((IRectangle)this).Left),
-            new Point(((IRectangle)this).Top, ((IRectangle)this).Right),
-            new Point(((IRectangle)this).Bottom, ((IRectangle)this).Left),
-            new Point(((IRectangle)this).Bottom, ((IRectangle)this).Right)
+            new Point(Left, Top),
+            new Point(Right, Top),
+            new Point(Right, Bottom),
+            new Point(Left, Bottom)
         ];
 
     public virtual bool Equals(IPoint? other) => IPoint.Comparer.Equals(this, other);
@@ -111,7 +106,7 @@ public record GDoor : IRectangle
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
-    ///     Records locally that this door has been opened. It sends nothing; the server decides for itself.
+    ///     Marks this door as unlocked locally. Nothing is sent to the server.
     /// </summary>
     public void Unlock() => LockType = DoorLockType.Unlocked;
 }

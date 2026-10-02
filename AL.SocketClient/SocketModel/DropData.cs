@@ -31,7 +31,7 @@ public record DropData : ILocation
 
     /// <summary>
     ///     Account owner-ids permitted to loot this chest. Opening a chest whose owners exclude your owner-id trips a
-    ///     server-side "SEVERE - Cross Loot" flag (node/server.js:10084).
+    ///     server-side "SEVERE - Cross Loot" flag.
     /// </summary>
     [JsonPropertyName("owners")]
     public string[] Owners { get; set; } = [];

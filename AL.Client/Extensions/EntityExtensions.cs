@@ -16,15 +16,17 @@ namespace AL.Client.Extensions;
 public static class EntityExtensions
 {
     /// <summary>
-    ///     The floor on how often an instance updates - the server caps both the loop's own reschedule and its per-instance
-    ///     gate there - and every timed condition ticks on that grid rather than on its own interval.
+    ///     Calculates the final damage value
     /// </summary>
-    private const double INSTANCE_UPDATE_MS = 75;
-
-    /// <summary>Calculates the final damage value</summary>
-    /// <param name="entity">The entity that is attacking.</param>
-    /// <param name="target">The entity being attacked.</param>
-    /// <param name="damageType">The type of damage being dealt.</param>
+    /// <param name="entity">
+    ///     The entity that is attacking.
+    /// </param>
+    /// <param name="target">
+    ///     The entity being attacked.
+    /// </param>
+    /// <param name="damageType">
+    ///     The type of damage being dealt.
+    /// </param>
     /// <param name="ignoreTempDefBuffs">
     ///     Whether or not to ignore defenses gained from temp buffs like
     ///     <see cref="AL.Core.Definitions.Condition.HardShell" />, <see cref="AL.Core.Definitions.Condition.WarCry" />, and
@@ -65,10 +67,10 @@ public static class EntityExtensions
                 }
 
                 //the server subtracts pierce twice for damage: once from the attacker's live stat and once from
-                //the copy stamped onto the projectile at creation (node/server.js:3179, :3611)
+                //the copy stamped onto the projectile at creation
                 defense -= entity.RPiercing;
 
-                //heals subtract pierce once and halve the whole term instead (node/server.js:3553)
+                //heals subtract pierce once and halve the whole term instead
                 if (damageType == DamageType.Heal)
                     defense /= 2;
                 else
@@ -108,20 +110,15 @@ public static class EntityExtensions
         return entity.Attack * damageMultiplier;
     }
 
-    /// <summary>
-    ///     The fraction of a projectile's damage that gets through the target's defenses. Pierce counts twice because the
-    ///     server subtracts both the attacker's live stat and the copy stamped onto the projectile at creation
-    ///     (node/server.js:3179, :3611).
-    /// </summary>
-    private static float MitigationAgainst(EntityBase target, ActionData projectile, Func<string, EntityBase?>? findAttacker)
+    private static float CalculateMitigation(EntityBase target, ActionData projectile, Func<string, EntityBase?>? findAttackerFunc)
     {
-        var attacker = string.IsNullOrEmpty(projectile.AttackerId) ? null : findAttacker?.Invoke(projectile.AttackerId);
+        var attacker = string.IsNullOrEmpty(projectile.AttackerId) ? null : findAttackerFunc?.Invoke(projectile.AttackerId);
 
         if (attacker is null)
             return 1f;
 
         //a skill can stamp extra pierce onto its projectile - piercingshot's 500 - which the server adds to the
-        //creation-time copy on top of the doubled stat (node/server.js:3049, :3179)
+        //creation-time copy on top of the doubled stat
         var skill = string.IsNullOrEmpty(projectile.Source) ? null : GameData.Skills[projectile.Source];
 
         return ResolveDamageType(attacker, projectile.Source) switch
@@ -136,9 +133,18 @@ public static class EntityExtensions
     }
 
     /// <summary>
-    ///     Restates the server's damage-type selection: monster data or class, then mainhand weapon override, then skill
-    ///     override for anything but a basic attack (node/server.js:2966-2978). Unset falls back to physical.
+    ///     Determines the damage type the server selects: monster data or class, then mainhand weapon, then skill for anything
+    ///     but a basic attack. Unset falls back to physical.
     /// </summary>
+    /// <param name="attacker">
+    ///     The entity dealing the damage.
+    /// </param>
+    /// <param name="source">
+    ///     The skill that dealt it, if any.
+    /// </param>
+    /// <returns>
+    ///     The damage type the server applies.
+    /// </returns>
     private static DamageType ResolveDamageType(EntityBase attacker, string? source)
     {
         var damageType = attacker switch
@@ -180,7 +186,9 @@ public static class EntityExtensions
     /// <summary>
     ///     Calculates whether or not the entity will die to burning damage.
     /// </summary>
-    /// <param name="entity">The eneity to check.</param>
+    /// <param name="entity">
+    ///     The eneity to check.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
@@ -205,17 +213,17 @@ public static class EntityExtensions
                 return false;
         }
 
-        //the server polls conditions once per instance update rather than scheduling them, so a burn fires on the
-        //first update at or after its interval - three of them at 210ms. Counting raw intervals reads an eighth
-        //more ticks than ever land, and every phantom tick is a monster the combat lanes decline to shoot
+        const double INSTANCE_UPDATE_MS = 75;
+
+        //the server polls conditions once per instance update, at least 75ms apart, so a burn ticks on the first
+        //update at or after its interval
         var interval = GameData.Conditions.Burned.IntervalMS;
         var tickMs = Math.Ceiling(interval / INSTANCE_UPDATE_MS) * INSTANCE_UPDATE_MS;
 
         //RemainingMs, not DurationMs - the latter is the wire value from whenever the frame arrived
         var remainingTicks = Math.Floor(burning.RemainingMs / tickMs);
 
-        //a fifth of the intensity, rounded up - the server's own constant, and independent of the interval beside
-        //it. "Damage equal to its intensity per second" is folklore either way: the two together come to 0.85x that
+        //a fifth of the intensity per tick, rounded up
         var damagePerTick = Math.Ceiling(burning.Intensity / 5f);
 
         return (remainingTicks * damagePerTick) > entity.HP;
@@ -224,12 +232,16 @@ public static class EntityExtensions
     /// <summary>
     ///     Calculates whether or not the entity will die to existing projectiles.
     /// </summary>
-    /// <param name="entity">The entity to check.</param>
-    /// <param name="projectiles">The projectiles to use in the check.</param>
-    /// <param name="findAttacker">
+    /// <param name="entity">
+    ///     The entity to check.
+    /// </param>
+    /// <param name="projectiles">
+    ///     The projectiles to use in the check.
+    /// </param>
+    /// <param name="findAttackerFunc">
     ///     Resolves a projectile's attacker id to a live entity. When provided, each projectile's damage is reduced by the
-    ///     target's armor or resistance less twice the attacker's pierce, matching the server's math. A projectile whose
-    ///     attacker cannot be resolved counts at full damage.
+    ///     target's armor or resistance less twice the attacker's pierce. A projectile whose attacker cannot be resolved
+    ///     counts at full damage.
     /// </param>
     /// <returns>
     ///     <see cref="bool" />
@@ -239,7 +251,7 @@ public static class EntityExtensions
     public static bool WillDieToProjectiles(
         this EntityBase entity,
         IEnumerable<ActionData> projectiles,
-        Func<string, EntityBase?>? findAttacker = null)
+        Func<string, EntityBase?>? findAttackerFunc = null)
     {
         if ((entity.Evasion > 0) || (entity.Reflection > 0) || (entity.Lifesteal > 0))
             return false;
@@ -250,7 +262,7 @@ public static class EntityExtensions
             return false;
 
         return (projectiles.Where(proj => proj.Target == entity.Id)
-                           .Select(proj => proj.Damage * MitigationAgainst(entity, proj, findAttacker))
+                           .Select(proj => proj.Damage * CalculateMitigation(entity, proj, findAttackerFunc))
                            .Sum()
                 * 0.95)
                > entity.HP;

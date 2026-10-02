@@ -14,9 +14,8 @@ using ExitType = AL.Core.Definitions.ExitType;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     The cross-map graph: arrival nodes (spawns that something lands on), departure nodes (exits), and the static edges
-///     between them, with walk costs funnelled once at build. A search adds a virtual start and the ends, runs Dijkstra
-///     over the nodes, and expands the winning chain into legs.
+///     Represents the cross-map graph: arrival nodes (spawns that something lands on), departure nodes (exits), and the
+///     static edges between them, with walk costs funnelled once at build.
 /// </summary>
 internal sealed class PortalGraph
 {
@@ -34,7 +33,7 @@ internal sealed class PortalGraph
     private readonly List<Node> Nodes = [];
 
     /// <summary>
-    ///     The static edges in CSR form by <see cref="Edge.From" />.
+    ///     The static edges, sorted by <see cref="Edge.From" />; <see cref="EdgeStart" /> indexes into them.
     /// </summary>
     private readonly Edge[] StaticEdges;
 
@@ -49,7 +48,7 @@ internal sealed class PortalGraph
             if (gMap is null)
                 continue;
 
-            Lists(map);
+            GetMapLists(map);
 
             if (gMap.Spawns.Count > 0)
                 AddArrival(mesh, gMap, 0);
@@ -61,8 +60,7 @@ internal sealed class PortalGraph
                 {
                     var door = gMap.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, exit));
 
-                    //a key door is not a walk, and the way back out lands on the entry spawn - so left in, the round
-                    //trip prices as the cheapest route to the spot in front of the door
+                    //a locked door is skipped; its way back out lands on the entry spawn
                     if (door is { LockType: DoorLockType.AccountLocked or DoorLockType.Key })
                         continue;
                 }
@@ -77,7 +75,7 @@ internal sealed class PortalGraph
 
                 AddArrival(toMesh, toMap, exit.ToSpawnIndex);
 
-                var triangle = mesh.Locate(exit.X, exit.Y, out var entry);
+                var triangle = mesh.FindStartTriangle(exit.X, exit.Y, out var entry);
 
                 if (triangle < 0)
                     continue;
@@ -92,7 +90,7 @@ internal sealed class PortalGraph
                         Location = exit,
                         Triangle = triangle,
                         Entry = entry,
-                        BlinkEntry = BlinkLanding(mesh, reach, entry),
+                        BlinkEntry = FindBlinkLanding(mesh, reach, entry),
                         Exit = exit,
                         Reach = reach
                     });
@@ -107,9 +105,11 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     The static edges into each node, as indices into <see cref="StaticEdges" /> in CSR form by <see cref="Edge.To" />,
-    ///     for the backward search behind the lower bounds.
+    ///     Builds the index of static edges into each node, for the backward search behind the lower bounds.
     /// </summary>
+    /// <returns>
+    ///     Indices into <see cref="StaticEdges" /> grouped by <see cref="Edge.To" />, and where each node's group starts.
+    /// </returns>
     private (int[] Edges, int[] Start) BuildReverseEdges()
     {
         var start = new int[Nodes.Count + 1];
@@ -135,7 +135,7 @@ internal sealed class PortalGraph
             return;
 
         var spawn = map.Spawns[spawnIndex];
-        var triangle = mesh.Locate(spawn.X, spawn.Y, out var entry);
+        var triangle = mesh.FindStartTriangle(spawn.X, spawn.Y, out var entry);
 
         if (triangle < 0)
             return;
@@ -155,7 +155,7 @@ internal sealed class PortalGraph
 
         ArrivalIndex[(map.Accessor, spawnIndex)] = index;
 
-        Lists(map.Accessor)
+        GetMapLists(map.Accessor)
             .Arrivals
             .Add(index);
     }
@@ -199,16 +199,14 @@ internal sealed class PortalGraph
             {
                 var target = Nodes[departure];
 
-                var cost = node.Mesh.WalkCost(
+                var cost = node.Mesh.CalculateWalkCost(
                     node.Entry,
                     target.Triangle,
                     target.Entry,
                     target.Reach,
                     scratch);
 
-                //float.MaxValue is WalkCost's unreachable sentinel, so this is an identity test, not a measurement.
-                //a pair no walk joins is still one cast apart - a blink lands anywhere on the map - so it gets a
-                //blink-only edge, priced per search and ignored while blink is off
+                //float.MaxValue is the unreachable sentinel; a pair no walk joins gets a blink-only edge, priced per search
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
                 if (cost == float.MaxValue)
                 {
@@ -230,8 +228,7 @@ internal sealed class PortalGraph
                         node.Entry.Distance(node.Location) + cost));
             }
 
-            //a recall from anywhere the character lands, to the map's town spawn; priced per search. Not on a dungeon
-            //floor, where the server refuses one with cant_escape
+            //a recall to the map's town spawn, priced per search; the server refuses one on a dungeon floor
             var gMap = GameData.Maps[map];
 
             if ((node.SpawnIndex != 0) && gMap is { Boundless: false, Generated: null } && ArrivalIndex.TryGetValue((map, 0), out var town))
@@ -242,7 +239,7 @@ internal sealed class PortalGraph
                         EdgeType.Town,
                         0f));
 
-            if ((mainSpawn >= 0) && CONSTANTS.AcceptsLeave(map))
+            if ((mainSpawn >= 0) && CONSTANTS.CanLeave(map))
                 edges.Add(
                     new Edge(
                         index,
@@ -264,19 +261,36 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     The cheapest route from <paramref name="start" /> to any of <paramref name="ends" />. A start that already
-    ///     satisfies an end is routed as a single zero-cost <see cref="EdgeType.Walk" /> leg from the start to itself, so the
-    ///     route is never empty and a caller always finds where it arrived at the last leg; a walk stops inside an end's reach
-    ///     rather than on its centre, and this one has no distance left to walk.
+    ///     Finds the cheapest route from a start to any of several ends.
     /// </summary>
-    /// <exception cref="InvalidOperationException">No end can be reached.</exception>
+    /// <param name="start">
+    ///     Where the route starts.
+    /// </param>
+    /// <param name="ends">
+    ///     The candidate ends; the first one taken wins.
+    /// </param>
+    /// <param name="options">
+    ///     How the route is priced.
+    /// </param>
+    /// <typeparam name="T">
+    ///     The type of the ends.
+    /// </typeparam>
+    /// <returns>
+    ///     The route's legs, never empty.
+    /// </returns>
+    /// <remarks>
+    ///     A start already inside an end's reach gets one zero-cost <see cref="EdgeType.Walk" /> leg from the start to itself.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     The start has no mesh or ground nearby, no end can be reached, or the route could not be walked.
+    /// </exception>
     public IReadOnlyList<PathEdge> FindPath<T>(ILocation start, IEnumerable<T> ends, PathOptions options) where T: ILocation, ICircle
     {
         if (!Meshes.TryGetValue(start.Map, out var startMesh))
             throw new InvalidOperationException($"No mesh for the map \"{start.Map}\".");
 
         var scratch = SearchScratch.Rent();
-        var townCost = CONSTANTS.TownCost(options.WalkSpeed ?? CONSTANTS.NOMINAL_WALK_SPEED);
+        var townCost = CONSTANTS.CalculateTownCost(options.WalkSpeed ?? CONSTANTS.NOMINAL_WALK_SPEED);
 
         var blinkOn = options.BlinkCost is not null;
         var result = new List<PathEdge>();
@@ -299,7 +313,7 @@ internal sealed class PortalGraph
             cursor = unstuckLocation;
         }
 
-        var startTriangle = startMesh.Locate(startPoint.X, startPoint.Y, out var startEntry);
+        var startTriangle = startMesh.FindStartTriangle(startPoint.X, startPoint.Y, out var startEntry);
 
         if (startTriangle < 0)
             throw new InvalidOperationException($"No walkable ground near {ILocation.ToString(start)}.");
@@ -315,22 +329,21 @@ internal sealed class PortalGraph
             if (!Meshes.TryGetValue(end.Map, out var endMesh))
                 continue;
 
-            var triangle = endMesh.Locate(end.X, end.Y, out scratch.EndEntry[j]);
+            var triangle = endMesh.FindStartTriangle(end.X, end.Y, out scratch.EndEntry[j]);
 
             if (triangle < 0)
                 continue;
 
             scratch.EndMesh[j] = endMesh;
             scratch.EndTriangle[j] = triangle;
-            scratch.EndReach[j] = Reach.Circle(end.X, end.Y, end.Radius);
+            scratch.EndReach[j] = Reach.CreateCircle(end.X, end.Y, end.Radius);
         }
 
         var startNode = Nodes.Count;
         var firstEnd = Nodes.Count + 1;
         scratch.ResetNodes(firstEnd + endList.Count);
 
-        //per-search edges into each end: one search of the end's map from the end, read at every arrival. The walk
-        //is priced reversed, so the trim to the end's reach lands on the end the character walks toward
+        //per-search edges into each end: one search of the end's map from the end, priced reversed and read at every arrival
         for (var j = 0; j < endList.Count; j++)
         {
             if (scratch.EndMesh[j] is not { } endMesh)
@@ -341,11 +354,11 @@ internal sealed class PortalGraph
             var endOffset = scratch.EndEntry[j]
                                    .Distance(endList[j]);
 
-            foreach (var arrival in NodesOn(ArrivalsOnMap, endList[j].Map))
+            foreach (var arrival in GetNodes(ArrivalsOnMap, endList[j].Map))
             {
                 var node = Nodes[arrival];
 
-                var cost = endMesh.WalkCost(
+                var cost = endMesh.CalculateWalkCost(
                     scratch.EndEntry[j],
                     node.Triangle,
                     node.Entry,
@@ -374,13 +387,13 @@ internal sealed class PortalGraph
         //walked below can read it too
         startMesh.Search(startTriangle, startEntry, scratch);
         var startOffset = startPoint.Distance(startEntry);
-        var startDepartures = NodesOn(DeparturesOnMap, start.Map);
+        var startDepartures = GetNodes(DeparturesOnMap, start.Map);
 
         foreach (var departure in startDepartures)
         {
             var node = Nodes[departure];
 
-            var cost = startMesh.WalkCost(
+            var cost = startMesh.CalculateWalkCost(
                 startEntry,
                 node.Triangle,
                 node.Entry,
@@ -408,7 +421,7 @@ internal sealed class PortalGraph
             if (!ReferenceEquals(scratch.EndMesh[j], startMesh))
                 continue;
 
-            var cost = startMesh.WalkCost(
+            var cost = startMesh.CalculateWalkCost(
                 startEntry,
                 scratch.EndTriangle[j],
                 scratch.EndEntry[j],
@@ -444,7 +457,7 @@ internal sealed class PortalGraph
                     EdgeType.Town,
                     0f));
 
-        if (CONSTANTS.AcceptsLeave(start.Map) && ArrivalIndex.TryGetValue(("main", 0), out var mainSpawn))
+        if (CONSTANTS.CanLeave(start.Map) && ArrivalIndex.TryGetValue(("main", 0), out var mainSpawn))
             scratch.SearchEdges.Add(
                 new Edge(
                     startNode,
@@ -477,8 +490,7 @@ internal sealed class PortalGraph
         if (winner < 0)
             throw new InvalidOperationException($"No path from {ILocation.ToString(start)} to any of {endList.Count} end(s).");
 
-        //each arrival on the chain names the edge that made it and whether that edge was cast rather than walked. Its own
-        //list, since TryWalk below reuses the corridor list
+        //its own list, since TryWalk below reuses the corridor list
         var chain = ReadChain(scratch, winner);
 
         var cursorPoint = startPoint;
@@ -497,11 +509,8 @@ internal sealed class PortalGraph
 
             switch (edge.Type)
             {
-                //a walk the search chose to cast instead, or a pair no walk joins at all: one teleport from
-                //wherever the cursor stands to the target, carrying the walked length it replaces - or, where there is
-                //no walk, the ruler between the two. no funnel, since the server resolves a landing against the point
-                //asked for rather than walking there. nothing walks out of a landing: an exit's only edges are its
-                //door or transporter, and an end is the last node
+                //a walk cast instead, or a pair no walk joins: one teleport to the target, costed at the walk it
+                //replaces or the straight line where there is none
                 case EdgeType.Blink:
                 case EdgeType.Walk when blinked:
                 {
@@ -510,7 +519,7 @@ internal sealed class PortalGraph
                         var endIndex = edge.To - firstEnd;
                         var target = endList[endIndex];
                         var ruler = cursorPoint.Distance(new Point(target.X, target.Y));
-                        var landing = EndLanding(scratch.EndMesh[endIndex]!, target, cursorPoint);
+                        var landing = FindEndLanding(scratch.EndMesh[endIndex]!, target, cursorPoint);
 
                         result.Add(
                             new PathEdge(
@@ -548,7 +557,7 @@ internal sealed class PortalGraph
                     var targetPoint = new Point(target.X, target.Y);
 
                     //a cursor outside every triangle walks to the vertex the search started from first
-                    if (!NavMesh.IsSame(cursorPoint, cursorEntry))
+                    if (!NavMesh.IsSamePoint(cursorPoint, cursorEntry))
                     {
                         var entryLocation = new Location(cursor.Map, cursorEntry);
 
@@ -583,10 +592,8 @@ internal sealed class PortalGraph
 
                     var polyline = scratch.Polyline;
 
-                    //a leg that already landed exactly on the end - a door onto the destination's own spawn - ends on
-                    //the caller's end object the way a walk there would, so the destination is still found by equality.
-                    //a start that already satisfies the end has no leg to rewrite and gets one zero-cost leg that
-                    //stays put: it is already inside the reach, and a walk never continues on to the centre
+                    //a leg that landed exactly on the end ends on the caller's end object, and a start already inside
+                    //the reach gets one zero-cost leg that stays put
                     if (isEnd && (polyline.Count < 2))
                     {
                         if (result.Count == 0)
@@ -596,7 +603,7 @@ internal sealed class PortalGraph
                                     cursor,
                                     cursor,
                                     0f));
-                        else if (NavMesh.IsSame(cursorPoint, targetPoint))
+                        else if (NavMesh.IsSamePoint(cursorPoint, targetPoint))
                             result[^1] = result[^1] with
                             {
                                 End = target
@@ -609,7 +616,7 @@ internal sealed class PortalGraph
 
                         //the last leg ends on the caller's own end object where it reaches the end exactly, so a
                         //caller can find its destination in the path by equality
-                        var next = last && isEnd && NavMesh.IsSame(polyline[i], targetPoint)
+                        var next = last && isEnd && NavMesh.IsSamePoint(polyline[i], targetPoint)
                             ? target
                             : new Location(cursor.Map, polyline[i]);
 
@@ -691,10 +698,16 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     Build time only: grows the per-map lists. The search reads them through <see cref="NodesOn" /> and never touches
-    ///     the dictionaries.
+    ///     Gets a map's node lists, creating them on first use. Build time only; a search reads them through
+    ///     <see cref="GetNodes" />.
     /// </summary>
-    private (List<int> Arrivals, List<int> Departures) Lists(string map)
+    /// <param name="map">
+    ///     The map's key.
+    /// </param>
+    /// <returns>
+    ///     The map's arrival and departure node ids.
+    /// </returns>
+    private (List<int> Arrivals, List<int> Departures) GetMapLists(string map)
     {
         if (!ArrivalsOnMap.TryGetValue(map, out var arrivals))
         {
@@ -712,21 +725,45 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     A map that got no nodes has an empty list; searches on several threads read these at once.
+    ///     Gets a map's node ids without writing to the dictionary, so searches on several threads can read at once.
     /// </summary>
-    private static List<int> NodesOn(Dictionary<string, List<int>> byMap, string map)
+    /// <param name="byMap">
+    ///     The node ids by map.
+    /// </param>
+    /// <param name="map">
+    ///     The map's key.
+    /// </param>
+    /// <returns>
+    ///     The map's node ids, or an empty list.
+    /// </returns>
+    private static List<int> GetNodes(Dictionary<string, List<int>> byMap, string map)
         => byMap.TryGetValue(map, out var nodes) ? nodes : EmptyNodes;
 
     /// <summary>
-    ///     The character's speed for pricing, nominal when unset or not positive, the same rule
-    ///     <see cref="CONSTANTS.TownCost" /> applies.
+    ///     Gets the character's speed for pricing, nominal when unset or not positive, as
+    ///     <see cref="CONSTANTS.CalculateTownCost" /> does.
     /// </summary>
-    private static float SpeedOf(PathOptions options) => options.WalkSpeed is > 0f ? options.WalkSpeed.Value : CONSTANTS.NOMINAL_WALK_SPEED;
+    /// <param name="options">
+    ///     The search's options.
+    /// </param>
+    /// <returns>
+    ///     The walk speed.
+    /// </returns>
+    private static float GetSpeed(PathOptions options)
+        => options.WalkSpeed is > 0f ? options.WalkSpeed.Value : CONSTANTS.NOMINAL_WALK_SPEED;
 
     /// <summary>
-    ///     The route to <paramref name="winner" /> as arrival ids from the first move to the last, read back through the
-    ///     parents into the scratch's chain list.
+    ///     Reads the route to an arrival back through its parents into the scratch's chain list.
     /// </summary>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <param name="winner">
+    ///     The arrival the route ends at.
+    /// </param>
+    /// <returns>
+    ///     The arrival ids from the first move to the last.
+    /// </returns>
     private static List<int> ReadChain(SearchScratch scratch, int winner)
     {
         var chain = scratch.Chain;
@@ -741,14 +778,27 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     Fills the scratch's lower bounds: per node, the least the rest of any route to an end can be priced, from one
-    ///     backward search over every edge at its cheapest. A walk a cast could replace is priced at the smaller of the walk
-    ///     and the cheapest a cast can be, a bridged pair at that cheapest cast, and doors and recalls at their fixed prices.
+    ///     Fills the scratch's lower bounds: per node, the least the rest of any route to an end can cost, from one backward
+    ///     search over every edge at its cheapest.
     /// </summary>
-    /// <remarks>
-    ///     A bound that never overestimates and never drops by more than an edge's price between neighbours keeps the first
-    ///     arrival taken at an end the cheapest, and arrivals at one node share it, so no keep-or-drop decision changes.
-    /// </remarks>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <param name="startNode">
+    ///     The search's virtual start node.
+    /// </param>
+    /// <param name="firstEnd">
+    ///     The first end node; every node from it on is an end.
+    /// </param>
+    /// <param name="nodeCount">
+    ///     The number of nodes in the search.
+    /// </param>
+    /// <param name="options">
+    ///     The search's options.
+    /// </param>
+    /// <param name="townCost">
+    ///     The price of a recall at the character's speed.
+    /// </param>
     private void ComputeLowerBounds(
         SearchScratch scratch,
         int startNode,
@@ -760,7 +810,7 @@ internal sealed class PortalGraph
         var bounds = scratch.LowerBound;
         var queue = scratch.LowerBoundQueue;
         var floor = options.BlinkCost ?? float.MaxValue;
-        var landing = Math.Max(options.BlinkCost ?? 0f, CONSTANTS.BLINK_LANDING_MS * SpeedOf(options) / 1000f);
+        var landing = Math.Max(options.BlinkCost ?? 0f, CONSTANTS.BLINK_LANDING_MS * GetSpeed(options) / 1000f);
         var useTown = options.UseTown;
 
         Array.Fill(
@@ -782,7 +832,7 @@ internal sealed class PortalGraph
             if ((edge.To < firstEnd) || (edge.From == startNode))
                 continue;
 
-            var bound = Cheapest(edge);
+            var bound = CalculateCheapest(edge);
 
             if (bound < bounds[edge.From])
             {
@@ -799,7 +849,7 @@ internal sealed class PortalGraph
             for (var i = ReverseStart[node]; i < ReverseStart[node + 1]; i++)
             {
                 var edge = StaticEdges[ReverseEdges[i]];
-                var through = bound + Cheapest(edge);
+                var through = bound + CalculateCheapest(edge);
 
                 if (through < bounds[edge.From])
                 {
@@ -812,12 +862,12 @@ internal sealed class PortalGraph
         for (var i = scratch.SearchEdgeStart[startNode]; i < scratch.SearchEdgeStart[startNode + 1]; i++)
         {
             var edge = scratch.SearchEdges[i];
-            bounds[startNode] = Math.Min(bounds[startNode], Cheapest(edge) + bounds[edge.To]);
+            bounds[startNode] = Math.Min(bounds[startNode], CalculateCheapest(edge) + bounds[edge.To]);
         }
 
         return;
 
-        float Cheapest(in Edge edge)
+        float CalculateCheapest(in Edge edge)
             => edge.Type switch
             {
                 EdgeType.Walk  => edge.Cost >= floor ? Math.Min(edge.Cost, landing) : edge.Cost,
@@ -828,9 +878,23 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     Runs the search from the start, cheapest first, and returns the first arrival taken at an end, or -1
-    ///     when none can be reached.
+    ///     Runs the search from the start, cheapest first.
     /// </summary>
+    /// <param name="scratch">
+    ///     The calling thread's search state.
+    /// </param>
+    /// <param name="search">
+    ///     The search's pricing rules.
+    /// </param>
+    /// <param name="options">
+    ///     The search's options.
+    /// </param>
+    /// <param name="firstEnd">
+    ///     The first end node; every node from it on is an end.
+    /// </param>
+    /// <returns>
+    ///     The first arrival taken at an end, or -1 when none can be reached.
+    /// </returns>
     private int Search(
         SearchScratch scratch,
         in ArrivalSearch search,
@@ -869,8 +933,8 @@ internal sealed class PortalGraph
     }
 
     /// <summary>
-    ///     One search: relaxes an edge out of an arrival into the arrivals it makes, and keeps at each node only the arrivals
-    ///     no other one there beats.
+    ///     Provides one search's pricing: relaxes an edge out of an arrival into the arrivals it makes, and keeps at each node
+    ///     only the arrivals no other one there beats.
     /// </summary>
     private readonly struct ArrivalSearch
     {
@@ -901,9 +965,15 @@ internal sealed class PortalGraph
         /// <param name="scratch">
         ///     The calling thread's scratch, holding the arrivals and, with blink on, the lower bounds.
         /// </param>
-        /// <param name="options">The search's pricing and starting state.</param>
-        /// <param name="townCost">The price of a recall at the character's speed.</param>
-        /// <param name="startNode">The search's virtual start node.</param>
+        /// <param name="options">
+        ///     The search's pricing and starting state.
+        /// </param>
+        /// <param name="townCost">
+        ///     The price of a recall at the character's speed.
+        /// </param>
+        /// <param name="startNode">
+        ///     The search's virtual start node.
+        /// </param>
         public ArrivalSearch(
             SearchScratch scratch,
             PathOptions options,
@@ -914,27 +984,40 @@ internal sealed class PortalGraph
             BlinkOn = options.BlinkCost is not null;
             Clock = BlinkOn ? new BlinkClock(options) : default;
             Floor = options.BlinkCost ?? float.MaxValue;
-            Speed = SpeedOf(options);
+            Speed = GetSpeed(options);
             StartNode = startNode;
             TownCost = townCost;
             UseTown = options.UseTown;
         }
 
         /// <summary>Offers the arrival every route starts from.</summary>
+        /// <param name="options">The search's options.</param>
         public void OfferStart(PathOptions options)
             => Offer(
                 new SearchScratch.Arrival
                 {
                     Node = StartNode,
-                    State = BlinkOn ? Clock.Start(options) : default,
+                    State = BlinkOn ? Clock.CreateInitialState(options) : default,
                     Parent = -1,
                     EdgeIndex = -1
                 });
 
         /// <summary>
-        ///     Offers the arrivals one edge makes out of <paramref name="origin" />: one per move, and a walk at least the floor
-        ///     long offers both the walk and the cast that replaces it.
+        ///     Offers the arrivals one edge makes out of an arrival: one per move, and a walk at least the floor long offers both
+        ///     the walk and the cast that replaces it.
         /// </summary>
+        /// <param name="edge">
+        ///     The edge to relax.
+        /// </param>
+        /// <param name="edgeIndex">
+        ///     The edge's index, static edges first, then search edges.
+        /// </param>
+        /// <param name="fromId">
+        ///     The id of the arrival the edge leaves from.
+        /// </param>
+        /// <param name="origin">
+        ///     The arrival the edge leaves from.
+        /// </param>
         public void Relax(
             in Edge edge,
             int edgeIndex,
@@ -952,9 +1035,7 @@ internal sealed class PortalGraph
 
             switch (edge.Type)
             {
-                //recall off means no recall anywhere on the route: the static town edges out of every arrival node are
-                //the same move as the one out of the start, and a caller that cannot recall here cannot recall there.
-                //a recall stays on the map, so the anchor stays where the route entered it
+                //recall off means no recall anywhere on the route
                 case EdgeType.Town:
                 {
                     if (!UseTown)
@@ -964,7 +1045,7 @@ internal sealed class PortalGraph
 
                     if (BlinkOn)
                         next.State = BlinkClock.AddPenalty(
-                            Clock.Pass(origin.State, CONSTANTS.TOWN_CHANNEL_SECONDS * 1000f),
+                            Clock.AdvanceTime(origin.State, CONSTANTS.TOWN_CHANNEL_SECONDS * 1000f),
                             CONSTANTS.EFFECT_PENALTY_MS);
 
                     Offer(next);
@@ -990,7 +1071,7 @@ internal sealed class PortalGraph
                     next.Cost = origin.Cost + edge.Cost;
 
                     if (BlinkOn)
-                        next.State = Clock.Pass(origin.State, edge.Cost / Speed * 1000f);
+                        next.State = Clock.AdvanceTime(origin.State, edge.Cost / Speed * 1000f);
 
                     Offer(next);
 
@@ -1009,9 +1090,12 @@ internal sealed class PortalGraph
         }
 
         /// <summary>
-        ///     Adds <paramref name="arrival" /> unless an arrival already at its node beats it, and drops every arrival there it
-        ///     beats. Nothing is added at a node no end can be reached from.
+        ///     Adds an arrival unless one already at its node beats it, and drops every arrival there it beats. Nothing is added
+        ///     at a node no end can be reached from.
         /// </summary>
+        /// <param name="arrival">
+        ///     The arrival to add.
+        /// </param>
         private void Offer(in SearchScratch.Arrival arrival)
         {
             var node = arrival.Node;
@@ -1042,13 +1126,13 @@ internal sealed class PortalGraph
             Scratch.Arrivals.Add(arrival);
             live.Add(newId);
 
-            //with blink off the queue is ordered by cost alone, so routes are exactly what they were before the bound
+            //with blink off the bound is zero and the queue is ordered by cost alone
             Scratch.ArrivalQueue.Enqueue(newId, arrival.Cost + lowerBound);
         }
 
         /// <summary>
-        ///     Offers the cast along <paramref name="edge" />, priced at the time it takes in walk units at the character's speed
-        ///     but never under the floor; nothing when blink is off or the bar can never pay for it.
+        ///     Offers the cast along an edge, priced at the time it takes in walk units but never under the floor; nothing when
+        ///     blink is off or the bar can never pay for it.
         /// </summary>
         /// <param name="edge">
         ///     The walk the cast replaces, or the pair it bridges.
@@ -1056,7 +1140,9 @@ internal sealed class PortalGraph
         /// <param name="next">
         ///     The walked arrival along the same edge, which the cast differs from only in price and state.
         /// </param>
-        /// <param name="origin">The arrival the cast is made from.</param>
+        /// <param name="origin">
+        ///     The arrival the cast is made from.
+        /// </param>
         private void OfferBlink(in Edge edge, SearchScratch.Arrival next, in SearchScratch.Arrival origin)
         {
             if (!BlinkOn)
@@ -1072,12 +1158,26 @@ internal sealed class PortalGraph
         }
 
         /// <summary>
-        ///     Whether <paramref name="a" /> makes <paramref name="b" /> at the same node pointless: no dearer, at least as ready
-        ///     now and at the next cast, the same anchor and revisit, and no map visited or closed that <paramref name="b" /> has
-        ///     not.
+        ///     Determines whether one arrival makes another at the same node pointless.
         /// </summary>
+        /// <param name="a">
+        ///     The arrival that may beat.
+        /// </param>
+        /// <param name="b">
+        ///     The arrival that may be beaten.
+        /// </param>
+        /// <returns>
+        ///     <c>
+        ///         true
+        ///     </c>
+        ///     if <paramref name="a" /> costs no more and is at least as ready now and at the next cast; otherwise,
+        ///     <c>
+        ///         false
+        ///     </c>
+        ///     .
+        /// </returns>
         private bool Beats(in SearchScratch.Arrival a, in SearchScratch.Arrival b)
-            => (a.Cost <= b.Cost) && Clock.AtLeastAsWellPlaced(a.State, b.State);
+            => (a.Cost <= b.Cost) && Clock.IsAtLeastAsWellPlaced(a.State, b.State);
     }
 
     internal readonly record struct Edge(
@@ -1102,25 +1202,31 @@ internal sealed class PortalGraph
     private const float BLINK_LATTICE = 10f;
 
     /// <summary>
-    ///     How far out from an exit's entry a landing is looked for, in lattice steps. Wide enough to cover the door's reach,
-    ///     which runs to <see cref="AL.Core.Definitions.CONSTANTS.DOOR_RANGE" /> edge-to-edge.
+    ///     Finds where a blink aimed at an exit is sent: the entry, or the nearest lattice cell inside the reach that the
+    ///     server will land.
     /// </summary>
-    private const int BLINK_LANDING_RINGS = 12;
-
-    /// <summary>
-    ///     Where a blink aimed at this exit is sent, which is not always the exit's own entry.
-    /// </summary>
+    /// <param name="mesh">
+    ///     The mesh of the map the blink lands on.
+    /// </param>
+    /// <param name="reach">
+    ///     The exit's reach.
+    /// </param>
+    /// <param name="entry">
+    ///     The exit's entry on the mesh.
+    /// </param>
+    /// <returns>
+    ///     The landing point, or the entry when no cell in the reach takes one.
+    /// </returns>
     /// <remarks>
-    ///     The server accepts a landing only where the lattice cell it rounds to and the eight around it are all ground, and
-    ///     it looks no further than three cells along the axes for one itself. An exit's entry is its position pulled onto the
-    ///     edge of the ground, so on some doors every cast aimed at one is refused: Spooky Forest's door to Spooky Town is the
-    ///     one that cost a character, since the only landing near it lies diagonally, which the server's own search never
-    ///     tries. A door opens from anywhere inside its reach, so the landing moves to the nearest cell in there that the
-    ///     server will take.
+    ///     The server searches only three cells along the axes for a landing, so an entry on the edge of the ground can refuse
+    ///     every cast aimed at it.
     /// </remarks>
-    private static Point BlinkLanding(NavMesh mesh, Reach reach, Point entry)
+    private static Point FindBlinkLanding(NavMesh mesh, Reach reach, Point entry)
     {
-        if (Lands(mesh, entry.X, entry.Y))
+        //wide enough to cover a door's reach
+        const int BLINK_LANDING_RINGS = 12;
+
+        if (CanLand(mesh, entry.X, entry.Y))
             return entry;
 
         var originX = MathF.Round(entry.X / BLINK_LATTICE) * BLINK_LATTICE;
@@ -1136,34 +1242,62 @@ internal sealed class PortalGraph
                     var x = originX + dx * BLINK_LATTICE;
                     var y = originY + dy * BLINK_LATTICE;
 
-                    if (reach.Contains(x, y) && Lands(mesh, x, y))
+                    if (reach.Contains(x, y) && CanLand(mesh, x, y))
                         return new Point(x, y);
                 }
 
-        //nothing in the reach takes one, so the leg keeps the entry and the refusal it earns is what turns blink off here
+        //nothing in the reach takes one, so the leg keeps the entry
         return entry;
     }
 
     /// <summary>
-    ///     Where a blink aimed at a route's end is sent: the edge of the end's radius nearest the caster, pulled in by a
+    ///     Finds where a blink aimed at a route's end is sent: the edge of the end's radius nearest the caster, pulled in by a
     ///     lattice step so the server's rounding keeps it inside.
     /// </summary>
-    /// <remarks>
-    ///     An end is somewhere to be within range of, not a point to stand on: aimed at the centre, a mage headed for an NPC
-    ///     lands on top of it.
-    /// </remarks>
-    private static Point EndLanding(NavMesh mesh, ICircle end, Point from)
+    /// <param name="mesh">
+    ///     The mesh of the map the blink lands on.
+    /// </param>
+    /// <param name="end">
+    ///     The route's end.
+    /// </param>
+    /// <param name="from">
+    ///     Where the caster stands.
+    /// </param>
+    /// <returns>
+    ///     The landing point.
+    /// </returns>
+    private static Point FindEndLanding(NavMesh mesh, ICircle end, Point from)
     {
-        var reach = Reach.Circle(end.X, end.Y, Math.Max(0f, end.Radius - BLINK_LATTICE));
-        (var x, var y) = reach.NearEdge(from.X, from.Y);
+        var reach = Reach.CreateCircle(end.X, end.Y, Math.Max(0f, end.Radius - BLINK_LATTICE));
+        (var x, var y) = reach.FindNearestEdgePoint(from.X, from.Y);
 
-        return BlinkLanding(mesh, reach, new Point(x, y));
+        return FindBlinkLanding(mesh, reach, new Point(x, y));
     }
 
     /// <summary>
-    ///     Whether the server would land a blink aimed here.
+    ///     Determines whether the server would land a blink aimed at a point: the lattice cell it rounds to and the eight
+    ///     around it must all be ground.
     /// </summary>
-    private static bool Lands(NavMesh mesh, float x, float y)
+    /// <param name="mesh">
+    ///     The mesh of the map the blink lands on.
+    /// </param>
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the blink lands; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    private static bool CanLand(NavMesh mesh, float x, float y)
     {
         var cellX = MathF.Round(x / BLINK_LATTICE) * BLINK_LATTICE;
         var cellY = MathF.Round(y / BLINK_LATTICE) * BLINK_LATTICE;
@@ -1179,8 +1313,7 @@ internal sealed class PortalGraph
     private sealed class Node
     {
         /// <summary>
-        ///     Where a blink aimed at this node lands. The same as <see cref="Entry" /> unless the server would refuse one there;
-        ///     see <see cref="BlinkLanding" />.
+        ///     Where a blink aimed at this node lands; the same as <see cref="Entry" /> unless the server would refuse one there.
         /// </summary>
         public required Point BlinkEntry { get; init; }
 

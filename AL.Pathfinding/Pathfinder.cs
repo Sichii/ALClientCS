@@ -14,15 +14,13 @@ using Common.Logging;
 namespace AL.Pathfinding;
 
 /// <summary>
-///     The static entry point to pathfinding: builds every map's mesh once, then answers walks, wall checks and routes
-///     from any thread.
+///     Provides static access to pathfinding: builds every map's mesh once, then answers walks, wall checks and routes from
+///     any thread.
 /// </summary>
 public static class Pathfinder
 {
     /// <summary>
-    ///     Compared against datum keys at <see cref="Initialize" />, so these are accessors, not display names. The three
-    ///     staging maps carry neither <see cref="GMap.Ignore" /> nor <see cref="GMap.Unlist" />, so the flag filter below does
-    ///     not catch them.
+    ///     The map keys <see cref="Initialize" /> skips that carry no <see cref="GMap.Ignore" /> flag.
     /// </summary>
     private static readonly string[] IGNORED_MAPS =
     [
@@ -34,9 +32,7 @@ public static class Pathfinder
     private static readonly ILog Logger = LogManager.GetLogger(typeof(Pathfinder).FullName);
 
     /// <summary>
-    ///     A dungeon run's floors join the mesh table while the run lasts and route over a graph of their own: nothing walks
-    ///     into a run, the keeper pulls the party in, so the world graph never needs to know one exists. Both tables are
-    ///     copy-on-write like the datums, so every query stays lock-free.
+    ///     Serializes writers of the mesh and run graph tables. Both are copy-on-write, so readers take no lock.
     /// </summary>
     private static readonly Lock GeneratedLock = new();
 
@@ -50,13 +46,45 @@ public static class Pathfinder
         = new Dictionary<string, (PortalGraph, DateTime)>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     Whether a character can move in a straight line from start to end on a map: the server's own test.
+    ///     Determines whether a character can move in a straight line from start to end on a map, by the server's own test.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
+    /// <param name="mapAccessor">
+    ///     The map to check against.
+    /// </param>
+    /// <param name="start">
+    ///     The starting point.
+    /// </param>
+    /// <param name="end">
+    ///     The ending point.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the move crosses no wall; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    /// <exception cref="System.ArgumentException">
+    ///     mapAccessor
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     start
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     end
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The map has no mesh.
+    /// </exception>
     public static bool CanMove(string mapAccessor, IPoint start, IPoint end)
     {
         ArgumentException.ThrowIfNullOrEmpty(mapAccessor);
+
         ArgumentNullException.ThrowIfNull(start);
+
         ArgumentNullException.ThrowIfNull(end);
 
         var mesh = GetNavMesh(mapAccessor) ?? throw new InvalidOperationException($"No mesh found for the map \"{mapAccessor}\"");
@@ -64,10 +92,21 @@ public static class Pathfinder
         return mesh.CanMove(start, end);
     }
 
-    /// <inheritdoc cref="CanMove(string, IPoint, IPoint)" />
+    /// <summary>
+    ///     Determines whether a character can move in a straight line from one location to another, by the server's own test.
+    /// </summary>
+    /// <param name="start">The starting location.</param>
+    /// <param name="end">The ending location.</param>
+    /// <returns>
+    ///     <c>true</c> if both are on the same map and the move crosses no wall; otherwise, <c>false</c> .
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">start</exception>
+    /// <exception cref="System.ArgumentNullException">end</exception>
+    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
     public static bool CanMove(ILocation start, ILocation end)
     {
         ArgumentNullException.ThrowIfNull(start);
+
         ArgumentNullException.ThrowIfNull(end);
 
         if (!start.Map.EqualsI(end.Map))
@@ -77,55 +116,83 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     The cheapest route from <paramref name="start" /> to any of <paramref name="ends" />, as legs. A walk stops inside
-    ///     an end's radius rather than on it. "No path" is an <see cref="InvalidOperationException" />.
+    ///     Finds the cheapest route from a start to any of several ends. A walk stops inside an end's radius rather than on it.
     /// </summary>
-    /// <param name="start">Where the character is.</param>
+    /// <param name="start">
+    ///     Where the character is.
+    /// </param>
     /// <param name="ends">
     ///     Any of these is an acceptable destination; the cheapest to reach is chosen.
     /// </param>
     /// <param name="options">
     ///     How the route is priced; <see cref="PathOptions.Default" /> when null.
     /// </param>
+    /// <typeparam name="T">
+    ///     The type of the ends.
+    /// </typeparam>
+    /// <returns>
+    ///     The route's legs.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     start
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     ends
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Pathfinding is not initialized, or no end can be reached.
+    /// </exception>
     public static IReadOnlyList<PathEdge> FindPath<T>(ILocation start, IEnumerable<T> ends, PathOptions? options = null)
         where T: ILocation, ICircle
     {
         ArgumentNullException.ThrowIfNull(start);
+
         ArgumentNullException.ThrowIfNull(ends);
 
-        return GraphFor(start.Map)
+        return GetGraph(start.Map)
             .FindPath(start, ends, options ?? PathOptions.Default);
     }
 
     /// <inheritdoc cref="FindPath{T}" />
     /// <remarks>
-    ///     For callers that iterate the path with <c>await foreach</c> . The search itself runs to completion on the calling
-    ///     thread before the first leg is yielded.
+    ///     The search runs to completion on the calling thread before the first leg is yielded.
     /// </remarks>
     public static IAsyncEnumerable<PathEdge> FindPathAsync<T>(ILocation start, IEnumerable<T> ends, PathOptions? options = null)
         where T: ILocation, ICircle
         => FindPath(start, ends, options)
             .ToAsyncEnumerable();
 
-    private static IEnumerable<GMap> FloorsOf(string run)
+    private static IEnumerable<GMap> GetFloors(string run)
         => GameData.Maps
                    .Values
                    .DistinctBy(map => map.Accessor)
                    .Where(map => map.Generated is { } generated && run.EqualsI(generated.Run));
 
     /// <summary>
-    ///     Retrieves the navmesh for a map, or null before <see cref="Initialize" /> has run, for an unknown map, or for a
-    ///     null name. Callers ask this to find out whether a mesh can answer at all before they trust what it says, and a
-    ///     character holds no map until its first new_map.
+    ///     Retrieves the navmesh for a map.
     /// </summary>
-
+    /// <param name="name">
+    ///     The map whose navmesh to retrieve; null before a character's first <c>new_map</c>.
+    /// </param>
+    /// <returns>
+    ///     The map's navmesh, or null before <see cref="Initialize" /> has run, for an unknown map, or for a null name.
+    /// </returns>
     // ReSharper disable once InconsistentlySynchronizedField
     public static NavMesh? GetNavMesh(string? name) => name is not null && Meshes.TryGetValue(name, out var mesh) ? mesh : null;
 
     /// <summary>
-    ///     A search starting on a run's floor routes over that run's graph; everywhere else is the world.
+    ///     Gets the graph a search starting on a map routes over: a run's own on its floors, the world's everywhere else.
     /// </summary>
-    private static PortalGraph GraphFor(string map)
+    /// <param name="map">
+    ///     The map the search starts on.
+    /// </param>
+    /// <returns>
+    ///     The portal graph.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///     <see cref="Initialize" /> has not run.
+    /// </exception>
+    private static PortalGraph GetGraph(string map)
     {
         // ReSharper disable once InconsistentlySynchronizedField
         if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))
@@ -147,10 +214,7 @@ public static class Pathfinder
                            .Where(kvp => !kvp.Value.Ignore)
                            .Where(kvp => !IGNORED_MAPS.ContainsI(kvp.Key))
 
-                           //Dungeon World is a server of its own, and its maps are only instanced when the process is
-                           //running as that server - so on an ordinary one they are somewhere nothing can go. Left in,
-                           //the transporter's listing of d_e made an in-and-out hop the cheapest way past a corner on
-                           //main, and the server refused every one of them
+                           //Dungeon World maps are only instanced on that server, so nothing can go there from an ordinary one
                            .Where(kvp => kvp.Value.World == WorldType.None)
                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
@@ -176,9 +240,24 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     Whether a walk may end here: inside the ground the mesh was built from. False for a map with no mesh rather than a
-    ///     throw: a map the pathfinder never modelled is one nothing can be routed onto.
+    ///     Determines whether a walk may end at a location, inside the ground the mesh was built from.
     /// </summary>
+    /// <param name="location">
+    ///     The location to check.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the location is on the mesh; false for a map with no mesh; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     location
+    /// </exception>
     public static bool IsWalkable(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
@@ -189,9 +268,27 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     Whether a character standing here has a wall inside its collision box, or is off the map.
+    ///     Determines whether a character standing at a location has a wall inside its collision box, or is off the map.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The map has no mesh.</exception>
+    /// <param name="location">
+    ///     The location to check.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the location is a wall; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     location
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The map has no mesh.
+    /// </exception>
     public static bool IsWall(ILocation location)
     {
         ArgumentNullException.ThrowIfNull(location);
@@ -202,10 +299,17 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own portal graph. A floor the
-    ///     bundle only lists in its manifest gets its mesh when its own delivery arrives; every delivery rebuilds the run's
-    ///     graph over the floors it has so far.
+    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own portal graph.
     /// </summary>
+    /// <param name="bundle">
+    ///     The run's floors as the server sent them.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    ///     bundle
+    /// </exception>
+    /// <remarks>
+    ///     A floor listed only in the manifest gets its mesh when its own delivery arrives; each delivery rebuilds the graph.
+    /// </remarks>
     public static void RegisterGeneratedRun(GeneratedMapBundle bundle)
     {
         ArgumentNullException.ThrowIfNull(bundle);
@@ -221,7 +325,7 @@ public static class Pathfinder
             var meshes = new Dictionary<string, NavMesh>(Meshes, StringComparer.OrdinalIgnoreCase);
             var runMeshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var map in FloorsOf(bundle.Run))
+            foreach (var map in GetFloors(bundle.Run))
             {
                 if (!meshes.TryGetValue(map.Accessor, out var mesh))
                 {
@@ -266,9 +370,27 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     The nearest point inside the ground, within <c>CONSTANTS.MAX_UNSTICK_DISTANCE</c> . False for a map with no mesh,
-    ///     for the reason <see cref="IsWalkable" /> is.
+    ///     Finds the nearest point inside the ground, within <see cref="Definitions.CONSTANTS.MAX_UNSTICK_DISTANCE" />.
     /// </summary>
+    /// <param name="location">
+    ///     The location to start from.
+    /// </param>
+    /// <param name="walkable">
+    ///     The nearest walkable point, or <see cref="Point.None" />.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if a walkable point was found; false for a map with no mesh; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    ///     location
+    /// </exception>
     public static bool TryFindNearestWalkable(ILocation location, out IPoint walkable)
     {
         ArgumentNullException.ThrowIfNull(location);
@@ -281,6 +403,12 @@ public static class Pathfinder
     /// <summary>
     ///     Drops a run's meshes and graph, and takes its floors back out of the game data.
     /// </summary>
+    /// <param name="run">
+    ///     The run's id.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    ///     run
+    /// </exception>
     public static void UnregisterGeneratedRun(string run)
     {
         ArgumentNullException.ThrowIfNull(run);
@@ -289,7 +417,7 @@ public static class Pathfinder
         {
             var meshes = new Dictionary<string, NavMesh>(Meshes, StringComparer.OrdinalIgnoreCase);
 
-            foreach (var map in FloorsOf(run))
+            foreach (var map in GetFloors(run))
                 meshes.Remove(map.Accessor);
 
             var graphs = new Dictionary<string, (PortalGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase);

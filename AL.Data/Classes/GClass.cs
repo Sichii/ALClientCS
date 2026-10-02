@@ -27,15 +27,13 @@ public sealed record GClass
     public Stats BaseStats { get; init; } = null!;
 
     /// <summary>
-    ///     Base black-magic resistance, meant for curse and stone. Both conditions have their defense line commented out on
-    ///     the server, so nothing reads this today.
+    ///     Base black-magic resistance, meant for curse and stone. The server applies it to neither.
     /// </summary>
     [JsonPropertyName("bmresistance")]
     public int BlackMagicResistance { get; init; }
 
     /// <summary>
-    ///     Set on the warrior alone. Nothing in the published server or browser client reads it, so what it would do is
-    ///     unsettled.
+    ///     Set on the warrior alone. Nothing in the server or browser client reads it.
     /// </summary>
     public bool Brave { get; init; }
 
@@ -50,13 +48,8 @@ public sealed record GClass
     public DamageType DamageType { get; init; }
 
     /// <summary>
-    ///     The game's own paragraph about this class - "Rangers are skilled archers." It is what the character creation screen
-    ///     shows, and every class carries one.
+    ///     The game's own paragraph about this class, as the character creation screen shows it.
     /// </summary>
-    /// <remarks>
-    ///     Written for a player rather than for a client: nothing here is parsed by the server, and an ability it describes is
-    ///     implemented elsewhere or not at all. Read it as the game's own words about the class, not as a source of figures.
-    /// </remarks>
     public string? Description { get; init; }
 
     /// <summary>
@@ -69,11 +62,8 @@ public sealed record GClass
     ///     Every cosmetic anyone of this class may wear without owning a copy of it.
     /// </summary>
     /// <remarks>
-    ///     Bound and then enriched. The wire form carries only what the class was granted outright, and most classes send
-    ///     nothing at all for it; the server finishes the list off while it processes game data
-    ///     (js/old_common_functions.js:171-182) by pushing in the free makeups every account may wear and every piece of this
-    ///     class's own <see cref="Looks" />. <see cref="GameData" /> restates that push after load, so this is never just what
-    ///     the payload said.
+    ///     Enriched: <see cref="GameData" /> adds the free makeups every account may wear and every piece of this class's
+    ///     <see cref="Looks" />, as the server does while it processes game data.
     /// </remarks>
     [JsonPropertyName("xcx")]
     [JsonInclude]
@@ -92,8 +82,7 @@ public sealed record GClass
     public float Frequency { get; init; }
 
     /// <summary>
-    ///     The ready-made looks the character creation screen offers for this class. Everyone of the class may wear them,
-    ///     which is why <see cref="ExclusiveCosmetics" /> ends up carrying every piece of every one.
+    ///     The ready-made looks the character creation screen offers for this class, which anyone of the class may wear.
     /// </summary>
     public IReadOnlyList<GClassLook> Looks { get; init; } = new List<GClassLook>();
 
@@ -141,7 +130,7 @@ public sealed record GClass
         = new Dictionary<WeaponType, IReadOnlyDictionary<ALAttribute, float>>();
 
     /// <summary>
-    ///     The base damage output of this class as a percentage. (attack is scaled by output/100)
+    ///     The base damage output of this class as a percentage; attack is scaled by output / 100.
     /// </summary>
     [JsonPropertyName("output")]
     public int Output { get; init; }
@@ -159,7 +148,7 @@ public sealed record GClass
 
     /// <summary>
     ///     How many <see cref="AL.Core.Definitions.DamageType.Pure" /> attackers this class tolerates before fear sets in.
-    ///     This is the pure-damage limit, not a physical one; paladins get the highest.
+    ///     Paladins get the highest.
     /// </summary>
     [JsonPropertyName("pcourage")]
     public int PureCourage { get; init; }
@@ -200,27 +189,33 @@ public sealed record GClass
     /// <summary>
     ///     Checks if this class can wield the given 2handed weapon.
     /// </summary>
-    /// <param name="weaponType">A 2handed weapon.</param>
+    /// <param name="weaponType">
+    ///     A 2handed weapon.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if this class can wield it, otherwise <c>false</c>
+    ///     <c>true</c> if this class can wield it; otherwise, <c>false</c>.
     /// </returns>
     public bool Can2Hand(WeaponType weaponType) => Doublehand.ContainsKey(weaponType);
 
     /// <summary>
     ///     Checks if this class can wield the given mainhand weapon.
     /// </summary>
-    /// <param name="weaponType">A mainhand weapon.</param>
+    /// <param name="weaponType">
+    ///     A mainhand weapon.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if this class can wield it, otherwise <c>false</c>
+    ///     <c>true</c> if this class can wield it; otherwise, <c>false</c>.
     /// </returns>
     public bool CanMainHand(WeaponType weaponType) => Mainhand.ContainsKey(weaponType);
 
     /// <summary>
     ///     Checks if this class can wield the given offhand weapon.
     /// </summary>
-    /// <param name="weaponType">An offhand.</param>
+    /// <param name="weaponType">
+    ///     An offhand.
+    /// </param>
     /// <returns>
-    ///     <c>true</c> if this class can wield it, otherwise <c>false</c>
+    ///     <c>true</c> if this class can wield it; otherwise, <c>false</c>.
     /// </returns>
     public bool CanOffHand(WeaponType weaponType) => Offhand.ContainsKey(weaponType);
 }

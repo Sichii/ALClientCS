@@ -16,9 +16,8 @@ public sealed class EntityManager : AsyncDeltaLoop
     private readonly IntervalTimer ForceCharacterUpdateTimer = new(TimeSpan.FromSeconds(15), false);
 
     /// <summary>
-    ///     The server names no id when it drops an entity you can still see - a missed death or disappear leaves the entry
-    ///     frozen at its last hp forever, and consumers that sort by hp then pick the corpse every time. Only a
-    ///     <c>type:"all"</c> frame rebuilds the set, and nothing else asks for one.
+    ///     The timer for requesting a full entity set. The server does not always name an entity it drops, which leaves the
+    ///     entry frozen at its last hp; only a <c>type:"all"</c> frame rebuilds the set.
     /// </summary>
     private readonly IntervalTimer ForceEntitiesUpdateTimer = new(TimeSpan.FromSeconds(60), false);
 
@@ -74,11 +73,6 @@ public sealed class EntityManager : AsyncDeltaLoop
             await Client.RequestEntitiesAsync();
     }
 
-    /// <summary>
-    ///     Eviction rides the update pass rather than a pass of its own: both walk every entity, and an entity that has just
-    ///     been dead-reckoned out of view is exactly the one to drop. Collected first, since the removal mutates what is being
-    ///     enumerated.
-    /// </summary>
     private void UpdateMonsters(TimeSpan deltaTime)
     {
         List<string>? outOfSight = null;
@@ -91,9 +85,7 @@ public sealed class EntityManager : AsyncDeltaLoop
             if (Client.Character.DistanceWithInstanceCheck(monster) <= CORE_CONSTANTS.MAX_VISION)
                 continue;
 
-            //separated from the distance it shares a result with, because the two mean opposite things: one monster
-            //genuinely walking out of view is this working, and a whole collection going at once is the instance
-            //check answering MaxValue because the character's own map or instance read empty for a frame
+            //counted apart: a whole collection dropping at once is the instance check reading an empty map or instance
             if (!Client.Character.InSameInstanceAs(monster))
                 wrongInstance++;
 
@@ -106,8 +98,7 @@ public sealed class EntityManager : AsyncDeltaLoop
         foreach (var id in outOfSight)
             Client.Monsters.Remove(id, out _);
 
-        //a monster walking out of view is this working and not worth a line; the instance check firing is not, since
-        //it takes the whole collection at once and reads downstream as "nothing is nearby" rather than as an error
+        //only the instance check is worth a line, it empties the whole collection at once
         if (wrongInstance > 0)
             Client.Logger.Debug(
                 $"Dropped {outOfSight.Count} monsters out of vision, {wrongInstance} of them on the instance check "

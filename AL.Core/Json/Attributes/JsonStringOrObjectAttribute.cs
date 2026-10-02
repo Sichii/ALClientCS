@@ -5,10 +5,8 @@ namespace AL.Core.Json.Attributes;
 ///     single property named by <see cref="PropertyName" />.
 /// </summary>
 /// <remarks>
-///     Replaces the Newtonsoft <c>
-///         [JsonConverter(typeof(StringOrObjectConverter&lt;T&gt;), nameof(Prop))]
-///     </c> form. System.Text.Json's <c>[JsonConverter]</c> attribute cannot carry the property name - it requires a
-///     public parameterless constructor - so the parameter has to travel on a marker the factory reads instead.
+///     A <c>[JsonConverter]</c> attribute cannot carry the property name, so
+///     <see cref="Json.SystemTextJson.StringOrObjectConverterFactory" /> reads it from this marker.
 /// </remarks>
 /// <seealso cref="System.Attribute" />
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]

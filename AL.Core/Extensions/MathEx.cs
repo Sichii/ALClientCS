@@ -8,8 +8,12 @@ public static class MathEx
     /// <summary>
     ///     Calculates the length of the hypotenuse of a triangle.
     /// </summary>
-    /// <param name="a">The lenth of side a of a triangle.</param>
-    /// <param name="b">The length of side b of a triangle.</param>
+    /// <param name="a">
+    ///     The length of side a of a triangle.
+    /// </param>
+    /// <param name="b">
+    ///     The length of side b of a triangle.
+    /// </param>
     /// <returns>
     ///     <see cref="float" />
     ///     <br />

@@ -10,18 +10,17 @@ namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
 ///     Parses a <see cref="MapRectangle" /> from a positional array that is either <c>[x1, y1, x2, y2]</c> or
-///     <c>[mapName, x1, y1, x2, y2]</c> . The System.Text.Json replacement for the Newtonsoft <c>MapRectangleConverter</c>
-///     .
+///     <c>[mapName, x1, y1, x2, y2]</c>.
 /// </summary>
 public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
 {
     /// <summary>
-    ///     Whether a JSON null reaches <see cref="Read" />. It does, because Newtonsoft's inner tuple short-circuited a null
-    ///     to default, yielding a zeroed, unnamed rectangle rather than a null reference.
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null yields a zeroed, unnamed rectangle rather
+    ///     than a null reference.
     /// </summary>
     public override bool HandleNull => true;
 
-    private static float Coord(JsonArray arr, int index, JsonSerializerOptions options)
+    private static float ReadCoordinate(JsonArray arr, int index, JsonSerializerOptions options)
         => (index < arr.Count) && arr[index] is { } node ? node.Deserialize<float>(options) : 0f;
 
     public override MapRectangle Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -32,14 +31,13 @@ public sealed class MapRectangleConverter : JsonConverter<MapRectangle>
         if (arr is null)
             return new MapRectangle(new Point(0, 0), new Point(0, 0));
 
-        // coords 2-4 flow through Deserialize<float> (JSON-numeric + string coercion), matching JToken.ToObject<float>
-        var num1 = Coord(arr, 1, options);
-        var num2 = Coord(arr, 2, options);
-        var num3 = Coord(arr, 3, options);
-        var num4 = Coord(arr, 4, options);
+        //a string coordinate coerces through the options
+        var num1 = ReadCoordinate(arr, 1, options);
+        var num2 = ReadCoordinate(arr, 2, options);
+        var num3 = ReadCoordinate(arr, 3, options);
+        var num4 = ReadCoordinate(arr, 4, options);
 
-        //element 0 is either the first x vertex (4-length) or a map name (5-length). a number - or a numeric
-        //string - is a coordinate; anything else is a map name. float.TryParse stays culture-invariant.
+        //element 0 is the first x (4 elements) or a map name (5 elements); a number or numeric string is a coordinate
         var first = arr[0];
 
         if (first?.GetValueKind() == JsonValueKind.Number)

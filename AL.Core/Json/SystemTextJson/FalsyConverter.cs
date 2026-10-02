@@ -7,14 +7,13 @@ using AL.Core.Helpers;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Handles a value the server may send as literal <c>false</c> (JavaScript's <c>a &amp;&amp; a</c> idiom): any falsy
-///     token maps to the configured default; anything else deserializes as <typeparamref name="T" />. The System.Text.Json
-///     replacement for the Newtonsoft <c>FalsyConverter</c> . It targets the non-nullable value type (its call sites are
-///     non-nullable — <c>int StackSize</c> , <c>Stand</c> ), so <c>HandleNull</c> routes a null token here instead of
-///     System.Text.Json's nullable wrapper swallowing it. Its default cannot be passed through a System.Text.Json
-///     <c>[JsonConverter]</c> attribute, so apply it via a parameterless subclass on the property (int case) or on the
-///     enum type (enum case).
+///     Reads a value the server may send as literal <c>false</c> (JavaScript's <c>a &amp;&amp; a</c> idiom): a null or bool
+///     token reads as the configured default, and anything else as <typeparamref name="T" />.
 /// </summary>
+/// <remarks>
+///     The default cannot travel on a <c>[JsonConverter]</c> attribute, so apply it through a parameterless subclass such
+///     as <see cref="FalsyStackSizeConverter" />.
+/// </remarks>
 public class FalsyConverter<T> : JsonConverter<T>
 {
     private readonly T Default;
@@ -38,8 +37,7 @@ public class FalsyConverter<T> : JsonConverter<T>
             case JsonTokenType.False:
                 return Default;
 
-            //an unrecognized enum name degrades to Default (Newtonsoft's tolerant zero, which equals the Default
-            //at every current call site) instead of escaping and taking the whole frame with it
+            //an unrecognized enum name degrades to Default rather than taking the whole frame with it
             case JsonTokenType.String when underlying.IsEnum:
                 return EnumHelper.TryParse(underlying, reader.GetString(), out var enumValue) ? (T)enumValue! : Default;
 
@@ -48,8 +46,7 @@ public class FalsyConverter<T> : JsonConverter<T>
 
             case JsonTokenType.StartObject:
             case JsonTokenType.StartArray:
-                //Newtonsoft's default branch new'd up T and populated it, which for its value-type call sites
-                //(int/enum) collapsed to the default; mirror that (and never throw) rather than bind an object
+                //a container degrades to Default rather than binding an object
                 reader.Skip();
 
                 return Default;
@@ -67,9 +64,6 @@ public class FalsyConverter<T> : JsonConverter<T>
 ///     <see cref="FalsyConverter{T}" /> for <c>GItem.StackSize</c> , whose falsy fallback is 1.
 /// </summary>
 /// <remarks>
-///     System.Text.Json's <c>[JsonConverter]</c> attribute requires a public parameterless constructor, so the fallback
-///     cannot travel with the attribute the way Newtonsoft's converter parameters did — it has to live here. Do not
-///     replace this with a bare <c>FalsyConverter&lt;int&gt;</c> subclass: the fallback would default to 0, which is a
-///     perfectly plausible stack size and would corrupt silently.
+///     A bare <c>FalsyConverter&lt;int&gt;</c> would fall back to 0, a plausible stack size that corrupts silently.
 /// </remarks>
 public sealed class FalsyStackSizeConverter() : FalsyConverter<int>(1);

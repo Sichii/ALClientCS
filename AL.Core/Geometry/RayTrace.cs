@@ -22,8 +22,20 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
     private int Y;
 
     /// <summary>
-    ///     Initializes a ray trace stepping from (x0, y0) toward (x1, y1).
+    ///     Initializes a new instance of the <see cref="RayTrace" /> struct stepping from (x0, y0) toward (x1, y1).
     /// </summary>
+    /// <param name="x0">
+    ///     The start's x coordinate.
+    /// </param>
+    /// <param name="y0">
+    ///     The start's y coordinate.
+    /// </param>
+    /// <param name="x1">
+    ///     The end's x coordinate.
+    /// </param>
+    /// <param name="y1">
+    ///     The end's y coordinate.
+    /// </param>
     public RayTrace(
         float x0,
         float y0,
@@ -80,8 +92,11 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
     readonly object IEnumerator.Current => Current;
 
     /// <summary>
-    ///     Advances to the next grid cell the line crosses, returning whether a cell remains.
+    ///     Advances to the next grid cell the line crosses.
     /// </summary>
+    /// <returns>
+    ///     <c>true</c> if another cell remains; otherwise, <c>false</c>.
+    /// </returns>
     public bool MoveNext()
     {
         if (Remaining <= 0)
@@ -108,19 +123,24 @@ public struct RayTrace : IEnumerable<Point>, IEnumerator<Point>
     }
 
     /// <summary>
-    ///     Not supported; a ray trace cannot be rewound, so this always throws.
+    ///     Not supported; a ray trace cannot be rewound.
     /// </summary>
+    /// <exception cref="System.NotSupportedException">
+    ///     Always.
+    /// </exception>
     public void Reset() => throw new NotSupportedException();
 
     /// <summary>
-    ///     Does nothing; present only because <see cref="IEnumerator{T}" /> requires <see cref="IDisposable" />.
+    ///     Does nothing; a ray trace holds no resources.
     /// </summary>
     public readonly void Dispose() { }
 
-    //returns a copy, so a foreach starts from wherever this instance stands. A fresh RayTraceTo call is the way to restart
     /// <summary>
-    ///     Returns a copy of this ray trace, so enumerating it a second time restarts from the first cell.
+    ///     Returns a copy of this ray trace, which starts from wherever this instance stands.
     /// </summary>
+    /// <returns>
+    ///     A copy of this ray trace.
+    /// </returns>
     public readonly RayTrace GetEnumerator() => this;
 
     readonly IEnumerator<Point> IEnumerable<Point>.GetEnumerator() => this;

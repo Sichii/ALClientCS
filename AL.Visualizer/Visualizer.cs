@@ -16,9 +16,18 @@ namespace AL.Visualizer;
 public static class Visualizer
 {
     /// <summary>
-    ///     A white canvas the size of the map with its wall lines drawn in black. Layer more on with
+    ///     Creates a white canvas the size of the map with its wall lines drawn in black. Layer more on with
     ///     <see cref="PixelCanvasExtensions" />.
     /// </summary>
+    /// <param name="navMesh">
+    ///     The navmesh whose map to draw.
+    /// </param>
+    /// <returns>
+    ///     The canvas with the map's walls drawn on it.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///     navMesh
+    /// </exception>
     public static PixelCanvas CreateGridImage(NavMesh navMesh)
     {
         ArgumentNullException.ThrowIfNull(navMesh);
@@ -37,8 +46,17 @@ public static class Visualizer
     }
 
     /// <summary>
-    ///     One image per map the path crosses, each with the map's triangles and the legs walked on it.
+    ///     Draws one image per map the path crosses, each with the map's triangles and the legs walked on it.
     /// </summary>
+    /// <param name="path">
+    ///     The path to draw.
+    /// </param>
+    /// <param name="color">
+    ///     The color to draw the legs in.
+    /// </param>
+    /// <returns>
+    ///     One canvas per map, in the order the path crosses them.
+    /// </returns>
     public static IEnumerable<PixelCanvas> DrawPath(IReadOnlyList<PathEdge> path, SKColor color = default)
     {
         NavMesh? currentMesh = null;

@@ -23,7 +23,9 @@ internal sealed class UpgradeFrontier
     /// <param name="planner">
     ///     The planner whose item, bench and prices every build is planned with.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">planner</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     planner
+    /// </exception>
     public UpgradeFrontier(PlannerBase planner)
     {
         ArgumentNullException.ThrowIfNull(planner);
@@ -34,12 +36,18 @@ internal sealed class UpgradeFrontier
     /// <summary>
     ///     Generates the builds that no other build beats on both copies and gold.
     /// </summary>
-    /// <param name="targetLevel">The level every build has to reach.</param>
+    /// <param name="targetLevel">
+    ///     The level every build has to reach.
+    /// </param>
     /// <param name="copyPrice">
     ///     An extra copy price to plan at, so the build priced at it is among the results.
     /// </param>
-    /// <param name="startLevel">The level a copy starts at.</param>
-    /// <param name="startGrace">The grace each staked copy already carries.</param>
+    /// <param name="startLevel">
+    ///     The level a copy starts at.
+    /// </param>
+    /// <param name="startGrace">
+    ///     The grace each staked copy already carries.
+    /// </param>
     /// <returns>
     ///     The builds, fewest copies first so gold falls down the list, or none when the target is unreachable.
     /// </returns>
@@ -84,10 +92,18 @@ internal sealed class UpgradeFrontier
     /// <summary>
     ///     Calculates a build's expected cost at each level, at the given copy price.
     /// </summary>
-    /// <param name="steps">The build's steps.</param>
-    /// <param name="copiesPerAttempt">The copies one attempt consumes.</param>
-    /// <param name="copyPrice">The price of one copy.</param>
-    /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
+    /// <param name="steps">
+    ///     The build's steps.
+    /// </param>
+    /// <param name="copiesPerAttempt">
+    ///     The copies one attempt consumes.
+    /// </param>
+    /// <param name="copyPrice">
+    ///     The price of one copy.
+    /// </param>
+    /// <param name="scrollPrices">
+    ///     Scroll prices indexed by scroll grade.
+    /// </param>
     /// <param name="offerings">
     ///     The offerings available. The cheapest prices the deposits.
     /// </param>
@@ -155,16 +171,16 @@ internal sealed class UpgradeFrontier
                         .Price;
     }
 
-    private static bool TryGetPlannedSteps(UpgradePlan result, [MaybeNullWhen(false)] out IReadOnlyList<UpgradeBuildStep> steps)
+    private static bool TryGetPlannedSteps(UpgradePlan plan, [MaybeNullWhen(false)] out IReadOnlyList<UpgradeBuildStep> steps)
     {
         steps = null;
 
-        if (result.Unreachable is not null)
+        if (plan.Unreachable is not null)
             return false;
 
         steps =
         [
-            .. result.Steps.Select(step => new UpgradeBuildStep(
+            .. plan.Steps.Select(step => new UpgradeBuildStep(
                 step.ScrollGrade,
                 step.Offering,
                 step.Deposits,

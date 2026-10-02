@@ -1,13 +1,9 @@
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     How a route is priced: whether a recall counts as a move, how fast the character walks, and when and how often it
-///     may blink.
+///     Represents how a route is priced: whether a recall counts as a move, how fast the character walks, and when and how
+///     often it may blink.
 /// </summary>
-/// <remarks>
-///     A sealed record rather than a record struct, so a missing argument and <c>new PathOptions()</c> both mean "town
-///     on", and <c>default</c> cannot silently mean "town off".
-/// </remarks>
 public sealed record PathOptions
 {
     /// <summary>Town on, nominal speed, no blink.</summary>
@@ -20,24 +16,23 @@ public sealed record PathOptions
     };
 
     /// <summary>
-    ///     The shortest walk worth a blink, and the least a cast is priced at, or null for a route with no blink in it. A cast
-    ///     is priced at the time it takes (the wait for the cooldown, the penalty and the bar, plus the landing) when that
-    ///     comes to more, so a recall and a short walk still beat a ready cast that spends the mana for less. A cast may
-    ///     replace only a walk at least this long; the least price is what keeps a short walk from being split into casts by
-    ///     a recall or a door and back.
+    ///     If populated, the shortest walk a blink may replace, and the least a cast is priced at.
     /// </summary>
+    /// <remarks>
+    ///     A cast costs the time it takes (cooldown, penalty and bar waits plus the landing) when that comes to more.
+    /// </remarks>
     public float? BlinkCost { get; init; }
 
     /// <summary>
-    ///     The mana regained per second, which the search refills the bar at between casts; null leaves the bar untracked and
-    ///     unlimited. Tracking reads <see cref="Mp" /> and <see cref="MaxMp" />, so set both with it: a zero maximum can
-    ///     never hold a cast.
+    ///     If populated, the mana regained per second between casts; null leaves the bar untracked and unlimited.
     /// </summary>
+    /// <remarks>
+    ///     Tracking reads <see cref="Mp" /> and <see cref="MaxMp" />, so set both with it: a zero maximum never holds a cast.
+    /// </remarks>
     public float? BlinkMpPerSecond { get; init; }
 
     /// <summary>
-    ///     Mana left in the bar after a cast. The walker stands still at a blink leg until the bar holds the skill's cost plus
-    ///     this, and the search, when the bar is tracked, charges the same wait.
+    ///     The mana left in the bar after a cast. A blink leg waits until the bar holds the skill's cost plus this.
     /// </summary>
     public float BlinkMpReserve { get; init; }
 
@@ -62,14 +57,12 @@ public sealed record PathOptions
     public float PenaltyMs { get; init; }
 
     /// <summary>
-    ///     Whether a recall counts as a move. True prices one from anywhere on the route, the start map and every map the
-    ///     route lands on alike; false leaves the route without a single recall leg.
+    ///     Whether a recall counts as a move, from the start map and every map the route lands on alike.
     /// </summary>
     public bool UseTown { get; init; } = true;
 
     /// <summary>
-    ///     The character's speed, which prices a recall and a blink; nominal when null. The walker overwrites it with the
-    ///     character's own.
+    ///     If populated, the character's speed, which prices a recall and a blink; nominal when null.
     /// </summary>
     public float? WalkSpeed { get; init; }
 }

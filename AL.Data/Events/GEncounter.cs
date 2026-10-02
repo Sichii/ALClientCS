@@ -1,8 +1,8 @@
 namespace AL.Data.Events;
 
 /// <summary>
-///     One encounter the daily dungeon can put to the party, and the replies it offers. Rides events.dreams.encounters. A
-///     choice on the wire carries option ids and no effects; the effect of each id is read from here.
+///     Represents one encounter the daily dungeon can put to the party, and the replies it offers. Read from
+///     <c>events.dreams.encounters</c>; a choice on the wire carries only option ids, whose effects are read from here.
 /// </summary>
 public record GEncounter
 {
@@ -22,7 +22,7 @@ public record GEncounter
 }
 
 /// <summary>
-///     One reply. <see cref="Cost" /> is cave gold and <see cref="Amber" /> is amber, both from the party's purse;
+///     Represents one reply. <see cref="Cost" /> is cave gold and <see cref="Amber" /> is amber, both from the party's purse;
 ///     <see cref="Needs" /> names a supply the party must hold; <see cref="Offer" /> marks the reply the actor leads with.
 /// </summary>
 public record GEncounterOption
@@ -48,8 +48,8 @@ public record GEncounterOption
 }
 
 /// <summary>
-///     One thing a reply can lead to. <see cref="Fight" /> is the monster and count it starts, when it starts a fight; the
-///     rest is what the party is told or handed.
+///     Represents one thing a reply can lead to. <see cref="Fight" /> is the monster and count it starts, when it starts a
+///     fight; the rest is what the party is told or handed.
 /// </summary>
 public record GEncounterOutcome
 {

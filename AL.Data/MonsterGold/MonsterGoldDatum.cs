@@ -5,9 +5,8 @@ using System.Text.Json.Serialization;
 namespace AL.Data.MonsterGold;
 
 /// <summary>
-///     The base gold a kill of each monster pays, keyed by monster. The server keeps this apart from the monster record
-///     and only started sending it at game data version 16846. A monster with no entry pays nothing from this table: the
-///     instance-only ones and the newest spawns are absent.
+///     Represents the base gold a kill of each monster pays, keyed by monster and sent apart from the monster records.
+///     A monster with no entry, such as an instance-only one, pays nothing from this table.
 /// </summary>
 /// <seealso cref="DatumBase{T}" />
 public class MonsterGoldDatum : DatumBase<int?>

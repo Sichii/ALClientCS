@@ -29,8 +29,12 @@ public sealed class NavMeshBuilder
     /// <summary>
     ///     Initializes a new instances of the <see cref="NavMeshBuilder" /> class.
     /// </summary>
-    /// <param name="map">A map's gamedata.</param>
-    /// <param name="geometry">A maps gemometry data.</param>
+    /// <param name="map">
+    ///     A map's gamedata.
+    /// </param>
+    /// <param name="geometry">
+    ///     A maps gemometry data.
+    /// </param>
     public NavMeshBuilder(GMap map, GGeometry geometry)
     {
         Map = map;
@@ -43,9 +47,14 @@ public sealed class NavMeshBuilder
     }
 
     /// <summary>
-    ///     Builds the flat triangle mesh for this map. The raster is only used during the build and is not kept. A builder
-    ///     instance builds once: the flood marks the raster as it goes, so a second call answers an empty mesh.
+    ///     Builds the flat triangle mesh for this map.
     /// </summary>
+    /// <returns>
+    ///     The walkable ground of the map as triangles.
+    /// </returns>
+    /// <remarks>
+    ///     The flood marks the raster as it goes, so a second call on the same builder returns an empty mesh.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TriangleMesh BuildMesh()
     {

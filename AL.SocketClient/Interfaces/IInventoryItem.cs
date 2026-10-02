@@ -6,12 +6,14 @@ using AL.SocketClient.Model;
 
 namespace AL.SocketClient.Interfaces;
 
-/// <summary>Represents an item in the inventory.</summary>
+/// <summary>
+///     Represents an item in the inventory.
+/// </summary>
 /// <seealso cref="ICommonItem" />
 public interface IInventoryItem : ICommonItem
 {
     /// <summary>
-    ///     The progress this item has toward's it's achievement.
+    ///     The progress this item has toward its achievement.
     /// </summary>
     float AchievementProgress { get; init; }
 
@@ -26,7 +28,7 @@ public interface IInventoryItem : ICommonItem
     DateTime? Expires { get; init; }
 
     /// <summary>
-    ///     On a booster, how many bonus levels an offering procced when it was compounded (node/server.js:6582-6590).
+    ///     On a booster, how many bonus levels an offering procced when it was compounded.
     /// </summary>
     float Extra { get; init; }
 

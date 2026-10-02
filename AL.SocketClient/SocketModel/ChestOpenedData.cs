@@ -11,15 +11,15 @@ namespace AL.SocketClient.SocketModel;
 public sealed record ChestOpenedData
 {
     /// <summary>
-    ///     What a cave chest added to the party's shared purse. Its gold is not carried gold, so <see cref="Gold" /> stays
-    ///     zero.
+    ///     If populated, what a cave chest added to the party's shared purse. Its gold is not carried gold, so
+    ///     <see cref="Gold" /> stays zero.
     /// </summary>
     [JsonPropertyName("cave")]
     public CavePurse? Cave { get; set; }
 
     /// <summary>
-    ///     True when the chest was too far away (distance &gt; 400) to loot fully; the server forces <see cref="GoldMod" /> to
-    ///     1 (the gold-find bonus is dropped, but base gold and items still pay).
+    ///     Whether the chest was too far away (distance &gt; 400) to loot fully. The server forces <see cref="GoldMod" /> to
+    ///     1, dropping the gold-find bonus; base gold and items still pay.
     /// </summary>
     [JsonPropertyName("dry")]
     public bool Dry { get; set; }
@@ -54,7 +54,7 @@ public sealed record ChestOpenedData
     public bool Party { get; set; }
 
     /// <summary>
-    ///     True when the chest was older than 8 minutes; the server forces <see cref="GoldMod" /> to 1.
+    ///     Whether the chest was older than 8 minutes, which forces <see cref="GoldMod" /> to 1.
     /// </summary>
     [JsonPropertyName("stale")]
     public bool Stale { get; set; }

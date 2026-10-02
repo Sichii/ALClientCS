@@ -26,14 +26,20 @@ internal sealed class CompoundPlanner : PlannerBase
     ///     The offerings available. Only those priced above zero are used.
     /// </param>
     /// <param name="itemName">
-    ///     The item's key, read only for the grade the server pins - see <see cref="UpgradeMath.GetCompoundRowAtZero" />.
+    ///     The item's key, read only for the grade the server pins - see <see cref="UpgradeMath.GetCompoundBaseRow" />.
     /// </param>
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">thresholds</exception>
-    /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
-    /// <exception cref="System.ArgumentNullException">offerings</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     thresholds
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     scrollPrices
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     offerings
+    /// </exception>
     public CompoundPlanner(
         IReadOnlyList<int> thresholds,
         IReadOnlyList<double> scrollPrices,

@@ -1,14 +1,11 @@
 namespace AL.Data;
 
 /// <summary>
-///     Marks a <see cref="GameData" /> static as a root of the G-data payload, so <c>GameData.Bind</c> knows to drive it
-///     from the wire.
+///     Marks a <see cref="GameData" /> static property as a root of the game data payload, bound by
+///     <see cref="GameData.Bind" />.
 /// </summary>
 /// <remarks>
-///     System.Text.Json cannot bind static members at all, so the roots are bound by hand and need a selector of their
-///     own. Deliberately NOT a serialization attribute: one the serializer provably ignores reads as dead decoration, and
-///     deleting it would reduce the entire G-data load to a silent no-op — the exact hazard that reflecting over
-///     Newtonsoft's <c>[JsonProperty]</c> used to carry.
+///     System.Text.Json cannot bind static members, so the roots are bound by hand.
 /// </remarks>
 /// <seealso cref="System.Attribute" />
 [AttributeUsage(AttributeTargets.Property)]

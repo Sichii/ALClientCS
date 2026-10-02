@@ -10,21 +10,23 @@ namespace AL.APIClient.Interfaces;
 /// </summary>
 public interface IAlApiClient
 {
-    /// <summary>Authorization data for the logged in user.</summary>
+    /// <summary>The authorization data of the logged in account.</summary>
     AuthUser Auth { get; }
 
     /// <summary>
-    ///     Asynchronously deletes a mail. The server does not refuse this for a mail whose attached item has never been taken
-    ///     - deleting one destroys the item, not just the message.
+    ///     Asynchronously deletes a mail. The server allows this for a mail whose attached item was never taken, and
+    ///     deleting one destroys the item.
     /// </summary>
-    /// <param name="mail">The mail to delete.</param>
+    /// <param name="mail">
+    ///     The mail to delete.
+    /// </param>
     Task DeleteMailAsync(Mail mail);
 
-    /// <summary>Asynchronously fetches mail from the server.</summary>
+    /// <summary>
+    ///     Asynchronously fetches mail from the server, requesting each next page as the previous one runs out.
+    /// </summary>
     /// <returns>
-    ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="Mail" />
-    ///     <br />
-    ///     Mail is returned paged, if you reach the end of a page, this will automatically request the next page.
+    ///     Every mail of the account.
     /// </returns>
     IAsyncEnumerable<Mail> GetMailAsync();
 
@@ -32,27 +34,23 @@ public interface IAlApiClient
     ///     Asynchronously fetches merchants from the server.
     /// </summary>
     /// <returns>
-    ///     <see cref="IAsyncEnumerable{T}" /> of <see cref="MerchantInfo" />
+    ///     Every merchant the server lists.
     /// </returns>
     IAsyncEnumerable<MerchantInfo> GetMerchantsAsync();
 
     /// <summary>
-    ///     Asynchronously fetches servers and characters from the API.
+    ///     Asynchronously fetches servers and characters from the API, or a cached copy if fetched recently.
     /// </summary>
-    /// <returns>
-    ///     <see cref="ServersAndCharactersResponse" />
-    ///     <br />
-    ///     The servers and characters available for this authorized user.
-    ///     <br />
-    ///     If they have been fetched recently, instead returns a cached instance.
-    /// </returns>
     /// <param name="forceRefresh">
-    ///     Whether to read from the API even when a recent copy is cached. For a question the cache cannot answer, such as
-    ///     whether a logout a moment ago has landed.
+    ///     Specifies whether to read from the API even when a recent copy is cached, such as to see whether a logout has
+    ///     landed.
     /// </param>
+    /// <returns>
+    ///     The servers and characters available to this account.
+    /// </returns>
     Task<ServersAndCharactersResponse> GetServersAndCharactersAsync(bool forceRefresh = false);
 
-    /// <summary>Asynchronously marks a mail as having been read.</summary>
+    /// <summary>Asynchronously marks a mail as read.</summary>
     /// <param name="mail">The mail to mark.</param>
     Task ReadMailAsync(Mail mail);
 
@@ -62,5 +60,5 @@ public interface IAlApiClient
     /// <remarks>
     ///     Use this if you're nearing the expiry date for this client's <see cref="Auth" />.
     /// </remarks>
-    Task RenewAuth();
+    Task RenewAuthAsync();
 }

@@ -5,9 +5,7 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Everything a search writes to, held per thread so searches never share state and never allocate once warm. The mesh
-///     arrays are sized to the largest mesh searched so far, the node arrays to the portal graph plus the ends of the
-///     current search.
+///     Represents everything a search writes to, held per thread so searches never share state and never allocate once warm.
 /// </summary>
 internal sealed class SearchScratch
 {
@@ -58,15 +56,18 @@ internal sealed class SearchScratch
     private PortalGraph.Edge[] SearchEdgeBuffer = [];
 
     /// <summary>
-    ///     The vertex search: cost and parent per mesh vertex, and the triangle and point it was seeded from.
+    ///     The vertex search's cost per mesh vertex.
     /// </summary>
     public float[] VertexCost = [];
 
     public int[] VertexParent = [];
 
     /// <summary>
-    ///     The calling thread's scratch, created on first use.
+    ///     Gets the calling thread's scratch, created on first use.
     /// </summary>
+    /// <returns>
+    ///     The calling thread's scratch.
+    /// </returns>
     public static SearchScratch Rent() => Current ??= new SearchScratch();
 
     public void ResetEnds(int ends)
@@ -86,6 +87,9 @@ internal sealed class SearchScratch
     ///     Sorts <see cref="SearchEdges" /> by <see cref="PortalGraph.Edge.From" /> and fills <see cref="SearchEdgeStart" />.
     ///     The sort is stable, so the edges out of one node are relaxed in the order they were added.
     /// </summary>
+    /// <param name="nodes">
+    ///     The number of nodes in the search.
+    /// </param>
     public void IndexSearchEdges(int nodes)
     {
         var count = SearchEdges.Count;
@@ -117,6 +121,9 @@ internal sealed class SearchScratch
     /// <summary>
     ///     Empties every node's arrival list, the arrival pool and the queue, for a fresh search over the same edges.
     /// </summary>
+    /// <param name="nodes">
+    ///     The number of nodes in the search.
+    /// </param>
     public void ResetArrivals(int nodes)
     {
         for (var i = 0; i < nodes; i++)
@@ -168,7 +175,7 @@ internal sealed class SearchScratch
     }
 
     /// <summary>
-    ///     One way of reaching a node: what it cost, the state it left the character in, and the move that made it.
+    ///     Represents one way of reaching a node: what it cost, the state it left the character in, and the move that made it.
     /// </summary>
     internal struct Arrival
     {

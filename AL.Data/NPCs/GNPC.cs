@@ -15,7 +15,7 @@ namespace AL.Data.NPCs;
 public sealed record GNPC : AttributedRecordBase
 {
     /// <summary>
-    ///     <b>NULLABLE</b> . If populated, this NPC has an aura, and these are the attributes it gives to players standing
+    ///     <b>NULLABLE</b>. If populated, this NPC has an aura, and these are the attributes it gives to players standing
     ///     near it.
     /// </summary>
     public IReadOnlyDictionary<ALAttribute, float>? Aura { get; init; }
@@ -26,8 +26,8 @@ public sealed record GNPC : AttributedRecordBase
     public string? Color { get; init; }
 
     /// <summary>
-    ///     This NPC's key in the game's NPC table, always the same as the accessor. It is not the live entity's id - that is
-    ///     the NPC's display name.
+    ///     This NPC's key in the game's NPC table, always the same as the accessor. The live entity's id is the display
+    ///     <see cref="Name" />, not this.
     /// </summary>
     public string Id { get; init; } = null!;
 
@@ -37,12 +37,12 @@ public sealed record GNPC : AttributedRecordBase
     public bool Ignore { get; init; }
 
     /// <summary>
-    ///     Unknown. Barely any NPC carries one, and nothing in the published server or browser client reads it.
+    ///     Unknown. Barely any NPC carries one, and nothing in the server or browser client reads it.
     /// </summary>
     public float Interval { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b> . If populated this NPC sells items - one entry per slot of its shop window, and a null is an empty
+    ///     <b>NULLABLE</b>. If populated this NPC sells items, one entry per slot of its shop window. A null is an empty
     ///     slot.
     /// </summary>
     public IReadOnlyList<string?>? Items { get; init; }
@@ -56,7 +56,9 @@ public sealed record GNPC : AttributedRecordBase
     ///     Every place this NPC stands, gathered from the maps. Maps flagged as ignored contribute nothing, so an NPC placed
     ///     only on those has an empty list.
     /// </summary>
-    /// <remarks>Enriched property</remarks>
+    /// <remarks>
+    ///     Enriched property
+    /// </remarks>
     public IReadOnlyList<Location> Locations { get; internal set; } = new List<Location>();
 
     /// <summary>
@@ -71,7 +73,7 @@ public sealed record GNPC : AttributedRecordBase
     public BankPack Pack { get; init; }
 
     /// <summary>
-    ///     <b>NULLABLE</b> . If populated, this NPC is a transporter, and this dictionary contains the places (mapName :
+    ///     <b>NULLABLE</b>. If populated, this NPC is a transporter, and this dictionary contains the places (mapName :
     ///     spawnId) that this NPC can take you.
     /// </summary>
     public IReadOnlyDictionary<string, int>? Places { get; init; }
@@ -88,14 +90,14 @@ public sealed record GNPC : AttributedRecordBase
     public NPCRole Role { get; init; }
 
     /// <summary>
-    ///     If populated, the texture of the merchant stand drawn under this NPC. Presentation only.
-    /// </summary>
-    /// <summary>
     ///     If populated, which character sprite this NPC is drawn with, as a name in one of the sheets under
-    ///     <see cref="GameData.Sprites" />. Rarely the NPC's own key - Kane is drawn as "greencap".
+    ///     <see cref="GameData.Sprites" />. Rarely the NPC's own key: Kane is drawn as <c>greencap</c>.
     /// </summary>
     public string? Skin { get; init; }
 
+    /// <summary>
+    ///     If populated, the texture of the merchant stand drawn under this NPC.
+    /// </summary>
     public string? Stand { get; init; }
 
     /// <summary>

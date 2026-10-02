@@ -20,15 +20,15 @@ public class PingPercentileTests
             Enumerable.Range(1, 50)
                       .Select(i => (double)i));
 
-        PingManager.PercentileOf(window, 5d)
+        PingManager.CalculatePercentile(window, 5d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(3));
 
-        PingManager.PercentileOf(window, 0d)
+        PingManager.CalculatePercentile(window, 0d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(1));
 
-        PingManager.PercentileOf(window, 100d)
+        PingManager.CalculatePercentile(window, 100d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(50));
     }
@@ -41,7 +41,7 @@ public class PingPercentileTests
             Enumerable.Range(1, 19)
                       .Select(i => (double)(i * 10)));
 
-        PingManager.PercentileOf(narrow, 5d)
+        PingManager.CalculatePercentile(narrow, 5d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(10));
 
@@ -50,18 +50,15 @@ public class PingPercentileTests
             Enumerable.Range(1, 21)
                       .Select(i => (double)(i * 10)));
 
-        PingManager.PercentileOf(wider, 5d)
+        PingManager.CalculatePercentile(wider, 5d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(20));
     }
 
     [Test]
-    public void AnUnmeasuredWindowReadsAsZero()
-    {
-        PingManager.PercentileOf([], 5d)
-                   .Should()
-                   .Be(TimeSpan.Zero);
-    }
+    public void AnUnmeasuredWindowReadsAsZero() => PingManager.CalculatePercentile([], 5d)
+                                                              .Should()
+                                                              .Be(TimeSpan.Zero);
 
     [Test]
     public void OneFreakFastSampleDoesNotDragThePercentile()
@@ -72,11 +69,11 @@ public class PingPercentileTests
 
         var window = Window(pings);
 
-        PingManager.PercentileOf(window, 0d)
+        PingManager.CalculatePercentile(window, 0d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(20));
 
-        PingManager.PercentileOf(window, 5d)
+        PingManager.CalculatePercentile(window, 5d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(60));
     }
@@ -86,15 +83,15 @@ public class PingPercentileTests
     {
         var window = Window([42d]);
 
-        PingManager.PercentileOf(window, 0d)
+        PingManager.CalculatePercentile(window, 0d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(42));
 
-        PingManager.PercentileOf(window, 5d)
+        PingManager.CalculatePercentile(window, 5d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(42));
 
-        PingManager.PercentileOf(window, 100d)
+        PingManager.CalculatePercentile(window, 100d)
                    .Should()
                    .Be(TimeSpan.FromMilliseconds(42));
     }

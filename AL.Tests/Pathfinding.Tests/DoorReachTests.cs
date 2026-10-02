@@ -136,7 +136,7 @@ public class DoorReachTests : PathfindingTestBed
             for (var step = 0; step < 72; step++)
             {
                 var angle = step * MathF.Tau / 72;
-                (var x, var y) = reach.NearEdge(centreX + 2000f * MathF.Cos(angle), centreY + 2000f * MathF.Sin(angle));
+                (var x, var y) = reach.FindNearestEdgePoint(centreX + 2000f * MathF.Cos(angle), centreY + 2000f * MathF.Sin(angle));
 
                 ServerDoorDistance(map, door, new Point(x, y))
                     .Should()

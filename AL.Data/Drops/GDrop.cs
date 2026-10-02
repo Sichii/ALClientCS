@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace AL.Data.Drops;
 
-/// <summary>One roll on a drop table.</summary>
+/// <summary>Represents one roll on a drop table.</summary>
 [JsonConverter(typeof(GDropConverter))]
 public sealed record GDrop
 {
@@ -25,19 +25,15 @@ public sealed record GDrop
     public int Quantity { get; init; } = 1;
 
     /// <summary>
-    ///     The per-kill chance, for a solo kill of a level-1 monster with no luck bonus. The server rolls <c>
-    ///         random() / (share * luckm * level * mult) &lt; rate
-    ///     </c> (node/server.js:2189), so a rate of 1 or more is a guaranteed drop rather than a probability - several tables
-    ///     express that as 100 or 10000.
+    ///     The per-kill chance for a solo kill of a level-1 monster with no luck bonus. The server drops when
+    ///     <c>random() / (share * luckm * level * mult) &lt; rate</c>, so a rate of 1 or more always drops.
     /// </summary>
     public float Rate { get; init; }
 }
 
 /// <summary>
-///     Reads the positional wire form of a <see cref="GDrop" />, whose third slot means two different things:
-///     <c>[rate, item]</c> , <c>[rate, item, quantity]</c> , <c>[rate, "open", tableName]</c> .
-///     <see cref="AL.Core.Json.SystemTextJson.ArrayToObjectConverter{T}" /> cannot express that - it binds one declared
-///     type per index.
+///     Reads the positional wire form of a <see cref="GDrop" />: <c>[rate, item]</c>, <c>[rate, item, quantity]</c> or
+///     <c>[rate, "open", tableName]</c>.
 /// </summary>
 public sealed class GDropConverter : JsonConverter<GDrop>
 {
@@ -58,8 +54,7 @@ public sealed class GDropConverter : JsonConverter<GDrop>
                             .EnumerateArray()
                             .ToArray();
 
-        //a rate that is not a number, or a second slot that is not a name, is not an entry this can mean anything
-        //by - and GetSingle/GetString throw rather than degrade on the wrong token
+        //skip an entry whose rate is not a number or whose second slot is not a name
         if ((slots.Length < 2) || (slots[0].ValueKind != JsonValueKind.Number) || (slots[1].ValueKind != JsonValueKind.String))
             return null;
 
@@ -70,7 +65,7 @@ public sealed class GDropConverter : JsonConverter<GDrop>
                          .GetString()
                      ?? string.Empty;
 
-        //"open" is the marker, and the table name follows it in the slot a quantity would otherwise occupy
+        //"open" marks a table, named in the slot a quantity would otherwise occupy
         if (second.Equals("open", StringComparison.OrdinalIgnoreCase))
             return new GDrop
             {

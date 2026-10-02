@@ -9,8 +9,7 @@ namespace AL.Core.Geometry;
 /// <summary>
 ///     <inheritdoc cref="IPoint" />
 ///     <br />
-///     A stack-only point. It cannot be boxed or captured, so any method that accepts one is allocation-free by
-///     construction. Converts implicitly to and from <see cref="Point" />.
+///     A stack-only point. Converts implicitly to and from <see cref="Point" />.
 /// </summary>
 public readonly ref struct ValuePoint : IPoint, IEquatable<ValuePoint>
 {
@@ -32,7 +31,17 @@ public readonly ref struct ValuePoint : IPoint, IEquatable<ValuePoint>
     public static bool operator !=(ValuePoint left, ValuePoint right) => !left.Equals(right);
 
     /// <summary>Copies any <see cref="IPoint" /> onto the stack.</summary>
-    public static ValuePoint From(IPoint point) => new(point.X, point.Y);
+    /// <param name="point">The point to copy.</param>
+    /// <returns>
+    ///     A <see cref="ValuePoint" /> with the same values.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">point</exception>
+    public static ValuePoint From(IPoint point)
+    {
+        ArgumentNullException.ThrowIfNull(point);
+
+        return new ValuePoint(point.X, point.Y);
+    }
 
     public void Deconstruct(out float x, out float y)
     {
@@ -40,10 +49,6 @@ public readonly ref struct ValuePoint : IPoint, IEquatable<ValuePoint>
         y = Y;
     }
 
-    /// <summary>
-    ///     Compares with the same tolerance <see cref="AL.Core.Comparers.PointEqualityComparer" /> applies, inlined because a
-    ///     ref struct cannot be handed to it.
-    /// </summary>
     public bool Equals(IPoint? other) => other is not null && X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);
 
     public bool Equals(ValuePoint other) => X.IsNear(other.X, CONSTANTS.EPSILON) && Y.IsNear(other.Y, CONSTANTS.EPSILON);

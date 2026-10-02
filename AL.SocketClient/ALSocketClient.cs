@@ -54,13 +54,8 @@ public sealed class ALSocketClient : IALSocketClient
     ];
 
     /// <summary>
-    ///     How long a frame may sit behind the one in front before that is worth a line.
+    ///     The time a frame may wait, or a handler may run, before it is logged. Nothing is dropped past it.
     /// </summary>
-    /// <remarks>
-    ///     There is no budget being enforced here and nothing is dropped when it is exceeded. It exists because the cost of
-    ///     ordering is exactly this wait, and a number nobody can see is a number nobody can argue about - the last attempt at
-    ///     ordering was reverted on an impression rather than a reading.
-    /// </remarks>
     private static readonly TimeSpan QUEUE_LAG_WARN = TimeSpan.FromMilliseconds(50);
 
     /// <summary>
@@ -71,11 +66,8 @@ public sealed class ALSocketClient : IALSocketClient
     private readonly IFormattedLogger Logger;
 
     /// <summary>
-    ///     The single consumer of <see cref="Frames" />. One per client, which is what makes the order one.
+    ///     The single consumer of <see cref="Frames" />, held only to keep it rooted for the client's lifetime.
     /// </summary>
-    /// <remarks>
-    ///     Held only to keep the consumer loop rooted for the client's lifetime; nothing awaits it.
-    /// </remarks>
 
     // ReSharper disable once NotAccessedField.Local
     private readonly Task Pump;
@@ -111,19 +103,16 @@ public sealed class ALSocketClient : IALSocketClient
     ///     The proxy this socket dials the game through, or null for the machine's own connection.
     /// </summary>
     /// <remarks>
-    ///     Per socket rather than static, unlike <see cref="UseSecureTransport" />: the point of it is that one character in a
-    ///     process reaches the game from a different address than the rest.
-    ///     <br />
-    ///     A dead proxy refuses the connection and the login fails. It does not fall back to the machine's own connection, and
-    ///     it must not be made to - a silent fallback is the character rejoining on an address it was configured to avoid,
-    ///     with nothing in the log saying it happened.
+    ///     A dead proxy refuses the connection and the login fails; it never falls back to the machine's own connection.
     /// </remarks>
     public IWebProxy? Proxy { get; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ALSocketClient" /> class.
     /// </summary>
-    /// <param name="logger">The prefixed logged to log messages to.</param>
+    /// <param name="logger">
+    ///     The prefixed logger to log messages to.
+    /// </param>
     /// <param name="proxy">
     ///     The proxy to reach the game through, or null for the machine's own connection.
     /// </param>
@@ -133,16 +122,14 @@ public sealed class ALSocketClient : IALSocketClient
         Proxy = proxy;
         Subscriptions = new ConcurrentDictionary<ALSocketMessageType, ALSocketSubscriptionList>();
 
-        //a client is single use - DisconnectAsync marks it disposed and ConnectAsync refuses a disposed one - so the
-        //queue and its consumer live as long as the instance and there is no per-connection lifetime to get wrong
+        //a client is single use, so the queue and its consumer live as long as the instance
         Frames = Channel.CreateUnbounded<QueuedFrame>(
             new UnboundedChannelOptions
             {
                 SingleReader = true,
                 SingleWriter = false,
 
-                //the writer is the transport's receive callback; letting a continuation run inline on it would put
-                //a handler back on the thread the ordering is meant to keep clear
+                //keeps handlers off the transport's receive callback, which is the writer
                 AllowSynchronousContinuations = false
             });
 
@@ -150,7 +137,12 @@ public sealed class ALSocketClient : IALSocketClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">Socket is already open.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Socket is already open.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">
+    ///     The client has already disconnected.
+    /// </exception>
     public async Task ConnectAsync(Server server)
     {
         if (Connected)
@@ -172,16 +164,12 @@ public sealed class ALSocketClient : IALSocketClient
             //null is the machine's own connection, which is what all but a routed character uses
             Proxy = Proxy,
 
-            //handshake query, read once when the socket connects and never again. map_protocol=1 is what admits this
-            //client to a generated dungeon floor: without it the server refuses the whole party with
-            //bring_party_to_keeper and throws client_update_required on a floor transfer. no_graphics=1 trims a floor's
-            //delivery to its collision lines, instead of tiles and sprite placements
+            //read once at the handshake. map_protocol=1 admits this client to a generated dungeon floor, and
+            //no_graphics=1 trims a floor's delivery to its collision lines
             Query = ReceiveGeneratedMapArt ? HANDSHAKE_QUERY : HEADLESS_HANDSHAKE_QUERY
         };
 
-        //the engine.io mount path is per-server config, not the socket.io default. the server
-        //publishes it with a trailing slash but the library appends "/?EIO=..." to whatever it
-        //is given, so normalize to the same form as the library's own default
+        //the server publishes its engine.io mount path with a trailing slash, and the library appends "/?EIO=..." to it
         if (!string.IsNullOrEmpty(server.Path))
             options.Path = server.Path.TrimEnd('/');
 
@@ -190,9 +178,8 @@ public sealed class ALSocketClient : IALSocketClient
         Socket.Serializer = new SynchronousSerializer(this, SocketJson.Options);
         Socket.OnDisconnected += DisconnectedEvent;
 
-        //the server emits disconnect_reason (and, on a rate-limit kick, limitdcreport) immediately before it drops
-        //the connection. Capture them on the library's own dispatch rather than through the frame queue, which the
-        //disconnect would otherwise race. Both bodies deserialize server input, so guard them
+        //both arrive just before the server drops the connection, so read them on the library's own dispatch rather
+        //than through the frame queue, which the disconnect would race
         Socket.On(
             "disconnect_reason",
             response =>
@@ -224,8 +211,7 @@ public sealed class ALSocketClient : IALSocketClient
                 }
             });
 
-        //the server emits welcome synchronously from its connection handler, so it can be
-        //processed before ConnectAsync returns - the emit guard has to already be open
+        //welcome can be handled before ConnectAsync returns, so the emit guard has to be open already
         Connected = true;
 
         try
@@ -244,9 +230,7 @@ public sealed class ALSocketClient : IALSocketClient
     {
         try
         {
-            //ahead of the connected check, so a client that never connected still ends its pump rather than leaving
-            //it parked on a queue nothing will write to. The pump drains what is queued and then ends; frames that
-            //drain after the subscriptions are disposed find an empty list and do nothing
+            //ahead of the connected check, so a client that never connected still ends its pump
             Frames.Writer.TryComplete();
 
             if (!Connected)
@@ -263,9 +247,7 @@ public sealed class ALSocketClient : IALSocketClient
 
             Subscriptions.Clear();
 
-            //graceful first, then the transport unconditionally: a close handshake that throws must still take the
-            //socket down, or the server goes on counting this character until its ping timeout - and refuses the
-            //account's next login with "limits"
+            //a socket left open after a failed close handshake still counts against the account's login limit
             try
             {
                 await Socket.DisconnectAsync()
@@ -294,13 +276,14 @@ public sealed class ALSocketClient : IALSocketClient
             .ConfigureAwait(false);
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Socket is null or closed.
+    /// </exception>
     public async Task EmitAsync<T>(ALSocketEmitType emitType, T data)
     {
         Logger.Trace($"{emitType}, {data}");
 
-        //captured once. The field is replaced wholesale by a reconnect, so checking one instance and then calling
-        //through another is a race this used to lose outright
+        //captured once, since a reconnect replaces the field
         var socket = Socket;
 
         if ((socket == null) || !Connected)
@@ -315,23 +298,23 @@ public sealed class ALSocketClient : IALSocketClient
                         .ConfigureAwait(false);
         } catch (Exception e) when (e is NullReferenceException or ObjectDisposedException)
         {
-            //the guard above is a check-then-act and the window between the two is real: a reconnect tears the
-            //transport down under a call already past it, and SocketIO answers by dereferencing its own disposed
-            //internals. Reported as a closed socket, or it surfaces as a bare NullReferenceException
+            //a reconnect can tear the transport down between the guard and the call
             throw new InvalidOperationException("Socket closed while emitting.", e);
         }
 
-        //after the await, so a throw on the way to the wire is not billed to anyone - the server never saw it
+        //after the await, so a throw on the way to the wire is not billed
         OnEmit?.Invoke(this, emitType);
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">Socket is null or closed.</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Socket is null or closed.
+    /// </exception>
     public async Task EmitAsync(ALSocketEmitType emitType)
     {
         Logger.Trace($"{emitType}");
 
-        //see the overload above - same check-then-act, same reconnect window
+        //captured once, since a reconnect replaces the field
         var socket = Socket;
 
         if ((socket == null) || !Connected)
@@ -407,13 +390,12 @@ RAW JSON:
     public event EventHandler<string>? OnDisconnected;
 
     /// <summary>
-    ///     Raised after each emit reaches the wire, carrying what was sent. Every one of those is billed against the server's
-    ///     <see cref="CallCost.LIMIT" />, so this is the hook for metering who is spending the budget.
+    ///     Occurs after an emit reaches the wire, where it is billed against the server's <see cref="CallCost.LIMIT" />.
     /// </summary>
     public event EventHandler<ALSocketEmitType>? OnEmit;
 
     /// <summary>
-    ///     Raised when the server sends a rate-limit kick report immediately before disconnecting.
+    ///     Occurs when the server sends a rate-limit kick report, just before it disconnects.
     /// </summary>
     public event EventHandler<LimitDcReportData>? OnLimitDcReport;
 
@@ -477,8 +459,7 @@ RAW JSON:
                                             .ConfigureAwait(false);
             } catch (Exception e)
             {
-                //one frame can carry several in-flight awaits; a thrower must not starve the rest.
-                //a type mismatch here means a later On<T> disagreed with the list's type
+                //one thrower must not starve the rest. A type mismatch here means a later On<T> disagreed with the list
                 Logger.Error(
                     $"Subscriber for \"{messageType}\" declared as {subscription.SubscriptionType} threw, list type is {invocationList.Type}. {e}");
 
@@ -502,9 +483,7 @@ RAW JSON:
             if (!Subscriptions.TryGetValue(messageType, out var subscriptionList))
                 return;
 
-            //bound against the transport's own parse and the shared options, rather than through GetValue<T>() or
-            //ToString(). GetValue builds fresh options per frame, so every frame re-reflects every type it touches;
-            //ToString re-serializes. Measured at 0.21ms and 99KB per character frame against 0.49ms and 119KB
+            //bound from the transport's own parse with the shared options; GetValue<T>() builds fresh options per frame
             if (message.JsonArray is not { Count: > 0 } payloads)
             {
                 Logger.Error($"Dropped \"{eventName}\" frame: the payload is not a populated array. {message.ReceivedText}");
@@ -528,8 +507,7 @@ RAW JSON:
                 Logger.Error($"Dropped \"{eventName}\" frame: the queue is closed. {message.ReceivedText}");
         } catch (Exception e)
         {
-            //a frame dropped here is otherwise indistinguishable from a frame never sent, so
-            //carry the raw payload - this is how the next drift gets found
+            //carry the raw payload, or a dropped frame is indistinguishable from one never sent
             Logger.Error($"Dropped frame: {message.ReceivedText}. {e}");
         }
     }
@@ -538,13 +516,8 @@ RAW JSON:
     ///     Hands each frame to its subscribers, one at a time, in the order the transport read them.
     /// </summary>
     /// <remarks>
-    ///     <b>No subscriber may await a server response.</b> Its answer arrives as a frame, and that frame queues behind the
-    ///     subscriber waiting for it, so the wait never ends. Nothing does this today - the only <c>async</c> subscriber in
-    ///     the client awaits nothing at all - and a new one that did would not fail visibly, it would stop the socket.
-    ///     Register a callback that records what it saw and returns.
-    ///     <br />
-    ///     Hitchhiked events are not affected: they arrive inside a frame already being handled and dispatch through
-    ///     <see cref="HandleEventAsync" /> inline, which is the order they belong in anyway.
+    ///     <b>No subscriber may await a server response.</b> The answer queues behind the subscriber waiting for it, and the
+    ///     socket stops. Hitchhiked events dispatch inline through <see cref="HandleEventAsync" /> and are not affected.
     /// </remarks>
     private async Task PumpAsync()
     {
@@ -556,8 +529,7 @@ RAW JSON:
         {
             var waited = Stopwatch.GetElapsedTime(frame.EnqueuedAt);
 
-            //names the frame ahead of this one, because that is the one whose handler held the line. The pair of
-            //warnings is what identifies the offender: this line says the queue backed up, the one below says who
+            //names the frame ahead of this one, whose handler held the line
             if (waited > QUEUE_LAG_WARN)
                 Logger.Warn(
                     $"Frame \"{frame.EventName}\" waited {waited.TotalMilliseconds:N0}ms to be handled, behind \"{previousEvent}\".");
@@ -588,18 +560,20 @@ RAW JSON:
     ///     Queues a decoded frame for the pump to hand to its subscribers.
     /// </summary>
     /// <remarks>
-    ///     Frames are queued rather than handled on the socket callback so that handling happens in arrival order rather than
-    ///     in whatever order the thread pool gets to it. Two frames from one server burst race otherwise, and the loser can be
-    ///     the older one: a character frame carrying no town channel, applied after the one that opened it, reads as a recall
-    ///     somebody cancelled. The same shape sits under every "did this field go away" test in the client, and under
-    ///     ShallowMerge writing a stale snapshot over a fresh one.
-    ///     <br />
-    ///     An ordered chain was tried once before and reverted. What was measured then was pathfinding that was broken for
-    ///     unrelated reasons, so the reading did not say what it appeared to; the cost that is real is the wait the pump warns
-    ///     about.
+    ///     Frames are handled in arrival order; handled on the socket callback, an older frame could apply after a newer one.
     /// </remarks>
+    /// <param name="messageType">
+    ///     The frame's message type.
+    /// </param>
+    /// <param name="data">
+    ///     The decoded payload.
+    /// </param>
+    /// <param name="eventName">
+    ///     The frame's event name, for logging.
+    /// </param>
     /// <returns>
-    ///     <c>false</c> when nothing subscribes to <paramref name="messageType" />, or the queue has closed
+    ///     <c>true</c> if the frame was queued; otherwise, <c>false</c> when nothing subscribes to
+    ///     <paramref name="messageType" /> or the queue has closed.
     /// </returns>
     internal bool TryEnqueue(ALSocketMessageType messageType, object data, string eventName)
     {
@@ -615,11 +589,9 @@ RAW JSON:
                 Stopwatch.GetTimestamp()));
     }
 
-    /// <summary>One frame, decoded and waiting its turn.</summary>
-    /// <remarks>
-    ///     Decoding happens on the transport's receive loop, before the frame is queued, so the queue holds work that is
-    ///     already done rather than json waiting to be parsed. What waits here is only the handler call.
-    /// </remarks>
+    /// <summary>
+    ///     Represents one frame, decoded on the transport's receive loop and waiting for its handler call.
+    /// </summary>
     private readonly record struct QueuedFrame(
         ALSocketMessageType MessageType,
         ALSocketSubscriptionList Subscriptions,
@@ -631,15 +603,8 @@ RAW JSON:
     ///     The transport's serializer, with every event frame queued from inside its parse.
     /// </summary>
     /// <remarks>
-    ///     The library hands each received frame to its handlers on a thread-pool task of its own, so two frames from one
-    ///     server burst reach a handler in whichever order the pool schedules them, and a small frame overtakes a large one
-    ///     more often than not. That is how a buy receipt ran ahead of the inventory frame the server sent before it: the
-    ///     receipt resolved the buy, the bench read an inventory that did not hold the scroll yet, and the swap it built on
-    ///     that view waited out its timeout on slots that were never going to match.
-    ///     <br />
-    ///     The parse is the one call the library still makes inline on its receive loop, in arrival order, so the queue is fed
-    ///     from there. Re-implementing the interface on a derived class is what lets that one method be intercepted without
-    ///     restating the other nine. Binary frames are not hooked; the server sends none.
+    ///     The library dispatches each frame on a thread-pool task of its own, out of order; the parse is the one call it
+    ///     makes inline on its receive loop. Binary frames are not hooked; the server sends none.
     /// </remarks>
     internal sealed class SynchronousSerializer(ALSocketClient owner, JsonSerializerOptions options)
         : SystemTextJsonSerializer(options), ISerializer

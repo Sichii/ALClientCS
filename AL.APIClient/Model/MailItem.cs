@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace AL.APIClient.Model;
 
 /// <summary>
-///     A simplified item attached to a piece of <see cref="Mail" />.
+///     Represents a simplified item attached to a <see cref="Mail" />.
 /// </summary>
 public sealed record MailItem
 {

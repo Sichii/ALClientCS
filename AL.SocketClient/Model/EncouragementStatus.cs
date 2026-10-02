@@ -8,10 +8,8 @@ namespace AL.SocketClient.Model;
 ///     The account-wide reward bonuses this character is earning, carried on its own character frame.
 /// </summary>
 /// <remarks>
-///     The bonuses are account-wide but the payout is per character and follows contribution: the server keeps a damage,
-///     tanking and healing ledger on each monster and settles the extra at loot time, in a chest reserved to the
-///     contributor. So <see cref="Totals" /> is what this character would earn on a monster it killed alone, not a
-///     guaranteed rate.
+///     The payout is per character and follows its share of damage, tanking and healing on each monster, so
+///     <see cref="Totals" /> is what this character would earn on a monster it killed alone.
 /// </remarks>
 public sealed record EncouragementStatus
 {

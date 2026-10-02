@@ -24,7 +24,9 @@ public interface IMutable
 ///         Anything that inherits from this should implement <see cref="IEquatable{T}" />
 ///     </b> .
 /// </summary>
-/// <typeparam name="TMutator"></typeparam>
+/// <typeparam name="TMutator">
+///     The type of the object that carries the mutation.
+/// </typeparam>
 public interface IMutable<in TMutator> : IMutable
 {
     /// <summary>

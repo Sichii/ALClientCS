@@ -8,8 +8,7 @@ using AL.Core.Interfaces;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Converts a 2-element numeric array <c>[x, y]</c> to a <see cref="Point" />. The System.Text.Json replacement for
-///     the Newtonsoft <c>ArrayToPointConverter</c> .
+///     Converts a 2-element numeric array <c>[x, y]</c> to a <see cref="Point" />.
 /// </summary>
 public sealed class ArrayToPointConverter : JsonConverter<Point>
 {
@@ -27,17 +26,17 @@ public sealed class ArrayToPointConverter : JsonConverter<Point>
 }
 
 /// <summary>
-///     Converts an array of <c>[x, y]</c> pairs to a <see cref="Polygon" />. Newtonsoft applied
-///     <see cref="ArrayToPointConverter" /> per element via <c>ItemConverterType</c> ; System.Text.Json cannot, because a
-///     <see cref="Polygon" /> is an <c>IEnumerable&lt;IPoint&gt;</c> with no add-path and its element type is the
-///     interface <c>IPoint</c> (which the point converter, a <c>JsonConverter&lt;Point&gt;</c> , does not match). So the
-///     whole polygon is claimed here: each element resolves through the registered <see cref="ArrayToPointConverter" />.
+///     Converts an array of <c>[x, y]</c> pairs to a <see cref="Polygon" />, reading each pair through
+///     <see cref="ArrayToPointConverter" />.
 /// </summary>
+/// <remarks>
+///     A per-element converter cannot reach the vertices: <see cref="Polygon" /> has no add path, and its element type is
+///     <see cref="IPoint" /> rather than <see cref="Point" />.
+/// </remarks>
 public sealed class PolygonConverter : JsonConverter<Polygon>
 {
     /// <summary>
-    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null, like any non-array token, yields null,
-    ///     matching Newtonsoft's item-converter short-circuit.
+    ///     Whether a JSON null reaches <see cref="Read" />. It does, so that a null, like any non-array token, yields null.
     /// </summary>
     public override bool HandleNull => true;
 

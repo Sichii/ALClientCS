@@ -19,8 +19,7 @@ public sealed class APIRequest : RestRequest
         string? cookieDomain = null)
         : base($"api/{EnumHelper.ToString(apiMethod)}", method)
     {
-        //the api takes the argument object as a raw json body. the old method/arguments form-field
-        //convention is gone and now fails dispatcher validation with "invalid_field"
+        //the api takes the argument object as a raw json body; form fields fail with "invalid_field"
         this.AddStringBody(JsonSerializer.Serialize(arguments ?? new object(), ApiJson.Options), ContentType.Json);
 
         if (authUser == null)

@@ -11,18 +11,22 @@ public sealed class Inventory : IReadOnlyList<Item?>
     public int Count => Items.Count;
 
     /// <summary>
-    ///     Backing stays <c>List&lt;Item?&gt;</c> so <see cref="SetCapacity" />'s downcast holds; the deserializer supplies a
-    ///     list.
+    ///     Initializes a new instance of the <see cref="Inventory" /> class.
     /// </summary>
+    /// <param name="items">
+    ///     The slots, which must be a <c>List&lt;Item?&gt;</c> for <see cref="SetCapacity" /> and
+    ///     <see cref="SetPrediction" /> to cast back to.
+    /// </param>
     internal Inventory(IReadOnlyList<Item?>? items) => Items = items ?? new List<Item?>();
 
     /// <summary>
     ///     Walks the slots by index rather than handing out the backing list's enumerator.
     /// </summary>
+    /// <returns>
+    ///     The item in each slot, in slot order.
+    /// </returns>
     /// <remarks>
-    ///     <see cref="SetPrediction" /> writes a slot in place off the socket thread, which bumps the list's version and makes
-    ///     every enumerator a consumer is holding throw. Slots are only ever replaced, never inserted or removed, so reading
-    ///     by index sees either the old item or the new one, and neither is a torn read.
+    ///     <see cref="SetPrediction" /> replaces slots off the socket thread, which would invalidate a list enumerator.
     /// </remarks>
     public IEnumerator<Item?> GetEnumerator()
     {
@@ -45,18 +49,21 @@ public sealed class Inventory : IReadOnlyList<Item?>
     /// <summary>
     ///     Replaces one slot's <see cref="Item.Prediction" />, leaving the rest of the item alone.
     /// </summary>
+    /// <param name="index">
+    ///     The inventory slot.
+    /// </param>
+    /// <param name="prediction">
+    ///     The new prediction.
+    /// </param>
     /// <remarks>
-    ///     This is the only way an in-progress upgrade or compound's detail reaches the item it belongs to. The server
-    ///     publishes it on <c>q_data</c> carrying nothing but the slot number ( <c>node/server.js:13240</c> ) and never folds
-    ///     it into an inventory frame, so without this the placeholder occupying that slot keeps whatever prediction it was
-    ///     deserialized with - which for the roll's digits means an empty list for the whole operation.
+    ///     The server publishes an in-progress upgrade or compound on <c>q_data</c> carrying only the slot number, and never
+    ///     folds it into an inventory frame.
     /// </remarks>
     internal void SetPrediction(int index, Prediction? prediction)
     {
         var items = (List<Item?>)Items;
 
-        //a slot index the server named and this client has not grown into yet, or an empty one - both are ordinary
-        //against a frame that raced the inventory, and neither is worth throwing over
+        //an out-of-range or empty slot is ordinary against a frame that raced the inventory
         if ((index < 0) || (index >= items.Count) || items[index] is not { } item)
             return;
 

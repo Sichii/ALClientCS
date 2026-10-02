@@ -5,8 +5,7 @@ using System.Text.Json.Serialization;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     One transition of the tavern's dice round (node/server_functions.js:1260-1404). The round is a four-state loop and
-///     this frame is how each step is announced.
+///     Represents one transition of the tavern's dice round, a four-state loop.
 /// </summary>
 /// <remarks>
 ///     <b>Gold moves a tick before the player is told.</b> Payouts are applied at the <c>roll</c> to <c>lock</c>
@@ -16,7 +15,7 @@ namespace AL.SocketClient.SocketModel;
 public sealed record DiceData
 {
     /// <summary>
-    ///     How <see cref="Hex" /> was produced. <c>hmac-sha256</c> .
+    ///     The algorithm that produced <see cref="Hex" />, <c>hmac-sha256</c>.
     /// </summary>
     [JsonPropertyName("algorithm")]
     public string? Algorithm { get; init; }
@@ -43,8 +42,8 @@ public sealed record DiceData
     public float? Number { get; init; }
 
     /// <summary>
-    ///     <c>bets</c> while wagers are accepted, <c>roll</c> once they close, and <c>lock</c> when the number is revealed.
-    ///     The fourth state, <c>suspense</c> , announces itself with the win and loss broadcasts instead.
+    ///     The round's state: <c>bets</c> while wagers are accepted, <c>roll</c> once they close, and <c>lock</c> when the
+    ///     number is revealed. The fourth state, <c>suspense</c>, announces itself with the win and loss broadcasts instead.
     /// </summary>
     [JsonPropertyName("state")]
     public string State { get; init; } = null!;

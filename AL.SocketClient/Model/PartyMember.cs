@@ -7,7 +7,9 @@ using StjConverters = AL.Core.Json.SystemTextJson;
 
 namespace AL.SocketClient.Model;
 
-/// <summary>Represents a member of your party.</summary>
+/// <summary>
+///     Represents a member of your party.
+/// </summary>
 /// <seealso cref="ILocation" />
 public record PartyMember : IInstancedLocation
 {
@@ -36,7 +38,7 @@ public record PartyMember : IInstancedLocation
     public int PartyLimit { get; init; }
 
     /// <summary>
-    ///     True when this member is dead. Only sent while the member is dead.
+    ///     Whether this member is dead. Only sent while the member is dead.
     /// </summary>
     [JsonPropertyName("rip")]
     [JsonConverter(typeof(StjConverters.AfkConverter))]

@@ -26,7 +26,7 @@ public class DoorWaitTests
         var crossing = new List<bool>();
         inProgress.SetResult();
 
-        var act = () => DoorWait.ForLandingAsync(
+        var act = () => DoorWait.WaitForLandingAsync(
             landed.Task,
             inProgress.Task,
             100,
@@ -66,7 +66,7 @@ public class DoorWaitTests
         var inProgress = new TaskCompletionSource();
         var crossing = new List<bool>();
 
-        var wait = DoorWait.ForLandingAsync(
+        var wait = DoorWait.WaitForLandingAsync(
             landed.Task,
             inProgress.Task,
             100,
@@ -101,7 +101,7 @@ public class DoorWaitTests
         var inProgress = new TaskCompletionSource();
         var crossing = new List<bool>();
 
-        var wait = DoorWait.ForLandingAsync(
+        var wait = DoorWait.WaitForLandingAsync(
             landed.Task,
             inProgress.Task,
             100,
@@ -124,7 +124,7 @@ public class DoorWaitTests
         var inProgress = new TaskCompletionSource();
         var crossing = new List<bool>();
 
-        var act = () => DoorWait.ForLandingAsync(
+        var act = () => DoorWait.WaitForLandingAsync(
             landed.Task,
             inProgress.Task,
             100,
@@ -157,6 +157,6 @@ public class DoorWaitTests
 
         public Task ReadMailAsync(Mail mail) => throw new NotSupportedException();
 
-        public Task RenewAuth() => throw new NotSupportedException();
+        public Task RenewAuthAsync() => throw new NotSupportedException();
     }
 }

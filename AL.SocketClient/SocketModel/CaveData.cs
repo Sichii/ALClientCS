@@ -7,8 +7,8 @@ using Chaos.Extensions.Common;
 namespace AL.SocketClient.SocketModel;
 
 /// <summary>
-///     One cave frame: the daily dungeon's run state, sent whenever it changes. Every frame but "ended" carries the whole
-///     state; "chat" and "cue" add the line a traveler or actor just said.
+///     Represents one cave frame: the daily dungeon's run state, sent whenever it changes. Every frame but "ended" carries
+///     the whole state; "chat" and "cue" add the line a traveler or actor just said.
 /// </summary>
 public sealed record CaveData
 {
@@ -29,7 +29,7 @@ public sealed record CaveData
     public CaveState? State { get; init; }
 
     /// <summary>
-    ///     What changed: "ended", "chat", "cue", "choice", "result", or a plain state update.
+    ///     The kind of change: "ended", "chat", "cue", "choice", "result", or a plain state update.
     /// </summary>
     [JsonPropertyName("type")]
     public string Type { get; init; } = null!;

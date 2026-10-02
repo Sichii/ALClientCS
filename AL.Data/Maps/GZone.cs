@@ -10,7 +10,7 @@ namespace AL.Data.Maps;
 public sealed record GZone
 {
     /// <summary>
-    ///     Which drop table a completed fish or dig rolls against (node/server.js:9145).
+    ///     The drop table a completed fish or dig rolls against.
     /// </summary>
     public DropType Drop { get; init; }
 
@@ -18,8 +18,8 @@ public sealed record GZone
     public ZoneType Type { get; init; }
 
     /// <summary>
-    ///     A polygon representing the bounds of the zone. You work it from beside it, not inside it: the server checks a point
-    ///     24 units away in each of the four directions (node/server.js:9128).
+    ///     A polygon representing the bounds of the zone. You work it from beside it: the server checks a point 24 units away in
+    ///     each of the four directions.
     /// </summary>
     [JsonPropertyName("polygon")]
     public Polygon Vertices { get; init; } = null!;

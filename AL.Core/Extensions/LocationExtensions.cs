@@ -15,21 +15,33 @@ public static class LocationExtensions
     extension<T>(T location) where T: ILocation, allows ref struct
     {
         /// <summary>
-        ///     The euclidean distance between two locations, or <see cref="float.MaxValue" /> when they are on different maps.
+        ///     Calculates the euclidean distance between two locations, or <see cref="float.MaxValue" /> when they are on
+        ///     different maps.
         /// </summary>
+        /// <param name="other">
+        ///     Another location.
+        /// </param>
+        /// <returns>
+        ///     The distance between the locations.
+        /// </returns>
         public float DistanceWithMapCheck<T2>(T2 other) where T2: ILocation, allows ref struct
             => !location.OnSameMapAs(other) ? float.MaxValue : location.Distance(other);
 
         /// <summary>
-        ///     Whether two locations share a map. An empty map name matches any map.
+        ///     Determines whether two locations share a map. An empty map name matches any map.
         /// </summary>
+        /// <param name="other">
+        ///     Another location.
+        /// </param>
+        /// <returns>
+        ///     <c>true</c> if the locations share a map; otherwise, <c>false</c>.
+        /// </returns>
         public bool OnSameMapAs<T2>(T2 other) where T2: ILocation, allows ref struct
         {
             if ((location.Map == string.Empty) || (other.Map == string.Empty))
                 return true;
 
-            //the annotation says non-null, but a default-constructed ValueLocation carries a null map and EqualsI
-            //throws on a null receiver
+            //a default ValueLocation has a null map despite the annotation, and EqualsI throws on a null receiver
             // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             return location.Map is not null && other.Map is not null && location.Map.EqualsI(other.Map);
 
@@ -39,6 +51,9 @@ public static class LocationExtensions
         /// <summary>
         ///     Creates a new <see cref="Location" /> from this location.
         /// </summary>
+        /// <returns>
+        ///     A new location with the same map and coordinates.
+        /// </returns>
         public Location ToLocation() => new(location.Map, location.X, location.Y);
     }
 
@@ -49,13 +64,21 @@ public static class LocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">A location.</param>
-    /// <param name="l2">Another location.</param>
+    /// <param name="l1">
+    ///     A location.
+    /// </param>
+    /// <param name="l2">
+    ///     Another location.
+    /// </param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.AngularRelationTo" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">l1</exception>
-    /// <exception cref="System.ArgumentNullException">l2</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     l1
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     l2
+    /// </exception>
     public static float AngularRelationTo(this ILocation l1, ILocation l2)
     {
         ArgumentNullException.ThrowIfNull(l1);
@@ -70,13 +93,21 @@ public static class LocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">A location.</param>
-    /// <param name="l2">Another location.</param>
+    /// <param name="l1">
+    ///     A location.
+    /// </param>
+    /// <param name="l2">
+    ///     Another location.
+    /// </param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.DirectionalRelationTo" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">l1</exception>
-    /// <exception cref="System.ArgumentNullException">l2</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     l1
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     l2
+    /// </exception>
     public static Direction DirectionalRelationTo(this ILocation l1, ILocation l2)
     {
         ArgumentNullException.ThrowIfNull(l1);
@@ -91,14 +122,24 @@ public static class LocationExtensions
     ///     <br />
     ///     Additionally checks both locations are on the same map.
     /// </summary>
-    /// <param name="l1">A location.</param>
-    /// <param name="l2">Another location.</param>
-    /// <param name="maxDistance">The max distance to translate by.</param>
+    /// <param name="l1">
+    ///     A location.
+    /// </param>
+    /// <param name="l2">
+    ///     Another location.
+    /// </param>
+    /// <param name="maxDistance">
+    ///     The max distance to translate by.
+    /// </param>
     /// <returns>
     ///     <inheritdoc cref="PointExtensions.OffsetTowards" />
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">l1</exception>
-    /// <exception cref="System.ArgumentNullException">l2</exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     l1
+    /// </exception>
+    /// <exception cref="System.ArgumentNullException">
+    ///     l2
+    /// </exception>
     public static Point OffsetTowards(this ILocation l1, ILocation l2, float maxDistance)
     {
         ArgumentNullException.ThrowIfNull(l1);

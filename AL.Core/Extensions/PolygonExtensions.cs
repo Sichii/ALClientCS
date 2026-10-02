@@ -10,16 +10,20 @@ namespace AL.Core.Extensions;
 public static class PolygonExtensions
 {
     /// <summary>
-    ///     Determins if a given <see cref="IPoint" /> is inside of a <see cref="IPolygon" />.
+    ///     Determines whether a given <see cref="IPoint" /> is inside of a <see cref="IPolygon" />.
     ///     <br />
     ///     https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
     /// </summary>
-    /// <param name="polygon">A polygon.</param>
-    /// <param name="point">A point.</param>
+    /// <param name="polygon">
+    ///     A polygon.
+    /// </param>
+    /// <param name="point">
+    ///     A point.
+    /// </param>
     /// <returns>
     ///     <see cref="bool" />
     ///     <br />
-    ///     <c>true</c> if the point lies inside(or on the endge) the polygon, otherwise <c>false</c> .
+    ///     <c>true</c> if the point lies inside(or on the endge) the polygon, otherwise <c>false</c>.
     /// </returns>
     public static bool Contains(this IPolygon polygon, IPoint point)
     {

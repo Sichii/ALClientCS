@@ -33,14 +33,14 @@ public sealed class AlApiClient : IAlApiClient
     private static readonly TimeSpan RENEW_COOLDOWN = TimeSpan.FromMinutes(5);
 
     /// <summary>
-    ///     Keyed by host, so a caller pointed at a different server is not served the public one's tables.
+    ///     The fetched <c>data.js</c> per host, so a caller pointed at a different server is not served the public one's tables.
     /// </summary>
     private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> GameDataCache = new();
 
     private readonly string BaseUrl;
 
     /// <summary>
-    ///     Each client owns its cookie jar, so several accounts can be logged in side by side.
+    ///     The REST client holding this account's cookie jar, so several accounts can be logged in side by side.
     /// </summary>
     private readonly IRestClient Client;
 
@@ -50,7 +50,7 @@ public sealed class AlApiClient : IAlApiClient
     private DateTime LastUpdate;
 
     /// <summary>
-    ///     When <see cref="PostAsync" /> last logged in again for a dead cookie.
+    ///     The time <see cref="PostAsync" /> last logged in again for a dead cookie.
     /// </summary>
     private DateTime LastRenewal = DateTime.MinValue;
 
@@ -79,9 +79,7 @@ public sealed class AlApiClient : IAlApiClient
 
         Logger.Info($"Deleting mail {mail.Id}");
 
-        //unlike read_mail, the server takes this id exactly as pull_mail sent it rather than reconstructing it:
-        //delete_mail_api calls get(args.mid) directly, where read_mail_api rebuilds "ML_" + args.mail itself
-        //(api.js) - so mail.Id is passed whole here, the opposite of ReadMailAsync's strip just above
+        //the server looks up mid exactly as pull_mail sent it, unlike read_mail, which prepends "ML_" itself
         var request = new APIRequest(
             Method.Post,
             APIMethod.DeleteMail,
@@ -157,15 +155,16 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">mail</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     mail
+    /// </exception>
     public async Task ReadMailAsync(Mail mail)
     {
         ArgumentNullException.ThrowIfNull(mail);
 
         Logger.Info($"Marking mail {mail.Id} as read");
 
-        //the server unconditionally prepends "ML_" (api.js:886); mail.Id already carries it, so strip it here or
-        //the lookup misses ("ML_ML_...") and the mail is silently never marked read
+        //the server prepends "ML_" itself, so a full id would miss as "ML_ML_..." and the mail never be marked read
         var request = new APIRequest(
             Method.Post,
             APIMethod.ReadMail,
@@ -179,7 +178,7 @@ public sealed class AlApiClient : IAlApiClient
         await Client.ExecutePostAsync(request);
     }
 
-    public async Task RenewAuth()
+    public async Task RenewAuthAsync()
     {
         Logger.Info("Renewing auth");
 
@@ -191,6 +190,12 @@ public sealed class AlApiClient : IAlApiClient
     ///     Creates a REST client with a raised timeout: <c>data.js</c> is ~2.6MB and the server often trickles it well past
     ///     the 100s default.
     /// </summary>
+    /// <param name="baseUrl">
+    ///     The host the client talks to.
+    /// </param>
+    /// <returns>
+    ///     A REST client for the host.
+    /// </returns>
     private static IRestClient CreateRestClient(string baseUrl)
         => new RestClient(
             new RestClientOptions(baseUrl)
@@ -213,9 +218,9 @@ public sealed class AlApiClient : IAlApiClient
                 throw new InvalidOperationException($"Failed to fetch game data. ({response.StatusCode}) {response.ErrorMessage}");
 
             var startBracketIndex = response.Content.IndexOf('{');
-            var endBrackedIndex = response.Content.LastIndexOf('}');
+            var endBracketIndex = response.Content.LastIndexOf('}');
 
-            return response.Content.Substring(startBracketIndex, endBrackedIndex - startBracketIndex + 1);
+            return response.Content.Substring(startBracketIndex, endBracketIndex - startBracketIndex + 1);
         } catch
         {
             GameDataCache.TryRemove(baseUrl, out _);
@@ -225,45 +230,46 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <summary>
-    ///     Asynchronously fetches the "G" data json.
-    ///     <br />
-    ///     You do not need to be logged in to fetch this data.
+    ///     Asynchronously fetches the <c>G</c> data json from <c>data.js</c>, once per host for the life of the process.
+    ///     No login is needed.
     /// </summary>
     /// <param name="baseUrl">
     ///     The host to fetch from. Defaults to the public game host.
     /// </param>
     /// <returns>
-    ///     <see cref="string" />
-    ///     <br />
-    ///     A json string of the "G" data.
+    ///     The json of the <c>G</c> data.
     /// </returns>
-    /// <summary>
-    ///     Fetches <c>data.js</c> , once per host for the life of the process.
-    /// </summary>
     /// <remarks>
-    ///     The body is multiple megabytes and the server can spend minutes sending it, so a second caller downloading it again
-    ///     is the most expensive thing a boot can do. The data is static for a server session anyway. A failed fetch evicts
-    ///     itself, so a transient one does not poison every later caller.
+    ///     A failed fetch evicts itself, so a transient failure does not poison every later caller.
     /// </remarks>
     public static Task<string> GetGameDataAsync(string baseUrl = DEFAULT_BASE_URL)
         => GameDataCache.GetOrAdd(baseUrl, url => new Lazy<Task<string>>(() => FetchGameDataAsync(url)))
                         .Value;
 
-    /// <summary>Asynchronously logs in to the API.</summary>
-    /// <param name="email">The user's email.</param>
-    /// <param name="password">The user's password.</param>
+    /// <summary>
+    ///     Asynchronously logs in to the API.
+    /// </summary>
+    /// <param name="email">
+    ///     The account's email.
+    /// </param>
+    /// <param name="password">
+    ///     The account's password.
+    /// </param>
     /// <param name="baseUrl">
     ///     The host to log into. Defaults to the public game host.
     /// </param>
     /// <returns>
-    ///     <see cref="AlApiClient" />
-    ///     <br />
-    ///     An ALAPIClient that can be used to fetch user-specific information.
+    ///     A client that can fetch account-specific information.
     /// </returns>
-    /// <exception cref="ArgumentNullException">email</exception>
-    /// <exception cref="ArgumentNullException">password</exception>
-    /// <exception cref="InvalidOperationException">Failed to log in. No response from server.</exception>
-    /// <exception cref="InvalidOperationException">Failed to log in. {reason}</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     email
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     password
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The request failed, the server sent no body, or the login was refused.
+    /// </exception>
     public static async Task<AlApiClient> LoginAsync(string email, string password, string baseUrl = DEFAULT_BASE_URL)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -294,7 +300,6 @@ public sealed class AlApiClient : IAlApiClient
 
         var response = await client.ExecutePostAsync(request);
 
-        //without this a transport failure surfaces as an unrelated null reference further down
         if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
             throw new InvalidOperationException($"Failed to log in. ({response.StatusCode}) {response.ErrorMessage}");
 
@@ -319,20 +324,21 @@ public sealed class AlApiClient : IAlApiClient
     }
 
     /// <summary>
-    ///     Unwraps an api response into the notification array the payload actually lives in.
-    /// </summary>
-    /// <remarks>
-    ///     Every response is an object of the form <c>{ success|failed, reason?, infs:[...] }</c> . Handlers push their real
-    ///     payload into <c>infs</c> and return only a status on the envelope.
-    /// </remarks>
-    /// <summary>
     ///     Asynchronously posts one api call and unwraps it, logging in again once if the server no longer knows this
     ///     client's cookie.
     /// </summary>
+    /// <param name="method">
+    ///     The api method to call.
+    /// </param>
+    /// <param name="arguments">
+    ///     The call's arguments, or null for none.
+    /// </param>
+    /// <returns>
+    ///     The response's <c>infs</c> array.
+    /// </returns>
     /// <remarks>
-    ///     A cookie dies while the process holds it: the server keeps 200 cookies per account and clears the whole list when
-    ///     a login would add the next one (<c>get_new_auth</c>), and <c>logout_everywhere</c> clears it outright. Every
-    ///     later call, and every socket login, then fails <c>not_logged_in</c> until something logs in again.
+    ///     The server keeps 200 cookies per account and clears them all when a login would add one more;
+    ///     <c>logout_everywhere</c> clears them outright. Every later call then fails <c>not_logged_in</c>.
     /// </remarks>
     private async Task<JsonArray> PostAsync(APIMethod method, object? arguments)
     {
@@ -349,12 +355,11 @@ public sealed class AlApiClient : IAlApiClient
 
         var now = DateTime.UtcNow;
 
-        //floored so a login that keeps getting refused cannot add a cookie on every call and push the account's
-        //list toward its wipe; a caller inside the floor retries on whatever cookie a concurrent renewal left
+        //floored so a refused login cannot add a cookie on every call and push the account's list toward its wipe
         if ((now - LastRenewal) >= RENEW_COOLDOWN)
         {
             LastRenewal = now;
-            await RenewAuth();
+            await RenewAuthAsync();
         }
 
         response = await Client.ExecutePostAsync(
@@ -373,6 +378,19 @@ public sealed class AlApiClient : IAlApiClient
            && !string.IsNullOrEmpty(response.Content)
            && response.Content.Contains("\"not_logged_in\"", StringComparison.Ordinal);
 
+    /// <summary>
+    ///     Unwraps an api response into the <c>infs</c> array its payload lives in.
+    /// </summary>
+    /// <param name="response">The api response.</param>
+    /// <returns>
+    ///     The <c>infs</c> array, or an empty array when the response has none.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///     The request failed, or the envelope reports <c>failed</c>.
+    /// </exception>
+    /// <remarks>
+    ///     Every response is an object of the form <c>{ success|failed, reason?, infs:[...] }</c>.
+    /// </remarks>
     private static JsonArray ReadNotifications(RestResponse response)
     {
         if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
@@ -386,7 +404,7 @@ public sealed class AlApiClient : IAlApiClient
         if (envelope["failed"]
                 ?.GetValue<bool>()
             ?? false)
-            throw new InvalidOperationException($@"API call failed. {envelope["reason"]?.GetValue<string>() ?? "Unknown"}");
+            throw new InvalidOperationException($"API call failed. {envelope["reason"]?.GetValue<string>() ?? "Unknown"}");
 
         return envelope["infs"] as JsonArray ?? new JsonArray();
     }

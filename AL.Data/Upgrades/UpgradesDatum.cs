@@ -5,13 +5,11 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Upgrades;
 
 /// <summary>
-///     The base chance of an upgrade succeeding: one row per item grade, keyed inside the row by the level being reached.
-///     The server reads it as upgrades[grade][level] and applies its own modifiers on top. The payload only began carrying
-///     it at game data version 16846.
+///     Represents the base chance of an upgrade succeeding, one row per item grade keyed by the level being reached. The
+///     server applies its own modifiers on top.
 /// </summary>
 /// <remarks>
-///     Rows are named by the grade they price rather than by their wire key, so reaching +8 on a normal item reads as
-///     <c>Grade0[8]</c>.
+///     Present in the game data only from version 16846.
 /// </remarks>
 /// <seealso cref="DatumBase{T}" />
 public class UpgradesDatum : DatumBase<IReadOnlyDictionary<int, double>>
@@ -26,10 +24,18 @@ public class UpgradesDatum : DatumBase<IReadOnlyDictionary<int, double>>
     public IReadOnlyDictionary<int, double> Grade2 { get; init; } = null!;
 
     /// <summary>
-    ///     The base chance of reaching <paramref name="level" /> on an item of <paramref name="grade" />, or null where the
-    ///     table has no entry.
+    ///     Gets the base chance of reaching a level on an item of a grade.
     /// </summary>
-    public double? ChanceOf(int grade, int level)
+    /// <param name="grade">
+    ///     The item's grade, which picks the row.
+    /// </param>
+    /// <param name="level">
+    ///     The level being reached.
+    /// </param>
+    /// <returns>
+    ///     The base chance, or null where the table has no entry.
+    /// </returns>
+    public double? GetChance(int grade, int level)
         => grade switch
            {
                0 => Grade0,

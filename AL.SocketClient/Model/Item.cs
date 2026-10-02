@@ -14,7 +14,7 @@ namespace AL.SocketClient.Model;
 public sealed record Item : IInventoryItem
 {
     /// <summary>
-    ///     True when this item is account-locked and cannot be sent or traded across accounts.
+    ///     Whether this item is account-locked and cannot be sent or traded across accounts.
     /// </summary>
     [JsonPropertyName("acl")]
     public bool AccountLocked { get; init; }
@@ -67,23 +67,22 @@ public sealed record Item : IInventoryItem
 
     public string Name { get; init; } = null!;
 
-    /// <summary>A list of possible prefixes for this item.</summary>
+    /// <summary>
+    ///     A list of possible prefixes for this item.
+    /// </summary>
     /// <remarks>
     ///     <b>
-    ///         This property breaks <see cref="Item" />'s value equality, so do not compare two items with <c>==</c> .
-    ///     </b> A record's synthesized <c>Equals</c> folds every property in through <c>EqualityComparer&lt;T&gt;.Default</c>
-    ///     , which for a list is <i>reference</i> equality - and two deserializations of the same item never share this
-    ///     instance. So <c>==</c> is false for every pair except two nulls, silently, and a caller waiting for a frame to
-    ///     report an item it already knows waits forever. Compare the fields that identify a slot's contents (name, level,
-    ///     quantity) instead.
+    ///         This list compares by reference, so two deserializations of one item are never <c>==</c>.
+    ///     </b>
+    ///     Compare name, level and quantity instead.
     /// </remarks>
     [JsonPropertyName("ps")]
     public IReadOnlyList<string> PossiblePrefixes { get; init; } = new List<string>();
 
     /// <summary>
-    ///     Carries the item's title (e.g. "shiny", "legacy") via <see cref="Model.Prediction.Title" />, or, while this item is
-    ///     the placeholder for an in-progress upgrade or compound, the details of that operation. Null when the item has no
-    ///     title.
+    ///     Carries the item's title (e.g. <c>shiny</c>, <c>legacy</c>) via <see cref="Model.Prediction.Title" />, or, while
+    ///     this item is the placeholder for an in-progress upgrade or compound, the details of that operation. Null when the
+    ///     item has no title.
     /// </summary>
     [JsonPropertyName("p")]
     public Prediction? Prediction { get; init; }
@@ -92,7 +91,7 @@ public sealed record Item : IInventoryItem
     public int Quantity { get; init; } = 1;
 
     /// <summary>
-    ///     True when this item is rented / offered for rent.
+    ///     Whether this item is rented or offered for rent.
     /// </summary>
     [JsonPropertyName("r")]
     public bool Rented { get; init; }

@@ -410,8 +410,8 @@ public class BlinkCorpusTests : PathfindingTestBed
     private static float WalkOnMap(Stop from, Stop to)
     {
         var mesh = Pathfinder.GetNavMesh(from.Map)!;
-        var startTriangle = mesh.Locate(from.X, from.Y, out var startEntry);
-        var endTriangle = mesh.Locate(to.X, to.Y, out var endEntry);
+        var startTriangle = mesh.FindStartTriangle(from.X, from.Y, out var startEntry);
+        var endTriangle = mesh.FindStartTriangle(to.X, to.Y, out var endEntry);
 
         if ((startTriangle < 0) || (endTriangle < 0))
             return float.MaxValue;
@@ -421,12 +421,12 @@ public class BlinkCorpusTests : PathfindingTestBed
                       ?.Exits
                       .FirstOrDefault(candidate => (candidate.X == to.X) && (candidate.Y == to.Y))
             : null;
-        var reach = exit is null ? Reach.Circle(to.X, to.Y, 0f) : new Reach(exit.ReachBand, exit.ReachRange);
+        var reach = exit is null ? Reach.CreateCircle(to.X, to.Y, 0f) : new Reach(exit.ReachBand, exit.ReachRange);
 
         var scratch = SearchScratch.Rent();
         mesh.Search(startTriangle, startEntry, scratch);
 
-        var cost = mesh.WalkCost(
+        var cost = mesh.CalculateWalkCost(
             startEntry,
             endTriangle,
             endEntry,

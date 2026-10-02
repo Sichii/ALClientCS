@@ -371,9 +371,9 @@ public class FindPathTests : PathfindingTestBed
         var neighbour = new Location("main", 1, 200);
 
         mesh.Mesh
-            .TriangleAt(neighbour.X, neighbour.Y)
+            .FindTriangle(neighbour.X, neighbour.Y)
             .Should()
-            .Be(mesh.Mesh.TriangleAt(endLoc.X, endLoc.Y));
+            .Be(mesh.Mesh.FindTriangle(endLoc.X, endLoc.Y));
 
         var path = await Pathfinder.FindPathAsync(
                                        start,

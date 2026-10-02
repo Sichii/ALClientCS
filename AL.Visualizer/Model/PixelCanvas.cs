@@ -6,25 +6,31 @@ using SkiaSharp;
 namespace AL.Visualizer.Model;
 
 /// <summary>
-///     A writable pixel buffer that can encode itself as a PNG.
+///     Represents a writable pixel buffer that can encode itself as a PNG.
 /// </summary>
 /// <remarks>
-///     Skia is only involved at the save boundary. Pixels are written straight into a managed array because
-///     <see cref="SKBitmap.SetPixel" /> costs a native call apiece - roughly 50x slower than an array write over a
-///     full-size navmesh.
+///     Pixels are written to a managed array because <see cref="SKBitmap.SetPixel" /> costs a native call apiece, roughly
+///     50x slower than an array write over a full-size navmesh.
 /// </remarks>
 public sealed class PixelCanvas
 {
     private readonly uint[] Pixels;
 
     /// <summary>
-    ///     Gets or sets the color of the pixel at the given coordinates.
+    ///     The color of the pixel at the given coordinates.
     /// </summary>
-    /// <param name="x">The column of the pixel.</param>
-    /// <param name="y">The row of the pixel.</param>
+    /// <param name="x">
+    ///     The column of the pixel.
+    /// </param>
+    /// <param name="y">
+    ///     The row of the pixel.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     x
+    /// </exception>
     public SKColor this[int x, int y]
     {
-        //an out-of-range x would silently wrap onto the next row, so it is checked here; y falls out of the array bounds on its own
+        //an out-of-range x would wrap onto the next row; an out-of-range y overruns the array on its own
         get
         {
             ArgumentOutOfRangeException.ThrowIfNegative(x);
@@ -53,11 +59,21 @@ public sealed class PixelCanvas
     /// <summary>
     ///     Initializes a new instance of the <see cref="PixelCanvas" /> class.
     /// </summary>
-    /// <param name="width">The width of the canvas, in pixels.</param>
-    /// <param name="height">The height of the canvas, in pixels.</param>
-    /// <param name="background">The color to fill the canvas with.</param>
-    /// <exception cref="ArgumentOutOfRangeException">width</exception>
-    /// <exception cref="ArgumentOutOfRangeException">height</exception>
+    /// <param name="width">
+    ///     The width of the canvas, in pixels.
+    /// </param>
+    /// <param name="height">
+    ///     The height of the canvas, in pixels.
+    /// </param>
+    /// <param name="background">
+    ///     The color to fill the canvas with.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     width
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     height
+    /// </exception>
     public PixelCanvas(int width, int height, SKColor background)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -72,11 +88,17 @@ public sealed class PixelCanvas
     }
 
     /// <summary>
-    ///     Encodes the canvas as a PNG and writes it to the given path.
+    ///     Asynchronously encodes the canvas as a PNG and writes it to the given path.
     /// </summary>
-    /// <param name="path">The path to write the PNG to.</param>
-    /// <param name="cancellationToken">A token to cancel the write with.</param>
-    /// <exception cref="ArgumentException">path</exception>
+    /// <param name="path">
+    ///     The path to write the PNG to.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///     A token to cancel the write with.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    ///     path
+    /// </exception>
     public async Task SaveAsPngAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);

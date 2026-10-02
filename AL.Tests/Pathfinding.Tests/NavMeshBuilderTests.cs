@@ -39,9 +39,9 @@ public class NavMeshBuilderTests : GameDataTestBed
 
         for (var triangle = 0; triangle < mesh.TriangleCount; triangle++)
         {
-            (var x, var y) = mesh.Centroid(triangle);
+            (var x, var y) = mesh.CalculateCentroid(triangle);
 
-            if (mesh.TriangleAt(x, y) != triangle)
+            if (mesh.FindTriangle(x, y) != triangle)
                 misses++;
         }
 
@@ -59,7 +59,7 @@ public class NavMeshBuilderTests : GameDataTestBed
             .Should()
             .BeGreaterThan(1000);
 
-        mesh.TriangleAt(spawn.X, spawn.Y)
+        mesh.FindTriangle(spawn.X, spawn.Y)
             .Should()
             .NotBe(-1);
     }
@@ -100,7 +100,7 @@ public class NavMeshBuilderTests : GameDataTestBed
 
             while (pending.TryPop(out var triangle))
             {
-                var slot = mesh.SlotOfVertex(triangle, vertex);
+                var slot = mesh.FindVertexSlot(triangle, vertex);
 
                 for (var step = 1; step <= 2; step++)
                 {
@@ -115,7 +115,7 @@ public class NavMeshBuilderTests : GameDataTestBed
 
             if (reached.Count == triangles.Count)
             {
-                mesh.EdgesFrom(vertex)
+                mesh.GetVertexEdges(vertex)
                     .Length
                     .Should()
                     .BeGreaterThan(0, $"vertex {vertex} is one fan of {triangles.Count} triangle(s)");
@@ -125,7 +125,7 @@ public class NavMeshBuilderTests : GameDataTestBed
 
             pinched++;
 
-            mesh.EdgesFrom(vertex)
+            mesh.GetVertexEdges(vertex)
                 .Length
                 .Should()
                 .Be(0, $"vertex {vertex} is a pinch");

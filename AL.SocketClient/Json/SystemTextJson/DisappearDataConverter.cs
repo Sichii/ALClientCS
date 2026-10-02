@@ -10,11 +10,12 @@ using AL.SocketClient.SocketModel;
 namespace AL.SocketClient.Json.SystemTextJson;
 
 /// <summary>
-///     Deserializes <see cref="DisappearData" />, special-casing the <c>s</c> field, which is either a spawn
-///     <see cref="Orientation" /> array or a scalar spawn id. The System.Text.Json replacement for the Newtonsoft
-///     <c>DisappearDataConverter</c> . Register in the shared options so the declared-field fill drops this converter and
-///     cannot re-enter itself.
+///     Deserializes <see cref="DisappearData" />, whose <c>s</c> field is either a spawn <see cref="Orientation" /> array or
+///     a scalar spawn id.
 /// </summary>
+/// <remarks>
+///     Register it in the shared options, so the declared-field fill can drop it and not re-enter itself.
+/// </remarks>
 public sealed class DisappearDataConverter : JsonConverter<DisappearData>
 {
     public override DisappearData? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -26,12 +27,10 @@ public sealed class DisappearDataConverter : JsonConverter<DisappearData>
         int? spawnId = null;
 
         if (obj.TryGetPropertyValue("s", out var spawnNode) && spawnNode is not null)
-        {
             if (spawnNode.GetValueKind() == JsonValueKind.Array)
                 spawn = ArrayToObjectConverter<Orientation>.FromArray(spawnNode.AsArray(), options);
             else
                 spawnId = spawnNode.Deserialize<int?>(options);
-        }
 
         var result = obj.Deserialize<DisappearData>(RecursionSafeOptions.Without(options, typeof(DisappearDataConverter)))
                      ?? new DisappearData();

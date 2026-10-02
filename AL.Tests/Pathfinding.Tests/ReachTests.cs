@@ -16,7 +16,7 @@ public class ReachTests
     [Test]
     public void ACircleIsAZeroSizeBand()
     {
-        var circle = Reach.Circle(0, 0, 40);
+        var circle = Reach.CreateCircle(0, 0, 40);
 
         circle.Contains(30, 0)
               .Should()
@@ -56,7 +56,7 @@ public class ReachTests
     {
         var band = Band();
 
-        (var x, var y) = band.NearEdge(50, 25);
+        (var x, var y) = band.FindNearestEdgePoint(50, 25);
 
         x.Should()
          .Be(50f);
@@ -75,7 +75,7 @@ public class ReachTests
     {
         var band = Band();
 
-        (var x, var y) = band.NearEdge(150, 25);
+        (var x, var y) = band.FindNearestEdgePoint(150, 25);
 
         x.Should()
          .BeApproximately(110f, 0.001f);
@@ -93,7 +93,7 @@ public class ReachTests
             .BeApproximately(band.Range, 0.001f);
 
         //past a corner the step is along the diagonal from the corner
-        (x, y) = band.NearEdge(150, 100);
+        (x, y) = band.FindNearestEdgePoint(150, 100);
 
         x.Should()
          .BeApproximately(107.071f, 0.01f);
@@ -115,15 +115,15 @@ public class ReachTests
     public void TheQueriesDoNotAllocate()
     {
         var band = Band();
-        var circle = Reach.Circle(0, 0, 40);
+        var circle = Reach.CreateCircle(0, 0, 40);
 
         //warm up
         var sink = band.Contains(50, 25) ? 1f : 0f;
         sink += band.Distance(150, 25);
-        (var bx, var by) = band.NearEdge(150, 25);
+        (var bx, var by) = band.FindNearestEdgePoint(150, 25);
         sink += bx + by;
 
-        band.TryEntry(
+        band.TryFindEntry(
             150,
             25,
             50,
@@ -134,10 +134,10 @@ public class ReachTests
 
         sink += circle.Contains(30, 0) ? 1f : 0f;
         sink += circle.Distance(41, 0);
-        (var cx, var cy) = circle.NearEdge(50, 0);
+        (var cx, var cy) = circle.FindNearestEdgePoint(50, 0);
         sink += cx + cy;
 
-        circle.TryEntry(
+        circle.TryFindEntry(
             50,
             0,
             0,
@@ -159,10 +159,10 @@ public class ReachTests
             sink += band.Contains(150, y) ? 1f : 0f;
             sink += band.Distance(150, y);
 
-            (bx, by) = band.NearEdge(150, y);
+            (bx, by) = band.FindNearestEdgePoint(150, y);
             sink += bx + by;
 
-            band.TryEntry(
+            band.TryFindEntry(
                 150,
                 y,
                 50,
@@ -174,10 +174,10 @@ public class ReachTests
             sink += circle.Contains(30, i % 40) ? 1f : 0f;
             sink += circle.Distance(41, i % 40);
 
-            (cx, cy) = circle.NearEdge(50, i % 40);
+            (cx, cy) = circle.FindNearestEdgePoint(50, i % 40);
             sink += cx + cy;
 
-            circle.TryEntry(
+            circle.TryFindEntry(
                 50,
                 i % 40,
                 0,
@@ -199,7 +199,7 @@ public class ReachTests
     public void TryEntryFindsTheFirstPointInside()
     {
         Band()
-            .TryEntry(
+            .TryFindEntry(
                 150,
                 25,
                 50,
@@ -220,7 +220,7 @@ public class ReachTests
     public void TryEntryFromInsideIsTheStart()
     {
         Band()
-            .TryEntry(
+            .TryFindEntry(
                 50,
                 25,
                 150,
@@ -241,7 +241,7 @@ public class ReachTests
     public void TryEntryIsFalseWhenTheEndIsOutside()
     {
         Band()
-            .TryEntry(
+            .TryFindEntry(
                 150,
                 25,
                 200,
@@ -253,7 +253,7 @@ public class ReachTests
 
         //the method only answers segments that end inside; a chord dipping through the band with both ends outside still answers false
         Band()
-            .TryEntry(
+            .TryFindEntry(
                 -50,
                 25,
                 150,

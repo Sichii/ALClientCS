@@ -5,17 +5,16 @@ using AL.Core.Json.Attributes;
 namespace AL.Data.Games;
 
 /// <summary>
-///     One wedge of the tavern's wheel. Rides <c>games.wheel.slices</c>, whose entries are positional arrays.
+///     Represents one wedge of the tavern's wheel, positional in <c>games.wheel.slices</c>.
 /// </summary>
 /// <param name="Name">
-///     The wedge's own name, which is a colour rather than a prize - <c>indigo</c>, <c>pink</c>, <c>teal</c>. Every one of
-///     the fourteen is distinct, so it identifies the wedge the wheel stopped on.
+///     The wedge's name, a colour such as <c>indigo</c>, distinct for every wedge.
 /// </param>
 /// <param name="Side">
-///     Which of <see cref="GWheel.Sides" /> this wedge pays. The fourteen wedges split evenly, seven to each side.
+///     Which of <see cref="GWheel.Sides" /> this wedge pays.
 /// </param>
 /// <param name="Colour">
-///     What the client fills the wedge with, as a CSS hex colour. Display only.
+///     The wedge's fill, as a CSS hex colour.
 /// </param>
 public sealed record GWheelSlice(
     [property: JsonArrayIndex(0)]

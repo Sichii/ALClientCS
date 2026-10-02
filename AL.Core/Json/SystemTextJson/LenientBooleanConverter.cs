@@ -7,12 +7,12 @@ using System.Text.Json.Serialization;
 namespace AL.Core.Json.SystemTextJson;
 
 /// <summary>
-///     Coerces a JSON number (and numeric/boolean string) to a <see cref="bool" />, matching Newtonsoft's reader, which
-///     yields <c>Convert.ToBoolean</c> semantics (non-zero → true) on both its populate and direct paths. The server sends
-///     several boolean fields as <c>0</c> / <c>1</c> (e.g. party <c>leave</c> , queued-action <c>success</c> ). Registered
-///     in the shared options so it applies on the direct socket path too; a property-level converter (e.g. AfkConverter
-///     for the bool-or-gravestone-name RIP field) still wins over it.
+///     Coerces a JSON number, or a numeric or boolean string, to a <see cref="bool" />, non-zero reading as true. The
+///     server sends several boolean fields as <c>0</c> / <c>1</c> (party <c>leave</c>, queued-action <c>success</c>).
 /// </summary>
+/// <remarks>
+///     A property-level converter, such as <see cref="AfkConverter" /> on <c>rip</c>, still wins over it.
+/// </remarks>
 public sealed class LenientBooleanConverter : JsonConverter<bool>
 {
     private static bool ParseString(string? raw)
@@ -20,7 +20,7 @@ public sealed class LenientBooleanConverter : JsonConverter<bool>
         if (bool.TryParse(raw, out var value))
             return value;
 
-        //Newtonsoft also accepts a numeric string here (Convert.ToBoolean over the parsed number)
+        //a numeric string reads as true when non-zero
         return double.TryParse(
             raw,
             NumberStyles.Float,

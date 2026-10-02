@@ -44,12 +44,6 @@ public static class ShallowMerge<T> where T: class
                  .Where(IsMergeable)
                  .DistinctBy(p => p.Name);
 
-    /// <summary>
-    ///     What keeps the movement block out today is the accessor, not the attribute: the only T ever instantiated is
-    ///     Character, a private setter declared on EntityBase is not inherited, so CanWrite already reads false.
-    ///     <see cref="ShallowMergeIgnoreAttribute" /> guards what the accessor cannot cover - a block declared on the merged
-    ///     type itself.
-    /// </summary>
     private static bool IsMergeable(PropertyInfo property)
         => property is { CanRead: true, CanWrite: true } && !property.IsDefined(typeof(ShallowMergeIgnoreAttribute), true);
 
@@ -59,13 +53,22 @@ public static class ShallowMerge<T> where T: class
     ///     <br />
     ///     The first time this runs (for each type), an expression tree will be compiled and stored.
     /// </summary>
-    /// <param name="fromObj">The object to merge from.</param>
-    /// <param name="targetObj">The object to merge into.</param>
-    /// <exception cref="ArgumentNullException">fromObj</exception>
-    /// <exception cref="ArgumentNullException">targetObj</exception>
+    /// <param name="fromObj">
+    ///     The object to merge from.
+    /// </param>
+    /// <param name="targetObj">
+    ///     The object to merge into.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     fromObj
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///     targetObj
+    /// </exception>
     public static void Merge(T fromObj, T targetObj)
     {
         ArgumentNullException.ThrowIfNull(fromObj);
+
         ArgumentNullException.ThrowIfNull(targetObj);
 
         AssignmentDelegate(fromObj, targetObj);

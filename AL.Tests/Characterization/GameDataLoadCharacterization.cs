@@ -641,12 +641,12 @@ public class GameDataLoadCharacterization
     public void T1_OddsTables_BindAndMonsterGoldStaysEmpty()
     {
         GameData.Compounds
-                .ChanceOf(0, 3)
+                .GetChance(0, 3)
                 .Should()
                 .Be(0.4);
 
         GameData.Upgrades
-                .ChanceOf(2, 12)
+                .GetChance(2, 12)
                 .Should()
                 .Be(0.09);
 

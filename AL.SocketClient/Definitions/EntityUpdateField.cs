@@ -1,13 +1,12 @@
 namespace AL.SocketClient.Definitions;
 
 /// <summary>
-///     Which wire keys an <c>entities</c> frame carried, captured during deserialization so a delta only overwrites the
-///     fields it actually contained. The server's entity encoders are sparse ( <c>node/server.js:878-928</c> ): a soft
-///     property equal to the G default is omitted, and a state field is sent only when defined. The browser merges the
-///     same way - it iterates the received keys ( <c>js/game.js:786</c> ), never a fixed whitelist - so a bare
-///     <c>{id,x,y}</c> position delta must not zero a live monster's hp/speed. Stored as a single value on the entity, so
-///     tracking presence adds no heap allocation on this several-times-per-second-per-character hot path.
+///     Represents which wire keys an <c>entities</c> frame carried, so a delta only overwrites the fields it contained.
 /// </summary>
+/// <remarks>
+///     The server's entity encoders are sparse: a soft property equal to the G default is omitted, and a state field is
+///     sent only when defined. A bare <c>{id,x,y}</c> position delta must not zero a live monster's hp or speed.
+/// </remarks>
 [Flags]
 public enum EntityUpdateField : uint
 {
@@ -24,10 +23,8 @@ public enum EntityUpdateField : uint
     HP = 1u << 9,
 
     /// <summary>
-    ///     Only a self <c>player</c> frame carries <c>in</c> and <c>map</c> - <c>player_to_client</c> (
-    ///     <c>node/server.js:804</c> ) lists them in its !stranger block alone, and <c>monster_to_client</c> ( <c>:875</c> )
-    ///     has neither. So no object inside an entities frame sets these, and a monster's or a stranger's map keeps coming
-    ///     from the frame-level stamp that <c>UpdateMap</c> applies by hand.
+    ///     Carried, with <see cref="Map" />, only by a self <c>player</c> frame; a monster's or a stranger's map comes from
+    ///     the frame-level stamp.
     /// </summary>
     In = 1u << 23,
 
@@ -40,10 +37,8 @@ public enum EntityUpdateField : uint
     MP = 1u << 15,
 
     /// <summary>
-    ///     Never actually carried by an entity frame - <c>monster_to_client</c> ( <c>node/server.js:878</c> ) lists it in
-    ///     neither its soft set nor its hard one, so a monster's reach only ever comes from <c>G.monsters</c> . The flag
-    ///     exists so that backfilling it runs through the same path as every other def-sourced value rather than being a
-    ///     special case beside them, and so a frame that did carry one would still win.
+    ///     Never carried by an entity frame; a monster's reach only ever comes from <c>G.monsters</c>, backfilled through
+    ///     the same path as every other def-sourced value.
     /// </summary>
     Range = 1u << 22,
 

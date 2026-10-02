@@ -6,17 +6,19 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     A map's wall lines in the shape the server keeps them, with the server's own segment test over them. This is what
-///     the official client clips a move against, so it is what a planned leg has to pass.
+///     Represents a map's wall lines in the shape the server keeps them, with the server's own <c>can_move</c> test over
+///     them.
 /// </summary>
 public sealed class WallLines
 {
     /// <summary>
-    ///     The server's own epsilon: widens the range check. <see cref="REPS" /> keeps the divisor off zero for a vertical
-    ///     track.
+    ///     The server's own epsilon, which widens the range check.
     /// </summary>
     private const double EPS = 1e-8;
 
+    /// <summary>
+    ///     The server's own epsilon, which keeps the divisor off zero for a vertical track.
+    /// </summary>
     private const double REPS = 2.220446049250313e-16;
     private readonly int[] HorizontalEnd;
     private readonly int[] HorizontalOn;
@@ -24,8 +26,7 @@ public sealed class WallLines
     private readonly int[] VerticalEnd;
 
     /// <summary>
-    ///     Sorted by On. Start &lt;= End after <see cref="AL.Core.Helpers.LineHelper.FixLines" />, which every geometry goes
-    ///     through before this is built.
+    ///     The coordinate each vertical line sits on, sorted ascending.
     /// </summary>
     private readonly int[] VerticalOn;
 
@@ -40,25 +41,48 @@ public sealed class WallLines
     /// <summary>
     ///     Initializes a new instance of the <see cref="WallLines" /> class.
     /// </summary>
-    /// <param name="verticalLines">The map's x_lines.</param>
-    /// <param name="horizontalLines">The map's y_lines.</param>
+    /// <param name="verticalLines">
+    ///     The map's <c>x_lines</c>.
+    /// </param>
+    /// <param name="horizontalLines">
+    ///     The map's <c>y_lines</c>.
+    /// </param>
     public WallLines(IReadOnlyList<StraightLine> verticalLines, IReadOnlyList<StraightLine> horizontalLines)
     {
-        (VerticalOn, VerticalStart, VerticalEnd) = Sorted(verticalLines);
-        (HorizontalOn, HorizontalStart, HorizontalEnd) = Sorted(horizontalLines);
+        (VerticalOn, VerticalStart, VerticalEnd) = SortLines(verticalLines);
+        (HorizontalOn, HorizontalStart, HorizontalEnd) = SortLines(horizontalLines);
     }
 
     /// <summary>
-    ///     Whether any line passes through the collision box hanging on (x, y). A point where this is true is one the client
-    ///     would refuse every move out of, which is what a wall means at runtime.
+    ///     Determines whether any line passes through the collision box hanging on a point. The client refuses every move out
+    ///     of such a point.
     /// </summary>
+    /// <param name="x">
+    ///     The point's x.
+    /// </param>
+    /// <param name="y">
+    ///     The point's y.
+    /// </param>
+    /// <param name="boundingBase">
+    ///     The collision base hanging on the point.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if a line passes through the box; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool BoxIntersects(double x, double y, BoundingBase boundingBase)
     {
         double h = boundingBase.HalfWidth;
         double v = boundingBase.VerticalNorth;
         double vn = boundingBase.VerticalNotNorth;
 
-        return SpanHits(
+        return IntersectsSpan(
                    VerticalOn,
                    VerticalStart,
                    VerticalEnd,
@@ -66,7 +90,7 @@ public sealed class WallLines
                    x + h,
                    y - v,
                    y + vn)
-               || SpanHits(
+               || IntersectsSpan(
                    HorizontalOn,
                    HorizontalStart,
                    HorizontalEnd,
@@ -77,9 +101,34 @@ public sealed class WallLines
     }
 
     /// <summary>
-    ///     Whether a character with the given collision base can move from (x0, y0) to (x1, y1): the four corners of the base,
-    ///     plus two fence tracks along the box's leading edges at the destination.
+    ///     Determines whether a character can move between two points: the four corners of the base, plus two fence tracks
+    ///     along the box's leading edges at the destination.
     /// </summary>
+    /// <param name="x0">
+    ///     The start's x.
+    /// </param>
+    /// <param name="y0">
+    ///     The start's y.
+    /// </param>
+    /// <param name="x1">
+    ///     The destination's x.
+    /// </param>
+    /// <param name="y1">
+    ///     The destination's y.
+    /// </param>
+    /// <param name="boundingBase">
+    ///     The character's collision base.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if no track crosses a line; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool CanMove(
         double x0,
         double y0,
@@ -154,15 +203,36 @@ public sealed class WallLines
     }
 
     /// <summary>
-    ///     Whether a single track from (x0, y0) to (x1, y1) crosses no line. The server's single-track test, clause for
-    ///     clause.
+    ///     Determines whether a single track between two points crosses no line, by the server's single-track test.
     /// </summary>
+    /// <param name="x0">
+    ///     The start's x.
+    /// </param>
+    /// <param name="y0">
+    ///     The start's y.
+    /// </param>
+    /// <param name="x1">
+    ///     The end's x.
+    /// </param>
+    /// <param name="y1">
+    ///     The end's y.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the track crosses no line; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     public bool CanMoveLine(
         double x0,
         double y0,
         double x1,
         double y1)
-        => TrackClear(
+        => IsTrackClear(
                VerticalOn,
                VerticalStart,
                VerticalEnd,
@@ -170,7 +240,7 @@ public sealed class WallLines
                y0,
                x1,
                y1)
-           && TrackClear(
+           && IsTrackClear(
                HorizontalOn,
                HorizontalStart,
                HorizontalEnd,
@@ -179,11 +249,8 @@ public sealed class WallLines
                y1,
                x1);
 
-    /// <summary>
-    ///     The first index whose On is &gt;= <paramref name="value" />; the server's own bsearch start.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int LowerBound(int[] on, double value)
+    private static int FindLowerBound(int[] on, double value)
     {
         var lo = 0;
         var hi = on.Length;
@@ -201,7 +268,7 @@ public sealed class WallLines
         return lo;
     }
 
-    private static (int[] On, int[] Start, int[] End) Sorted(IReadOnlyList<StraightLine> lines)
+    private static (int[] On, int[] Start, int[] End) SortLines(IReadOnlyList<StraightLine> lines)
     {
         var count = lines.Count;
         var on = new int[count];
@@ -230,7 +297,7 @@ public sealed class WallLines
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool SpanHits(
+    private static bool IntersectsSpan(
         int[] on,
         int[] start,
         int[] end,
@@ -239,7 +306,7 @@ public sealed class WallLines
         double minB,
         double maxB)
     {
-        for (var i = LowerBound(on, minA); i < on.Length; i++)
+        for (var i = FindLowerBound(on, minA); i < on.Length; i++)
         {
             double lineOn = on[i];
 
@@ -254,11 +321,42 @@ public sealed class WallLines
     }
 
     /// <summary>
-    ///     The server's loop with the axes named generically: 'a' is the coordinate the lines sit on, 'b' the one they span.
-    ///     For vertical lines a is x and b is y; for horizontal lines the caller swaps them.
+    ///     Determines whether a track crosses none of one orientation's lines. For vertical lines a is x and b is y; for
+    ///     horizontal lines the caller swaps them.
     /// </summary>
+    /// <param name="on">
+    ///     The coordinate each line sits on, sorted ascending.
+    /// </param>
+    /// <param name="start">
+    ///     The low end of each line's span.
+    /// </param>
+    /// <param name="end">
+    ///     The high end of each line's span.
+    /// </param>
+    /// <param name="a0">
+    ///     The start's coordinate across the lines.
+    /// </param>
+    /// <param name="b0">
+    ///     The start's coordinate along the lines.
+    /// </param>
+    /// <param name="a1">
+    ///     The end's coordinate across the lines.
+    /// </param>
+    /// <param name="b1">
+    ///     The end's coordinate along the lines.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the track crosses no line; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TrackClear(
+    private static bool IsTrackClear(
         int[] on,
         int[] start,
         int[] end,
@@ -270,17 +368,14 @@ public sealed class WallLines
         var minA = Math.Min(a0, a1);
         var maxA = Math.Max(a0, a1);
 
-        //the server starts from a conservative bsearch and skips lines below minA with a continue; starting at
-        //the exact lower bound is the same loop, since no skipped line can equal a1 either
-        for (var i = LowerBound(on, minA); i < on.Length; i++)
+        for (var i = FindLowerBound(on, minA); i < on.Length; i++)
         {
             double lineOn = on[i];
             double lineStart = start[i];
             double lineEnd = end[i];
 
-            //the server's first check, before the range test: a track may not end on a line, and may not slide up
-            //a line's own column from below its start to past it. A track sliding down the column is allowed,
-            //which is the server's quirk and is kept. The server compares exactly here, so a tolerance would change the answer
+            //a track may not end on a line, nor slide up a line's own column past its start; sliding down is allowed
+            //the server compares exactly here
             // ReSharper disable CompareOfFloatsByEqualityOperator
             if ((lineOn == a1) && (((lineStart <= b1) && (lineEnd >= b1)) || ((lineOn == a0) && (b0 <= lineStart) && (b1 > lineStart))))
                 return false;

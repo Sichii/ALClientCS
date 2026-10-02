@@ -50,22 +50,7 @@ namespace AL.Data;
 public record GameData
 {
     /// <summary>
-    ///     The npc every exchange with no quest tag of its own is measured against - <c>G.maps.main.exchange</c> , which the
-    ///     map data carries as a placement of this id on <c>main</c> alone. The copy on <c>original_main</c> sits on a map
-    ///     marked ignored, so <see cref="EnrichNPCs" /> never adds it to <c>Locations</c> - the same skip the server's own
-    ///     placement loop takes ( <c>js/old_common_functions.js:197</c> , filling <c>map.exchange</c> at <c>:236</c> ).
-    /// </summary>
-    private const string EXCHANGE_NPC = "exchange";
-
-    /// <summary>
-    ///     The highest level an exchange prize table is looked for at. The game's grade tables stop at 12.
-    /// </summary>
-    private const int MAX_EXCHANGE_LEVEL = 12;
-
-    /// <summary>
-    ///     The cosmetics every account may wear whether it owns them or not - the server's own <c>free_cx</c>
-    ///     (js/old_common_functions.js:153). They reach a character through its class rather than on their own, so
-    ///     <see cref="EnrichClasses" /> is the only thing that reads them.
+    ///     The cosmetics every account may wear whether it owns them or not, the server's own <c>free_cx</c>.
     /// </summary>
     private static readonly string[] FREE_COSMETICS =
     [
@@ -80,20 +65,14 @@ public record GameData
     private static readonly ILog Log = LogManager.GetLogger(typeof(GameData));
 
     /// <summary>
-    ///     The game-data version the data members were last generated against. AL.MemberGenerator emits the stamp as generated
-    ///     output (dataMembers/version.txt); paste it here when refreshing the datums.
+    ///     The game-data version the data members were last generated against. AL.MemberGenerator writes it to
+    ///     <c>dataMembers/version.txt</c>.
     /// </summary>
     public const int KNOWN_VERSION = 17397;
 
     /// <summary>
-    ///     What a monster with no entry in the dimensions table is squared off at before its size multiplier.
-    /// </summary>
-    private const float UNSIZED_HIT_BOX = 24f;
-
-    /// <summary>
-    ///     The hit box every player is measured against for range: 26 wide and 36 tall, fixed for everyone rather than read
-    ///     from the dimensions table, which carries a different height for the same entry and is not what range is resolved
-    ///     with. Their <i>collision</i> box is a separate and much smaller thing - the pathfinding default.
+    ///     The hit box every player is measured against for range: 26 wide and 36 tall, fixed for everyone. Their collision
+    ///     box is the much smaller pathfinding default.
     /// </summary>
     public static readonly BoundingBase DEFAULT_CHARACTER_HIT_BOX = new(13f, 36f, 0f);
 
@@ -116,9 +95,7 @@ public record GameData
     public static ConditionsDatum Conditions { get; private set; }
 
     /// <summary>
-    ///     Defaulted for the reason <see cref="Multipliers" /> is: a payload missing <c>cosmetics</c> degrades to empty tables
-    ///     rather than throwing, and a character nothing can be dressed in is a better failure than a load that never
-    ///     finishes.
+    ///     The wardrobe rules. Empty tables when the payload carries no <c>cosmetics</c>.
     /// </summary>
     [GameDataRoot]
     public static GCosmetics Cosmetics { get; private set; } = new();
@@ -133,8 +110,7 @@ public record GameData
     public static DismantleDatum Dismantle { get; private set; }
 
     /// <summary>
-    ///     Defaulted for the same reason <see cref="Multipliers" /> is: a payload missing <c>drops</c> degrades to an empty
-    ///     table rather than throwing, and every consumer already has to handle a monster that drops nothing.
+    ///     The drop tables. Empty when the payload carries no <c>drops</c>.
     /// </summary>
     [GameDataRoot]
     public static GDrops Drops
@@ -158,9 +134,7 @@ public record GameData
     public static IReadOnlyDictionary<string, GImageSet> ImageSets { get; private set; } = new Dictionary<string, GImageSet>();
 
     /// <summary>
-    ///     Defaulted like the other art roots and <see cref="Positions" />, for the reason <see cref="Multipliers" /> is: a
-    ///     missing key degrades to an empty table rather than throwing, and nothing that reads them can do more than draw
-    ///     nothing.
+    ///     The pixel size of each asset file, keyed by path. Empty when the payload carries none.
     /// </summary>
     [GameDataRoot]
     public static IReadOnlyDictionary<string, GImage> Images { get; private set; } = new Dictionary<string, GImage>();
@@ -182,12 +156,8 @@ public record GameData
     public static MonstersDatum Monsters { get; private set; }
 
     /// <summary>
-    ///     Defaulted so a payload missing <c>multipliers</c> degrades to zeroed ratios instead of throwing.
+    ///     The game's economy ratios. Zeroed when the payload carries no <c>multipliers</c>.
     /// </summary>
-    /// <remarks>
-    ///     The setter is what <see cref="Bind" /> needs to reach it at all: get-only, it was skipped by the setter filter and
-    ///     every ratio stayed 0.
-    /// </remarks>
     [GameDataRoot]
     public static GMultipliers Multipliers
     {
@@ -252,11 +222,12 @@ public record GameData
     ///     Turns one map's scenery collision boxes into wall lines and appends them to its geometry.
     /// </summary>
     /// <remarks>
-    ///     The game does this in <c>process_map</c> rather than shipping the lines in <c>G.geometry</c> , so a client reading
-    ///     the geometry raw walks straight through the dungeon gate's pillars on <c>main</c> and gets corrected back.
-    ///     Duplicates and overlaps are left to <see cref="FixLines(GGeometry)" /> , which runs after this and merges them
-    ///     anyway.
+    ///     The game does this while processing the map rather than shipping the lines in <c>G.geometry</c>. Duplicates are
+    ///     left to <see cref="FixLines(GGeometry)" />.
     /// </remarks>
+    /// <param name="map">
+    ///     The map whose scenery to fold in.
+    /// </param>
     private static void AddAnimatableWalls(GMap map)
     {
         if (map.Animatables.Count == 0)
@@ -268,7 +239,7 @@ public record GameData
         var horizontalLines = (List<StraightLine>)mapGeometry.HorizontalLines;
         var verticalLines = (List<StraightLine>)mapGeometry.VerticalLines;
 
-        foreach (var line in map.Animatables.Values.SelectMany(animatable => animatable.CollisionLines()))
+        foreach (var line in map.Animatables.Values.SelectMany(animatable => animatable.BuildCollisionLines()))
             if (line.IsVertical)
                 verticalLines.Add(line);
             else
@@ -317,10 +288,18 @@ public record GameData
     }
 
     /// <summary>
-    ///     Drives the G-data statics from the wire by reflection, since a serializer cannot bind static members. Wire keys are
-    ///     matched case-insensitively for parity with the binder this replaced; an absent key leaves the member's own
-    ///     initializer intact.
+    ///     Binds every <see cref="GameDataRootAttribute" /> static from the payload by reflection. Wire keys match
+    ///     case-insensitively, and an absent key leaves the member's own initializer intact.
     /// </summary>
+    /// <param name="json">
+    ///     The game data payload.
+    /// </param>
+    /// <returns>
+    ///     The parsed payload.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///     The payload is not a JSON object, or a root has no setter.
+    /// </exception>
     private static JsonObject Bind(string json)
     {
         var root = JsonNode.Parse(json)
@@ -332,9 +311,7 @@ public record GameData
 
         foreach (var member in members)
         {
-            //this used to be part of the filter above, which silently skipped a get-only member and left it on
-            //its initializer forever - Multipliers read 0 for every ratio that way. A missing setter is a
-            //declaration error, so say so at init rather than serving zeroes for the process's lifetime
+            //a get-only root would silently keep its initializer, so it is a declaration error
             if (member.GetSetMethod(true) is null)
                 throw new InvalidOperationException($"[GameDataRoot] {member.Name} has no setter, so it can never bind.");
 
@@ -354,6 +331,8 @@ public record GameData
 
     public static void BuildBoundingBases()
     {
+        const float UNSIZED_HIT_BOX = 24f;
+
         Log.Debug("Building monster bounding bases");
 
         foreach ((var accessor, var monster) in Monsters.Entries.DistinctBy(kvp => kvp.Value.Accessor))
@@ -381,13 +360,10 @@ public record GameData
                     v = Math.Min(9.9f, dimensions.ElementAtOrDefault(1) / 4f);
             }
 
-            //this is the collision box the game walks and pathfinds with, and is deliberately not the hit box below -
-            //range is resolved against the whole sprite, but movement against a small foot-print at its base
+            //the collision box the game walks and pathfinds with
             monster.BoundingBase = new BoundingBase(h, v, VN);
 
-            //the hit box every range check is resolved against, which is the sprite rather than the foot-print above:
-            //centred horizontally and rising from the monster's feet. A monster with no entry is squared off at 24,
-            //and the handful carrying a size multiplier are scaled first - a crab is half size
+            //the hit box every range check is resolved against: the whole sprite, scaled by the size multiplier
             var hitWidth = dimensions.Count > 0 ? dimensions.ElementAtOrDefault(0) : UNSIZED_HIT_BOX;
             var hitHeight = dimensions.Count > 0 ? dimensions.ElementAtOrDefault(1) : UNSIZED_HIT_BOX;
 
@@ -405,6 +381,21 @@ public record GameData
     ///     Removes wall geometry inside the rect and walls off its long sides, leaving a walkable vertical corridor connecting
     ///     whatever the rect's two short ends overlap.
     /// </summary>
+    /// <param name="mapAccessor">
+    ///     The map to carve.
+    /// </param>
+    /// <param name="left">
+    ///     The rect's left edge.
+    /// </param>
+    /// <param name="right">
+    ///     The rect's right edge.
+    /// </param>
+    /// <param name="top">
+    ///     The rect's top edge.
+    /// </param>
+    /// <param name="bottom">
+    ///     The rect's bottom edge.
+    /// </param>
     private static void CarveCorridor(
         string mapAccessor,
         int left,
@@ -459,15 +450,12 @@ public record GameData
     ///     Carves the corridors that exist only in local data.
     /// </summary>
     /// <remarks>
-    ///     The server never traces the segment between a move's endpoints: it checks them against its walkable lattice (jail)
-    ///     and prices the cells crossed (movement penalty), so a carved channel lets the pathfinder route a crossing the
-    ///     game's own geometry forbids.
+    ///     The server checks only a move's endpoints against its walkable lattice, never the segment between them, so a
+    ///     carved channel routes a crossing the game's own geometry forbids.
     /// </remarks>
     private static void CarveCorridors()
 
-        //winterland ice golem island: the island is legal ground to the server (spawns 6 and 7 sit on it), and this
-        //is the lake's narrowest water - 64 units where every other column is 80 or more. Both mouths round onto
-        //lattice cells the server accepts, and 22 wide leaves a 6px channel after the wall padding
+        //winterland ice golem island, across the lake's narrowest water
         => CarveCorridor(
             "winterland",
             733,
@@ -479,6 +467,24 @@ public record GameData
     ///     Drops the portion of each line inside the window: a line strictly between the on-axis bounds is clipped to the span
     ///     bounds, splitting into up to two pieces. Lines on the window edge merge with the seals instead.
     /// </summary>
+    /// <param name="lines">
+    ///     The lines to clip.
+    /// </param>
+    /// <param name="onMin">
+    ///     The window's lower bound on the lines' fixed axis.
+    /// </param>
+    /// <param name="onMax">
+    ///     The window's upper bound on the lines' fixed axis.
+    /// </param>
+    /// <param name="spanMin">
+    ///     The window's lower bound along the lines.
+    /// </param>
+    /// <param name="spanMax">
+    ///     The window's upper bound along the lines.
+    /// </param>
+    /// <returns>
+    ///     The lines, with every portion inside the window removed.
+    /// </returns>
     private static IEnumerable<StraightLine> ClipLines(
         IEnumerable<StraightLine> lines,
         int onMin,
@@ -522,9 +528,15 @@ public record GameData
     }
 
     /// <summary>
-    ///     Counts wire members across the datum-backed roots that no generated property declares - the signal that
-    ///     AL.MemberGenerator actually needs a re-run, as opposed to a version bump that only changed values.
+    ///     Counts wire members across the datum-backed roots that no generated property declares, which means
+    ///     AL.MemberGenerator needs a re-run.
     /// </summary>
+    /// <param name="root">
+    ///     The parsed payload.
+    /// </param>
+    /// <returns>
+    ///     The number of undeclared members.
+    /// </returns>
     internal static int CountUnknownMembers(JsonObject root)
     {
         var count = 0;
@@ -581,16 +593,19 @@ public record GameData
     }
 
     /// <summary>
-    ///     Where the server lets a door open from, as a band plus a range. The server measures a door-sized box standing on
-    ///     the door's own spawn against the character's 26 by 36 box, per axis, clamped at zero, and opens the door under 112.
-    ///     The character positions whose box touches the door's box form a rectangle (the door box grown by the character
-    ///     box), and the region is that rectangle inflated by the range.
+    ///     Calculates where the server lets a door open from, as a band plus a range. The band is a door-sized box standing
+    ///     on the door's own spawn, grown by the character's box.
     /// </summary>
+    /// <param name="map">
+    ///     The map the door is on.
+    /// </param>
+    /// <param name="door">
+    ///     The door.
+    /// </param>
     /// <returns>
-    ///     The band and range, or a zero-size band on the door with no range for a door whose spawn cannot be resolved - the
-    ///     server faults on the same missing spawn, and a range there would stop the walk somewhere the door does not open.
+    ///     The band and range, or a zero-size band on the door with no range when the door's spawn cannot be resolved.
     /// </returns>
-    private static (Rectangle Band, float Range) DoorReachBand(GMap map, GDoor door)
+    private static (Rectangle Band, float Range) CalculateDoorReach(GMap map, GDoor door)
     {
         var spawnId = (int)door.CurrentMapSpawnId;
 
@@ -603,7 +618,7 @@ public record GameData
 
         var spawn = map.Spawns[spawnId];
 
-        //generated_use_door takes is_door_close's 40 about the landing instead of the world door's 112
+        //a generated floor's stairs open within the stair range of the landing
         if (map.Generated is not null)
             return (new Rectangle(
                 spawn.X,
@@ -617,8 +632,7 @@ public record GameData
 
         var band = new Rectangle(new Point(spawn.X - halfWidth, top), new Point(spawn.X + halfWidth, bottom));
 
-        //a door sitting outside its own region means the spawn is not the one the server pairs with it, so the
-        //band is not to be trusted either - walk to the door itself rather than to a region we just disproved
+        //a door outside its own band is paired with the wrong spawn, so walk to the door itself
         if (band.EdgeToCenterDistance(door) >= CONSTANTS.DOOR_RANGE)
         {
             Log.Warn($"Door {map.Accessor} => {door.DestinationMap} lies outside the range of spawn {spawnId}.");
@@ -634,16 +648,9 @@ public record GameData
     }
 
     /// <summary>
-    ///     Finishes every class's exclusive-cosmetic list the way the server's own game-data pass does
-    ///     (js/old_common_functions.js:171-182): the free makeups, then the name and every per-slot piece of each of the
-    ///     class's <see cref="GClassLook" />s.
+    ///     Finishes every class's exclusive-cosmetic list the way the server's own game-data pass does: the free makeups, then
+    ///     the name and every per-slot piece of each of the class's <see cref="GClassLook" />s.
     /// </summary>
-    /// <remarks>
-    ///     The payload is the raw list, not the finished one - most classes send nothing for it at all, and none of them names
-    ///     its own looks. A character is entitled to those, so without this pass anything asking what a class may wear is
-    ///     missing its default looks and answers <c>cx_not_found</c> on a name the server would have taken. Each push is
-    ///     guarded the way the server guards it, so a name already granted outright is not repeated.
-    /// </remarks>
     private static void EnrichClasses()
     {
         Log.Debug("Enriching class cosmetics");
@@ -656,9 +663,6 @@ public record GameData
                 if (!exclusives.Contains(cosmetic))
                     exclusives.Add(cosmetic);
 
-            //a look short of its name or its slot map is skipped rather than thrown on. The server's own loop
-            //shrugs the same gap off, and this runs inside Populate - throwing here would stop every character
-            //logging in over one malformed entry
             foreach (var look in gClass.Looks)
             {
                 if (!exclusives.Contains(look.Name))
@@ -684,8 +688,7 @@ public record GameData
 
         foreach ((var dropId, var element) in Drops.Unbound)
         {
-            //defensive about shape rather than about presence: every leftover key in the committed data is an array
-            //of drop entries, and a future scalar would otherwise throw out of startup
+            //skip anything that is not a list of drop entries
             if (element.ValueKind != JsonValueKind.Array)
                 continue;
 
@@ -697,14 +700,18 @@ public record GameData
     }
 
     /// <summary>
-    ///     The class and map bonuses among an item's unbound keys: every object filed under a class's or a map's key.
+    ///     Builds the class and map bonuses from an item's unbound keys: every object filed under a class's or a map's key.
     /// </summary>
     /// <remarks>
-    ///     An upgrade or compound line inside a bonus only reaches the stats the bonus also names at its own top level. The
-    ///     server's merge walks the bonus's keys rather than the line's ( <c>adopt_extras</c> , <c>js/progression/stats.js</c>
-    ///     ), so a tiger helmet's rogue crit per level counts because the rogue bonus names crit too.
+    ///     An upgrade or compound line inside a bonus only reaches the stats the bonus also names at its own top level.
     /// </remarks>
-    private static IReadOnlyDictionary<string, GItemBonus> BonusesFor(Dictionary<string, JsonElement> wireExtras)
+    /// <param name="wireExtras">
+    ///     The item's unbound keys.
+    /// </param>
+    /// <returns>
+    ///     The bonuses, keyed by class or map.
+    /// </returns>
+    private static IReadOnlyDictionary<string, GItemBonus> BuildBonuses(Dictionary<string, JsonElement> wireExtras)
     {
         var bonuses = new Dictionary<string, GItemBonus>(StringComparer.OrdinalIgnoreCase);
 
@@ -723,20 +730,23 @@ public record GameData
 
             bonuses[key] = bonus with
             {
-                UpgradeModifiers = ReachedBy(bonus.UpgradeModifiers, bonus),
-                CompoundModifiers = ReachedBy(bonus.CompoundModifiers, bonus)
+                UpgradeModifiers = FilterToNamedStats(bonus.UpgradeModifiers, bonus),
+                CompoundModifiers = FilterToNamedStats(bonus.CompoundModifiers, bonus)
             };
         }
 
         return bonuses;
 
-        static IReadOnlyDictionary<ALAttribute, float>? ReachedBy(IReadOnlyDictionary<ALAttribute, float>? line, GItemBonus bonus)
+        static IReadOnlyDictionary<ALAttribute, float>? FilterToNamedStats(IReadOnlyDictionary<ALAttribute, float>? line, GItemBonus bonus)
             => line?.Where(entry => bonus.Attributes.ContainsKey(entry.Key))
                    .ToDictionary(entry => entry.Key, entry => entry.Value);
     }
 
     private static void EnrichItems()
     {
+        //the npc every exchange with no quest tag of its own is made at
+        const string EXCHANGE_NPC = "exchange";
+
         Log.Debug("Enriching item metadata");
 
         //--CONNECT ITEM DATA--
@@ -749,9 +759,7 @@ public record GameData
                 item.Recipe = recipe;
         }
 
-        //connect item ObtainableFromNPC. Placed sellers first: this is a first-writer race and CanBuy ends on
-        //ObtainableFromNPC.Locations.Any, so an item resolved to a seller standing only on ignored maps is unbuyable
-        //with nothing logged anywhere. OrderByDescending is stable, so the datum's own order still decides among peers
+        //connect item ObtainableFromNPC. first writer wins, so placed sellers go first
         foreach (var npc in NPCs.Values
                                 .DistinctBy(npc => npc.Id)
                                 .OrderByDescending(npc => npc.Locations.Count > 0))
@@ -772,10 +780,10 @@ public record GameData
 
         foreach (var item in Items.Values.DistinctBy(item => item.Accessor))
         {
-            //guarded, not rebuilt: the wire keys are cleared once read, so a second pass would build nothing
+            //the wire keys are cleared once read
             if (item.WireExtras is not null)
             {
-                item.Bonuses = BonusesFor(item.WireExtras);
+                item.Bonuses = BuildBonuses(item.WireExtras);
                 item.WireExtras = null;
             }
 
@@ -797,17 +805,12 @@ public record GameData
                     item.ObtainType = ObtainType.Craft;
                 }
 
-            //exchange at, as the server's own rule: the item's quest npc when it carries a quest tag, and the one
-            //fixed exchange placement otherwise (node/server.js:6073). Gated on exchangeability, since that is what
-            //the field means. GetValueOrDefault rather than the indexer, or a missing quest throws out of startup
+            //exchange at the item's quest npc when it carries a quest tag, and the fixed exchange npc otherwise
             if (item.ExchangeCount.HasValue)
             {
                 item.ExchangeAtNPC = item.Quest is { } quest ? Quests.GetValueOrDefault(quest) : NPCs[EXCHANGE_NPC];
 
-                //the prizes, keyed the way the server keys the table it rolls: the item's name plus its level when
-                //the item compounds or upgrades, and the bare name otherwise (node/server.js:6067-6068). Assembled
-                //here and nowhere else - a drop id built a second time is one that drifts
-                item.ExchangeRewards = ExchangeRewardsFor(item);
+                item.ExchangeRewards = BuildExchangeRewards(item);
             }
         }
 
@@ -834,9 +837,11 @@ public record GameData
     ///     Applies one map's share of <see cref="EnrichMaps" />, so a floor filed at runtime gets the same exits, npc and
     ///     monster links G's own maps got on load.
     /// </summary>
+    /// <param name="map">
+    ///     The map to enrich.
+    /// </param>
     private static void EnrichMap(GMap map)
     {
-        //empty rather than absent for a map with no table, so nothing downstream distinguishes two kinds of nothing
         map.Drops = Drops.Maps.GetValueOrDefault(map.Accessor) ?? [];
 
         var geometry = Geometry[map.Accessor];
@@ -938,7 +943,7 @@ public record GameData
                 continue;
 
             var spawn = toMapData.Spawns[door.DestinationSpawnId];
-            (var band, var range) = DoorReachBand(map, door);
+            (var band, var range) = CalculateDoorReach(map, door);
 
             exits.Add(
                 new Exit(
@@ -1046,8 +1051,7 @@ public record GameData
             else
                 recipe.NPC = craftsman;
 
-        //no dismantle recipe carries a quest tag today, but the fallback matters: the server requires the craftsman
-        //for every dismantle (node/server.js:5892), and NPC is non-nullable
+        //the server requires the craftsman for every dismantle
         foreach (var recipe in Dismantle.Values)
             if (recipe.Quest.HasValue && (recipe.Quest.Value != Quest.None))
                 recipe.NPC = Quests[recipe.Quest.Value];
@@ -1060,22 +1064,14 @@ public record GameData
     ///     line.
     /// </summary>
     /// <remarks>
-    ///     The server does this to its own copy of G at boot - <c>sprocess_game_data</c> ,
-    ///     <c>node/server_functions.js:248-260</c> - and then applies the single entry matching the worn count,
-    ///     <c>node/server.js:1255-1261</c> . That rollup never reaches the appengine copy this downloads, so what arrives here
-    ///     is per-tier deltas. Reading a delta as the count's value understates it badly: heavy armor at five pieces lists 16
-    ///     fortitude and grants 38.
-    ///     <br />
-    ///     The server's loop stops at <c>items.length</c> , so a count past the top authored tier keeps the top total - twelve
-    ///     vampire pieces is what three is. Reproduced here by running the ladder to the member count rather than to the
-    ///     highest tier the wire authored.
+    ///     The server folds its own copy at boot, but the downloaded data carries per-tier deltas. A count past the top
+    ///     authored tier keeps the top total.
     /// </remarks>
     private static void EnrichSets()
     {
         foreach (var set in Sets.Values)
         {
-            //the wire tiers are cleared once folded, so a set reached twice - the lookup can file one object under
-            //more than one key - is skipped rather than having its ladder rebuilt from nothing
+            //the wire tiers are cleared once folded, and the lookup can file one set under several keys
             if (set.WireTiers is null)
                 continue;
 
@@ -1097,8 +1093,7 @@ public record GameData
                         Pieces = pieces,
                         Adds = adds,
 
-                        //copied rather than shared: the running total keeps being added to, and every tier would
-                        //otherwise end up holding the last one
+                        //copied, since the running total keeps being added to
                         InEffect = new GSetBonus
                         {
                             Attributes = new Dictionary<ALAttribute, float>(running)
@@ -1112,11 +1107,20 @@ public record GameData
     }
 
     /// <summary>
-    ///     Every prize table this item can be exchanged for, by level, or <c>null</c> where the data has none.
+    ///     Builds every prize table this item can be exchanged for, by level.
     /// </summary>
-    private static IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? ExchangeRewardsFor(GItem item)
+    /// <param name="item">
+    ///     The exchangeable item.
+    /// </param>
+    /// <returns>
+    ///     The prize tables keyed by level, or <c>null</c> where the data has none.
+    /// </returns>
+    private static IReadOnlyDictionary<int, IReadOnlyList<GDrop>>? BuildExchangeRewards(GItem item)
     {
-        //compound and upgrade arrive as the stat tables they scale, so "either is present" is the server's own test
+        //the game's grade tables stop at 12
+        const int MAX_EXCHANGE_LEVEL = 12;
+
+        //an item that neither compounds nor upgrades keys its table by its bare name
         if (item is { CompoundModifiers: null, UpgradeModifiers: null })
             return Drops.Tables.GetValueOrDefault(item.Accessor) is { } table
                 ? new Dictionary<int, IReadOnlyList<GDrop>>
@@ -1127,8 +1131,7 @@ public record GameData
 
         var levelled = new Dictionary<int, IReadOnlyList<GDrop>>();
 
-        //asked level by level rather than scanned, because the id is a string the game writes per level. The bound is
-        //the highest level any grade table reaches; a level past the last table has no prize and is not exchangeable
+        //otherwise the table is keyed by the item's name plus its level
         for (var level = 0; level <= MAX_EXCHANGE_LEVEL; level++)
             if (Drops.Tables.GetValueOrDefault(item.Accessor + level) is { } table)
                 levelled[level] = table;
@@ -1170,22 +1173,21 @@ public record GameData
         Log.Info("Deserializing game data");
         var root = Bind(json);
 
-        //a version bump alone is not actionable - the data members only need regenerating when the live data
-        //carries members they do not declare
+        //the data members only need regenerating when the live data carries members they do not declare
         if (Version > KNOWN_VERSION)
         {
             var unknownMembers = CountUnknownMembers(root);
 
             if (unknownMembers > 0)
                 Log.Warn(
-                    $"Server game data is version {Version}, newer than the version the data members were generated against ({KNOWN_VERSION}),"
-                    + $" and carries {unknownMembers} members they do not declare. Re-run AL.MemberGenerator.");
+                    $"Server game data is version {Version}, newer than the version the data members were generated against"
+                    + $" ({KNOWN_VERSION}), and carries {unknownMembers} members they do not declare."
+                    + " Re-run AL.MemberGenerator.");
         }
 
         Log.Info("Constructing data lookups");
 
-        //the payload only began carrying these three tables at version 16846, and the frozen fixture carries the two
-        //odds tables and not the gold one: a section the payload lacks reads as an empty table rather than a null root
+        //a section the payload lacks reads as an empty table rather than a null root
         // ReSharper disable NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         Compounds ??= new CompoundsDatum();
         MonsterGold ??= new MonsterGoldDatum();
@@ -1227,13 +1229,11 @@ public record GameData
         //populate quest dictionary with npcs
         EnrichQuests();
 
-        //drops first: the map and item passes below both hang tables off what this builds, and a pass reading an
-        //empty Tables would enrich nothing and say nothing
+        //drops first, since the map and item passes read the tables it builds
         EnrichDrops();
 
-        //connect various data points. NPCs before items, because the item pass now prefers a seller that is actually
-        //placed and GNPC.Locations is empty until EnrichNPCs fills it - EnrichMaps has already put the per-map entries
-        //and npc.Data in place, which is all EnrichNPCs itself needs
+        //connect various data points. NPCs before items, since the item pass prefers a placed seller and
+        //GNPC.Locations is empty until EnrichNPCs fills it
         EnrichRecipes();
         EnrichMaps();
         EnrichNPCs();
@@ -1249,9 +1249,15 @@ public record GameData
 
     /// <summary>
     ///     Files a dungeon run's floors under their keys, enriched like the maps G carries. A manifest entry files the floor's
-    ///     record alone, so a stair leading to it resolves before its geometry arrives; the floor's own delivery then replaces
-    ///     the record and adds the geometry. Delivering a floor twice changes nothing.
+    ///     record alone, so a stair leading to it resolves before its geometry arrives. Delivering a floor twice changes
+    ///     nothing.
     /// </summary>
+    /// <param name="bundle">
+    ///     The run's manifest and delivered floors.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     bundle
+    /// </exception>
     public static void RegisterGeneratedFloors(GeneratedMapBundle bundle)
     {
         ArgumentNullException.ThrowIfNull(bundle);
@@ -1291,6 +1297,12 @@ public record GameData
     /// <summary>
     ///     Takes a run's floors back out of the map and geometry tables.
     /// </summary>
+    /// <param name="run">
+    ///     The run's id.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     run
+    /// </exception>
     public static void UnregisterGeneratedRun(string run)
     {
         ArgumentNullException.ThrowIfNull(run);

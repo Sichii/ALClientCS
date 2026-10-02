@@ -6,32 +6,25 @@ using System.Text.Json.Serialization;
 namespace AL.Data.Images;
 
 /// <summary>
-///     The wardrobe rules: which names stand for several sprites, which stand for another name, and where the sheets a
-///     slot draws from are placed.
+///     Represents the wardrobe rules: which names stand for several sprites, which stand for another name, and where the
+///     sheets a slot draws from are placed.
 /// </summary>
 /// <remarks>
-///     Every table here is looked up ordinally, unlike the rest of the game data. The server's are plain JS objects and
-///     its own lookups are therefore case-sensitive (node/server.js:4844), so a case-insensitive table would answer that a
-///     differently-cased name is wearable and the emit built on that answer comes back <c>cx_not_found</c> . The defaults
-///     below are ordinal for that reason, and so is what System.Text.Json binds over them.
-///     <br />
-///     A cosmetic's slot is resolved through <see cref="GSprite.Type" />, never through these catalogues: only four slots
-///     carry one, and the catalogues exist for the per-slot placement their values hold rather than to enumerate what may
-///     be worn.
+///     Every table here is ordinal, because the server's own lookups are case-sensitive. A cosmetic's slot is resolved
+///     through <see cref="GSprite.Type" />, never through these catalogues.
 /// </remarks>
 public sealed record GCosmetics
 {
     /// <summary>
     ///     How far a back cosmetic moves sideways when the character faces left or right, keyed by sprite name. A name absent
-    ///     here moves 3; the backpacks are listed at 1.
+    ///     here moves 3.
     /// </summary>
     [JsonPropertyName("back")]
     public IReadOnlyDictionary<string, double> Back { get; init; } = new Dictionary<string, double>(StringComparer.Ordinal);
 
     /// <summary>
-    ///     The names that stand for several sprites at once, each mapped to its members. A bundle name is not itself wearable
-    ///     - the server expands it and keys the members in verbatim, without sending them back through <see cref="Map" />
-    ///     (js/old_common_functions.js:279).
+    ///     The names that stand for several sprites at once, each mapped to its members. A bundle name is not itself wearable,
+    ///     and its members are not sent back through <see cref="Map" />.
     /// </summary>
     [JsonPropertyName("bundle")]
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Bundle { get; init; }
@@ -65,11 +58,6 @@ public sealed record GCosmetics
     ///     How far up the body a head sits before <see cref="GSprite.Size" /> moves it, in the sprite's own pixels rather than
     ///     screen ones.
     /// </summary>
-    /// <remarks>
-    ///     These six are where the client starts every placement from (js/html.js:7617-7619, <c>:7697-7701</c> ). They are the
-    ///     whole reason a preview drawn from the catalogues alone sits wrong: a hat stacks on the head's placement plus the
-    ///     head's own height plus the hair's, and none of those three are in the catalogues below.
-    /// </remarks>
     [JsonPropertyName("default_head_place")]
     public int DefaultHeadPlace { get; init; }
 
@@ -97,20 +85,18 @@ public sealed record GCosmetics
     [JsonPropertyName("hat")]
     public IReadOnlyDictionary<string, JsonElement> Hat { get; init; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
-    /// <summary>The head catalogue.</summary>
+    /// <summary>
+    ///     The head catalogue. Most values name the small, medium and large sheets the head is drawn from.
+    /// </summary>
     /// <remarks>
-    ///     <b>The values are not one shape.</b> Most name the small, medium and large sheets the head is drawn from, but a
-    ///     third of them carry a trailing number after those three. That is why this is <see cref="JsonElement" />: typing it
-    ///     as a list of strings binds most of the table and throws on the rest, and it throws inside <c>GameData.Bind</c> , so
-    ///     the symptom is a bot that will not start rather than a head that will not draw. Whoever needs the values reads the
-    ///     shape here first.
+    ///     The values are not one shape: some carry a trailing number after the three sheet names.
     /// </remarks>
     [JsonPropertyName("head")]
     public IReadOnlyDictionary<string, JsonElement> Head { get; init; } = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
     /// <summary>
-    ///     How far down one body sprite wears its head, keyed by the body's sprite name. The head, the hair, the hat and
-    ///     everything placed off the head all move down with it.
+    ///     How far down one body sprite wears its head, keyed by the body's sprite name. Everything placed off the head moves
+    ///     down with it.
     /// </summary>
     [JsonPropertyName("head_y")]
     public IReadOnlyDictionary<string, double> HeadY { get; init; } = new Dictionary<string, double>(StringComparer.Ordinal);
@@ -122,15 +108,14 @@ public sealed record GCosmetics
     public IReadOnlyDictionary<string, string> Map { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
     /// <summary>
-    ///     The sprites drawn with no upper body, which is also a value <see cref="Prop" /> carries for the same sprite. The
-    ///     two are separate keys in the data and stay separate here.
+    ///     The sprites drawn with no upper body. <see cref="Prop" /> carries the same tag as a separate key.
     /// </summary>
     [JsonPropertyName("no_upper")]
     public IReadOnlyList<string> NoUpper { get; init; } = [];
 
     /// <summary>
     ///     How a sprite is drawn, keyed by sprite name: whether it covers what is worn beneath, hides hair, is bulky or
-    ///     slender, animates fast. The tags are free-form strings rather than a closed set.
+    ///     slender, animates fast. The tags are free-form strings.
     /// </summary>
     [JsonPropertyName("prop")]
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Prop { get; init; }

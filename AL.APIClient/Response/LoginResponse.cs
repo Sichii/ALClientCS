@@ -10,7 +10,7 @@ namespace AL.APIClient.Response;
 public sealed record LoginResponse
 {
     /// <summary>
-    ///     Set when the server rejected the login. <see cref="Reason" /> says why.
+    ///     Whether the server rejected the login. <see cref="Reason" /> says why.
     /// </summary>
     [JsonPropertyName("failed")]
     public bool Failed { get; init; }
@@ -30,13 +30,14 @@ public sealed record LoginResponse
     public string? Message { get; init; }
 
     /// <summary>
-    ///     The machine readable failure code. e.g. "wrong_password", "email_not_found", "cant_login_inside_bank".
+    ///     The machine readable failure code, such as <c>wrong_password</c>, <c>email_not_found</c> or
+    ///     <c>cant_login_inside_bank</c>.
     /// </summary>
     [JsonPropertyName("reason")]
     public string? Reason { get; init; }
 
     /// <summary>
-    ///     The kind of message this is. e.g. "message", "content", "eval", "refresh".
+    ///     The kind of message this is, such as <c>message</c>, <c>content</c>, <c>eval</c> or <c>refresh</c>.
     /// </summary>
     [JsonPropertyName("type")]
     public string? Type { get; init; }
