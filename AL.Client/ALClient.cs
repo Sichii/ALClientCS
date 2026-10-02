@@ -183,10 +183,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     The character's progress towards ongoing achievements.
-    ///     <br />
-    ///     <b>
-    ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
-    ///     </b>
     /// </summary>
     public ConcurrentDictionary<string, AchievementProgressData> AchievementProgress { get; }
 
@@ -204,19 +200,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     When a chest drops or is opened, it will be populated or removed from this collection.
-    ///     <br />
-    ///     <b>
-    ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
-    ///     </b>
     /// </summary>
     public ConcurrentDictionary<string, DropData> Chests { get; }
 
     /// <summary>
     ///     When a skill is used and the server sends back a cooldown, it will be populated here.
-    ///     <br />
-    ///     <b>
-    ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
-    ///     </b>
     /// </summary>
     public ConcurrentDictionary<string, CooldownInfo> Cooldowns { get; }
 
@@ -225,10 +213,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     A collection of the monsters being kept track of.
-    ///     <br />
-    ///     <b>
-    ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
-    ///     </b>
     /// </summary>
     public ConcurrentDictionary<string, Monster> Monsters { get; }
 
@@ -237,19 +221,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     /// <summary>
     ///     A collection of the players being kept track of.
-    ///     <br />
-    ///     <b>
-    ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
-    ///     </b>
     /// </summary>
     public ConcurrentDictionary<string, Player> Players { get; }
 
     /// <summary>
     ///     A collection of projectiles being kept track of.
-    ///     <br />
-    ///     <b>
-    ///         THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT.
-    ///     </b>
     /// </summary>
     public ConcurrentDictionary<string, ActionData> Projectiles { get; }
 

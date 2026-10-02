@@ -121,18 +121,18 @@ The six library projects are packed on build; `AL.MemberGenerator`, `AL.Visualiz
 data, and sets up a few other statics. It is CPU-heavy and takes several seconds. `Pathfinder.Initialize()` does the
 pathfinding half alone.
 
-Login is API-first, then per-character: `ALAPIClient.LoginAsync(email, pw)` produces the API client, then `Warrior.StartAsync(name, region, id, apiClient)` (or `Ranger`/`Priest`/`Merchant`) connects one character.
+Login is API-first, then per-character: `AlApiClient.LoginAsync(email, pw)` produces the API client, then
+`Warrior.StartAsync(name, region, id, apiClient)` (or any other class) connects one character.
 
 ### Client Layer (`AL.Client`)
 
 - **`ALClient`** -- `abstract class ALClient : IAsyncDisposable, IDeltaUpdatable`. Holds the socket, the API handle, the persistent `Character`, and the live entity collections. Owns a private `EntityManager` and `PingManager`.
-- **`Merchant` / `Ranger` / `Priest` / `Warrior`** -- concrete subclasses adding class-specific skills. `Warrior` is `sealed`; the other three are not.
+- **`Mage` / `Merchant` / `Paladin` / `Priest` / `Ranger` / `Rogue` / `Warrior`** -- one subclass per character class,
+  adding its skills. Only `Warrior` is `sealed`.
 - **`AsyncDeltaLoop`** (`Abstractions/`) -- base for rate-limited internal loops. `PeriodicTimer(1000 / PollingRate)` plus `Chaos.Time.DeltaTime`, serialized through a `FifoAutoReleasingSemaphoreSlim`. Per-iteration exceptions are caught and logged so a bad tick never kills the loop. Note `Start()` is `async void` by design — it is fire-and-forget; use `StopAsync()` to cancel.
 - **`ALClientSettings`** -- static config. `NetworkTimeoutMS` (default 1500), `PositionPollingRate` (default 30), `SetLogLevel()`, `UseDefaultLoggingConfiguration()`.
 - **`Helpers/`, `Extensions/`** -- client-level utilities. Most general-purpose utility lives one layer down in
   `AL.Core.Extensions`.
-
-Several live collections on `ALClient` (`AchievementProgress`, `Chests`, `Cooldowns`, and siblings) carry an XML doc warning verbatim: **"THIS COLLECTION IS SYNCHRONIZED, DO NOT DO LONG RUNNING OPERATIONS WHILE ITERATING IT."** Materialize with `.ToList()` before doing anything slow.
 
 ### Logging
 
@@ -183,12 +183,12 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
 
 Getting these wrong produces stale reads and NREs, because "the object I'm holding" and "the object the server knows about" diverge silently.
 
-| Object | Lifetime |
-|---|---|
-| `Client.Character` | **Fully persistent and mutable.** A reference stays valid for the client's lifetime. |
-| Properties *of* `Character` | **Non-persistent.** Every object property is replaced, not mutated — re-read it, never cache it. |
-| Players / NPCs / Monsters | **Semi-persistent.** Valid until the server invalidates the entity. |
-| `Client.Bank` | Overwritten wholesale each time the character enters the bank; `null` until the first visit. |
+| Object                      | Lifetime                                                                                                                   |
+|-----------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `Client.Character`          | **Fully persistent and mutable.** A reference stays valid for the client's lifetime.                                       |
+| Properties *of* `Character` | **Non-persistent.** Every object property is replaced, not mutated — re-read it, never cache it.                           |
+| Players / NPCs / Monsters   | **Semi-persistent.** Valid until the server invalidates the entity.                                                        |
+| `Client.Bank`               | `null` until the first visit. Overwritten on every character frame inside the bank; keeps the last contents after leaving. |
 
 The server invalidates an entity when it dies, when the client travels too far from it, or when the client changes maps.
 

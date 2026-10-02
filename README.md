@@ -1,90 +1,174 @@
 # ALClientCS
-This is a headless client for the game "Adventure.Land". Using this client will not be a 1 to 1 with any other client. Many objects, properties, methods, etc have been renamed to be more descriptive than the original.
-Due to the difference in weak vs strongly typed language... many API, Socket, and Data objects contain the equivalent properties of multiple objects from the original. <br/>
-This project consists of multiple libraries that build on eachother, and so can be used seperately if required. <br/>
-<br/>
+
+A headless C# client for the browser game [Adventure.Land](https://adventure.land).
+
+It is not a one-to-one copy of the official client. Many names are changed to say what they hold. A monster's `type` is
+`Monster.Name`, `G` is `GameData`, and `smart_move` is `SmartMoveAsync`. The game's JavaScript is loosely typed, so one
+class here often holds the fields of several of the game's objects.
+
+The client is split into libraries that build on each other. You can use each one on its own.
+
 ```
         ┌────> AL.Data ─────> AL.Pathfinding ───┐
 AL.Core─┤                                       ├─> AL.Client
         └─> AL.APIClient ───> AL.SocketClient ──┘
 ```
 
-# Logging
-This client uses `Common.Logging`, allowing users implement their own logging solution if so desired, or any number of factory adapters from nuget. <br/>
-<br/>
-Alternatively, the default logging configuration can be enabled by adding `ALClientSettings.UseDefaultLoggingConfiguration();` somewhere near the beginning of the application. <br/>
-The default logging configuration utilizes an `NLog` factory adapter. The logging level can be changed in the settings. <br/>
+## Install
 
-# Settings
-Aside from logging, there are some other options available in `ALClientSettings` that may be worth checking out. <br/>
+The packages are not on nuget.org yet. Clone this repo and reference `AL.Client/AL.Client.csproj`, which brings in the
+other libraries.
 
-# Pathfinding
-This client uses a triangulated navigation mesh for complex movement, and a 2d array of bytes for simple movement. <br/>
-Both of these are generated when the pathfinder is initialized. This is done during client initialization, or can be done manually.
-```c#
-	//use this, it initializes the pathfinder, game data, and a few other key things
-	ALClient.InitializeAsync();
-	
-	//manual initialization
-	Pathfinder.InitializeAsync();
-```
-
-# General usage
-```c#
-	private static async Task Main()
-	{
-		ALClientSettings.UseDefaultLoggingConfiguration();
-		//ALClientSettings.SetLogLevel(LogLevel.Debug);
-
-		//this is processing intensive, and may take several seconds to run depending on your CPU.
-		await ALClient.InitializeAsync();
-
-		var apiClient = await ALAPIClient.LoginAsync("yourEmail", "yourPassword");
-		var makiz = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient);
-		var ragnah = await Priest.StartAsync("ragnah", ServerRegion.US, ServerId.III, apiClient);
-	}
-```
-
-# Tips
-### GameData
-`GameData` can be used for static access to 'G' objects. This is populated when `ALClient.InitializeAsync` is called.
-Extra data elements have been enriched into this data. A few such examples are...
+## Quick start
 
 ```c#
-	var gItem = GameData.Items["someItemName"];
-	var obtainAtGNpc = gItem.ObtainableFromNPC;
-	var exchangeAtGNpc = gItem.ExchangeAtNPC;
-	var craftRecipe = gItem.Recipe;
-	var craftAtNPC = craftRecipe.NPC;
-	
-	var gMap = GameData.Maps["someMapName"];
-	var doorsAndTransports = gMap.Exits;
-	
-	var gMapMonsters = gMap.Monsters;	
-	var gMapMonster = gMapMonsters.FirstOrDefault();
-	var gMonster = gMapMonster.Data;
-	
-	var gMapNpcs = gMap.NPCs;
-	var gMapNpc = gMapNPCs.FirstOrDefault();
-	var gNpc = gMapNpc.Data;
-	
-	//this enriched element is inserted into the corresponding Monster entity to allow rectangle calculations
-	var boundingBase = gMonster.BoundingBase;
+using AL.APIClient;
+using AL.APIClient.Definitions;
+using AL.Client;
+using AL.Core.Definitions;
+using AL.Data;
+
+ALClientSettings.UseDefaultLoggingConfiguration();
+
+//this is processing intensive, and may take several seconds to run depending on your CPU.
+await ALClient.InitializeAsync();
+
+var apiClient = await AlApiClient.LoginAsync("yourEmail", "yourPassword");
+
+await using var warrior = await Warrior.StartAsync("makiz", ServerRegion.US, ServerId.III, apiClient);
+await using var merchant = await Merchant.StartAsync("sichi", ServerRegion.US, ServerId.III, apiClient);
 ```
 
-### Extensions
-Many utility methods are contained within `Extensions` classes, most of those being under the `AL.Core.Extensions` namespace. <br/>
+There is one class per character class: `Mage`, `Merchant`, `Paladin`, `Priest`, `Ranger`, `Rogue` and `Warrior`.
+Disposing a client disconnects it.
 
-### Persistence
-1. Each time you enter the `Bank`, new bank information overwrites `Client.Bank`. <br/>
-2. The `Character` object for each client is fully persistent and mutable. <br/>
-	a. In other words, a reference to this object will be valid for the lifetime of the client. <br/>
-3. **All object properties of `Character` are non-persistent.**
-4. Other entities (players, npcs, monsters) are semi-persistent. References are valid until the server invalidates an entity <br/>
-	a. The entity died <br/>
-	b. The client traveled too far from the entity <br/>
-	c. The client changed maps <br/>
-	
-# Credits
-[Earthiverse](https://github.com/earthiverse/ALClient): typings, callbacks <br/>
-[Spadar](https://github.com/Spadar/AdventureLandService): mesh generation
+Once a client is started, you can act with it:
+
+```c#
+//walk to the nearest potion seller and buy 10 health potions
+await merchant.SmartMoveToNPCAsync("fancypots");
+await merchant.BuyAsync("hpot0", 10);
+```
+
+```c#
+//walk to the nearest area where goos spawn
+await warrior.SmartMoveToMonsterAsync("goo");
+
+//attack one goo until it is gone, then pick the next one
+string? targetId = null;
+
+while (true)
+{
+    await Task.Delay(100);
+
+    if (targetId is null || !warrior.Monsters.ContainsKey(targetId))
+        targetId = warrior.Monsters.Values.FirstOrDefault(monster => monster.Name == "goo")?.Id;
+
+    if (targetId is null || !warrior.Monsters.TryGetValue(targetId, out var goo))
+        continue;
+
+    if (!warrior.WithinSkillRange(goo, "attack"))
+    {
+        await warrior.SmartMoveAsync(goo, warrior.Character.Range);
+
+        continue;
+    }
+
+    if (!warrior.CanUseSkill("attack"))
+        continue;
+
+    try
+    {
+        await warrior.AttackAsync(goo.Id);
+    } catch (Exception e)
+    {
+        //the goo can die or move away between the checks and the attack
+        Console.WriteLine(e.Message);
+    }
+}
+```
+
+## Game data
+
+`GameData` holds the game's static data (`G`). `ALClient.InitializeAsync` fills it. Some extra fields are added that the
+game does not have:
+
+```c#
+var item = GameData.Items["someItemName"]!;
+var source = item.ObtainableFromNPC;        //the NPC you get it from, or null
+var sourceType = item.ObtainType;           //whether that NPC sells it, crafts it, exchanges for it or gives it for a quest
+var exchanger = item.ExchangeAtNPC;
+var exchangeRewards = item.ExchangeRewards; //what exchanging it can give you, by item level
+var craftedAt = item.Recipe?.NPC;
+
+var npcPlaces = GameData.NPCs["someNpcName"]!.Locations;   //every place the NPC stands, on every map
+var questGiver = GameData.Quests[Quest.Witch];
+var classOnly = GameData.Classes["someClassName"]!.ExclusiveCosmetics;
+
+var map = GameData.Maps["someMapName"]!;
+var exits = map.Exits;                      //doors and teleports
+var mapDrops = map.Drops;                   //drops shared by every monster on the map
+var monster = map.Monsters.FirstOrDefault()?.Data;
+var npc = map.NPCs.FirstOrDefault()?.Data;
+
+var spawnAreas = monster?.SpawnAreas;       //every area it spawns in, on every map
+var roams = monster?.SpawnRoams;            //whether it wanders out of those areas
+
+//a monster's footprint for movement, and its hit box for range checks
+var footprint = monster?.BoundingBase;
+var hitBox = monster?.HitBox;
+```
+
+## Pathfinding
+
+Routes are found over a triangulated navigation mesh and straightened with the funnel algorithm. Routes can use `town`
+and `blink`. Pathfinding also works inside the Cave of Many Dreams.
+
+`ALClient.InitializeAsync` sets up the pathfinder. To use the pathfinder without a client, call
+`Pathfinder.Initialize()` instead.
+
+Routes skip doors that need a key, and the locked bank floors (`bank_b` and `bank_u`). The server never tells the client
+which bank floors your account has unlocked. If you have unlocked them, pass their door locations to
+`ALClient.InitializeAsync(unlockedDoors)`.
+
+## Objects that change under you
+
+- `Character` stays the same object for the whole life of the client. Keeping a reference to it is safe.
+- **Every object property of `Character` is replaced on each update.** Read it again each time; don't keep it.
+- Players, NPCs and monsters stay valid until the server drops them. That happens when the entity dies, when you move
+  too far from it, or when you change maps.
+- `Bank` is `null` until you first enter the bank. It updates while you are inside, and keeps the last contents you saw
+  after you leave.
+
+## Settings and logging
+
+Logging uses `Common.Logging`, so you can plug in any logging library.
+`ALClientSettings.UseDefaultLoggingConfiguration()` logs through NLog.
+`ALClientSettings.SetLogLevel(NLog.LogLevel.Debug)` changes how much it logs.
+
+Other options in `ALClientSettings`:
+
+| Setting                  | Default | What it does                                                                             |
+|--------------------------|---------|------------------------------------------------------------------------------------------|
+| `NetworkTimeoutMS`       | 1500    | How long to wait for the server to answer a request                                      |
+| `PositionPollingRate`    | 30      | How many times per second positions update                                               |
+| `BankCrossingTimeoutMS`  | 10000   | How long to wait when entering or leaving the bank                                       |
+| `ReceiveGeneratedMapArt` | true    | Whether daily dungeon floors arrive with their art. Turn it off if nothing draws the map |
+
+## Tools and tests
+
+- `AL.MemberGenerator` rebuilds the typed game data classes when the game's data changes:
+  `dotnet run --project AL.MemberGenerator`
+- `AL.Visualizer` draws a map's walkable ground and routes to PNG files:
+  `dotnet run --project AL.Visualizer -- dump-maps`
+- Tests: `dotnet run --project AL.Tests -c Debug`. `dotnet test` finds no tests. Tests that log in need a
+  `TestCredentials.txt` file beside the test binary, with your email on line 1 and your password on line 2.
+
+## Credits
+
+- [Earthiverse](https://github.com/earthiverse/ALClient): typings, callbacks
+- [Spadar](https://github.com/Spadar/AdventureLandService): mesh generation
+
+## License
+
+MIT
