@@ -1,5 +1,5 @@
 #region
-using System.Diagnostics.CodeAnalysis;
+using AL.Client.Abstractions;
 using AL.Client.Model;
 #endregion
 
@@ -9,10 +9,6 @@ namespace AL.Client.Helpers;
 ///     Provides the builds that no other build beats on both copies consumed and gold spent, for the item, bench and
 ///     prices of one planner.
 /// </summary>
-/// <remarks>
-///     The builds come from rerunning the planner across copy prices, so a build that wins only under a hard cap on copies
-///     is never found.
-/// </remarks>
 internal sealed class UpgradeFrontier
 {
     private readonly PlannerBase Planner;
@@ -71,23 +67,25 @@ internal sealed class UpgradeFrontier
         return totals;
     }
 
-    private UpgradeBuild CreateBuild(IReadOnlyList<UpgradeBuildStep> steps)
+    private static UpgradeBuild CreateBuild(PricedPlan priced)
         => new(
-            UpgradeMath.CalculateCopiesNeeded(steps.Select(step => step.Chance), Planner.Bench.CopiesPerAttempt),
-            CalculateExpectedTotals(
-                steps,
-                Planner.Bench.CopiesPerAttempt,
-                0,
-                Planner.ScrollPrices,
-                Planner.Offerings)[^1],
-            steps);
+            priced.Copies,
+            priced.Gold,
+            [
+                .. priced.Choices.Select((choice, index) => new UpgradeBuildStep(
+                    choice.ScrollGrade,
+                    choice.Offering?.Name,
+                    choice.Deposits,
+                    priced.ItemGrace[index],
+                    1 / priced.Attempts[index]))
+            ]);
 
     /// <summary>
     ///     Generates the builds that no other build beats on both copies and gold.
     /// </summary>
     /// <param name="targetLevel">The level every build has to reach.</param>
     /// <param name="copyPrice">
-    ///     An extra copy price to plan at, so the build priced at it is among the results.
+    ///     A copy price whose cheapest build is among the results.
     /// </param>
     /// <param name="startLevel">The level a copy starts at.</param>
     /// <param name="startGrace">The grace each staked copy already carries.</param>
@@ -100,50 +98,22 @@ internal sealed class UpgradeFrontier
         int startLevel = 0,
         double startGrace = 0)
     {
-        var buildsBySteps = new Dictionary<string, UpgradeBuild>(StringComparer.Ordinal);
-
-        foreach (var price in GetCopyPrices(copyPrice))
-        {
-            var plan = Planner.FindCheapestPlan(
+        if (!Planner.TryCheckClimb(
                 targetLevel,
-                price,
                 startLevel,
-                startGrace);
+                null,
+                out _))
+            return [];
 
-            //unreachable at one price is unreachable at every price
-            if (!TryGetPlannedSteps(plan, out var steps))
-                return [];
-
-            var key = string.Join('|', steps.Select(step => $"{step.ScrollGrade}:{step.Offering}:{step.Deposits}"));
-
-            if (!buildsBySteps.ContainsKey(key))
-                buildsBySteps[key] = CreateBuild(steps);
-        }
-
-        //keep a build only if it costs less gold than every build with fewer copies
-        var builds = new List<UpgradeBuild>();
-
-        foreach (var build in buildsBySteps.Values
-                                           .OrderBy(build => build.Copies)
-                                           .ThenBy(build => build.Gold))
-            if ((builds.Count == 0) || (build.Gold < builds[^1].Gold))
-                builds.Add(build);
-
-        return builds;
-    }
-
-    private static IEnumerable<double> GetCopyPrices(double copyPrice)
-    {
-        //finer steps find no new plans, since a plan changes only where an offering's price crosses what it saves
-        yield return 0;
-        yield return copyPrice;
-
-        for (var decade = 100d; decade <= 1e10; decade *= 10)
-        {
-            yield return decade;
-            yield return decade * 2;
-            yield return decade * 5;
-        }
+        return
+        [
+            .. new PlanSearch(
+                    Planner,
+                    startLevel,
+                    targetLevel,
+                    Math.Max(0, startGrace)).GenerateEdge(copyPrice)
+                                            .Select(CreateBuild)
+        ];
     }
 
     private static double GetOfferingPrice(IReadOnlyList<OfferingChoice> offerings, string? offering)
@@ -153,25 +123,5 @@ internal sealed class UpgradeFrontier
 
         return offerings.First(choice => choice.Name == offering)
                         .Price;
-    }
-
-    private static bool TryGetPlannedSteps(UpgradePlan plan, [MaybeNullWhen(false)] out IReadOnlyList<UpgradeBuildStep> steps)
-    {
-        steps = null;
-
-        if (plan.Unreachable is not null)
-            return false;
-
-        steps =
-        [
-            .. plan.Steps.Select(step => new UpgradeBuildStep(
-                step.ScrollGrade,
-                step.Offering,
-                step.Deposits,
-                step.ItemGrace,
-                step.Chance))
-        ];
-
-        return true;
     }
 }

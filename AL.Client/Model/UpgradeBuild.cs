@@ -24,7 +24,9 @@ public sealed record UpgradeBuild(double Copies, double Gold, IReadOnlyList<Upgr
 /// <param name="ItemGrace">
 ///     The grace each staked copy carries when the attempt rolls.
 /// </param>
-/// <param name="Chance">The attempt's chance of success.</param>
+/// <param name="Chance">
+///     The level's average chance of success per attempt, failstacks and offering pity included.
+/// </param>
 public sealed record UpgradeBuildStep(
     int ScrollGrade,
     string? Offering,

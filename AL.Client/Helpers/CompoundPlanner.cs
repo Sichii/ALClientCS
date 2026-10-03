@@ -1,4 +1,5 @@
 #region
+using AL.Client.Abstractions;
 using AL.Client.Definitions;
 using AL.Client.Model;
 #endregion
@@ -29,7 +30,7 @@ internal sealed class CompoundPlanner : PlannerBase
     ///     The item's key, read only for the grade the server pins - see <see cref="UpgradeMath.GetCompoundBaseRow" />.
     /// </param>
     /// <param name="countPity">
-    ///     Specifies whether failure pity and offering pity are counted.
+    ///     Specifies whether the offering pity counter is counted. The compound bench keeps no failstacks.
     /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
@@ -45,7 +46,8 @@ internal sealed class CompoundPlanner : PlannerBase
             thresholds,
             scrollPrices,
             offerings,
-            countPity)
+            countPity,
+            false)
         => ItemName = itemName;
 
     /// <inheritdoc />
@@ -56,6 +58,8 @@ internal sealed class CompoundPlanner : PlannerBase
         int scrollGrade,
         int? offeringGrade,
         double grace,
+        double playerFailstacks,
+        double serverFailstacks,
         double ograce)
         => UpgradeMath.CalculateCompoundChance(
                           baseChance,
@@ -68,7 +72,7 @@ internal sealed class CompoundPlanner : PlannerBase
                       .Chance;
 
     /// <inheritdoc />
-    protected override bool TryGetBaseChance(int level, out double chance)
+    internal override bool TryGetBaseChance(int level, out double chance)
         => UpgradeMath.TryGetCompoundBaseChance(
             Thresholds,
             level,

@@ -628,6 +628,42 @@ public static class UpgradeMath
     public static int GetCopiesPerAttempt(bool compound) => compound ? CONSTANTS.ITEMS_PER_COMPOUND : 1;
 
     /// <summary>
+    ///     Gets the failstacks a failed upgrade adds to the counters an attempt at a lower level reads, beyond the one each
+    ///     failure adds to its own level's counters.
+    /// </summary>
+    /// <remarks>
+    ///     Only the level below gains outside +8 to +15; inside it, the three levels below all gain, and the player's counters
+    ///     gain more when the failed attempt spent an offering.
+    /// </remarks>
+    /// <param name="newLevel">The level the lower attempt reaches.</param>
+    /// <param name="levelsAbove">
+    ///     How far above <paramref name="newLevel" /> the failed attempt reached, 1 to 3.
+    /// </param>
+    /// <param name="withOffering">
+    ///     Specifies whether the failed attempt spent an offering.
+    /// </param>
+    /// <returns>
+    ///     The failstacks added to the player's and the server's counters.
+    /// </returns>
+    internal static (int Player, int Server) GetFailstackBump(int newLevel, int levelsAbove, bool withOffering)
+    {
+        const int FIRST_DEEP_LEVEL = 8;
+        const int LAST_DEEP_LEVEL = 15;
+
+        var failedLevel = newLevel + levelsAbove;
+        var deep = (failedLevel >= FIRST_DEEP_LEVEL) && (failedLevel <= LAST_DEEP_LEVEL);
+        var offering = withOffering ? 1 : 0;
+
+        return levelsAbove switch
+        {
+            1           => deep ? (2, 2) : (1, 1),
+            2 when deep => (2 + offering, 2),
+            3 when deep => (2 + 2 * offering, 3 + offering),
+            _           => (0, 0)
+        };
+    }
+
+    /// <summary>
     ///     Gets every level the item has a base chance for, with the chance of reaching it.
     /// </summary>
     /// <param name="item">The item.</param>

@@ -1,4 +1,5 @@
 #region
+using AL.Client.Abstractions;
 using AL.Client.Model;
 #endregion
 
@@ -29,7 +30,10 @@ internal sealed class UpgradePlanner : PlannerBase
     ///     Specifies whether the attempts are made in the lucky slot.
     /// </param>
     /// <param name="countPity">
-    ///     Specifies whether failure pity and offering pity are counted.
+    ///     Specifies whether the player's failstacks and the offering pity counter are counted.
+    /// </param>
+    /// <param name="countServerPity">
+    ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
@@ -39,13 +43,15 @@ internal sealed class UpgradePlanner : PlannerBase
         IReadOnlyList<double> scrollPrices,
         IReadOnlyList<OfferingChoice> offerings,
         bool luckySlot,
-        bool countPity = true)
+        bool countPity = true,
+        bool countServerPity = false)
         : base(
             Bench.UPGRADE,
             thresholds,
             scrollPrices,
             offerings,
-            countPity)
+            countPity,
+            countServerPity)
     {
         GradeAtZero = UpgradeMath.CalculateGrade(thresholds, 0);
         LuckySlot = luckySlot;
@@ -59,15 +65,11 @@ internal sealed class UpgradePlanner : PlannerBase
         int scrollGrade,
         int? offeringGrade,
         double grace,
+        double playerFailstacks,
+        double serverFailstacks,
         double ograce)
     {
-        var pity = 0.0;
-        var chance = baseChance;
-
-        //the per-level failure pity averages half the failure streak the chance implies
-        for (var pass = 0; pass < PityPasses; pass++)
-        {
-            chance = UpgradeMath.CalculateUpgradeChance(
+        var chance = UpgradeMath.CalculateUpgradeChance(
                                     baseChance,
                                     newLevel,
                                     itemGrade,
@@ -75,21 +77,15 @@ internal sealed class UpgradePlanner : PlannerBase
                                     scrollGrade,
                                     offeringGrade,
                                     grace,
-                                    pity,
-                                    pity,
+                                    playerFailstacks,
+                                    serverFailstacks,
                                     ograce)
                                 .Chance;
 
-            if (LuckySlot)
-                chance = UpgradeMath.CalculateLuckySlotChance(chance);
-
-            pity = Math.Max(0, 1 / chance - 1) / 2;
-        }
-
-        return chance;
+        return LuckySlot ? UpgradeMath.CalculateLuckySlotChance(chance) : chance;
     }
 
     /// <inheritdoc />
-    protected override bool TryGetBaseChance(int level, out double chance)
+    internal override bool TryGetBaseChance(int level, out double chance)
         => UpgradeMath.TryGetUpgradeBaseChance(Thresholds, level, out chance);
 }

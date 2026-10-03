@@ -82,7 +82,7 @@ public static class UpgradeHelper
     ///     <paramref name="targetLevel" />.
     /// </summary>
     /// <remarks>
-    ///     The cost is an average under averaged pity, not a guarantee: the 90th-percentile climb runs about triple the
+    ///     The cost is a long-run average, not a guarantee: the 90th-percentile climb runs about triple the
     ///     median.
     /// </remarks>
     /// <param name="item">The item. One with no level has nothing to plan.</param>
@@ -109,7 +109,10 @@ public static class UpgradeHelper
     ///     A plan to price instead of searching for one, one step per level from +0, or null to search.
     /// </param>
     /// <param name="countPity">
-    ///     Specifies whether failure pity and offering pity are counted.
+    ///     Specifies whether the player's failstacks and the offering pity counter are counted.
+    /// </param>
+    /// <param name="countServerPity">
+    ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
     /// <returns>
     ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set when the climb cannot be planned.
@@ -127,7 +130,8 @@ public static class UpgradeHelper
         int startLevel = 0,
         double startGrace = 0,
         IReadOnlyList<ForcedStep>? forced = null,
-        bool countPity = true)
+        bool countPity = true,
+        bool countServerPity = false)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -140,7 +144,8 @@ public static class UpgradeHelper
             scrollPrices,
             offerings,
             luckySlot,
-            countPity);
+            countPity,
+            countServerPity);
 
         return planner.FindCheapestPlan(
             targetLevel,
@@ -159,7 +164,7 @@ public static class UpgradeHelper
     /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
     /// <param name="offerings">The offerings available.</param>
     /// <param name="copyPrice">
-    ///     An extra copy price to plan at, so the build priced at it is among the results.
+    ///     A copy price whose cheapest build is among the results.
     /// </param>
     /// <param name="startLevel">The level a copy starts at.</param>
     /// <param name="startGrace">The grace each staked copy already carries.</param>
@@ -205,10 +210,6 @@ public static class UpgradeHelper
     /// <summary>
     ///     Generates the item's upgrade frontier: the builds that no other build beats on both copies consumed and gold spent.
     /// </summary>
-    /// <remarks>
-    ///     The builds come from rerunning the planner across copy prices, so a build that wins only under a hard cap on copies
-    ///     is never found.
-    /// </remarks>
     /// <param name="item">The item.</param>
     /// <param name="targetLevel">The level every build has to reach.</param>
     /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
@@ -217,12 +218,15 @@ public static class UpgradeHelper
     ///     Specifies whether the attempts are made in the lucky slot.
     /// </param>
     /// <param name="copyPrice">
-    ///     An extra copy price to plan at, so the build priced at it is among the results.
+    ///     A copy price whose cheapest build is among the results.
     /// </param>
     /// <param name="startLevel">The level a copy starts at.</param>
     /// <param name="startGrace">The grace each staked copy already carries.</param>
     /// <param name="countPity">
-    ///     Specifies whether failure pity and offering pity are counted.
+    ///     Specifies whether the player's failstacks and the offering pity counter are counted.
+    /// </param>
+    /// <param name="countServerPity">
+    ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
     /// <returns>
     ///     The builds, fewest copies first so gold falls down the list, or none when the target is unreachable.
@@ -239,7 +243,8 @@ public static class UpgradeHelper
         double copyPrice = 0,
         int startLevel = 0,
         double startGrace = 0,
-        bool countPity = true)
+        bool countPity = true,
+        bool countServerPity = false)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -252,7 +257,8 @@ public static class UpgradeHelper
             scrollPrices,
             offerings,
             luckySlot,
-            countPity);
+            countPity,
+            countServerPity);
 
         return new UpgradeFrontier(planner).Generate(
             targetLevel,

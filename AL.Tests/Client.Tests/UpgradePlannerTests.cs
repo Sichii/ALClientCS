@@ -1,5 +1,6 @@
 #region
 using System.Reflection;
+using AL.Client.Abstractions;
 using AL.Client.Helpers;
 using AL.Client.Model;
 using AL.Tests.Characterization;

@@ -30,7 +30,9 @@ public sealed record UpgradePlan(IReadOnlyList<UpgradePlanStep> Steps, double Ba
 /// <param name="ItemGrace">
 ///     The grace each staked copy carries when the attempt rolls, this level's deposits included.
 /// </param>
-/// <param name="Chance">The attempt's chance of success.</param>
+/// <param name="Chance">
+///     The level's average chance of success per attempt, failstacks and offering pity included.
+/// </param>
 /// <param name="ExpectedCost">
 ///     The expected gold to own one copy at <c>FromLevel + 1</c>, from nothing.
 /// </param>
