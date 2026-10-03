@@ -67,7 +67,7 @@ internal sealed class UpgradeFrontier
         return totals;
     }
 
-    private static UpgradeBuild CreateBuild(PricedPlan priced)
+    internal static UpgradeBuild CreateBuild(PricedPlan priced)
         => new(
             priced.Copies,
             priced.Gold,
@@ -97,24 +97,12 @@ internal sealed class UpgradeFrontier
         double copyPrice = 0,
         int startLevel = 0,
         double startGrace = 0)
-    {
-        if (!Planner.TryCheckClimb(
-                targetLevel,
-                startLevel,
-                null,
-                out _))
-            return [];
-
-        return
-        [
-            .. new PlanSearch(
-                    Planner,
-                    startLevel,
-                    targetLevel,
-                    Math.Max(0, startGrace)).GenerateEdge(copyPrice)
-                                            .Select(CreateBuild)
-        ];
-    }
+        => Planner.FindCheapestPlanAndFrontier(
+                      targetLevel,
+                      copyPrice,
+                      startLevel,
+                      startGrace)
+                  .Builds;
 
     private static double GetOfferingPrice(IReadOnlyList<OfferingChoice> offerings, string? offering)
     {

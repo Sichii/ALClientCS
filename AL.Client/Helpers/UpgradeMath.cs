@@ -1026,7 +1026,7 @@ public static class UpgradeMath
     /// <param name="Parts">
     ///     The parts an upgrade's grace was built from; null on a compound.
     /// </param>
-    public sealed record Breakdown(
+    public readonly record struct Breakdown(
         double Chance,
         double Uncapped,
         double Base,
@@ -1073,7 +1073,7 @@ public static class UpgradeMath
     /// <param name="BaseGradeGrace">
     ///     The grace from the item's grade at +0, from <see cref="GetBaseGradeGrace" />.
     /// </param>
-    public sealed record GraceParts(
+    public readonly record struct GraceParts(
         double Own,
         double OwnCap,
         double Player,

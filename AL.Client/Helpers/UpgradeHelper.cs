@@ -156,15 +156,15 @@ public static class UpgradeHelper
     }
 
     /// <summary>
-    ///     Generates the item's compound frontier: the builds that no other build beats on both copies consumed and gold
-    ///     spent.
+    ///     Finds the cheapest expected compound climb for the item, and its compound frontier: the builds that no other build
+    ///     beats on both copies consumed and gold spent.
     /// </summary>
     /// <param name="item">The item.</param>
     /// <param name="targetLevel">The level every build has to reach.</param>
     /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
     /// <param name="offerings">The offerings available.</param>
     /// <param name="copyPrice">
-    ///     A copy price whose cheapest build is among the results.
+    ///     The price of one copy at <paramref name="startLevel" />.
     /// </param>
     /// <param name="startLevel">The level a copy starts at.</param>
     /// <param name="startGrace">The grace each staked copy already carries.</param>
@@ -172,12 +172,13 @@ public static class UpgradeHelper
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
     /// <returns>
-    ///     The builds, fewest copies first so gold falls down the list, or none when the target is unreachable.
+    ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set and no builds when the climb cannot be
+    ///     planned; and the builds, fewest copies first so gold falls down the list.
     /// </returns>
     /// <exception cref="System.ArgumentNullException">item</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
-    public static IReadOnlyList<UpgradeBuild> GenerateCompoundFrontier(
+    public static (UpgradePlan Plan, IReadOnlyList<UpgradeBuild> Builds) FindCheapestCompoundPlanAndFrontier(
         GItem item,
         int targetLevel,
         IReadOnlyList<double> scrollPrices,
@@ -200,7 +201,7 @@ public static class UpgradeHelper
             item.Accessor,
             countPity);
 
-        return new UpgradeFrontier(planner).Generate(
+        return planner.FindCheapestPlanAndFrontier(
             targetLevel,
             copyPrice,
             startLevel,
@@ -208,7 +209,8 @@ public static class UpgradeHelper
     }
 
     /// <summary>
-    ///     Generates the item's upgrade frontier: the builds that no other build beats on both copies consumed and gold spent.
+    ///     Finds the cheapest expected upgrade climb for the item, and its upgrade frontier: the builds that no other build
+    ///     beats on both copies consumed and gold spent.
     /// </summary>
     /// <param name="item">The item.</param>
     /// <param name="targetLevel">The level every build has to reach.</param>
@@ -218,7 +220,7 @@ public static class UpgradeHelper
     ///     Specifies whether the attempts are made in the lucky slot.
     /// </param>
     /// <param name="copyPrice">
-    ///     A copy price whose cheapest build is among the results.
+    ///     The price of one copy at <paramref name="startLevel" />.
     /// </param>
     /// <param name="startLevel">The level a copy starts at.</param>
     /// <param name="startGrace">The grace each staked copy already carries.</param>
@@ -229,12 +231,13 @@ public static class UpgradeHelper
     ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
     /// <returns>
-    ///     The builds, fewest copies first so gold falls down the list, or none when the target is unreachable.
+    ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set and no builds when the climb cannot be
+    ///     planned; and the builds, fewest copies first so gold falls down the list.
     /// </returns>
     /// <exception cref="System.ArgumentNullException">item</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
-    public static IReadOnlyList<UpgradeBuild> GenerateUpgradeFrontier(
+    public static (UpgradePlan Plan, IReadOnlyList<UpgradeBuild> Builds) FindCheapestUpgradePlanAndFrontier(
         GItem item,
         int targetLevel,
         IReadOnlyList<double> scrollPrices,
@@ -260,7 +263,7 @@ public static class UpgradeHelper
             countPity,
             countServerPity);
 
-        return new UpgradeFrontier(planner).Generate(
+        return planner.FindCheapestPlanAndFrontier(
             targetLevel,
             copyPrice,
             startLevel,

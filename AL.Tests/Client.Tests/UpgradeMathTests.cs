@@ -315,11 +315,12 @@ public class UpgradeMathTests
             .Should()
             .Be(0);
 
-        odds.Parts!.BaseGradeGrace
+        odds.Parts!.Value
+            .BaseGradeGrace
             .Should()
             .Be(1);
 
-        odds.Parts
+        odds.Parts!.Value
             .OwnCap
             .Should()
             .Be(9);
@@ -704,21 +705,22 @@ public class UpgradeMathTests
             .Should()
             .BeFalse();
 
-        odds.Parts!.Own
+        odds.Parts!.Value
+            .Own
             .Should()
             .BeApproximately(9, 1e-9);
 
-        odds.Parts
+        odds.Parts!.Value
             .Player
             .Should()
             .Be(3);
 
-        odds.Parts
+        odds.Parts!.Value
             .Server
             .Should()
             .Be(6);
 
-        odds.Parts
+        odds.Parts!.Value
             .Pity
             .Should()
             .BeApproximately(3 / 3.2, 1e-9);

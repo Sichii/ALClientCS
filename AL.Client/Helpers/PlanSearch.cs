@@ -23,13 +23,6 @@ internal sealed class PlanSearch
     /// </summary>
     private const double CARRY_GRID = 256;
 
-    /// <summary>
-    ///     Attempts already calculated, by choice, bump and offering pity. A choice is one entry of the list
-    ///     <see cref="PlannerBase.GetChoices" /> made for one level and grace, so the instance stands for both.
-    /// </summary>
-    private readonly ConcurrentDictionary<PlanChoice, ConcurrentDictionary<(int, int, double), double>> AttemptsCache
-        = new(ReferenceEqualityComparer.Instance);
-
     private readonly int Levels;
     private readonly PlannerBase Planner;
     private readonly double StartGrace;
@@ -55,31 +48,6 @@ internal sealed class PlanSearch
         StartLevel = startLevel;
         Levels = targetLevel - startLevel;
         StartGrace = startGrace;
-    }
-
-    private double CalculateAttempts(
-        int level,
-        double staked,
-        PlanChoice choice,
-        (int Player, int Server) bump,
-        double ograce)
-    {
-        var known = AttemptsCache.GetOrAdd(choice, static _ => new ConcurrentDictionary<(int, int, double), double>());
-        var key = (bump.Player, bump.Server, ograce);
-
-        if (known.TryGetValue(key, out var attempts))
-            return attempts;
-
-        attempts = Planner.CalculateAttempts(
-            level,
-            staked,
-            choice,
-            bump,
-            ograce);
-
-        known.TryAdd(key, attempts);
-
-        return attempts;
     }
 
     /// <summary>
@@ -216,7 +184,7 @@ internal sealed class PlanSearch
         int startPosition,
         double searchHigh)
     {
-        const double TOLERANCE = 1e-10;
+        const double TOLERANCE = 1e-6;
 
         //the most pity added plus lambda times pity kept, less lambda; positive while some plan sustains more than lambda
         double CalculateExcess(double lambda)
@@ -272,6 +240,55 @@ internal sealed class PlanSearch
         return top;
     }
 
+    /// <summary>
+    ///     Calculates how often a partial plan leaves each of the three levels below it a bump of each size or bigger.
+    /// </summary>
+    /// <remarks>
+    ///     Partial plans spending offerings on the same three lowest levels list the same bump sizes in the same order.
+    /// </remarks>
+    /// <param name="suffix">The partial plan.</param>
+    /// <param name="index">The index of its lowest level.</param>
+    /// <returns>
+    ///     For each level below, nearest first, the share of climbs leaving it each bump size or bigger.
+    /// </returns>
+    private double[] CalculateBumpTails(Suffix suffix, int index)
+    {
+        var tails = new List<double>();
+
+        for (var levelsBelow = 1; (levelsBelow <= 3) && ((index - levelsBelow) >= 0); levelsBelow++)
+        {
+            var newLevel = StartLevel + index - levelsBelow + 1;
+            var outcomes = new List<((int Player, int Server) Bump, double Weight)>();
+            var rest = 1.0;
+
+            //a failure in the partial plan's lowest levels, given the climb got past the levels in between
+            for (var levelsAbove = levelsBelow; levelsAbove <= 3; levelsAbove++)
+            {
+                var position = levelsAbove - levelsBelow;
+
+                outcomes.Add(
+                    (UpgradeMath.GetFailstackBump(newLevel, levelsAbove, suffix.WithOffering[position]), rest * suffix.FailLow[position]));
+
+                rest *= 1 - suffix.FailLow[position];
+            }
+
+            outcomes.Add(((0, 0), rest));
+
+            foreach ((var size, _) in outcomes)
+            {
+                var tail = 0.0;
+
+                foreach ((var bump, var weight) in outcomes)
+                    if ((bump.Player >= size.Player) && (bump.Server >= size.Server))
+                        tail += weight;
+
+                tails.Add(tail);
+            }
+        }
+
+        return [.. tails];
+    }
+
     private static (long, int) CreateKey(double grace, double carry)
         => ((long)Math.Round(grace * 1e6), (int)Math.Round(carry * CARRY_GRID));
 
@@ -298,50 +315,60 @@ internal sealed class PlanSearch
         for (var index = 0; index < Levels; index++)
         {
             var level = StartLevel + index;
+            var levelIndex = index;
 
-            var entries = states[index]
-                          .Values
-                          .ToList();
-            ranges[index] = new (int, int)[entries.Count];
+            //each state's moves in parallel, kept in state order
+            var found = states[index]
+                        .Values
+                        .AsParallel()
+                        .AsOrdered()
+                        .Select(entry =>
+                        {
+                            (var grace, var carry) = entry;
+                            var stateMoves = new List<PityMove>();
 
-            for (var state = 0; state < entries.Count; state++)
+                            foreach (var choice in Planner.GetChoices(level, grace))
+                            {
+                                var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                                var withOffering = choice.Offering is not null;
+                                var nextCarry = RoundCarry(carry * Planner.Bench.CalculatePityDecay(level + 1, withOffering));
+                                var next = -1;
+
+                                if ((levelIndex < (Levels - 1))
+                                    && !positions[levelIndex + 1]
+                                        .TryGetValue(CreateKey(Planner.CalculateCarriedGrace(level, staked, choice), nextCarry), out next))
+                                    continue;
+
+                                var low = 1
+                                    / Planner.CalculateAttempts(
+                                        level,
+                                        staked,
+                                        choice,
+                                        (0, 0),
+                                        0);
+
+                                stateMoves.Add(
+                                    new PityMove(
+                                        levelIndex,
+                                        staked,
+                                        choice,
+                                        carry,
+                                        nextCarry,
+                                        withOffering ? Planner.Bench.PityFailureGain : 0,
+                                        low,
+                                        next));
+                            }
+
+                            return stateMoves;
+                        })
+                        .ToList();
+
+            ranges[index] = new (int, int)[found.Count];
+
+            for (var state = 0; state < found.Count; state++)
             {
-                (var grace, var carry) = entries[state];
-                var start = moves.Count;
-
-                foreach (var choice in Planner.GetChoices(level, grace))
-                {
-                    var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
-                    var withOffering = choice.Offering is not null;
-                    var nextCarry = RoundCarry(carry * Planner.Bench.CalculatePityDecay(level + 1, withOffering));
-                    var next = -1;
-
-                    if ((index < (Levels - 1))
-                        && !positions[index + 1]
-                            .TryGetValue(CreateKey(Planner.CalculateCarriedGrace(level, staked, choice), nextCarry), out next))
-                        continue;
-
-                    var low = 1
-                        / CalculateAttempts(
-                            level,
-                            staked,
-                            choice,
-                            (0, 0),
-                            0);
-
-                    moves.Add(
-                        new PityMove(
-                            index,
-                            staked,
-                            choice,
-                            carry,
-                            nextCarry,
-                            withOffering ? Planner.Bench.PityFailureGain : 0,
-                            low,
-                            next));
-                }
-
-                ranges[index][state] = (start, moves.Count - start);
+                ranges[index][state] = (moves.Count, found[state].Count);
+                moves.AddRange(found[state]);
             }
         }
 
@@ -515,7 +542,7 @@ internal sealed class PlanSearch
 
                     for (var above = 0; above <= 3; above++)
                         bumps[above] = (above == 0) || (GetFailRate(above) > 0)
-                            ? CalculateAttempts(
+                            ? Planner.CalculateAttempts(
                                 level,
                                 staked,
                                 choice,
@@ -719,6 +746,34 @@ internal sealed class PlanSearch
                             suffixes = found;
                         }
 
+                        //the attempts after a failure each number of levels above, by whether that level spends an offering
+                        var fewestByBump = new double[4, 2];
+                        var mostByBump = new double[4, 2];
+
+                        for (var levelsAbove = 0; (levelsAbove <= 3) && ((levelIndex + levelsAbove) < Levels); levelsAbove++)
+                            for (var offered = 0; offered < (levelsAbove == 0 ? 1 : 2); offered++)
+                            {
+                                var bump = levelsAbove == 0
+                                    ? (0, 0)
+                                    : UpgradeMath.GetFailstackBump(level + 1, levelsAbove, offered == 1);
+
+                                fewestByBump[levelsAbove, offered] = Planner.CalculateAttempts(
+                                    level,
+                                    staked,
+                                    choice,
+                                    bump,
+                                    pityCap * carry);
+
+                                mostByBump[levelsAbove, offered] = countOfferingPity
+                                    ? Planner.CalculateAttempts(
+                                        level,
+                                        staked,
+                                        choice,
+                                        bump,
+                                        0)
+                                    : fewestByBump[levelsAbove, offered];
+                            }
+
                         foreach (var suffix in suffixes)
                         {
                             //fewest attempts: the most pity and the most helpful failure rates above; most attempts: neither
@@ -727,25 +782,10 @@ internal sealed class PlanSearch
 
                             for (var levelsAbove = 0; (levelsAbove <= 3) && ((levelIndex + levelsAbove) < Levels); levelsAbove++)
                             {
-                                var bump = levelsAbove == 0
-                                    ? (0, 0)
-                                    : UpgradeMath.GetFailstackBump(level + 1, levelsAbove, suffix.WithOffering[levelsAbove - 1]);
+                                var offered = (levelsAbove > 0) && suffix.WithOffering[levelsAbove - 1] ? 1 : 0;
 
-                                fewest[levelsAbove] = CalculateAttempts(
-                                    level,
-                                    staked,
-                                    choice,
-                                    bump,
-                                    pityCap * carry);
-
-                                most[levelsAbove] = countOfferingPity
-                                    ? CalculateAttempts(
-                                        level,
-                                        staked,
-                                        choice,
-                                        bump,
-                                        0)
-                                    : fewest[levelsAbove];
+                                fewest[levelsAbove] = fewestByBump[levelsAbove, offered];
+                                most[levelsAbove] = mostByBump[levelsAbove, offered];
                             }
 
                             //the mix is linear in each failure rate on its own, so its extremes over the ranges are at corners
@@ -823,8 +863,7 @@ internal sealed class PlanSearch
     }
 
     /// <summary>
-    ///     Generates every plan no other plan beats on both copies and gold, cheapest at the given copy price first among
-    ///     equals.
+    ///     Generates every plan no other plan beats on both copies and gold.
     /// </summary>
     /// <remarks>
     ///     Two stages: the exact edge with the offering pity left out, then those plans priced with it as the edge every other
@@ -836,14 +875,17 @@ internal sealed class PlanSearch
     /// <returns>The plans priced, fewest copies first.</returns>
     public IReadOnlyList<PricedPlan> GenerateEdge(double copyPrice)
     {
-        //known plans: the cheapest at the given price, then quick picks at copy prices from free to very dear
+        //known plans: quick picks at the given price, then at copy prices from free to very dear
         var known = new List<IReadOnlyList<PlanChoice>>
         {
-            FindCheapest(copyPrice)
+            FindSeedPlan(copyPrice, false)
         };
 
-        for (var exponent = 0; exponent <= 22; exponent++)
-            known.Add(FindSeedPlan(exponent == 0 ? 0 : Math.Pow(10, exponent / 2.0), false));
+        known.AddRange(
+            Enumerable.Range(0, 23)
+                      .AsParallel()
+                      .AsOrdered()
+                      .Select(exponent => FindSeedPlan(exponent == 0 ? 0 : Math.Pow(10, exponent / 2.0), false)));
 
         //a known plan rules itself out of the search, so the known plans rejoin the survivors here
         var withoutPity = FindEdge(known, false);
@@ -867,56 +909,22 @@ internal sealed class PlanSearch
     ///     A single level below can still take more attempts, but no product of attempts from a lower level up rises, and
     ///     copies and gold are such products.
     /// </remarks>
-    /// <param name="first">A partial plan.</param>
-    /// <param name="second">
-    ///     Another, spending offerings on the same three lowest levels.
+    /// <param name="first">
+    ///     A partial plan's figures, from <see cref="CalculateBumpTails" />.
     /// </param>
-    /// <param name="index">The index of both plans' lowest level.</param>
+    /// <param name="second">
+    ///     Another's, spending offerings on the same three lowest levels.
+    /// </param>
     /// <returns>
     ///     <c>true</c> if <paramref name="first" /> helps every level below at least as much; otherwise, <c>false</c>.
     /// </returns>
-    private bool HelpsAsMuch(Suffix first, Suffix second, int index)
+    private static bool HelpsAsMuch(double[] first, double[] second)
     {
         const double TOLERANCE = 1e-12;
 
-        for (var levelsBelow = 1; (levelsBelow <= 3) && ((index - levelsBelow) >= 0); levelsBelow++)
-        {
-            var newLevel = StartLevel + index - levelsBelow + 1;
-            var outcomes = new List<((int Player, int Server) Bump, double First, double Second)>();
-            var firstRest = 1.0;
-            var secondRest = 1.0;
-
-            //a failure in the partial plan's lowest levels, given the climb got past the levels in between
-            for (var levelsAbove = levelsBelow; levelsAbove <= 3; levelsAbove++)
-            {
-                var position = levelsAbove - levelsBelow;
-
-                outcomes.Add(
-                    (UpgradeMath.GetFailstackBump(newLevel, levelsAbove, first.WithOffering[position]), firstRest * first.FailLow[position],
-                        secondRest * second.FailLow[position]));
-
-                firstRest *= 1 - first.FailLow[position];
-                secondRest *= 1 - second.FailLow[position];
-            }
-
-            outcomes.Add(((0, 0), firstRest, secondRest));
-
-            foreach ((var size, _, _) in outcomes)
-            {
-                var firstTail = 0.0;
-                var secondTail = 0.0;
-
-                foreach ((var bump, var firstWeight, var secondWeight) in outcomes)
-                    if ((bump.Player >= size.Player) && (bump.Server >= size.Server))
-                    {
-                        firstTail += firstWeight;
-                        secondTail += secondWeight;
-                    }
-
-                if (firstTail < (secondTail - TOLERANCE))
-                    return false;
-            }
-        }
+        for (var position = 0; position < first.Length; position++)
+            if (first[position] < (second[position] - TOLERANCE))
+                return false;
 
         return true;
     }
@@ -967,16 +975,20 @@ internal sealed class PlanSearch
 
         foreach (var group in groups)
         {
-            var groupKept = new List<Suffix>();
+            var groupKept = new List<(Suffix Suffix, double[] Tails)>();
 
             foreach (var suffix in group.OrderBy(suffix => suffix.Scale)
                                         .ThenBy(suffix => suffix.Gold))
-                if (!groupKept.Any(other => (other.Scale <= suffix.Scale)
-                                            && (other.Gold <= suffix.Gold)
-                                            && HelpsAsMuch(other, suffix, index)))
-                    groupKept.Add(suffix);
+            {
+                var tails = CalculateBumpTails(suffix, index);
 
-            kept.AddRange(groupKept);
+                if (!groupKept.Any(other => (other.Suffix.Scale <= suffix.Scale)
+                                            && (other.Suffix.Gold <= suffix.Gold)
+                                            && HelpsAsMuch(other.Tails, tails)))
+                    groupKept.Add((suffix, tails));
+            }
+
+            kept.AddRange(groupKept.Select(entry => entry.Suffix));
         }
 
         return kept;

@@ -313,10 +313,81 @@ internal abstract class PlannerBase
                      out unreachable))
             return new UpgradePlan([], 0, unreachable);
 
-        var steps = CreateSteps(Price(choices, startLevel, startGrace), startLevel, copyPrice);
+        return CreatePlan(
+            Price(choices, startLevel, startGrace),
+            startLevel,
+            startGrace,
+            copyPrice);
+    }
+
+    /// <summary>
+    ///     Finds the cheapest expected climb, and the builds no other build beats on both copies and gold, from one search.
+    /// </summary>
+    /// <param name="targetLevel">The level to climb to.</param>
+    /// <param name="copyPrice">
+    ///     The price of one copy at <paramref name="startLevel" />.
+    /// </param>
+    /// <param name="startLevel">
+    ///     The level the climb starts from, below <paramref name="targetLevel" />.
+    /// </param>
+    /// <param name="startGrace">
+    ///     The grace each starting copy already carries. A negative figure is read as none.
+    /// </param>
+    /// <returns>
+    ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set and no builds when the climb cannot be
+    ///     planned; and the builds, fewest copies first so gold falls down the list.
+    /// </returns>
+    public (UpgradePlan Plan, IReadOnlyList<UpgradeBuild> Builds) FindCheapestPlanAndFrontier(
+        int targetLevel,
+        double copyPrice,
+        int startLevel = 0,
+        double startGrace = 0)
+    {
+        if (!TryCheckClimb(
+                targetLevel,
+                startLevel,
+                null,
+                out var unreachable))
+            return (new UpgradePlan([], 0, unreachable), []);
+
+        startGrace = Math.Max(0, startGrace);
+
+        var edge = new PlanSearch(
+            this,
+            startLevel,
+            targetLevel,
+            startGrace).GenerateEdge(copyPrice);
+
+        //the cheapest plan at any copy price is one no other plan beats on both copies and gold
+        var cheapest = edge.MinBy(priced => priced.CalculateCost(copyPrice))!;
+
+        return (CreatePlan(
+            cheapest,
+            startLevel,
+            startGrace,
+            copyPrice), [.. edge.Select(UpgradeFrontier.CreateBuild)]);
+    }
+
+    /// <summary>
+    ///     Creates the plan for a priced climb, with the cost of climbing on the matching scroll alone beside it.
+    /// </summary>
+    /// <param name="priced">The priced climb.</param>
+    /// <param name="startLevel">The level the climb starts from.</param>
+    /// <param name="startGrace">The grace each starting copy carries.</param>
+    /// <param name="copyPrice">
+    ///     The price of one copy at <paramref name="startLevel" />.
+    /// </param>
+    /// <returns>The plan.</returns>
+    private UpgradePlan CreatePlan(
+        PricedPlan priced,
+        int startLevel,
+        double startGrace,
+        double copyPrice)
+    {
+        var steps = CreateSteps(priced, startLevel, copyPrice);
 
         //the baseline uses the matching scroll alone and never an offering
-        var baseline = Enumerable.Range(startLevel, targetLevel - startLevel)
+        var baseline = Enumerable.Range(startLevel, priced.Choices.Count)
                                  .Select(level => UpgradeMath.CalculateGrade(Thresholds, level))
                                  .Select(grade => new PlanChoice(
                                      grade,
