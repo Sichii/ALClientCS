@@ -23,6 +23,11 @@ internal sealed class PlanSearch
     /// </summary>
     private const double CARRY_GRID = 256;
 
+    /// <summary>
+    ///     The most lower bounds a state keeps for the levels below it.
+    /// </summary>
+    private const int MAX_FLOOR_POINTS = 16;
+
     private readonly int Levels;
     private readonly PlannerBase Planner;
     private readonly double StartGrace;
@@ -87,6 +92,58 @@ internal sealed class PlanSearch
             choice,
             largest,
             ograce);
+    }
+
+    /// <summary>
+    ///     Calculates a level's attempts after a failure each number of levels above, by whether that level spends an
+    ///     offering: with the given pity, and with none.
+    /// </summary>
+    /// <param name="index">The level's index in the climb.</param>
+    /// <param name="staked">
+    ///     The grace each staked copy carries, deposits included.
+    /// </param>
+    /// <param name="choice">What goes on the bench.</param>
+    /// <param name="ograce">The offering pity counter.</param>
+    /// <param name="countOfferingPity">
+    ///     Specifies whether the offering pity counter is counted. When it is not, both answers are the same.
+    /// </param>
+    /// <returns>
+    ///     The attempts with the pity, then with none, each by levels above then by whether an offering was spent.
+    /// </returns>
+    private (double[,] Fewest, double[,] Most) CalculateAttemptsByBump(
+        int index,
+        double staked,
+        PlanChoice choice,
+        double ograce,
+        bool countOfferingPity)
+    {
+        var level = StartLevel + index;
+        var fewest = new double[4, 2];
+        var most = new double[4, 2];
+
+        for (var levelsAbove = 0; (levelsAbove <= 3) && ((index + levelsAbove) < Levels); levelsAbove++)
+            for (var offered = 0; offered < (levelsAbove == 0 ? 1 : 2); offered++)
+            {
+                var bump = levelsAbove == 0 ? (0, 0) : UpgradeMath.GetFailstackBump(level + 1, levelsAbove, offered == 1);
+
+                fewest[levelsAbove, offered] = Planner.CalculateAttempts(
+                    level,
+                    staked,
+                    choice,
+                    bump,
+                    ograce);
+
+                most[levelsAbove, offered] = countOfferingPity
+                    ? Planner.CalculateAttempts(
+                        level,
+                        staked,
+                        choice,
+                        bump,
+                        0)
+                    : fewest[levelsAbove, offered];
+            }
+
+        return (fewest, most);
     }
 
     /// <summary>
@@ -657,19 +714,19 @@ internal sealed class PlanSearch
 
         var pityCap = countOfferingPity ? PityCeiling ??= CalculatePityCeiling(states) : 0;
 
-        //the fewest copies, least gold and lowest cost a copy entering each state could possibly have, each on its own
-        var floors = new List<Dictionary<(long, int), (double Copies, double Gold, double Cost)>>
+        //lower bounds on the copies, gold and cost a copy entering each state could have, each prefix covered by one of them
+        var floors = new List<Dictionary<(long, int), FloorPoint[]>>
         {
             new()
             {
-                [CreateKey(StartGrace, 1)] = (1, 0, copyPrice)
+                [CreateKey(StartGrace, 1)] = [new FloorPoint(1, 0, copyPrice)]
             }
         };
 
         for (var index = 0; index < (Levels - 1); index++)
         {
             var level = StartLevel + index;
-            var next = new Dictionary<(long, int), (double Copies, double Gold, double Cost)>();
+            var next = new Dictionary<(long, int), List<FloorPoint>>();
 
             foreach ((var key, (var grace, var carry)) in states[index])
             {
@@ -694,30 +751,30 @@ internal sealed class PlanSearch
                         choice);
                     var nextKey = CreateKey(Planner.CalculateCarriedGrace(level, staked, choice), nextCarry);
 
-                    var reached = (Copies: copiesPerAttempt * attempts * floor.Copies,
-                        Gold: attempts * (copiesPerAttempt * floor.Gold + choice.Fees),
-                        Cost: attempts * (copiesPerAttempt * floor.Cost + choice.Fees));
+                    if (!next.TryGetValue(nextKey, out var reached))
+                        next[nextKey] = reached = [];
 
-                    if (next.TryGetValue(nextKey, out var old))
-                        reached = (Math.Min(old.Copies, reached.Copies), Math.Min(old.Gold, reached.Gold),
-                            Math.Min(old.Cost, reached.Cost));
-
-                    next[nextKey] = reached;
+                    foreach (var point in floor)
+                        reached.Add(
+                            new FloorPoint(
+                                copiesPerAttempt * attempts * point.Copies,
+                                attempts * (copiesPerAttempt * point.Gold + choice.Fees),
+                                attempts * (copiesPerAttempt * point.Cost + choice.Fees)));
                 }
             }
 
-            floors.Add(next);
+            floors.Add(next.ToDictionary(pair => pair.Key, pair => CreateFloor(pair.Value)));
         }
 
         //the partial plans from each level up to the target, built from the top down
-        var above = new ConcurrentDictionary<(long, int), List<Suffix>>();
+        var above = new ConcurrentDictionary<(long, int), SuffixBlocks>();
 
         for (var index = Levels - 1; index >= 0; index--)
         {
             var level = StartLevel + index;
             var levelIndex = index;
             var below = above;
-            var here = new ConcurrentDictionary<(long, int), List<Suffix>>();
+            var here = new ConcurrentDictionary<(long, int), SuffixBlocks>();
 
             Parallel.ForEach(
                 states[index],
@@ -735,10 +792,10 @@ internal sealed class PlanSearch
                     {
                         var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
                         var withOffering = choice.Offering is not null;
-                        IEnumerable<Suffix> suffixes;
+                        SuffixBlocks suffixes;
 
                         if (levelIndex == (Levels - 1))
-                            suffixes = [Suffix.EMPTY];
+                            suffixes = SuffixBlocks.TOP;
                         else
                         {
                             var nextCarry = CalculateNextCarry(
@@ -755,36 +812,58 @@ internal sealed class PlanSearch
                             suffixes = found;
                         }
 
-                        //the attempts after a failure each number of levels above, by whether that level spends an offering
-                        var fewestByBump = new double[4, 2];
-                        var mostByBump = new double[4, 2];
+                        var leastAttempts = CalculateLeastAttempts(
+                            levelIndex,
+                            staked,
+                            choice,
+                            pityCap * carry);
 
-                        for (var levelsAbove = 0; (levelsAbove <= 3) && ((levelIndex + levelsAbove) < Levels); levelsAbove++)
-                            for (var offered = 0; offered < (levelsAbove == 0 ? 1 : 2); offered++)
+                        //the attempts after a failure each number of levels above, by whether that level spends an offering;
+                        //only a partial plan that survives the least attempts needs them
+                        double[,]? fewestByBump = null;
+                        double[,]? mostByBump = null;
+
+                        bool IsCompletionBeaten(double suffixScale, double suffixGold, double attempts)
+                        {
+                            var scale = suffixScale * copiesPerAttempt * attempts;
+                            var gold = suffixGold + suffixScale * attempts * choice.Fees;
+
+                            //beaten only if it is beaten whichever prefix below completes it
+                            foreach (var point in floor)
+                                if (!isBeatenFunc(scale * point.Copies, scale * point.Gold + gold, scale * point.Cost + gold))
+                                    return false;
+
+                            return true;
+                        }
+
+                        for (var position = 0; position < suffixes.Suffixes.Length; position++)
+                        {
+                            //a block whose least scale and least gold together lose at the least attempts loses whole
+                            if (((position % SuffixBlocks.BLOCK_SIZE) == 0)
+                                && IsCompletionBeaten(
+                                    suffixes.Suffixes[position].Scale,
+                                    suffixes.BlockLeastGold[position / SuffixBlocks.BLOCK_SIZE],
+                                    leastAttempts))
                             {
-                                var bump = levelsAbove == 0
-                                    ? (0, 0)
-                                    : UpgradeMath.GetFailstackBump(level + 1, levelsAbove, offered == 1);
+                                position += SuffixBlocks.BLOCK_SIZE - 1;
 
-                                fewestByBump[levelsAbove, offered] = Planner.CalculateAttempts(
-                                    level,
-                                    staked,
-                                    choice,
-                                    bump,
-                                    pityCap * carry);
-
-                                mostByBump[levelsAbove, offered] = countOfferingPity
-                                    ? Planner.CalculateAttempts(
-                                        level,
-                                        staked,
-                                        choice,
-                                        bump,
-                                        0)
-                                    : fewestByBump[levelsAbove, offered];
+                                continue;
                             }
 
-                        foreach (var suffix in suffixes)
-                        {
+                            var suffix = suffixes.Suffixes[position];
+
+                            //most partial plans lose even at the least attempts, which costs no mixing to find out
+                            if (IsCompletionBeaten(suffix.Scale, suffix.Gold, leastAttempts))
+                                continue;
+
+                            if (fewestByBump is null)
+                                (fewestByBump, mostByBump) = CalculateAttemptsByBump(
+                                    levelIndex,
+                                    staked,
+                                    choice,
+                                    pityCap * carry,
+                                    countOfferingPity);
+
                             //fewest attempts: the most pity and the most helpful failure rates above; most attempts: neither
                             var fewest = new double[4];
                             var most = new double[4];
@@ -794,46 +873,43 @@ internal sealed class PlanSearch
                                 var offered = (levelsAbove > 0) && suffix.WithOffering[levelsAbove - 1] ? 1 : 0;
 
                                 fewest[levelsAbove] = fewestByBump[levelsAbove, offered];
-                                most[levelsAbove] = mostByBump[levelsAbove, offered];
+                                most[levelsAbove] = mostByBump![levelsAbove, offered];
                             }
 
                             //the mix is linear in each failure rate on its own, so its extremes over the ranges are at corners
+                            double PickRate(int corner, int levelsAbove)
+                                => ((corner >> (levelsAbove - 1)) & 1) == 1
+                                    ? suffix.FailHigh[levelsAbove - 1]
+                                    : suffix.FailLow[levelsAbove - 1];
+
                             var lowest = double.MaxValue;
-                            var highest = double.MinValue;
 
                             for (var corner = 0; corner < 8; corner++)
-                            {
-                                double PickRate(int levelsAbove)
-                                    => ((corner >> (levelsAbove - 1)) & 1) == 1
-                                        ? suffix.FailHigh[levelsAbove - 1]
-                                        : suffix.FailLow[levelsAbove - 1];
-
                                 lowest = Math.Min(
                                     lowest,
                                     PlannerBase.MixBumps(
-                                        PickRate(1),
-                                        PickRate(2),
-                                        PickRate(3),
+                                        PickRate(corner, 1),
+                                        PickRate(corner, 2),
+                                        PickRate(corner, 3),
                                         fewest));
 
+                            //a partial plan whose best possible completion is already beaten can never win
+                            if (double.IsPositiveInfinity(lowest) || IsCompletionBeaten(suffix.Scale, suffix.Gold, lowest))
+                                continue;
+
+                            var highest = double.MinValue;
+
+                            for (var corner = 0; corner < 8; corner++)
                                 highest = Math.Max(
                                     highest,
                                     PlannerBase.MixBumps(
-                                        PickRate(1),
-                                        PickRate(2),
-                                        PickRate(3),
+                                        PickRate(corner, 1),
+                                        PickRate(corner, 2),
+                                        PickRate(corner, 3),
                                         most));
-                            }
-
-                            if (double.IsPositiveInfinity(lowest))
-                                continue;
 
                             var scale = suffix.Scale * copiesPerAttempt * lowest;
                             var gold = suffix.Gold + suffix.Scale * lowest * choice.Fees;
-
-                            //a partial plan whose best possible completion is already beaten can never win
-                            if (isBeatenFunc(scale * floor.Copies, scale * floor.Gold + gold, scale * floor.Cost + gold))
-                                continue;
 
                             list.Add(
                                 new Suffix(
@@ -862,13 +938,13 @@ internal sealed class PlanSearch
                     }
 
                     //with a pity range the failure rates are ranges too, and no partial plan provably helps as much as another
-                    here[key] = countOfferingPity ? list : RemoveDominated(list, levelIndex);
+                    here[key] = SuffixBlocks.Create(countOfferingPity ? list : RemoveDominated(list, levelIndex));
                 });
 
             above = here;
         }
 
-        return above.TryGetValue(CreateKey(StartGrace, 1), out var final) ? [.. final.Select(suffix => suffix.Plan)] : [];
+        return above.TryGetValue(CreateKey(StartGrace, 1), out var final) ? [.. final.Suffixes.Select(suffix => suffix.Plan)] : [];
     }
 
     /// <summary>
@@ -984,23 +1060,86 @@ internal sealed class PlanSearch
 
         foreach (var group in groups)
         {
-            var groupKept = new List<(Suffix Suffix, double[] Tails)>();
+            //the kept partial plans by gold, so only those with no more gold are compared
+            var keptByGold = new List<(Suffix Suffix, double[] Tails)>();
 
             foreach (var suffix in group.OrderBy(suffix => suffix.Scale)
                                         .ThenBy(suffix => suffix.Gold))
             {
                 var tails = CalculateBumpTails(suffix, index);
+                var dominated = false;
 
-                if (!groupKept.Any(other => (other.Suffix.Scale <= suffix.Scale)
-                                            && (other.Suffix.Gold <= suffix.Gold)
-                                            && HelpsAsMuch(other.Tails, tails)))
-                    groupKept.Add((suffix, tails));
+                foreach (var other in keptByGold)
+                {
+                    if (other.Suffix.Gold > suffix.Gold)
+                        break;
+
+                    if ((other.Suffix.Scale <= suffix.Scale) && HelpsAsMuch(other.Tails, tails))
+                    {
+                        dominated = true;
+
+                        break;
+                    }
+                }
+
+                if (dominated)
+                    continue;
+
+                kept.Add(suffix);
+
+                var low = 0;
+                var high = keptByGold.Count;
+
+                //after every kept partial plan with no more gold
+                while (low < high)
+                {
+                    var mid = (low + high) / 2;
+
+                    if (keptByGold[mid].Suffix.Gold <= suffix.Gold)
+                        low = mid + 1;
+                    else
+                        high = mid;
+                }
+
+                keptByGold.Insert(low, (suffix, tails));
             }
-
-            kept.AddRange(groupKept.Select(entry => entry.Suffix));
         }
 
         return kept;
+    }
+
+    /// <summary>
+    ///     Creates a state's lower bounds from the points reaching it: those no other beats on both copies and gold, merged
+    ///     into at most <see cref="MAX_FLOOR_POINTS" />.
+    /// </summary>
+    /// <remarks>
+    ///     A dropped or merged point hands its lowest figures to the point that replaces it, so every prefix stays covered.
+    /// </remarks>
+    /// <param name="points">The points reaching the state.</param>
+    /// <returns>The lower bounds, fewest copies first.</returns>
+    private static FloorPoint[] CreateFloor(List<FloorPoint> points)
+    {
+        var edge = new List<FloorPoint>();
+
+        foreach (var point in points.OrderBy(point => point.Copies)
+                                    .ThenBy(point => point.Gold))
+            if ((edge.Count > 0) && (edge[^1].Gold <= point.Gold))
+                edge[^1] = edge[^1] with
+                {
+                    Cost = Math.Min(edge[^1].Cost, point.Cost)
+                };
+            else
+                edge.Add(point);
+
+        if (edge.Count <= MAX_FLOOR_POINTS)
+            return [.. edge];
+
+        //each run of neighbours becomes its fewest copies, least gold and lowest cost
+        return
+        [
+            .. edge.Chunk((edge.Count + MAX_FLOOR_POINTS - 1) / MAX_FLOOR_POINTS)
+                   .Select(run => new FloorPoint(run[0].Copies, run[^1].Gold, run.Min(point => point.Cost)))
+        ];
     }
 
     private static double RoundCarry(double carry) => Math.Ceiling(carry * CARRY_GRID - 1e-9) / CARRY_GRID;
@@ -1021,6 +1160,14 @@ internal sealed class PlanSearch
 
         return edge;
     }
+
+    /// <summary>
+    ///     Represents a lower bound on the copies, gold and cost of the levels below a state.
+    /// </summary>
+    /// <param name="Copies">The fewest copies.</param>
+    /// <param name="Gold">The least gold.</param>
+    /// <param name="Cost">The lowest cost at the search's copy price.</param>
+    private readonly record struct FloorPoint(double Copies, double Gold, double Cost);
 
     /// <summary>
     ///     Represents one choice out of one state, for the pity ceiling.
@@ -1055,6 +1202,39 @@ internal sealed class PlanSearch
         PlanChoice? Choice,
         double Cost,
         double Grace);
+
+    /// <summary>
+    ///     Represents the partial plans entering one state, least scale first, with the least gold of each block of them.
+    /// </summary>
+    /// <param name="Suffixes">The partial plans, least scale first.</param>
+    /// <param name="BlockLeastGold">
+    ///     The least gold of each run of <see cref="BLOCK_SIZE" /> partial plans.
+    /// </param>
+    private sealed record SuffixBlocks(Suffix[] Suffixes, double[] BlockLeastGold)
+    {
+        /// <summary>The partial plans a block holds.</summary>
+        public const int BLOCK_SIZE = 8;
+
+        /// <summary>
+        ///     The partial plans above the target: only <see cref="Suffix.EMPTY" />.
+        /// </summary>
+        public static readonly SuffixBlocks TOP = Create([Suffix.EMPTY]);
+
+        /// <summary>Creates the blocks for the given partial plans.</summary>
+        /// <param name="suffixes">The partial plans, in any order.</param>
+        /// <returns>The blocks.</returns>
+        public static SuffixBlocks Create(IEnumerable<Suffix> suffixes)
+        {
+            var sorted = suffixes.OrderBy(suffix => suffix.Scale)
+                                 .ToArray();
+
+            var blockLeastGold = sorted.Chunk(BLOCK_SIZE)
+                                       .Select(block => block.Min(suffix => suffix.Gold))
+                                       .ToArray();
+
+            return new SuffixBlocks(sorted, blockLeastGold);
+        }
+    }
 
     /// <summary>
     ///     Represents a partial plan from one level to the target, with lower bounds on how it scales a copy's cost and the
