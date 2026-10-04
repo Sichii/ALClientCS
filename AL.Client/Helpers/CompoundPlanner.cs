@@ -32,6 +32,9 @@ internal sealed class CompoundPlanner : PlannerBase
     /// <param name="countPity">
     ///     Specifies whether the offering pity counter is counted. The compound bench keeps no failstacks.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count offering pity.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
@@ -40,14 +43,16 @@ internal sealed class CompoundPlanner : PlannerBase
         IReadOnlyList<double> scrollPrices,
         IReadOnlyList<OfferingChoice> offerings,
         string? itemName = null,
-        bool countPity = true)
+        bool countPity = true,
+        int pityStartLevel = 0)
         : base(
             Bench.COMPOUND,
             thresholds,
             scrollPrices,
             offerings,
             countPity,
-            false)
+            false,
+            pityStartLevel)
         => ItemName = itemName;
 
     /// <inheritdoc />

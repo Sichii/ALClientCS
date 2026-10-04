@@ -44,6 +44,12 @@ internal abstract class PlannerBase
     public IReadOnlyList<OfferingChoice> Offerings { get; }
 
     /// <summary>
+    ///     The lowest level whose attempts count failstacks and offering pity. Attempts below it neither use nor move either
+    ///     counter, and a failure above it restarts the counted part of the climb here.
+    /// </summary>
+    public int PityStartLevel { get; }
+
+    /// <summary>
     ///     Scroll prices indexed by scroll grade. A grade priced at zero, or past the end of the list, is skipped.
     /// </summary>
     public IReadOnlyList<double> ScrollPrices { get; }
@@ -66,6 +72,9 @@ internal abstract class PlannerBase
     /// <param name="countServerPity">
     ///     Specifies whether the server's failstacks are counted.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count failstacks and offering pity.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
@@ -75,7 +84,8 @@ internal abstract class PlannerBase
         IReadOnlyList<double> scrollPrices,
         IReadOnlyList<OfferingChoice> offerings,
         bool countPity,
-        bool countServerPity)
+        bool countServerPity,
+        int pityStartLevel)
     {
         ArgumentNullException.ThrowIfNull(thresholds);
 
@@ -90,6 +100,7 @@ internal abstract class PlannerBase
         CountsOfferingPity = countPity;
         CountsPlayerFailstacks = countPity && bench.TracksFailstacks;
         CountsServerFailstacks = countServerPity && bench.TracksFailstacks;
+        PityStartLevel = pityStartLevel;
         DepositOffering = bench.TakesDeposits && UpgradeMath.TryFindCheapestOffering(offerings, out var cheapest) ? cheapest : null;
     }
 
@@ -122,8 +133,15 @@ internal abstract class PlannerBase
         if (!TryGetBaseChance(level, out var baseChance))
             return double.PositiveInfinity;
 
-        var player = CountsPlayerFailstacks ? bump.Player : 0;
-        var server = CountsServerFailstacks ? bump.Server : 0;
+        var counted = level >= PityStartLevel;
+        var countsPlayer = counted && CountsPlayerFailstacks;
+        var countsServer = counted && CountsServerFailstacks;
+        var player = countsPlayer ? bump.Player : 0;
+        var server = countsServer ? bump.Server : 0;
+
+        if (!counted)
+            ograce = 0;
+
         double total = 0;
         double survive = 1;
 
@@ -139,16 +157,16 @@ internal abstract class PlannerBase
                 ograce);
 
             //past both caps the chance stops moving, so the rest of the run is a plain geometric series
-            if ((!CountsPlayerFailstacks || (player >= PLAYER_CAP)) && (!CountsServerFailstacks || (server >= SERVER_CAP)))
+            if ((!countsPlayer || (player >= PLAYER_CAP)) && (!countsServer || (server >= SERVER_CAP)))
                 return chance > 0 ? total + survive / chance : double.PositiveInfinity;
 
             total += survive;
             survive *= 1 - chance;
 
-            if (CountsPlayerFailstacks)
+            if (countsPlayer)
                 player++;
 
-            if (CountsServerFailstacks)
+            if (countsServer)
                 server++;
         }
     }
@@ -553,7 +571,9 @@ internal abstract class PlannerBase
             carried[index] = carry;
             withOffering[index] = choices[index].Offering is not null;
             grace = CalculateCarriedGrace(level, staked[index], choices[index]);
-            carry *= Bench.CalculatePityDecay(level + 1, withOffering[index]);
+
+            if (level >= PityStartLevel)
+                carry *= Bench.CalculatePityDecay(level + 1, withOffering[index]);
         }
 
         //each level's attempts depend on how often the levels above it fail, so they are worked out from the top down
@@ -618,6 +638,10 @@ internal abstract class PlannerBase
     ///     Calculates the offering pity a climb starts with, for a plan priced as though climbs started with
     ///     <paramref name="attempts" />' pity.
     /// </summary>
+    /// <remarks>
+    ///     Only the levels from <see cref="PityStartLevel" /> up are counted, so the pity is the counter entering the lowest
+    ///     of them.
+    /// </remarks>
     /// <param name="attempts">
     ///     The expected attempts each level takes per success.
     /// </param>
@@ -626,13 +650,17 @@ internal abstract class PlannerBase
     /// <returns>The offering pity a climb starts with.</returns>
     private double SettleOfferingPity(IReadOnlyList<double> attempts, bool[] withOffering, int startLevel)
     {
-        var ograce = new double[attempts.Count];
+        var skipped = Math.Clamp(PityStartLevel - startLevel, 0, attempts.Count);
+        var ograce = new double[attempts.Count - skipped];
 
         Bench.UpdateOfferingPity(
             ograce,
-            [.. attempts.Select(count => 1 / count)],
-            withOffering,
-            startLevel);
+            [
+                .. attempts.Skip(skipped)
+                           .Select(count => 1 / count)
+            ],
+            withOffering[skipped..],
+            startLevel + skipped);
 
         return ograce.Length == 0 ? 0 : ograce[0];
     }

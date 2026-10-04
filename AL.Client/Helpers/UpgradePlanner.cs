@@ -35,6 +35,9 @@ internal sealed class UpgradePlanner : PlannerBase
     /// <param name="countServerPity">
     ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count failstacks and offering pity.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
@@ -44,14 +47,16 @@ internal sealed class UpgradePlanner : PlannerBase
         IReadOnlyList<OfferingChoice> offerings,
         bool luckySlot,
         bool countPity = true,
-        bool countServerPity = false)
+        bool countServerPity = false,
+        int pityStartLevel = 0)
         : base(
             Bench.UPGRADE,
             thresholds,
             scrollPrices,
             offerings,
             countPity,
-            countServerPity)
+            countServerPity,
+            pityStartLevel)
     {
         GradeAtZero = UpgradeMath.CalculateGrade(thresholds, 0);
         LuckySlot = luckySlot;

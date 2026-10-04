@@ -39,6 +39,9 @@ public static class UpgradeHelper
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count offering pity.
+    /// </param>
     /// <returns>
     ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set when the climb cannot be planned.
     /// </returns>
@@ -54,7 +57,8 @@ public static class UpgradeHelper
         int startLevel = 0,
         double startGrace = 0,
         IReadOnlyList<ForcedStep>? forced = null,
-        bool countPity = true)
+        bool countPity = true,
+        int pityStartLevel = 0)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -67,7 +71,8 @@ public static class UpgradeHelper
             scrollPrices,
             offerings,
             item.Accessor,
-            countPity);
+            countPity,
+            pityStartLevel);
 
         return planner.FindCheapestPlan(
             targetLevel,
@@ -114,6 +119,9 @@ public static class UpgradeHelper
     /// <param name="countServerPity">
     ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count failstacks and offering pity.
+    /// </param>
     /// <returns>
     ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set when the climb cannot be planned.
     /// </returns>
@@ -131,7 +139,8 @@ public static class UpgradeHelper
         double startGrace = 0,
         IReadOnlyList<ForcedStep>? forced = null,
         bool countPity = true,
-        bool countServerPity = false)
+        bool countServerPity = false,
+        int pityStartLevel = 0)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -145,7 +154,8 @@ public static class UpgradeHelper
             offerings,
             luckySlot,
             countPity,
-            countServerPity);
+            countServerPity,
+            pityStartLevel);
 
         return planner.FindCheapestPlan(
             targetLevel,
@@ -171,6 +181,9 @@ public static class UpgradeHelper
     /// <param name="countPity">
     ///     Specifies whether failure pity and offering pity are counted.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count offering pity.
+    /// </param>
     /// <returns>
     ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set and no builds when the climb cannot be
     ///     planned; and the builds, fewest copies first so gold falls down the list.
@@ -186,7 +199,8 @@ public static class UpgradeHelper
         double copyPrice = 0,
         int startLevel = 0,
         double startGrace = 0,
-        bool countPity = true)
+        bool countPity = true,
+        int pityStartLevel = 0)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -199,7 +213,8 @@ public static class UpgradeHelper
             scrollPrices,
             offerings,
             item.Accessor,
-            countPity);
+            countPity,
+            pityStartLevel);
 
         return planner.FindCheapestPlanAndFrontier(
             targetLevel,
@@ -230,6 +245,9 @@ public static class UpgradeHelper
     /// <param name="countServerPity">
     ///     Specifies whether the server's failstacks are counted, starting from none and moved only by these climbs.
     /// </param>
+    /// <param name="pityStartLevel">
+    ///     The lowest level whose attempts count failstacks and offering pity.
+    /// </param>
     /// <returns>
     ///     The plan, or an empty one with <see cref="UpgradePlan.Unreachable" /> set and no builds when the climb cannot be
     ///     planned; and the builds, fewest copies first so gold falls down the list.
@@ -247,7 +265,8 @@ public static class UpgradeHelper
         int startLevel = 0,
         double startGrace = 0,
         bool countPity = true,
-        bool countServerPity = false)
+        bool countServerPity = false,
+        int pityStartLevel = 0)
     {
         ArgumentNullException.ThrowIfNull(item);
 
@@ -261,7 +280,8 @@ public static class UpgradeHelper
             offerings,
             luckySlot,
             countPity,
-            countServerPity);
+            countServerPity,
+            pityStartLevel);
 
         return planner.FindCheapestPlanAndFrontier(
             targetLevel,

@@ -293,6 +293,61 @@ public sealed class PlanSearchTests
     }
 
     [Test]
+    public async Task ThePityStartLevelSplitsTheClimb()
+    {
+        const int START_LEVEL = 5;
+        const int PITY_START_LEVEL = 6;
+        const int TARGET_LEVEL = 8;
+
+        UpgradePlanner CreatePlanner(bool countPity, int pityStartLevel)
+            => new(
+                WSHIELD_THRESHOLDS,
+                SCROLL_PRICES,
+                Offerings(),
+                true,
+                countPity,
+                countPity,
+                pityStartLevel);
+
+        var split = CreatePlanner(true, PITY_START_LEVEL);
+
+        var plan = new PlanSearch(
+            split,
+            START_LEVEL,
+            TARGET_LEVEL,
+            0).FindCheapest(COPY_PRICE);
+        var priced = split.Price(plan, START_LEVEL, 0);
+
+        var below = CreatePlanner(false, 0)
+            .Price(plan, START_LEVEL, 0);
+
+        //the counted levels price as a climb of their own, restarting from the first of them
+        var above = CreatePlanner(true, 0)
+            .Price(
+                plan.Skip(1)
+                    .ToList(),
+                PITY_START_LEVEL,
+                priced.ItemGrace[1] - UpgradeMath.DEPOSIT_GRACE * plan[1].Deposits);
+
+        priced.Attempts[0]
+              .Should()
+              .BeApproximately(below.Attempts[0], below.Attempts[0] * 1e-12);
+
+        for (var index = 0; index < above.Attempts.Count; index++)
+            priced.Attempts[index + 1]
+                  .Should()
+                  .BeApproximately(above.Attempts[index], above.Attempts[index] * 1e-9);
+
+        CreatePlanner(true, TARGET_LEVEL)
+            .Price(plan, START_LEVEL, 0)
+            .Gold
+            .Should()
+            .BeApproximately(below.Gold, below.Gold * 1e-12);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
     public async Task ThePriceMatchesTheServerRulesPlayedOut()
     {
         const int START_LEVEL = 5;
@@ -332,7 +387,21 @@ public sealed class PlanSearchTests
     [Arguments(5, true, false)]
     [Arguments(5, true, true)]
     [Arguments(7, false, false)]
-    public async Task TheUpgradeSearchMatchesEveryPlan(int startLevel, bool countPity, bool countServerPity)
+    [Arguments(
+        5,
+        true,
+        true,
+        6)]
+    [Arguments(
+        5,
+        true,
+        true,
+        7)]
+    public async Task TheUpgradeSearchMatchesEveryPlan(
+        int startLevel,
+        bool countPity,
+        bool countServerPity,
+        int pityStartLevel = 0)
     {
         CheckAgainstEveryPlan(
             new UpgradePlanner(
@@ -341,7 +410,8 @@ public sealed class PlanSearchTests
                 Offerings(),
                 true,
                 countPity,
-                countServerPity),
+                countServerPity,
+                pityStartLevel),
             startLevel,
             startLevel + 3,
             COPY_PRICE);

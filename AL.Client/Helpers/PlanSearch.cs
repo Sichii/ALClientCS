@@ -90,7 +90,8 @@ internal sealed class PlanSearch
     }
 
     /// <summary>
-    ///     Calculates the share of a climb's starting offering pity left at the level above, after a success here.
+    ///     Calculates the share of a climb's starting offering pity left at the level above, after a success here. A level
+    ///     below <see cref="PlannerBase.PityStartLevel" /> leaves the share as it is.
     /// </summary>
     /// <param name="countOfferingPity">
     ///     Specifies whether the offering pity counter is counted.
@@ -104,7 +105,9 @@ internal sealed class PlanSearch
         double carry,
         int level,
         PlanChoice choice)
-        => countOfferingPity ? RoundCarry(carry * Planner.Bench.CalculatePityDecay(level + 1, choice.Offering is not null)) : 1;
+        => countOfferingPity && (level >= Planner.PityStartLevel)
+            ? RoundCarry(carry * Planner.Bench.CalculatePityDecay(level + 1, choice.Offering is not null))
+            : carry;
 
     /// <summary>
     ///     Calculates a ceiling on the offering pity any plan can sustain.
@@ -331,7 +334,11 @@ internal sealed class PlanSearch
                             {
                                 var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
                                 var withOffering = choice.Offering is not null;
-                                var nextCarry = RoundCarry(carry * Planner.Bench.CalculatePityDecay(level + 1, withOffering));
+                                var counted = level >= Planner.PityStartLevel;
+
+                                var nextCarry = counted
+                                    ? RoundCarry(carry * Planner.Bench.CalculatePityDecay(level + 1, withOffering))
+                                    : carry;
                                 var next = -1;
 
                                 if ((levelIndex < (Levels - 1))
@@ -354,7 +361,7 @@ internal sealed class PlanSearch
                                         choice,
                                         carry,
                                         nextCarry,
-                                        withOffering ? Planner.Bench.PityFailureGain : 0,
+                                        withOffering && counted ? Planner.Bench.PityFailureGain : 0,
                                         low,
                                         next));
                             }
@@ -505,7 +512,9 @@ internal sealed class PlanSearch
                 failRates[index] = 1 - 1 / priced.Attempts[index];
                 withOffering[index] = plan[index].Offering is not null;
                 pity[index] = priced.OfferingPity * carry;
-                carry *= Planner.Bench.CalculatePityDecay(StartLevel + index + 1, withOffering[index]);
+
+                if ((StartLevel + index) >= Planner.PityStartLevel)
+                    carry *= Planner.Bench.CalculatePityDecay(StartLevel + index + 1, withOffering[index]);
             }
         }
 
