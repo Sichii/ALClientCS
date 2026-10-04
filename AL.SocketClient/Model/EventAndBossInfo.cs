@@ -38,4 +38,36 @@ public record EventAndBossInfo
     /// </remarks>
     [JsonIgnore]
     public IReadOnlyDictionary<string, BossInfo> BossInfo { get; } = new Dictionary<string, BossInfo>();
+
+    /// <summary>
+    ///     Builds the <c>G.events</c> keys of the seasonal events running on this server.
+    /// </summary>
+    /// <returns>
+    ///     The running events' keys, compared case-insensitively.
+    /// </returns>
+    public IReadOnlySet<string> GetSeasonalEvents()
+    {
+        var events = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (EggHunt)
+            events.Add("egghunt");
+
+        if (Halloween)
+            events.Add("halloween");
+
+        if (HolidaySeason)
+            events.Add("holidayseason");
+
+        if (LunarNewYear)
+            events.Add("lunarnewyear");
+
+        if (Valentines)
+            events.Add("valentines");
+
+        //the anniversary carries its round state rather than a flag, so it arrives among the bosses
+        if (BossInfo.ContainsKey("anniversary"))
+            events.Add("anniversary");
+
+        return events;
+    }
 }

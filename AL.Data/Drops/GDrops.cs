@@ -57,6 +57,129 @@ public sealed record GDrops
     /// </summary>
     [JsonExtensionData]
     public IDictionary<string, JsonElement>? Unbound { get; init; }
+
+    /// <summary>
+    ///     The rolls the server adds to the global table while a seasonal event runs, keyed by the event's <c>G.events</c>
+    ///     key. The server adds them to its own copy at boot, so they never reach a client.
+    /// </summary>
+    public static IReadOnlyDictionary<string, IReadOnlyList<GDrop>> EventGlobalDrops { get; }
+        = new Dictionary<string, IReadOnlyList<GDrop>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["halloween"] =
+            [
+                new GDrop
+                {
+                    Rate = 0.00005f,
+                    Name = "candy0"
+                },
+                new GDrop
+                {
+                    Rate = 0.00125f,
+                    Name = "candy1"
+                }
+            ],
+            ["holidayseason"] =
+            [
+                new GDrop
+                {
+                    Rate = 0.0006f,
+                    Name = "ornament"
+                },
+                new GDrop
+                {
+                    Rate = 0.0018f,
+                    Name = "mistletoe"
+                },
+                new GDrop
+                {
+                    Rate = 0.0005f,
+                    Name = "candycane"
+                },
+                new GDrop
+                {
+                    Rate = 0.0001f,
+                    Name = "xN",
+                    IsChest = true
+                },
+                new GDrop
+                {
+                    Rate = 0.00000001f,
+                    Name = "orbofsc"
+                }
+            ],
+            ["lunarnewyear"] =
+            [
+                new GDrop
+                {
+                    Rate = 0.00005f,
+                    Name = "brownenvelope"
+                },
+                new GDrop
+                {
+                    Rate = 0.000000005f,
+                    Name = "5bucks"
+                }
+            ],
+            ["valentines"] =
+            [
+                new GDrop
+                {
+                    Rate = 0.001f,
+                    Name = "candypop"
+                }
+            ],
+            ["egghunt"] =
+            [
+                new GDrop
+                {
+                    Rate = 0.000005f,
+                    Name = "goldenegg"
+                },
+                new GDrop
+                {
+                    Rate = 0.009f,
+                    Name = "eastereggs",
+                    IsChest = true
+                }
+            ]
+        };
+
+    /// <summary>
+    ///     The entries of the shipped global table that the server rolls only while the anniversary runs.
+    /// </summary>
+    private static readonly IReadOnlySet<string> AnniversaryDrops = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "anniversarygift",
+        "slice_strawberry",
+        "slice_citrus",
+        "slice_honey",
+        "slice_mint",
+        "slice_blueberry",
+        "slice_nightberry"
+    };
+
+    /// <summary>
+    ///     Builds the global table as the server rolls it while <paramref name="events" /> run.
+    /// </summary>
+    /// <param name="events">
+    ///     The <c>G.events</c> keys of the seasonal events running.
+    /// </param>
+    /// <returns>
+    ///     The shipped global entries whose event is running or that need none, then each running event's own rolls.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">events</exception>
+    public IReadOnlyList<GDrop> GetGlobalTable(IReadOnlySet<string> events)
+    {
+        ArgumentNullException.ThrowIfNull(events);
+
+        const string ANNIVERSARY = "anniversary";
+
+        var anniversary = events.Contains(ANNIVERSARY);
+
+        return (Maps.GetValueOrDefault("global") ?? []).Where(drop => anniversary || !AnniversaryDrops.Contains(drop.Name))
+                                                       .Concat(events.SelectMany(name => EventGlobalDrops.GetValueOrDefault(name) ?? []))
+                                                       .ToList();
+    }
 }
 
 /// <summary>
