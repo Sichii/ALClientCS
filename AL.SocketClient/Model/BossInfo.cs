@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization;
 using AL.Core.Definitions;
 using AL.Core.Interfaces;
+using AL.Core.Json.SystemTextJson;
 using AL.Core.Model;
 #endregion
 
@@ -49,6 +50,17 @@ public record BossInfo : ILocation, IMutable<Mutation>
     /// <seealso cref="Condition.Round" />
     [JsonPropertyName("round")]
     public long? Round { get; init; }
+
+    /// <summary>
+    ///     If populated, when a dead seasonal boss next spawns, in UTC.
+    /// </summary>
+    /// <remarks>
+    ///     Sent once, when the respawn timer starts; the server drops the entry from every snapshot after. See
+    ///     <c>ALClient.BossSpawns</c>, which keeps it.
+    /// </remarks>
+    [JsonPropertyName("spawn")]
+    [JsonConverter(typeof(LenientDateTimeConverter))]
+    public DateTime? Spawn { get; init; }
 
     /// <summary>If populated, the current target of the boss.</summary>
     public string? Target { get; init; }

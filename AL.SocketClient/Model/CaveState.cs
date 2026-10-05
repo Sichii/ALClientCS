@@ -300,6 +300,12 @@ public sealed record CaveChoice
     public bool Resolved { get; init; }
 
     /// <summary>
+    ///     The living characters and monsters of the vote's room, at most ten.
+    /// </summary>
+    [JsonPropertyName("scene")]
+    public IReadOnlyList<CaveSceneActor> Scene { get; init; } = [];
+
+    /// <summary>
     ///     If populated, the id of the reply that won, once resolved. <c>fallback</c> when nothing won and
     ///     <see cref="Fallback" /> applied.
     /// </summary>
@@ -380,6 +386,18 @@ public sealed record CavePerson
 
     [JsonPropertyName("name")]
     public string Name { get; init; } = null!;
+}
+
+/// <summary>
+///     Represents one of a vote's room's actors, by its entity id.
+/// </summary>
+public sealed record CaveSceneActor
+{
+    [JsonPropertyName("id")]
+    public string Id { get; init; } = null!;
+
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
 }
 
 /// <summary>

@@ -91,6 +91,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> BaseGold { get; private set; }
 
     /// <summary>
+    ///     When each dead seasonal boss next spawns, in UTC, keyed by monster type.
+    /// </summary>
+    /// <remarks>
+    ///     Kept here rather than read off <see cref="EventsAndBosses" />, because the server publishes a spawn time once, in
+    ///     the snapshot sent as the respawn timer starts, and every later snapshot omits it. Only a character connected at
+    ///     that moment learns it. An entry is dropped once the boss is seen live.
+    /// </remarks>
+    public ConcurrentDictionary<string, DateTime> BossSpawns { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     ///     The emotions this character has unlocked and their unlock timestamps. Populated from <c>start</c> only; the server
     ///     never re-sends it on a <c>player</c> frame.
     /// </summary>
@@ -5767,10 +5777,24 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         return TaskCache.FALSE;
     }
 
+    /// <summary>
+    ///     Files each announced spawn time into <see cref="BossSpawns" />, and drops the entry of a boss now live.
+    /// </summary>
+    /// <param name="info">The snapshot just received.</param>
+    private void RecordBossSpawns(EventAndBossInfo info)
+    {
+        foreach ((var name, var boss) in info.BossInfo)
+            if (boss.Live)
+                BossSpawns.TryRemove(name, out _);
+            else if (boss.Spawn is { } spawn)
+                BossSpawns[name] = spawn;
+    }
+
     protected Task<bool> OnServerInfo(EventAndBossData data)
     {
         var bossInfoDic = (Dictionary<string, BossInfo>)data.BossInfo;
         EventsAndBosses = data;
+        RecordBossSpawns(data);
 
         foreach ((var name, var bossInfo) in bossInfoDic)
             if (bossInfo.HP == 0)
@@ -5824,6 +5848,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         BaseGold = data.BaseGold;
         EventsAndBosses = data.EventAndBossInfo;
+        RecordBossSpawns(data.EventAndBossInfo);
         Emotion = data.Emotion;
         Friends = data.Friends;
         Home = data.Home;
