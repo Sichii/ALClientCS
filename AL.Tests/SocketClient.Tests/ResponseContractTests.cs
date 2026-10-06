@@ -377,6 +377,36 @@ public class ResponseContractTests
     }
 
     /// <summary>
+    ///     The same <c>items</c> key arrives as an object of item name to count when a door refuses for want of an item. Read
+    ///     as the listing's array, it throws and the whole frame is dropped, so the waiting entry never hears the refusal.
+    /// </summary>
+    [Test]
+    public void MissingItemRefusalCarriesTheNeededItems()
+    {
+        var data = TestJson.Socket<GameResponseData>(
+            @"{ ""response"":""transport_cant_item"", ""place"":""transport"", ""failed"":true, ""items"":{""cryptkey"":1} }");
+
+        data.Should()
+            .NotBeNull();
+
+        data.ResponseType
+            .Should()
+            .Be(GameResponseType.TransportCantItem);
+
+        data.NeededItems
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, int>
+                {
+                    ["cryptkey"] = 1
+                });
+
+        data.Items
+            .Should()
+            .BeNull();
+    }
+
+    /// <summary>
     ///     <c>
     ///         success_response("craft", { num, name, cevent: true })
     ///     </c> (node/server.js:6300). CraftAsync resolves off this reply and reads the output out of the slot it names, so

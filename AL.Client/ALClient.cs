@@ -4386,6 +4386,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     GameResponseType.CantEnter          => source.TrySetResult("Transport failed. (can't enter)"),
                     GameResponseType.CantEscape         => source.TrySetResult("Transport failed. (can't escape)"),
                     GameResponseType.TransportCantReach => source.TrySetResult("Transport failed. (can't reach)"),
+                    GameResponseType.TransportCantItem  => source.TrySetResult($"Transport failed. ({DescribeMissingKey(data)})"),
                     GameResponseType.BankOperationInProgress => source.TrySetResult(
                         "Transport failed. (the previous bank door is still landing)"),
                     GameResponseType.BankOperation => source.TrySetResult($"Transport failed. (bank {data.Reason ?? "error"})"),
@@ -4474,7 +4475,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 var result = data.ResponseType switch
                 {
                     GameResponseType.TransportCantItem => source.TrySetResult(
-                        new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (no key)")),
+                        new DungeonEntryException(data.ResponseType, $"Can't enter the dungeon. ({DescribeMissingKey(data)})")),
                     GameResponseType.TransportCantInvalid => source.TrySetResult(
                         new DungeonEntryException(data.ResponseType, "Can't enter the dungeon. (that instance is gone)")),
                     GameResponseType.TransportCantReach => source.TrySetResult(
@@ -4535,6 +4536,22 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             Character.UpdateMap(resolvedInstance, Character.Map);
 
         return resolvedInstance;
+    }
+
+    /// <summary>
+    ///     Builds the reason for a <c>transport_cant_item</c> refusal, naming the items the door still needs when the server
+    ///     sent them.
+    /// </summary>
+    /// <param name="data">The refusal.</param>
+    /// <returns>
+    ///     "no key", or "needs " and each needed item with its count.
+    /// </returns>
+    private static string DescribeMissingKey(GameResponseData data)
+    {
+        if (data.NeededItems is not { Count: > 0 } neededItems)
+            return "no key";
+
+        return "needs " + string.Join(", ", neededItems.Select(kvp => $"{kvp.Value} {kvp.Key}"));
     }
 
     /// <summary>Asynchronously unequips an item from a slot.</summary>
@@ -5546,7 +5563,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
     protected Task<bool> OnCorrectionAsync(CorrectionData data)
     {
-        Character.CorrectAndCompensate(data, PingManager.LowPercentileOffset);
+        //inside a generated cave run the server stops the character where it corrected it
+        if ((data.Cave != null) && GameData.Maps[Character.Map]?.Generated is { } generated && data.Cave.EqualsI(generated.Run))
+            Character.CorrectAndStop(data);
+        else
+            Character.CorrectAndCompensate(data, PingManager.LowPercentileOffset);
 
         return TaskCache.FALSE;
     }

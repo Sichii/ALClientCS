@@ -1,10 +1,12 @@
 #region
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AL.APIClient.Model;
 using AL.Core.Definitions;
 using AL.Core.Json.Attributes;
 using AL.Core.Json.Interfaces;
 using AL.SocketClient.Definitions;
+using AL.SocketClient.Json.SystemTextJson;
 using AL.SocketClient.Model;
 #endregion
 
@@ -152,8 +154,31 @@ public sealed record GameResponseData : IOptionalObject
     ///     The listing a correlated secondhands or lostandfound request asked for. Null on every other frame. The server
     ///     reverses it on the way out, so this is newest-first where the bare secondhands event is oldest-first.
     /// </summary>
-    [JsonPropertyName("items")]
+    [JsonIgnore]
     public TradeItem[]? Items { get; init; }
+
+    /// <summary>
+    ///     If populated, the items a door that costs items still needs, by item name, off <c>transport_cant_item</c>.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, int>? NeededItems { get; init; }
+
+    /// <summary>
+    ///     The <c>items</c> key: an array on a listing reply, filling <see cref="Items" />, and an object of item name to
+    ///     count on <c>transport_cant_item</c>, filling <see cref="NeededItems" />.
+    /// </summary>
+    [JsonPropertyName("items")]
+    [JsonInclude]
+    private JsonElement ItemsJson
+    {
+        init
+        {
+            if (value.ValueKind == JsonValueKind.Array)
+                Items = value.Deserialize<TradeItem[]>(SocketJson.Options);
+            else if (value.ValueKind == JsonValueKind.Object)
+                NeededItems = value.Deserialize<Dictionary<string, int>>(SocketJson.Options);
+        }
+    }
 
     /// <summary>
     ///     The level of the item that was upgraded, compounded, or dismantled.

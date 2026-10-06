@@ -18,8 +18,8 @@ public class CoreTests
     ///     inside another one used to be clobbered by a value derived from the state it replaced.
     /// </summary>
     /// <remarks>
-    ///     The invariant is the group, not any single value: only two writers ever clear <see cref="EntityBase.Moving" />, and
-    ///     both set the destination and the position together, so a stopped entity standing anywhere other than its
+    ///     The invariant is the group, not any single value: every writer that clears <see cref="EntityBase.Moving" /> sets
+    ///     the destination and the position together, so a stopped entity standing anywhere other than its
     ///     destination is a write that landed in halves. Run against the unsynchronized version this fails within a few
     ///     hundred rounds; run against the locked one the stopped state is stable, because the reckoning loop does nothing at
     ///     all while <see cref="EntityBase.Moving" /> is false.
@@ -92,6 +92,30 @@ public class CoreTests
                  .BeNull(
                      "a stopped entity stands on its destination - a position that disagrees with it is a step "
                      + "that was computed before a stop and written after it");
+    }
+
+    [Test]
+    public void ACaveCorrectionStopsTheCharacterWhereItLands()
+    {
+        var character = new Character();
+        character.BackfillSoftDefault(EntityUpdateField.Speed, 45f);
+        character.UpdateLocation(new Point(0, 0));
+        character.SetMoving(new Point(1000, 0));
+
+        character.CorrectAndStop(new Point(10, 20));
+        character.Update(TimeSpan.FromSeconds(1));
+
+        var movement = character.Movement;
+
+        movement.Moving
+                .Should()
+                .BeFalse();
+
+        new Point(movement.X, movement.Y).Should()
+                                         .Be(new Point(10, 20));
+
+        new Point(movement.GoingX, movement.GoingY).Should()
+                                                   .Be(new Point(10, 20));
     }
 
     /// <summary>

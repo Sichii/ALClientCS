@@ -305,6 +305,30 @@ public class Character : Player, IEquatable<Character>
     }
 
     /// <summary>
+    ///     Sets this character as stopped at the point the server corrected it to.
+    /// </summary>
+    /// <param name="point">The corrected point.</param>
+    /// <exception cref="ArgumentNullException">point</exception>
+    public void CorrectAndStop(IPoint point)
+    {
+        ArgumentNullException.ThrowIfNull(point);
+
+        var x = point.X;
+        var y = point.Y;
+
+        lock (MovementLock)
+            ApplyMovement(
+                ReadMovement() with
+                {
+                    X = x,
+                    Y = y,
+                    GoingX = x,
+                    GoingY = y,
+                    Moving = false
+                });
+    }
+
+    /// <summary>
     ///     Folds an in-progress upgrade or compound's detail onto the inventory slot it belongs to.
     /// </summary>
     /// <param name="inventorySlot">The slot holding the operation's placeholder.</param>

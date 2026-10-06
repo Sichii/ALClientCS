@@ -1453,6 +1453,12 @@ public enum UIDataType
     [EnumMember(Value = "+$$")]
     PlayerTrade,
 
+    /// <summary>
+    ///     An item-for-item trade at a merchant's stand, naming both ends in <c>Seller</c> and <c>Buyer</c> .
+    /// </summary>
+    [EnumMember(Value = "swap")]
+    PlayerSwap,
+
     /// <summary>A purchase from the secondhands NPC.</summary>
     [EnumMember(Value = "+$p")]
     SecondhandsBuy,

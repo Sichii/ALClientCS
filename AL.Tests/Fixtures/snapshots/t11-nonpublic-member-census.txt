@@ -11,6 +11,7 @@ non-public-property	instance	AL.Data	AL.Data.Maps.GMapNPC	_position	position
 non-public-property	instance	AL.Data	AL.Data.Maps.GMapNPC	_positions	positions
 non-public-property	instance	AL.Data	AL.Data.Skills.GSkill	ListTargets	list
 non-public-property	instance	AL.Data	AL.Data.Skills.GSkill	ReuseCooldown	reuse_cooldown
+non-public-property	instance	AL.SocketClient	AL.SocketClient.SocketModel.GameResponseData	ItemsJson	items
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	APiercing	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Armor	
 non-public-setter	instance	AL.Core	AL.Core.Abstractions.AttributedObjectBase	Attack	

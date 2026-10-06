@@ -68,7 +68,7 @@ public record GameData
     ///     The game-data version the data members were last generated against. AL.MemberGenerator writes it to
     ///     <c>dataMembers/version.txt</c>.
     /// </summary>
-    public const int KNOWN_VERSION = 17478;
+    public const int KNOWN_VERSION = 17625;
 
     /// <summary>
     ///     The hit box every player is measured against for range: 26 wide and 36 tall, fixed for everyone. Their collision
