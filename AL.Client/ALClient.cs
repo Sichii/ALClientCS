@@ -342,6 +342,16 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </summary>
     public event EventHandler<MonsterDeathData>? OnMonsterDeath;
 
+    /// <summary>
+    ///     The skill whose cooldown the server's potion timer sets for a health potion or a health regen.
+    /// </summary>
+    private const string USE_HP = "use_hp";
+
+    /// <summary>
+    ///     The skill whose cooldown the server's potion timer sets for a mana potion or a mana regen.
+    /// </summary>
+    private const string USE_MP = "use_mp";
+
     /// <summary>An event fired when a party invite is received.</summary>
 
     // ReSharper disable once EventNeverSubscribedTo.Global
@@ -5545,6 +5555,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     {
         //raised before the drop, since the frame carries only the id; a killing hit has already dropped it
         if (KilledByHit.TryRemove(data.Id, out var monster) || Monsters.TryGetValue(data.Id, out monster))
+        {
             OnMonsterDeath?.Invoke(
                 this,
                 new MonsterDeathData(
@@ -5552,6 +5563,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     monster.Name,
                     data.Points,
                     monster.Level));
+
+            ForgetBoss(monster.Name);
+        }
 
         DestroyEntity(data.Id);
 
@@ -5621,8 +5635,6 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         } else if ((match = RegexCache.POT_TIMEOUT.Match(data.Code)).Success)
         {
             //a drink and a regen both come back as pot_timeout
-            const string USE_HP = "use_hp";
-            const string USE_MP = "use_mp";
             var cooldownStr = match.Groups[1].Value;
 
             if (!float.TryParse(cooldownStr, out var cooldownMS))
@@ -5715,7 +5727,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (data.Kill)
         {
             if (Monsters.TryGetValue(data.Id, out var killed))
+            {
                 KilledByHit[data.Id] = killed;
+                ForgetBoss(killed.Name);
+            }
 
             DestroyEntity(data.Id);
         } else if (data.Damage != 0)
@@ -5999,6 +6014,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 switch (data.ResponseType)
                 {
                     case GameResponseType.NotReady:
+                        //the server's potion stamp can outlast ours, e.g. after a cave freeze shifts it forward
+                        if (data.CooldownMS > 0)
+                        {
+                            SetCooldown(USE_HP, data.CooldownMS);
+                            SetCooldown(USE_MP, data.CooldownMS);
+                        }
+
                         source.TrySetResult($"Failed to use {description}. (not ready for another {data.CooldownMS ?? 0:N0}ms)");
 
                         break;
@@ -6027,19 +6049,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         expectation.ThrowIfUnsuccessful();
     }
 
-    protected bool DestroyEntity(string id)
-    {
-        var result = Monsters.Remove(id, out var monster) || Players.Remove(id, out _);
+    protected bool DestroyEntity(string id) => Monsters.Remove(id, out _) || Players.Remove(id, out _);
 
-        //the boss table is keyed by monster type, not entity id, so a dead boss is purged under its type name
-        if (monster is not null)
-        {
-            var bossInfoDic = (Dictionary<string, BossInfo>)EventsAndBosses.BossInfo;
-            bossInfoDic.Remove(monster.Name);
-        }
-
-        return result;
-    }
+    /// <summary>
+    ///     Drops a dead boss's entry from <see cref="EventsAndBosses" />, which is keyed by monster type rather than entity
+    ///     id.
+    /// </summary>
+    /// <param name="monsterType">The type of the monster that died.</param>
+    /// <remarks>
+    ///     Deaths only: the server also sends <c>disappear</c> for a living boss a skill was aimed at from out of sight.
+    /// </remarks>
+    private void ForgetBoss(string monsterType) => ((Dictionary<string, BossInfo>)EventsAndBosses.BossInfo).Remove(monsterType);
 
     protected EntityBase? GetEntity(string id) => Players.GetValueOrDefault(id) as EntityBase ?? Monsters.GetValueOrDefault(id);
 

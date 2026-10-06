@@ -170,6 +170,11 @@ public sealed record GMap
     [JsonPropertyName("safe_pvp")]
     public bool SafePvP { get; init; }
 
+    /// <summary>
+    ///     The rooms of a generated floor's layout. Empty for every other map.
+    /// </summary>
+    public IReadOnlyList<GMapRoom> Rooms { get; init; } = [];
+
     /// <summary>A list of spawns on this map.</summary>
     public IReadOnlyList<GSpawn> Spawns { get; init; } = new List<GSpawn>();
 

@@ -1,5 +1,6 @@
 #region
 using System.Text.Json.Serialization;
+using AL.Core.Definitions;
 #endregion
 
 namespace AL.SocketClient.Model;
@@ -44,6 +45,12 @@ public sealed record CaveState
     /// </summary>
     [JsonPropertyName("hunts")]
     public IReadOnlyList<CaveHunt> Hunts { get; init; } = [];
+
+    /// <summary>
+    ///     If populated, the run's cap on the Amber it pays out and how much it has produced so far.
+    /// </summary>
+    [JsonPropertyName("limits")]
+    public CaveLimits? Limits { get; init; }
 
     /// <summary>
     ///     The rooms to settle, across every floor. The required ones on the current floor unlock its stairs.
@@ -132,6 +139,22 @@ public sealed record CaveDoor
 
     [JsonPropertyName("y")]
     public float Y { get; init; }
+}
+
+/// <summary>
+///     Represents the run's payout cap. Once the run has produced the cap, no kill, chest or reply pays any more Amber.
+/// </summary>
+public sealed record CaveLimits
+{
+    /// <summary>The most Amber the run can produce.</summary>
+    [JsonPropertyName("amber")]
+    public int Amber { get; init; }
+
+    /// <summary>
+    ///     The Amber the run has produced so far, spent or not.
+    /// </summary>
+    [JsonPropertyName("amber_spawned")]
+    public int AmberSpawned { get; init; }
 }
 
 /// <summary>
@@ -398,6 +421,13 @@ public sealed record CaveSceneActor
 
     [JsonPropertyName("name")]
     public string? Name { get; init; }
+
+    /// <summary>
+    ///     If populated, what this actor is wielding, as <see cref="Monster.Slots" /> carries it; a rare rogue's dagger shows
+    ///     here while he is out of sight.
+    /// </summary>
+    [JsonPropertyName("slots")]
+    public IReadOnlyDictionary<Slot, SlotItem?>? Slots { get; init; }
 }
 
 /// <summary>

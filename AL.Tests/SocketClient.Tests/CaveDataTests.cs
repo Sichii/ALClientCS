@@ -27,6 +27,7 @@ public class CaveDataTests
                                             "remaining_ms": 1140000,
                                             "gold": 8500,
                                             "amber": 3,
+                                            "limits": { "gold": 60000, "amber": 36, "gold_spawned": 12000, "amber_spawned": 14 },
                                             "doors": [
                                               { "to": "zone_6f1e2d3c4b5a69788796a5b4_2", "locked": true, "down": true, "x": 380, "y": 200 },
                                               { "to": "main", "locked": false, "down": false, "x": 200, "y": 380 }
@@ -147,6 +148,14 @@ public class CaveDataTests
              .Should()
              .Be(1789001440000);
 
+        state.Limits!.Amber
+             .Should()
+             .Be(36);
+
+        state.Limits!.AmberSpawned
+             .Should()
+             .Be(14);
+
         state.Gold
              .Should()
              .Be(8500);
@@ -259,6 +268,24 @@ public class CaveDataTests
         monster.Slots[Slot.OffHand]!.Name
                .Should()
                .Be("dagger");
+    }
+
+    [Test]
+    public void ASceneActorCarriesWhatItWields()
+    {
+        //cave_of_many_dreams.js sends each scene actor's slots beside its id, so the vote names a rare rogue out of sight
+        var choice = TestJson.Socket<CaveChoice>(
+                """{ "id": "c20", "resolved": false, "kind": "rogue", "scene": [ { "id": "13", "name": "Vex", "side": "victim", "slots": { "mainhand": { "name": "cave_backstabber", "level": 0 }, "offhand": { "name": "dagger", "level": 0 } } }, { "id": "14", "name": "Wolf" } ] }""")
+            !;
+
+        choice.Scene[0].Slots![Slot.MainHand]!.Name
+              .Should()
+              .Be("cave_backstabber");
+
+        choice.Scene[1]
+              .Slots
+              .Should()
+              .BeNull();
     }
 
     /// <summary>

@@ -382,7 +382,7 @@ public class ClientTests
 
         target.Angle
               .Should()
-              .Be(0f);
+              .Be(90f);
 
         target.MoveNum
               .Should()

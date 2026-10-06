@@ -56,9 +56,13 @@ public abstract class EntityBase : AttributedObjectBase,
     /// <summary>
     ///     If moving, this is the angle they are moving at. (in degrees +/- 180)
     /// </summary>
+    /// <remarks>
+    ///     Starts at 90, facing down, because the server sends no angle for an entity that has not moved - an NPC never
+    ///     sends one. The game's client falls back to 90 the same way.
+    /// </remarks>
     [JsonInclude]
     [ShallowMergeIgnore]
-    public float Angle { get; private set; }
+    public float Angle { get; private set; } = 90f;
 
     /// <summary>
     ///     The conditions this entity has.

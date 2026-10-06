@@ -37,7 +37,8 @@ public class GeneratedMapBundleTests
                      "spawns": [[200, 200]],
                      "doors": [[380, 200, 24, 32, "zone_{{RUN}}_1", 0, 0]],
                      "monsters": [],
-                     "npcs": []
+                     "npcs": [],
+                     "rooms": [{ "id": 4, "kind": "cavern", "x": 168, "y": 232, "bounds": [64, 128, 272, 336] }]
                    },
                    "geometry": {
                      "min_x": 0, "max_x": 400, "min_y": 0, "max_y": 400,
@@ -127,5 +128,41 @@ public class GeneratedMapBundleTests
               .Key
               .Should()
               .Be($"zone_{RUN}_1");
+    }
+
+    [Test]
+    public void ParsesAFloorsRooms()
+    {
+        var bundle = GeneratedMapBundle.Parse(Bundle($"zone_{RUN}_0", 0));
+
+        bundle.Floors[0]
+              .Definition
+              .Rooms
+              .Should()
+              .ContainSingle()
+              .Which
+              .Should()
+              .BeEquivalentTo(
+                  new GMapRoom
+                  {
+                      Id = 4,
+                      Kind = "cavern",
+                      X = 168,
+                      Y = 232,
+                      Bounds =
+                      [
+                          64,
+                          128,
+                          272,
+                          336
+                      ]
+                  });
+
+        //a definition that names no rooms reads as none
+        bundle.Manifest[0]
+              .Definition
+              .Rooms
+              .Should()
+              .BeEmpty();
     }
 }
