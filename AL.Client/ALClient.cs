@@ -242,6 +242,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public TimeSpan LowPercentileRoundTrip => PingManager.LowPercentileOffset;
 
     /// <summary>
+    ///     A slow socket round trip for this connection: the 95th percentile of the last fifty pings, floored at 100ms until
+    ///     the first one lands.
+    /// </summary>
+    public TimeSpan HighPercentileRoundTrip => PingManager.HighPercentileOffset;
+
+    /// <summary>
     ///     The socket round trips this connection measured over the last 200 seconds, one every 4 seconds, oldest first. Empty
     ///     until the first ping lands.
     /// </summary>

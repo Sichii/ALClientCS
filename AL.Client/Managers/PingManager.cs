@@ -20,6 +20,12 @@ public sealed class PingManager : AsyncDeltaLoop
     private const double OFFSET_PERCENTILE = 5d;
 
     /// <summary>
+    ///     The percentile of the window <see cref="HighPercentileOffset" /> reads, high enough to cover a slow round trip but
+    ///     not pinned by one lag spike the way a maximum is.
+    /// </summary>
+    private const double HIGH_OFFSET_PERCENTILE = 95d;
+
+    /// <summary>
     ///     The number of pings the window holds, the last 200 seconds at one every 4 seconds.
     /// </summary>
     private const int WINDOW_SIZE = 50;
@@ -48,6 +54,23 @@ public sealed class PingManager : AsyncDeltaLoop
 
         private set;
     }
+
+    /// <summary>
+    ///     A slow round trip for this connection: the <see cref="HIGH_OFFSET_PERCENTILE" />th percentile of the window, or
+    ///     100ms until the first ping lands.
+    /// </summary>
+    internal TimeSpan HighPercentileOffset
+    {
+        get => field == TimeSpan.Zero ? UNMEASURED_FLOOR : field;
+
+        private set;
+    }
+
+    /// <summary>
+    ///     How much slower a slow round trip is than a fast one: <see cref="HighPercentileOffset" /> less
+    ///     <see cref="LowPercentileOffset" />.
+    /// </summary>
+    public TimeSpan Jitter => HighPercentileOffset - LowPercentileOffset;
 
     // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
     protected override float PollingRate { get; } = 1f / 4f; //once per 4 seconds
@@ -95,5 +118,6 @@ public sealed class PingManager : AsyncDeltaLoop
         ];
 
         LowPercentileOffset = CalculatePercentile(History, OFFSET_PERCENTILE);
+        HighPercentileOffset = CalculatePercentile(History, HIGH_OFFSET_PERCENTILE);
     }
 }
