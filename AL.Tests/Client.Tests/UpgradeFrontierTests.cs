@@ -2,6 +2,8 @@
 using System.Reflection;
 using AL.Client.Helpers;
 using AL.Client.Model;
+using AL.Core.Definitions;
+using AL.Data.Items;
 using AL.Tests.Characterization;
 using FluentAssertions;
 #endregion
@@ -77,8 +79,61 @@ public sealed class UpgradeFrontierTests
 
         //replaying the build at the same price ends on the planner's total
         UpgradeMath.CalculateExpectedTotals(
+                       new GItem
+                       {
+                           UpgradeModifiers = new Dictionary<ALAttribute, float>(),
+                           Grades = WSHIELD_THRESHOLDS
+                       },
                        build.Steps,
                        false,
+                       0,
+                       COPY_PRICE,
+                       SCROLL_PRICES,
+                       Offerings())[^1]
+                   .Should()
+                   .BeApproximately(planned.TotalCost, planned.TotalCost * 1e-9);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task AStatPrimeBuildReplaysToThePlannersTotal()
+    {
+        const double COPY_PRICE = 100_000_000;
+        const int START_LEVEL = 8;
+
+        var item = new GItem
+        {
+            Stat = 1,
+            UpgradeModifiers = new Dictionary<ALAttribute, float>(),
+            Grades = WSHIELD_THRESHOLDS
+        };
+
+        (var planned, var builds) = UpgradeHelper.FindCheapestUpgradePlanAndFrontier(
+            item,
+            9,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            COPY_PRICE,
+            START_LEVEL);
+
+        planned.Steps[0]
+               .StatPrimes
+               .Should()
+               .BeGreaterThan(0);
+
+        var build = builds.Single(candidate => candidate.Steps
+                                                        .Select(step => (step.ScrollGrade, step.Offering, step.Deposits, step.StatPrimes))
+                                                        .SequenceEqual(
+                                                            planned.Steps.Select(step => (step.ScrollGrade, step.Offering, step.Deposits,
+                                                                step.StatPrimes))));
+
+        UpgradeMath.CalculateExpectedTotals(
+                       item,
+                       build.Steps,
+                       false,
+                       START_LEVEL,
                        COPY_PRICE,
                        SCROLL_PRICES,
                        Offerings())[^1]

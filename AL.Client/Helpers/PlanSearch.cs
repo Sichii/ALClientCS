@@ -60,7 +60,7 @@ internal sealed class PlanSearch
     /// </summary>
     /// <param name="index">The level's index in the climb.</param>
     /// <param name="staked">
-    ///     The grace each staked copy carries, deposits included.
+    ///     The grace each staked copy carries, primes included.
     /// </param>
     /// <param name="choice">What goes on the bench.</param>
     /// <param name="ograce">The offering pity counter.</param>
@@ -100,7 +100,7 @@ internal sealed class PlanSearch
     /// </summary>
     /// <param name="index">The level's index in the climb.</param>
     /// <param name="staked">
-    ///     The grace each staked copy carries, deposits included.
+    ///     The grace each staked copy carries, primes included.
     /// </param>
     /// <param name="choice">What goes on the bench.</param>
     /// <param name="ograce">The offering pity counter.</param>
@@ -389,7 +389,7 @@ internal sealed class PlanSearch
 
                             foreach (var choice in Planner.GetChoices(level, grace))
                             {
-                                var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                                var staked = UpgradeMath.CalculateStakedGrace(grace, choice.Deposits, choice.StatPrimes);
                                 var withOffering = choice.Offering is not null;
                                 var counted = level >= Planner.PityStartLevel;
 
@@ -603,7 +603,7 @@ internal sealed class PlanSearch
             foreach (var node in open)
                 foreach (var choice in Planner.GetChoices(level, node.Grace))
                 {
-                    var staked = node.Grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                    var staked = UpgradeMath.CalculateStakedGrace(node.Grace, choice.Deposits, choice.StatPrimes);
                     var bumps = new double[4];
 
                     for (var above = 0; above <= 3; above++)
@@ -698,7 +698,7 @@ internal sealed class PlanSearch
             foreach ((var grace, var carry) in states[index].Values)
                 foreach (var choice in Planner.GetChoices(level, grace))
                 {
-                    var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                    var staked = UpgradeMath.CalculateStakedGrace(grace, choice.Deposits, choice.StatPrimes);
                     var nextGrace = Planner.CalculateCarriedGrace(level, staked, choice);
 
                     var nextCarry = CalculateNextCarry(
@@ -736,7 +736,7 @@ internal sealed class PlanSearch
 
                 foreach (var choice in Planner.GetChoices(level, grace))
                 {
-                    var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                    var staked = UpgradeMath.CalculateStakedGrace(grace, choice.Deposits, choice.StatPrimes);
 
                     var attempts = CalculateLeastAttempts(
                         index,
@@ -790,7 +790,7 @@ internal sealed class PlanSearch
 
                     foreach (var choice in Planner.GetChoices(level, grace))
                     {
-                        var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                        var staked = UpgradeMath.CalculateStakedGrace(grace, choice.Deposits, choice.StatPrimes);
                         var withOffering = choice.Offering is not null;
                         SuffixBlocks suffixes;
 
@@ -1174,7 +1174,7 @@ internal sealed class PlanSearch
     /// </summary>
     /// <param name="Index">The level's index in the climb.</param>
     /// <param name="Staked">
-    ///     The grace each staked copy carries, deposits included.
+    ///     The grace each staked copy carries, primes included.
     /// </param>
     /// <param name="Choice">What goes on the bench.</param>
     /// <param name="Carry">

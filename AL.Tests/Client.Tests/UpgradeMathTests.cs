@@ -3,7 +3,9 @@ using System.Reflection;
 using AL.Client.Definitions;
 using AL.Client.Extensions;
 using AL.Client.Helpers;
+using AL.Core.Definitions;
 using AL.Data;
+using AL.Data.Items;
 using AL.SocketClient.Model;
 using AL.Tests.Characterization;
 using FluentAssertions;
@@ -26,6 +28,140 @@ public class UpgradeMathTests
     ];
 
     private static Dictionary<FieldInfo, object?> CapturedGameData = new();
+
+    [Test]
+    public void OnlyAnUpgradeableItemWithAStatTakesAStatScroll()
+    {
+        UpgradeMath.TakesStat(GameData.Items["helmet"])
+                   .Should()
+                   .BeTrue();
+
+        //a t-shirt upgrades, but its bonus is not in the stat slot
+        UpgradeMath.TakesStat(GameData.Items["tshirt0"])
+                   .Should()
+                   .BeFalse();
+
+        //compound-only, so refused however its stat reads
+        UpgradeMath.TakesStat(
+                       new GItem
+                       {
+                           Stat = 1,
+                           CompoundModifiers = new Dictionary<ALAttribute, float>()
+                       })
+                   .Should()
+                   .BeFalse();
+
+        UpgradeMath.TakesStat(null)
+                   .Should()
+                   .BeFalse();
+    }
+
+    [Test]
+    public void AStatScrollAttemptConsumesScrollsByGrade()
+    {
+        //the server's table is 1, 10, 100, 1000 and 9999 scrolls by grade; this item steps grade at +7, +9, +10 and +12
+        var item = CreateStatItem();
+
+        UpgradeMath.CalculateStatScrollsNeeded(item, 0)
+                   .Should()
+                   .Be(1);
+
+        UpgradeMath.CalculateStatScrollsNeeded(item, 6)
+                   .Should()
+                   .Be(1);
+
+        UpgradeMath.CalculateStatScrollsNeeded(item, 7)
+                   .Should()
+                   .Be(10);
+
+        UpgradeMath.CalculateStatScrollsNeeded(item, 9)
+                   .Should()
+                   .Be(100);
+
+        UpgradeMath.CalculateStatScrollsNeeded(item, 10)
+                   .Should()
+                   .Be(1000);
+
+        UpgradeMath.CalculateStatScrollsNeeded(item, 12)
+                   .Should()
+                   .Be(9999);
+    }
+
+    [Test]
+    public void AStatPrimeIsPlannedOnlyThroughRareGrade()
+    {
+        var item = CreateStatItem();
+
+        UpgradeMath.CanStatPrime(item, 0)
+                   .Should()
+                   .BeTrue();
+
+        UpgradeMath.CanStatPrime(item, 9)
+                   .Should()
+                   .BeTrue();
+
+        UpgradeMath.CanStatPrime(item, 10)
+                   .Should()
+                   .BeFalse();
+
+        UpgradeMath.CanStatPrime(item, 12)
+                   .Should()
+                   .BeFalse();
+
+        UpgradeMath.CanStatPrime(
+                       item with
+                       {
+                           Stat = 0
+                       },
+                       0)
+                   .Should()
+                   .BeFalse();
+    }
+
+    [Test]
+    public void AStatScrollIsPricedAtTheGameDataValue()
+    {
+        var item = CreateStatItem();
+        var price = UpgradeMath.GetStatScrollPrice(item);
+
+        price.Should()
+             .BeGreaterThan(0);
+
+        //the three stat scrolls sell for the same gold
+        price.Should()
+             .Be(GameData.Items["intscroll"]!.GoldValue);
+
+        price.Should()
+             .Be(GameData.Items["dexscroll"]!.GoldValue);
+
+        UpgradeMath.GetStatScrollPrice(
+                       item with
+                       {
+                           Stat = 0
+                       })
+                   .Should()
+                   .Be(0);
+    }
+
+    [Test]
+    public void AStatPrimeStakesAWholePointOfGrace()
+        => UpgradeMath.CalculateStakedGrace(1, 3, 2)
+                      .Should()
+                      .Be(1 + 3 * 0.5 + 2 * 1.0);
+
+    private static GItem CreateStatItem()
+        => new()
+        {
+            Stat = 1,
+            UpgradeModifiers = new Dictionary<ALAttribute, float>(),
+            Grades =
+            [
+                7,
+                9,
+                10,
+                12
+            ]
+        };
 
     [Test]
     public void ACompoundGetsDearerAsItClimbs()

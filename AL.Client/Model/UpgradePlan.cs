@@ -27,8 +27,11 @@ public sealed record UpgradePlan(IReadOnlyList<UpgradePlanStep> Steps, double Ba
 /// <param name="Deposits">
 ///     The offerings used without a scroll before every attempt, each worth +0.5 grace. Always 0 on the compound bench.
 /// </param>
+/// <param name="StatPrimes">
+///     The offerings used with a stat scroll before every attempt, each worth +1 grace. Always 0 on the compound bench.
+/// </param>
 /// <param name="ItemGrace">
-///     The grace each staked copy carries when the attempt rolls, this level's deposits included.
+///     The grace each staked copy carries when the attempt rolls, this level's primes included.
 /// </param>
 /// <param name="Chance">
 ///     The level's average chance of success per attempt, failstacks and offering pity included.
@@ -41,6 +44,7 @@ public sealed record UpgradePlanStep(
     int ScrollGrade,
     string? Offering,
     int Deposits,
+    int StatPrimes,
     double ItemGrace,
     double Chance,
     double ExpectedCost);
@@ -54,14 +58,18 @@ public sealed record UpgradePlanStep(
 /// <param name="Deposits">
 ///     The offerings used without a scroll before every attempt. Upgrade bench only.
 /// </param>
+/// <param name="StatPrimes">
+///     The offerings used with a stat scroll before every attempt. Upgrade bench only.
+/// </param>
 /// <param name="DepositOffering">
-///     The offering the deposits spend, or null for the cheapest one priced.
+///     The offering both kinds of prime spend, or null for the cheapest one priced.
 /// </param>
 public sealed record ForcedStep(
     int FromLevel,
     int ScrollGrade,
     string? Offering,
     int Deposits = 0,
+    int StatPrimes = 0,
     string? DepositOffering = null);
 
 /// <summary>

@@ -52,7 +52,8 @@ internal sealed class CompoundPlanner : PlannerBase
             offerings,
             countPity,
             false,
-            pityStartLevel)
+            pityStartLevel,
+            0)
         => ItemName = itemName;
 
     /// <inheritdoc />

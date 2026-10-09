@@ -1,6 +1,7 @@
 #region
 using AL.Client.Abstractions;
 using AL.Client.Model;
+using AL.Data.Items;
 #endregion
 
 namespace AL.Client.Helpers;
@@ -30,35 +31,43 @@ internal sealed class UpgradeFrontier
     /// <summary>
     ///     Calculates a build's expected cost at each level, at the given copy price.
     /// </summary>
+    /// <param name="item">The item, which prices the build's stat primes.</param>
     /// <param name="steps">The build's steps.</param>
     /// <param name="copiesPerAttempt">The copies one attempt consumes.</param>
+    /// <param name="startLevel">The level the build's first step is made from.</param>
     /// <param name="copyPrice">The price of one copy.</param>
     /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
     /// <param name="offerings">
-    ///     The offerings available. The cheapest prices the deposits.
+    ///     The offerings available. The cheapest is what plain and stat primes spend.
     /// </param>
     /// <returns>
     ///     The expected gold to own one copy at each level reached, in step order.
     /// </returns>
     internal static IReadOnlyList<double> CalculateExpectedTotals(
+        GItem item,
         IReadOnlyList<UpgradeBuildStep> steps,
         int copiesPerAttempt,
+        int startLevel,
         double copyPrice,
         IReadOnlyList<double> scrollPrices,
         IReadOnlyList<OfferingChoice> offerings)
     {
         var depositPrice = UpgradeMath.TryFindCheapestOffering(offerings, out var cheapestOffering) ? cheapestOffering.Price : 0;
+        var statScrollPrice = UpgradeMath.GetStatScrollPrice(item);
         var expected = copyPrice;
         var totals = new List<double>(steps.Count);
 
-        foreach (var step in steps)
+        for (var index = 0; index < steps.Count; index++)
         {
+            var step = steps[index];
+            var statPrimePrice = UpgradeMath.CalculateStatScrollsNeeded(item, startLevel + index) * statScrollPrice + depositPrice;
+
             expected = UpgradeMath.CalculateNextLevelCost(
                 expected,
                 copiesPerAttempt,
                 scrollPrices[step.ScrollGrade],
                 GetOfferingPrice(offerings, step.Offering),
-                step.Deposits * depositPrice,
+                step.Deposits * depositPrice + step.StatPrimes * statPrimePrice,
                 step.Chance);
 
             totals.Add(expected);
@@ -76,6 +85,7 @@ internal sealed class UpgradeFrontier
                     choice.ScrollGrade,
                     choice.Offering?.Name,
                     choice.Deposits,
+                    choice.StatPrimes,
                     priced.ItemGrace[index],
                     1 / priced.Attempts[index]))
             ]);

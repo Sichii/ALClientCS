@@ -21,6 +21,9 @@ public sealed record UpgradeBuild(double Copies, double Gold, IReadOnlyList<Upgr
 /// <param name="Deposits">
 ///     The offerings used without a scroll before every attempt.
 /// </param>
+/// <param name="StatPrimes">
+///     The offerings used with a stat scroll before every attempt.
+/// </param>
 /// <param name="ItemGrace">
 ///     The grace each staked copy carries when the attempt rolls.
 /// </param>
@@ -31,5 +34,6 @@ public sealed record UpgradeBuildStep(
     int ScrollGrade,
     string? Offering,
     int Deposits,
+    int StatPrimes,
     double ItemGrace,
     double Chance);

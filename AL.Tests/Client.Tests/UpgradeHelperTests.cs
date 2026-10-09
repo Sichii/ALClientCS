@@ -154,6 +154,66 @@ public sealed class UpgradeHelperTests
         await Task.CompletedTask;
     }
 
+    [Test]
+    public async Task AnItemWithAStatPlansStatPrimes()
+    {
+        //at +8 the item is high grade: 10 scrolls at the game-data price and a primling cost less than two primlings
+        var planned = UpgradeHelper.FindCheapestUpgradePlan(
+            CreateWshield(1),
+            9,
+            100_000_000,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            8);
+
+        planned.Steps[0]
+               .StatPrimes
+               .Should()
+               .BeGreaterThan(0);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task AnItemWithoutAStatPlansNoStatPrimes()
+    {
+        var planned = UpgradeHelper.FindCheapestUpgradePlan(
+            CreateWshield(0),
+            9,
+            100_000_000,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            8);
+
+        planned.Steps[0]
+               .StatPrimes
+               .Should()
+               .Be(0);
+
+        planned.Steps[0]
+               .Deposits
+               .Should()
+               .BeGreaterThan(0);
+
+        await Task.CompletedTask;
+    }
+
+    private static GItem CreateWshield(float stat)
+        => new()
+        {
+            Stat = stat,
+            UpgradeModifiers = new Dictionary<ALAttribute, float>(),
+            Grades =
+            [
+                7,
+                9,
+                10,
+                12
+            ]
+        };
+
     [Before(Class)]
     public static void EnsureGameData() => CapturedGameData = Fixture.LoadGameDataIfEmpty();
 

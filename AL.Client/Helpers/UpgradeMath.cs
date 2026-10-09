@@ -92,6 +92,28 @@ public static class UpgradeMath
     public const double DEPOSIT_GRACE = 0.5;
 
     /// <summary>
+    ///     The grace one offering used with a stat scroll banks on an upgrade item, whatever its grade.
+    /// </summary>
+    public const double STAT_PRIME_GRACE = 1;
+
+    /// <summary>
+    ///     The highest item grade a stat prime is planned at. Past rare the scrolls cost more than the offering they save.
+    /// </summary>
+    internal const int MAX_STAT_PRIME_GRADE = 2;
+
+    /// <summary>
+    ///     The stat scrolls one attempt with a stat scroll consumes, indexed by the item's grade.
+    /// </summary>
+    internal static readonly IReadOnlyList<int> STAT_SCROLLS_BY_GRADE =
+    [
+        1,
+        10,
+        100,
+        1000,
+        9999
+    ];
+
+    /// <summary>
     ///     The divisor an upgrade with no offering applies to the item's grace before the low-level penalty comes off.
     /// </summary>
     public const double UPGRADE_PLAIN_GRACE_DIVISOR = 4.8;
@@ -286,28 +308,35 @@ public static class UpgradeMath
     /// <summary>
     ///     Calculates a build's expected cost at each level, at the given copy price.
     /// </summary>
+    /// <param name="item">The item, which prices the build's stat primes.</param>
     /// <param name="steps">The build's steps.</param>
     /// <param name="compound">
     ///     Specifies whether the item compounds rather than upgrades.
     /// </param>
+    /// <param name="startLevel">The level the build's first step is made from.</param>
     /// <param name="copyPrice">The price of one copy.</param>
     /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
     /// <param name="offerings">
-    ///     The offerings available. The cheapest prices the deposits.
+    ///     The offerings available. The cheapest is what plain and stat primes spend.
     /// </param>
     /// <returns>
     ///     The expected gold to own one copy at each level reached, in step order.
     /// </returns>
+    /// <exception cref="System.ArgumentNullException">item</exception>
     /// <exception cref="System.ArgumentNullException">steps</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
     public static IReadOnlyList<double> CalculateExpectedTotals(
+        GItem item,
         IReadOnlyList<UpgradeBuildStep> steps,
         bool compound,
+        int startLevel,
         double copyPrice,
         IReadOnlyList<double> scrollPrices,
         IReadOnlyList<OfferingChoice> offerings)
     {
+        ArgumentNullException.ThrowIfNull(item);
+
         ArgumentNullException.ThrowIfNull(steps);
 
         ArgumentNullException.ThrowIfNull(scrollPrices);
@@ -315,8 +344,10 @@ public static class UpgradeMath
         ArgumentNullException.ThrowIfNull(offerings);
 
         return UpgradeFrontier.CalculateExpectedTotals(
+            item,
             steps,
             GetCopiesPerAttempt(compound),
+            startLevel,
             copyPrice,
             scrollPrices,
             offerings);
@@ -391,7 +422,7 @@ public static class UpgradeMath
     ///     The price of the attempt's offering, or 0 for none.
     /// </param>
     /// <param name="depositCost">
-    ///     The cost of the offerings banked without a scroll before the attempt, or 0 for none.
+    ///     The cost of the plain and stat primes banked before the attempt, or 0 for none.
     /// </param>
     /// <param name="chance">The attempt's chance of success.</param>
     /// <returns>
@@ -405,6 +436,32 @@ public static class UpgradeMath
         double depositCost,
         double chance)
         => (copiesPerAttempt * expected + scrollPrice + offeringPrice + depositCost) / chance;
+
+    /// <summary>
+    ///     Calculates the grace staked on an attempt: the item's own, plus what its plain and stat primes banked.
+    /// </summary>
+    /// <param name="grace">The grace the item carries before any prime.</param>
+    /// <param name="deposits">The offerings used without a scroll.</param>
+    /// <param name="statPrimes">The offerings used with a stat scroll.</param>
+    /// <returns>The staked grace.</returns>
+    public static double CalculateStakedGrace(double grace, int deposits, int statPrimes)
+        => grace + DEPOSIT_GRACE * deposits + STAT_PRIME_GRACE * statPrimes;
+
+    /// <summary>
+    ///     Calculates the stat scrolls one attempt with a stat scroll consumes on the item at the given level.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <param name="level">The item's level.</param>
+    /// <returns>
+    ///     The scrolls consumed, set by the item's grade at the level.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">item</exception>
+    public static int CalculateStatScrollsNeeded(GItem item, int level)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        return STAT_SCROLLS_BY_GRADE[CalculateGrade(item.Grades ?? DEFAULT_THRESHOLDS, level)];
+    }
 
     /// <summary>Calculates the chance of one upgrade attempt.</summary>
     /// <remarks>
@@ -509,6 +566,23 @@ public static class UpgradeMath
                 server,
                 pity,
                 baseGradeGrace));
+    }
+
+    /// <summary>
+    ///     Determines whether a stat prime is planned for the item at the given level.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <param name="level">The item's level.</param>
+    /// <returns>
+    ///     <c>true</c> if the item takes a stat scroll and is normal, high or rare grade at the level; otherwise, <c>false</c>
+    ///     .
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">item</exception>
+    public static bool CanStatPrime(GItem item, int level)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        return TakesStat(item) && (CalculateGrade(item.Grades ?? DEFAULT_THRESHOLDS, level) <= MAX_STAT_PRIME_GRADE);
     }
 
     /// <summary>
@@ -757,6 +831,24 @@ public static class UpgradeMath
         return (scrollGrade > itemGrade) && (newLevel <= maxLevel) ? OVER_GRADE_SCROLL_GRACE : 0;
     }
 
+    /// <summary>
+    ///     Gets the price one stat scroll is priced at for the item: the game-data value of <c>strscroll</c>, which
+    ///     <c>intscroll</c> and <c>dexscroll</c> share.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <returns>
+    ///     The price, or 0 when the item takes no stat scroll or game data has no <c>strscroll</c>.
+    /// </returns>
+    internal static double GetStatScrollPrice(GItem item)
+    {
+        const string PRICED_SCROLL = "strscroll";
+
+        if (!TakesStat(item) || GameData.Items[PRICED_SCROLL] is not { } scroll)
+            return 0;
+
+        return scroll.GoldValue;
+    }
+
     private static int GetUpgradeChanceRow(IReadOnlyList<int> thresholds) => CalculateGrade(thresholds, 0);
 
     /// <summary>
@@ -806,6 +898,18 @@ public static class UpgradeMath
     ///     <c>true</c> if the item upgrades or compounds; otherwise, <c>false</c>.
     /// </returns>
     public static bool HasLevel(string? itemName) => TryGetGradeThresholds(itemName, out _);
+
+    /// <summary>
+    ///     Determines whether the item takes a stat scroll: it upgrades and its definition carries a stat.
+    /// </summary>
+    /// <remarks>
+    ///     A compound-only item is refused however its stat reads.
+    /// </remarks>
+    /// <param name="item">The item's definition, or null.</param>
+    /// <returns>
+    ///     <c>true</c> if the item upgrades and carries a stat; otherwise, <c>false</c>.
+    /// </returns>
+    public static bool TakesStat(GItem? item) => item is { Stat: > 0, UpgradeModifiers: not null };
 
     /// <summary>
     ///     Tries to find the cheapest priced offering, which is what a grace deposit spends.

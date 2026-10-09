@@ -19,6 +19,7 @@ internal abstract class PlannerBase
 {
     private readonly ConcurrentDictionary<(int Level, long Grace), IReadOnlyList<PlanChoice>> ChoiceCache = new();
     private readonly OfferingChoice? DepositOffering;
+    private readonly double StatScrollPrice;
 
     /// <summary>
     ///     The values that set this planner's bench apart from the other.
@@ -75,6 +76,9 @@ internal abstract class PlannerBase
     /// <param name="pityStartLevel">
     ///     The lowest level whose attempts count failstacks and offering pity.
     /// </param>
+    /// <param name="statScrollPrice">
+    ///     The price of one stat scroll, or 0 when the item takes none, which plans no stat prime.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
@@ -85,7 +89,8 @@ internal abstract class PlannerBase
         IReadOnlyList<OfferingChoice> offerings,
         bool countPity,
         bool countServerPity,
-        int pityStartLevel)
+        int pityStartLevel,
+        double statScrollPrice)
     {
         ArgumentNullException.ThrowIfNull(thresholds);
 
@@ -101,6 +106,7 @@ internal abstract class PlannerBase
         CountsPlayerFailstacks = countPity && bench.TracksFailstacks;
         CountsServerFailstacks = countServerPity && bench.TracksFailstacks;
         PityStartLevel = pityStartLevel;
+        StatScrollPrice = statScrollPrice;
         DepositOffering = bench.TakesDeposits && UpgradeMath.TryFindCheapestOffering(offerings, out var cheapest) ? cheapest : null;
     }
 
@@ -112,7 +118,7 @@ internal abstract class PlannerBase
     /// </remarks>
     /// <param name="level">The level the attempts are made from.</param>
     /// <param name="staked">
-    ///     The grace each staked copy carries, deposits included.
+    ///     The grace each staked copy carries, primes included.
     /// </param>
     /// <param name="choice">What goes on the bench.</param>
     /// <param name="bump">The failstacks the counters start the run with.</param>
@@ -176,7 +182,7 @@ internal abstract class PlannerBase
     /// </summary>
     /// <param name="level">The level the attempt is made from.</param>
     /// <param name="staked">
-    ///     The grace each staked copy carries, deposits included.
+    ///     The grace each staked copy carries, primes included.
     /// </param>
     /// <param name="choice">What goes on the bench.</param>
     /// <returns>The grace carried up.</returns>
@@ -242,6 +248,15 @@ internal abstract class PlannerBase
             ograce);
 
     /// <summary>
+    ///     Calculates the price of one stat prime at a level: the item's grade's stat scrolls and one deposited offering.
+    /// </summary>
+    /// <param name="level">The level the attempt is made from.</param>
+    /// <param name="depositPrice">The price of the offering the prime spends.</param>
+    /// <returns>The price.</returns>
+    private double CalculateStatPrimePrice(int level, double depositPrice)
+        => UpgradeMath.STAT_SCROLLS_BY_GRADE[UpgradeMath.CalculateGrade(Thresholds, level)] * StatScrollPrice + depositPrice;
+
+    /// <summary>
     ///     Creates a priced plan's steps, each with the expected cost to own one copy at the level it reaches.
     /// </summary>
     /// <param name="priced">The priced plan.</param>
@@ -267,6 +282,7 @@ internal abstract class PlannerBase
                     choice.ScrollGrade,
                     choice.Offering?.Name,
                     choice.Deposits,
+                    choice.StatPrimes,
                     priced.ItemGrace[index],
                     1 / attempts,
                     expected));
@@ -293,7 +309,7 @@ internal abstract class PlannerBase
     ///     The grace each starting copy already carries. A negative figure is read as none.
     /// </param>
     /// <param name="forced">
-    ///     A plan to price instead of searching for one, one step per level from +0, or null to search. Its deposits are
+    ///     A plan to price instead of searching for one, one step per level from +0, or null to search. Its primes are
     ///     ignored on a bench that takes none.
     /// </param>
     /// <returns>
@@ -412,6 +428,8 @@ internal abstract class PlannerBase
                                      ScrollPrices[grade],
                                      null,
                                      0,
+                                     0,
+                                     0,
                                      0))
                                  .ToList();
 
@@ -424,11 +442,11 @@ internal abstract class PlannerBase
     ///     Gets every choice worth putting on the bench at a level, for a copy carrying the given grace.
     /// </summary>
     /// <remarks>
-    ///     Deposits stop once the chance can rise no further, or the item's own grace is capped: grace for the levels above is
-    ///     cheaper deposited there, where only the copies that got that far pay for it.
+    ///     Primes stop once the chance can rise no further, or the item's own grace is capped: grace for the levels above is
+    ///     cheaper banked there, where only the copies that got that far pay for it.
     /// </remarks>
     /// <param name="level">The level the attempts are made from.</param>
-    /// <param name="grace">The grace each copy carries before any deposit.</param>
+    /// <param name="grace">The grace each copy carries before any prime.</param>
     /// <returns>
     ///     The choices, or none when the level has no base chance or no priced scroll covers it.
     /// </returns>
@@ -451,7 +469,14 @@ internal abstract class PlannerBase
         //own grace, the grade at +0's share included, is capped one past the level being reached; only the bench that takes
         //deposits has that share
         var ownGrace = grace + UpgradeMath.GetBaseGradeGrace(UpgradeMath.CalculateGrade(Thresholds, 0));
-        var depositCeiling = DepositOffering is null ? 0 : (int)Math.Ceiling(Math.Max(0, level + 2 - ownGrace) / UpgradeMath.DEPOSIT_GRACE);
+        var maxHalfPoints = DepositOffering is null ? 0 : (int)Math.Ceiling(Math.Max(0, level + 2 - ownGrace) / UpgradeMath.DEPOSIT_GRACE);
+        var depositPrice = DepositOffering?.Price ?? 0;
+        var statPrimePrice = CalculateStatPrimePrice(level, depositPrice);
+
+        //a stat prime banks two plain primes' grace, so it stands in for each pair of them when it costs less than the pair
+        var statPrimeIsCheaper = (StatScrollPrice > 0)
+                                 && (itemGrade <= UpgradeMath.MAX_STAT_PRIME_GRADE)
+                                 && (statPrimePrice < (2 * depositPrice));
 
         var scrolls = Bench.ScrollGrades[itemGrade]
                            .Where(scroll => (scroll < ScrollPrices.Count) && (ScrollPrices[scroll] > 0))
@@ -475,7 +500,9 @@ internal abstract class PlannerBase
                     ScrollPrices[scroll],
                     offering,
                     0,
-                    DepositOffering?.Price ?? 0);
+                    0,
+                    depositPrice,
+                    statPrimePrice);
 
                 var most = CalculateChance(
                     baseChance,
@@ -486,19 +513,23 @@ internal abstract class PlannerBase
                     PAST_EVERY_CAP,
                     PAST_EVERY_CAP);
 
-                for (var deposits = 0; deposits <= depositCeiling; deposits++)
+                for (var halfPoints = 0; halfPoints <= maxHalfPoints; halfPoints++)
                 {
-                    choices.Add(
-                        bare with
-                        {
-                            Deposits = deposits
-                        });
+                    var statPrimes = statPrimeIsCheaper ? halfPoints / 2 : 0;
+
+                    var choice = bare with
+                    {
+                        Deposits = halfPoints - 2 * statPrimes,
+                        StatPrimes = statPrimes
+                    };
+
+                    choices.Add(choice);
 
                     var chance = CalculateChance(
                         baseChance,
                         level,
                         bare,
-                        grace + UpgradeMath.DEPOSIT_GRACE * deposits,
+                        UpgradeMath.CalculateStakedGrace(grace, choice.Deposits, choice.StatPrimes),
                         0,
                         0,
                         0);
@@ -567,7 +598,7 @@ internal abstract class PlannerBase
         for (var index = 0; index < levels; index++)
         {
             var level = startLevel + index;
-            staked[index] = grace + UpgradeMath.DEPOSIT_GRACE * choices[index].Deposits;
+            staked[index] = UpgradeMath.CalculateStakedGrace(grace, choices[index].Deposits, choices[index].StatPrimes);
             carried[index] = carry;
             withOffering[index] = choices[index].Offering is not null;
             grace = CalculateCarriedGrace(level, staked[index], choices[index]);
@@ -840,13 +871,17 @@ internal abstract class PlannerBase
                 ? Offerings.FirstOrDefault(candidate => candidate.Name == named)
                 : DepositOffering;
 
+            var depositPrice = deposit?.Price ?? 0;
+
             read.Add(
                 new PlanChoice(
                     step.ScrollGrade,
                     ScrollPrices[step.ScrollGrade],
                     offering,
                     Bench.TakesDeposits ? step.Deposits : 0,
-                    deposit?.Price ?? 0));
+                    Bench.TakesDeposits ? step.StatPrimes : 0,
+                    depositPrice,
+                    CalculateStatPrimePrice(level, depositPrice)));
         }
 
         return true;

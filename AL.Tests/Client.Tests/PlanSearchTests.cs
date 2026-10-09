@@ -74,7 +74,7 @@ public sealed class PlanSearchTests
 
             foreach (var choice in planner.GetChoices(level, grace))
             {
-                var staked = grace + UpgradeMath.DEPOSIT_GRACE * choice.Deposits;
+                var staked = grace + 0.5 * choice.Deposits + 1.0 * choice.StatPrimes;
                 plan[index] = choice;
                 Walk(index + 1, planner.CalculateCarriedGrace(level, staked, choice));
             }
@@ -415,6 +415,23 @@ public sealed class PlanSearchTests
             startLevel,
             startLevel + 3,
             COPY_PRICE);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task TheStatPrimeSearchMatchesEveryPlan()
+    {
+        CheckAgainstEveryPlan(
+            new UpgradePlanner(
+                WSHIELD_THRESHOLDS,
+                SCROLL_PRICES,
+                Offerings(),
+                true,
+                statScrollPrice: 1),
+            5,
+            8,
+            100_000_000);
 
         await Task.CompletedTask;
     }

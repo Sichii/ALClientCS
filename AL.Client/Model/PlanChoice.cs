@@ -11,16 +11,24 @@ namespace AL.Client.Model;
 /// <param name="Deposits">
 ///     The offerings used without a scroll before the attempt.
 /// </param>
+/// <param name="StatPrimes">
+///     The offerings used with a stat scroll before the attempt.
+/// </param>
 /// <param name="DepositPrice">The price of one deposited offering.</param>
+/// <param name="StatPrimePrice">
+///     The price of one stat prime: its stat scrolls and one deposited offering.
+/// </param>
 internal sealed record PlanChoice(
     int ScrollGrade,
     double ScrollPrice,
     OfferingChoice? Offering,
     int Deposits,
-    double DepositPrice)
+    int StatPrimes,
+    double DepositPrice,
+    double StatPrimePrice)
 {
     /// <summary>The gold one attempt spends on the bench.</summary>
-    public double Fees => ScrollPrice + (Offering?.Price ?? 0) + Deposits * DepositPrice;
+    public double Fees => ScrollPrice + (Offering?.Price ?? 0) + Deposits * DepositPrice + StatPrimes * StatPrimePrice;
 }
 
 /// <summary>
@@ -37,7 +45,7 @@ internal sealed record PlanChoice(
 ///     The offering pity counter the plan settles at when a climb starts.
 /// </param>
 /// <param name="ItemGrace">
-///     The grace each staked copy carries at each level, deposits included.
+///     The grace each staked copy carries at each level, primes included.
 /// </param>
 /// <param name="Attempts">
 ///     The expected attempts each level takes per success.

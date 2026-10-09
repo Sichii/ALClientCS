@@ -38,6 +38,9 @@ internal sealed class UpgradePlanner : PlannerBase
     /// <param name="pityStartLevel">
     ///     The lowest level whose attempts count failstacks and offering pity.
     /// </param>
+    /// <param name="statScrollPrice">
+    ///     The price of one stat scroll, or 0 when the item takes none, which plans no stat prime.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">thresholds</exception>
     /// <exception cref="System.ArgumentNullException">scrollPrices</exception>
     /// <exception cref="System.ArgumentNullException">offerings</exception>
@@ -48,7 +51,8 @@ internal sealed class UpgradePlanner : PlannerBase
         bool luckySlot,
         bool countPity = true,
         bool countServerPity = false,
-        int pityStartLevel = 0)
+        int pityStartLevel = 0,
+        double statScrollPrice = 0)
         : base(
             Bench.UPGRADE,
             thresholds,
@@ -56,7 +60,8 @@ internal sealed class UpgradePlanner : PlannerBase
             offerings,
             countPity,
             countServerPity,
-            pityStartLevel)
+            pityStartLevel,
+            statScrollPrice)
     {
         GradeAtZero = UpgradeMath.CalculateGrade(thresholds, 0);
         LuckySlot = luckySlot;

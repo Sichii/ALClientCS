@@ -89,6 +89,7 @@ public static class UpgradeHelper
     /// <remarks>
     ///     The cost is a long-run average, not a guarantee: the 90th-percentile climb runs about triple the
     ///     median.
+    ///     An item that takes a stat scroll is planned with stat primes too, priced from game data.
     /// </remarks>
     /// <param name="item">The item. One with no level has nothing to plan.</param>
     /// <param name="targetLevel">The level to climb to.</param>
@@ -99,7 +100,7 @@ public static class UpgradeHelper
     ///     Scroll prices indexed by scroll grade. A grade priced at zero, or past the end of the list, is skipped.
     /// </param>
     /// <param name="offerings">
-    ///     The offerings available. Only those priced above zero are used, and the cheapest prices the grace deposits.
+    ///     The offerings available. Only those priced above zero are used, and the cheapest is what plain and stat primes spend.
     /// </param>
     /// <param name="luckySlot">
     ///     Specifies whether the attempts are made in the lucky slot.
@@ -155,7 +156,8 @@ public static class UpgradeHelper
             luckySlot,
             countPity,
             countServerPity,
-            pityStartLevel);
+            pityStartLevel,
+            UpgradeMath.GetStatScrollPrice(item));
 
         return planner.FindCheapestPlan(
             targetLevel,
@@ -227,10 +229,15 @@ public static class UpgradeHelper
     ///     Finds the cheapest expected upgrade climb for the item, and its upgrade frontier: the builds that no other build
     ///     beats on both copies consumed and gold spent.
     /// </summary>
+    /// <remarks>
+    ///     An item that takes a stat scroll is planned with stat primes too, priced from game data.
+    /// </remarks>
     /// <param name="item">The item.</param>
     /// <param name="targetLevel">The level every build has to reach.</param>
     /// <param name="scrollPrices">Scroll prices indexed by scroll grade.</param>
-    /// <param name="offerings">The offerings available.</param>
+    /// <param name="offerings">
+    ///     The offerings available. The cheapest is what plain and stat primes spend.
+    /// </param>
     /// <param name="luckySlot">
     ///     Specifies whether the attempts are made in the lucky slot.
     /// </param>
@@ -281,7 +288,8 @@ public static class UpgradeHelper
             luckySlot,
             countPity,
             countServerPity,
-            pityStartLevel);
+            pityStartLevel,
+            UpgradeMath.GetStatScrollPrice(item));
 
         return planner.FindCheapestPlanAndFrontier(
             targetLevel,

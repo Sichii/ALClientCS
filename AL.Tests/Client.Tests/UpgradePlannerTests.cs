@@ -540,6 +540,7 @@ public class UpgradePlannerTests
                             scroll,
                             offering,
                             deposits,
+                            0,
                             deposits > 0 ? "offeringp" : null));
 
         var planned = new UpgradePlanner(
@@ -659,6 +660,107 @@ public class UpgradePlannerTests
                 .Should()
                 .BeApproximately(expected, 1e-9);
         }
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task StatPrimesBankGraceWhenScrollsCostLessThanAnOffering()
+    {
+        //at +9 the item is rare grade, so a stat prime costs 100 scrolls at 1 gold and one primling: far under two primlings
+        var result = new UpgradePlanner(
+            WSHIELD_THRESHOLDS,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            statScrollPrice: 1).FindCheapestPlan(10, 100_000_000, 9);
+
+        result.Unreachable
+              .Should()
+              .BeNull();
+
+        result.Steps[0]
+              .StatPrimes
+              .Should()
+              .BeGreaterThan(0);
+
+        //a half point left over takes one plain prime, never two
+        result.Steps[0]
+              .Deposits
+              .Should()
+              .BeLessThanOrEqualTo(1);
+
+        //a stat prime banks a whole point, a plain prime half of one
+        result.Steps[0]
+              .ItemGrace
+              .Should()
+              .BeApproximately(result.Steps[0].StatPrimes + 0.5 * result.Steps[0].Deposits, 1e-9);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task NoStatPrimeIsPlannedAtLegendaryGrade()
+    {
+        //at +10 the item is legendary; scrolls at 1 gold would still beat an offering if they were allowed
+        var result = new UpgradePlanner(
+            WSHIELD_THRESHOLDS,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            statScrollPrice: 1).FindCheapestPlan(11, 100_000_000, 10);
+
+        result.Unreachable
+              .Should()
+              .BeNull();
+
+        result.Steps[0]
+              .StatPrimes
+              .Should()
+              .Be(0);
+
+        //grace is still worth buying here, so the zero above is the grade rule and not a lack of demand
+        result.Steps[0]
+              .Deposits
+              .Should()
+              .BeGreaterThan(0);
+
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task EachHalfPointOfGraceIsOfferedOnceInTheCheaperKind()
+    {
+        var cheap = new UpgradePlanner(
+            WSHIELD_THRESHOLDS,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            statScrollPrice: 1);
+
+        foreach (var bench in cheap.GetChoices(9, 0)
+                                   .GroupBy(choice => (choice.ScrollGrade, choice.Offering?.Name)))
+        {
+            bench.Should()
+                 .OnlyContain(choice => choice.Deposits <= 1);
+
+            //half points of grace 0, 1, 2, ... each appear once
+            bench.Select(choice => choice.Deposits + 2 * choice.StatPrimes)
+                 .Should()
+                 .Equal(Enumerable.Range(0, bench.Count()));
+        }
+
+        //100 scrolls at 10,000 gold cost far more than a second primling
+        var dear = new UpgradePlanner(
+            WSHIELD_THRESHOLDS,
+            SCROLL_PRICES,
+            Offerings(),
+            false,
+            statScrollPrice: 10_000);
+
+        dear.GetChoices(9, 0)
+            .Should()
+            .OnlyContain(choice => choice.StatPrimes == 0);
 
         await Task.CompletedTask;
     }
@@ -918,12 +1020,14 @@ public class UpgradePlannerTests
                 0,
                 null,
                 2,
+                0,
                 "offeringp"),
             new(
                 1,
                 0,
                 null,
                 2,
+                0,
                 "offeringp")
         ];
 
