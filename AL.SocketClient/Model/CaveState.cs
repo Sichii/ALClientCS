@@ -47,7 +47,7 @@ public sealed record CaveState
     public IReadOnlyList<CaveHunt> Hunts { get; init; } = [];
 
     /// <summary>
-    ///     If populated, the run's cap on the Amber it pays out and how much it has produced so far.
+    ///     If populated, the run's caps on the gold and Amber it pays out and how much it has produced so far.
     /// </summary>
     [JsonPropertyName("limits")]
     public CaveLimits? Limits { get; init; }
@@ -142,10 +142,20 @@ public sealed record CaveDoor
 }
 
 /// <summary>
-///     Represents the run's payout cap. Once the run has produced the cap, no kill, chest or reply pays any more Amber.
+///     Represents the run's payout caps. Once the run has produced a cap, no kill, chest or reply pays any more of it.
 /// </summary>
 public sealed record CaveLimits
 {
+    /// <summary>The most cave gold the run can produce.</summary>
+    [JsonPropertyName("gold")]
+    public long Gold { get; init; }
+
+    /// <summary>
+    ///     The cave gold the run has produced so far, spent or not.
+    /// </summary>
+    [JsonPropertyName("gold_spawned")]
+    public long GoldSpawned { get; init; }
+
     /// <summary>The most Amber the run can produce.</summary>
     [JsonPropertyName("amber")]
     public int Amber { get; init; }
@@ -193,7 +203,7 @@ public sealed record CaveObjective
     public bool Required { get; init; }
 
     /// <summary>
-    ///     On a camp, how many of its packs have been cleared.
+    ///     On a camp, how many of its packs have been sent; the one alive is unpaid.
     /// </summary>
     [JsonPropertyName("waves")]
     public int Waves { get; init; }

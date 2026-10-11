@@ -156,6 +156,14 @@ public class CaveDataTests
              .Should()
              .Be(14);
 
+        state.Limits!.Gold
+             .Should()
+             .Be(60000);
+
+        state.Limits!.GoldSpawned
+             .Should()
+             .Be(12000);
+
         state.Gold
              .Should()
              .Be(8500);

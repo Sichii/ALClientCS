@@ -1322,4 +1322,114 @@ public class UpgradeMathTests
                    .Should()
                    .Be(4);
     }
+
+    [Test]
+    public void ShinyChance()
+    {
+        //+0 at normal grade, then high grade from +0 on
+        var normal = new GItem
+        {
+            UpgradeModifiers = new Dictionary<ALAttribute, float>()
+        };
+
+        var high = new GItem
+        {
+            UpgradeModifiers = new Dictionary<ALAttribute, float>(),
+            Grades =
+            [
+                0,
+                9,
+                10,
+                12
+            ]
+        };
+
+        var rare = high with
+        {
+            Grades =
+            [
+                0,
+                0,
+                10,
+                12
+            ]
+        };
+
+        double Chance(GItem item, float shinyGrade, long value)
+            => UpgradeMath.TryGetShinyChance(
+                item,
+                new GItem
+                {
+                    ShinyGrade = shinyGrade
+                },
+                value,
+                out var chance)
+                ? chance
+                : -1;
+
+        //0.16 when the metal only reaches the item's grade, 0.32 above it, times 2.8 / 1.6 / 1 for normal / high / rare
+        Chance(normal, 0, 0)
+            .Should()
+            .BeApproximately(0.16 * 2.8, 1e-9);
+
+        Chance(normal, 0.1f, 0)
+            .Should()
+            .BeApproximately(0.32 * 2.8, 1e-9);
+
+        Chance(high, 1, 0)
+            .Should()
+            .BeApproximately(0.16 * 1.6, 1e-9);
+
+        Chance(high, 1.1f, 0)
+            .Should()
+            .BeApproximately(0.32 * 1.6, 1e-9);
+
+        Chance(high, 0, 0)
+            .Should()
+            .Be(-1);
+
+        //a grade-2 metal on a rare item doubles only up to a 20 million valuation
+        Chance(rare, 2, 20_000_000)
+            .Should()
+            .BeApproximately(0.32, 1e-9);
+
+        Chance(rare, 2, 20_000_001)
+            .Should()
+            .BeApproximately(0.16, 1e-9);
+
+        UpgradeMath.TryGetShinyChance(
+                       normal,
+                       new GItem(),
+                       0,
+                       out _)
+                   .Should()
+                   .BeFalse();
+
+        UpgradeMath.TryGetShinyChance(
+                       new GItem(),
+                       new GItem
+                       {
+                           ShinyGrade = 2
+                       },
+                       0,
+                       out _)
+                   .Should()
+                   .BeFalse();
+    }
+
+    [Test]
+    public void MetalsCarryTheirShinyGrade()
+    {
+        GameData.Items["goldnugget"]!.ShinyGrade
+                .Should()
+                .Be(0);
+
+        GameData.Items["platinumingot"]!.ShinyGrade
+                .Should()
+                .Be(2);
+
+        GameData.Items["offering"]!.ShinyGrade
+                .Should()
+                .BeNull();
+    }
 }

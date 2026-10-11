@@ -1,3 +1,7 @@
+#region
+using System.Text.Json.Serialization;
+#endregion
+
 namespace AL.Data.Events;
 
 /// <summary>
@@ -26,6 +30,13 @@ public record GEvent
     ///     happening. Carried by the daily and nightly bosses; absent, and so false, on every seasonal one.
     /// </summary>
     public bool Join { get; init; }
+
+    /// <summary>
+    ///     The daily dungeon's merchant stock: each merchant encounter offers one of these, picked at random. Null on every
+    ///     other event.
+    /// </summary>
+    [JsonPropertyName("merchant_stock")]
+    public IReadOnlyList<GStockItem?>? MerchantStock { get; init; }
 
     /// <summary>
     ///     The event's display name — "Giga Crab", "Goo Brawl", "A/B Testing".

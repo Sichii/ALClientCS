@@ -220,6 +220,13 @@ public sealed record GItem : AttributedRecordBase, IScrollStatRecoverable
     public ArmorSet Set { get; init; }
 
     /// <summary>
+    ///     If populated, this metal can make a +0 item shiny when offered on its own at the upgrade NPC: the highest item
+    ///     grade it works on, as the wire's <c>offering</c> key carries it.
+    /// </summary>
+    [JsonPropertyName("offering")]
+    public float? ShinyGrade { get; init; }
+
+    /// <summary>
     ///     Which icon this item draws, as a key into <see cref="GameData.Positions" />.
     /// </summary>
     /// <remarks>

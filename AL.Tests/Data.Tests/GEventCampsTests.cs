@@ -19,6 +19,7 @@ public class GEventCampsTests
                                     "name": "Cave of Many Dreams",
                                     "type": "daily",
                                     "duration": 1440,
+                                    "merchant_stock": [["cave_loaded_die", 10000], ["broom", "free"]],
                                     "camps": [
                                       [
                                         { "name": "Amber Nest", "packs": [[["cave_rat", 6], ["cave_spider", 2]], [["cave_bat", 6]]] },
@@ -177,6 +178,19 @@ public class GEventCampsTests
             .Should()
             .Be("Guard Outpost");
     }
+
+    [Test]
+    public void MerchantStockReadsEachItemAndItsPrice()
+        => Dreams()
+           .MerchantStock
+           .Should()
+           .Equal(
+               new GStockItem
+               {
+                   Item = "cave_loaded_die",
+                   Price = 10000
+               },
+               null);
 
     private static GEvent Dreams() => JsonSerializer.Deserialize<GEvent>(DREAMS, ALJson.Options)!;
 }

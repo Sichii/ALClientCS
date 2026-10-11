@@ -1079,6 +1079,61 @@ public static class UpgradeMath
     }
 
     /// <summary>
+    ///     Tries to get the chance that a metal offered on its own, with no scroll, makes a +0 item shiny.
+    /// </summary>
+    /// <remarks>
+    ///     A miss spends the metal and leaves the item as it was. The server refuses the metal on an item above +0.
+    /// </remarks>
+    /// <param name="item">The item being made shiny.</param>
+    /// <param name="metal">
+    ///     The metal offered, which carries a <see cref="GItem.ShinyGrade" />.
+    /// </param>
+    /// <param name="itemValue">
+    ///     What the server values one +0 copy of the item at; a platinum-grade metal doubles its chance on an item worth up to
+    ///     20 million.
+    /// </param>
+    /// <param name="chance">
+    ///     The chance, or 0 when the server refuses the metal.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the item upgrades and the metal reaches its grade at +0; otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">item</exception>
+    /// <exception cref="System.ArgumentNullException">metal</exception>
+    public static bool TryGetShinyChance(
+        GItem item,
+        GItem metal,
+        long itemValue,
+        out double chance)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        ArgumentNullException.ThrowIfNull(metal);
+
+        chance = 0;
+
+        if (item.UpgradeModifiers is null || metal.ShinyGrade is not { } shinyGrade)
+            return false;
+
+        var gradeAtZero = CalculateGrade(item.Grades ?? DEFAULT_THRESHOLDS, 0);
+
+        if ((shinyGrade < gradeAtZero) || (gradeAtZero > 2))
+            return false;
+
+        var doubled = (shinyGrade > gradeAtZero) || ((shinyGrade == 2) && (itemValue <= 20_000_000));
+
+        chance = (doubled ? 0.32 : 0.16)
+                 * gradeAtZero switch
+                 {
+                     0 => 2.8,
+                     1 => 1.6,
+                     _ => 1
+                 };
+
+        return true;
+    }
+
+    /// <summary>
     ///     Tries to get the base chance of upgrading to the level above <paramref name="level" /> with only the required
     ///     scroll.
     /// </summary>
