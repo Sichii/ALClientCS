@@ -212,10 +212,8 @@ public sealed record GMonster : AttributedRecordBase
 
     /// <summary>
     ///     <b>NULLABLE</b>. If populated, this monster spawns other monsters while it has a target, next to that target.
-    ///     <br />
-    ///     Each entry is the delay in milliseconds and the name of the monster spawned on it.
     /// </summary>
-    public IReadOnlyList<(float SpawnDelay, string MonsterName)>? Spawns { get; init; }
+    public IReadOnlyList<GMonsterSpawn?>? Spawns { get; init; }
 
     /// <summary>
     ///     If true, this monster never respawns on its own once killed, and levels up twenty times more slowly than an

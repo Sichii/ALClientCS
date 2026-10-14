@@ -26,4 +26,28 @@ public class GMonsterTests
                .And
                .BeEmpty();
     }
+
+    [Test]
+    public void SpawnsReadBothTimedAndHealthTriggeredEntries()
+    {
+        var monster = TestJson.Data<GMonster>("""{"name":"Mr. Pumpkin","spawns":[[30000,"bee"],["hp:0.75","jr",5],"junk"]}""")!;
+
+        monster.Spawns
+               .Should()
+               .BeEquivalentTo(
+                   [
+                       new GMonsterSpawn
+                       {
+                           Monster = "bee",
+                           Interval = 30000
+                       },
+                       new GMonsterSpawn
+                       {
+                           Monster = "jr",
+                           HpThreshold = 0.75f,
+                           Count = 5
+                       },
+                       null
+                   ]);
+    }
 }
