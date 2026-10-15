@@ -186,11 +186,10 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
 
 - **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision
   base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall`
-  are answered from it. The lines carry the local ice golem corridor carve.
+  are answered from it.
 - **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at
   build. Flat arrays, neighbour ids, a uniform grid for `FindTriangle`. `IsWalkable` and `TryFindNearestWalkable` are
-  containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled; where
-  the two floods disagree, `GameData.CarveCorridors` closes the gap.
+  containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled.
 - **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the
   vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over
   the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a
