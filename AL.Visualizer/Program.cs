@@ -8,6 +8,7 @@ using AL.Pathfinding.Model;
 using AL.Visualizer;
 using AL.Visualizer.Extensions;
 using Chaos.Extensions.Common;
+using SkiaSharp;
 #endregion
 
 const string USAGE = """
@@ -83,7 +84,8 @@ if (dumpMaps)
             continue;
 
         var image = Visualizer.CreateGridImage(navMesh)
-                              .DrawEdges(navMesh);
+                              .DrawEdges(navMesh, SKColors.Yellow)
+                              .DrawHops(navMesh);
 
         await image.SaveAsPngAsync(Path.Combine(outputDir, $"{map.Accessor}.png"));
     }

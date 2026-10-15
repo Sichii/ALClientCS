@@ -49,6 +49,37 @@ public static class PixelCanvasExtensions
         return canvas;
     }
 
+    /// <summary>
+    ///     Draws every hop the pathfinder builds on the mesh's map when it is started with <c>cheat</c> on.
+    /// </summary>
+    /// <param name="canvas">The canvas to draw on.</param>
+    /// <param name="navMesh">The navmesh whose hops to draw.</param>
+    /// <param name="color">The color to draw the hops in. Defaults to red.</param>
+    /// <returns>The canvas with the hops drawn on it.</returns>
+    /// <exception cref="ArgumentNullException">canvas</exception>
+    /// <exception cref="ArgumentNullException">navMesh</exception>
+    public static PixelCanvas DrawHops(this PixelCanvas canvas, NavMesh navMesh, SKColor color = default)
+    {
+        ArgumentNullException.ThrowIfNull(canvas);
+
+        ArgumentNullException.ThrowIfNull(navMesh);
+
+        if (color == default)
+            color = SKColors.Red;
+
+        if (GameData.Maps[navMesh.Map] is not { } map || !PortalGraph.AllowsHops(map))
+            return canvas;
+
+        foreach (var hop in HopBuilder.FindHops(navMesh))
+            canvas.DrawLine(
+                navMesh.ToCanvas(hop.Takeoff),
+                navMesh.ToCanvas(hop.Landing),
+                color,
+                color);
+
+        return canvas;
+    }
+
     /// <summary>Draws a line on a canvas.</summary>
     /// <param name="canvas">The canvas to draw on.</param>
     /// <param name="line">The line to draw on the canvas.</param>

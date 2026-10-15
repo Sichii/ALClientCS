@@ -16,8 +16,8 @@ namespace AL.Visualizer;
 public static class Visualizer
 {
     /// <summary>
-    ///     Creates a white canvas the size of the map with its wall lines drawn in black. Layer more on with
-    ///     <see cref="PixelCanvasExtensions" />.
+    ///     Creates a canvas the size of the map: walkable ground in green, walls padded by the character's collision base in
+    ///     black, everything else dark blue. Layer more on with <see cref="PixelCanvasExtensions" />.
     /// </summary>
     /// <param name="navMesh">The navmesh whose map to draw.</param>
     /// <returns>The canvas with the map's walls drawn on it.</returns>
@@ -27,7 +27,19 @@ public static class Visualizer
         ArgumentNullException.ThrowIfNull(navMesh);
 
         var geometry = GameData.Geometry[navMesh.Map]!;
-        var canvas = new PixelCanvas(geometry.MaxX - geometry.MinX + 1, geometry.MaxY - geometry.MinY + 1, SKColors.White);
+        var canvas = new PixelCanvas(geometry.MaxX - geometry.MinX + 1, geometry.MaxY - geometry.MinY + 1, SKColors.DarkBlue);
+
+        for (var x = 0; x < canvas.Width; x++)
+            for (var y = 0; y < canvas.Height; y++)
+            {
+                var mapX = x + geometry.MinX;
+                var mapY = y + geometry.MinY;
+
+                if (navMesh.IsWalkable(mapX, mapY))
+                    canvas[x, y] = SKColors.Green;
+                else if (navMesh.IsWall(mapX, mapY))
+                    canvas[x, y] = SKColors.Black;
+            }
 
         foreach (var line in geometry.VerticalLines.Concat(geometry.HorizontalLines))
             canvas.DrawLine(

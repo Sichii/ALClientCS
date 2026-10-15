@@ -61,11 +61,38 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private readonly EntityManager EntityManager;
 
     /// <summary>
+    ///     The number of hops sent. A move planned under an older count plans from where a hop has since carried the character
+    ///     away, and is not sent.
+    /// </summary>
+    private int HopCount;
+
+    /// <summary>
+    ///     The landing of the hop in flight, completed once it lands. A move sent while the character is over a hop's water or
+    ///     wall is jailed, so every other move waits for it.
+    /// </summary>
+    private TaskCompletionSource? HopLanding;
+
+    /// <summary>
+    ///     The <see cref="Stopwatch" /> timestamp at which the last hop landed or failed; 0 before the first.
+    /// </summary>
+    private long HopLandedAt;
+
+    /// <summary>
+    ///     How long after a hop lands every route is planned without hops, since its penalty score is not tracked.
+    /// </summary>
+    private static readonly TimeSpan HOP_COOLDOWN = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     ///     The monsters a killing hit removed, kept until the death frame names them, since that frame carries only the id.
     /// </summary>
 
     //ponytail: never pruned, so a kill hit with no death frame after it leaves one entry
     private readonly ConcurrentDictionary<string, Monster> KilledByHit = new();
+
+    /// <summary>
+    ///     Held across every <c>move</c> emit, so checking for a hop and sending one are a single step.
+    /// </summary>
+    private readonly SemaphoreSlim MoveEmitLock = new(1, 1);
 
     private readonly PingManager PingManager;
     private readonly FifoAutoReleasingSemaphoreSlim Sync = new(1, 1);
@@ -2912,11 +2939,46 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// </returns>
     /// <exception cref="ArgumentNullException">point</exception>
     /// <exception cref="InvalidOperationException">Failed to move to {point}. ({reason})</exception>
-    [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
-    [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
-    public async Task MoveAsync(IPoint point, CancellationToken? token = null, bool skipWallCheck = false)
+    public Task MoveAsync(IPoint point, CancellationToken? token = null, bool skipWallCheck = false)
     {
         ArgumentNullException.ThrowIfNull(point);
+
+        return MoveAsync(
+            point,
+            token,
+            skipWallCheck,
+            null);
+    }
+
+    /// <summary>
+    ///     <inheritdoc cref="MoveAsync(IPoint, Nullable{CancellationToken}, bool)" />
+    ///     <br />
+    ///     Given a landing, the move is a hop, which every other move waits out.
+    /// </summary>
+    /// <param name="point">The point to move to.</param>
+    /// <param name="token">A token used to cancel this action.</param>
+    /// <param name="skipWallCheck">Specifies whether the leg is sent without first testing it for a wall crossing.</param>
+    /// <param name="hopLanding">
+    ///     If populated, completed by the caller once the hop lands, and the hop in flight from the moment it is sent.
+    /// </param>
+    /// <exception cref="InvalidOperationException">Failed to move to {point}. ({reason})</exception>
+    [SuppressMessage("ReSharper", "AccessToModifiedClosure")]
+    [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+    private async Task MoveAsync(
+        IPoint point,
+        CancellationToken? token,
+        bool skipWallCheck,
+        TaskCompletionSource? hopLanding)
+    {
+        //a hop sent after this read carries the character away from everything this move plans from
+        var hopCount = Volatile.Read(ref HopCount);
+
+        //a move sent mid-hop starts from over the water and is jailed; read after the count, which a hop raises second
+        while (Volatile.Read(ref HopLanding) is { Task.IsCompleted: false } hopInFlight)
+        {
+            await hopInFlight.Task;
+            hopCount = Volatile.Read(ref HopCount);
+        }
 
         //the game's own client refuses the move outright while the dungeon is paused for a vote
         if (Character.Cave is { Paused: true })
@@ -3076,16 +3138,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. ({WALL_REFUSAL})");
         }
 
-        await Socket.EmitAsync(
-            ALSocketEmitType.Move,
-            new
-            {
-                x = from.X,
-                y = from.Y,
-                going_x = point.X,
-                going_y = point.Y,
-                m = Character.MapChangeCount
-            });
+        if (!await TryEmitMoveAsync(
+                from,
+                point,
+                hopCount,
+                hopLanding))
+            throw new InvalidOperationException($"Refused to walk from {fromLoc} to {goingLoc}. (a hop moved the character; re-plan)");
 
         //from the position the emit claimed, before anything reads the remaining time
         legLength = new Point(from.X, from.Y).Distance(point);
@@ -3112,16 +3170,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
             point = finalDestination;
 
-            await Socket.EmitAsync(
-                ALSocketEmitType.Move,
-                new
-                {
-                    x = stoppingAt.X,
-                    y = stoppingAt.Y,
-                    going_x = point.X,
-                    going_y = point.Y,
-                    m = Character.MapChangeCount
-                });
+            //refused once a hop has moved the character, since a stop from here would walk it back
+            await TryEmitMoveAsync(
+                stoppingAt,
+                point,
+                hopCount,
+                null);
 
             return;
         }
@@ -3150,6 +3204,82 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             //on the correction path going holds whatever the disagreeing frame said
             if (going.Equals(point))
                 Character.UpdateLocation(going);
+        }
+    }
+
+    /// <summary>
+    ///     Asynchronously walks a hop in one straight move, which nothing may cut short.
+    /// </summary>
+    /// <param name="landing">Where the hop lands.</param>
+    private async Task HopAsync(IPoint landing)
+    {
+        var landed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var hop = MoveAsync(
+            landing,
+            null,
+            true,
+            landed);
+
+        //the hold lifts whether the hop lands or fails
+        try
+        {
+            await hop;
+        } finally
+        {
+            Interlocked.Exchange(ref HopLandedAt, Stopwatch.GetTimestamp());
+            landed.SetResult();
+        }
+    }
+
+    /// <summary>
+    ///     Asynchronously sends a <c>move</c>, unless a hop is in flight or one was sent since the move was planned.
+    /// </summary>
+    /// <param name="from">The position the move claims to start from.</param>
+    /// <param name="going">Where the move goes.</param>
+    /// <param name="hopCount">
+    ///     The <see cref="HopCount" /> the move was planned under.
+    /// </param>
+    /// <param name="hopLanding">
+    ///     If populated, the move is a hop, and this becomes <see cref="HopLanding" /> as it is sent.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the move was sent; otherwise, <c>false</c>.
+    /// </returns>
+    private async Task<bool> TryEmitMoveAsync(
+        MovementBlock from,
+        IPoint going,
+        int hopCount,
+        TaskCompletionSource? hopLanding)
+    {
+        await MoveEmitLock.WaitAsync();
+
+        try
+        {
+            if ((HopCount != hopCount) || HopLanding is { Task.IsCompleted: false })
+                return false;
+
+            if (hopLanding is not null)
+            {
+                Volatile.Write(ref HopLanding, hopLanding);
+                Interlocked.Increment(ref HopCount);
+            }
+
+            await Socket.EmitAsync(
+                ALSocketEmitType.Move,
+                new
+                {
+                    x = from.X,
+                    y = from.Y,
+                    going_x = going.X,
+                    going_y = going.Y,
+                    m = Character.MapChangeCount
+                });
+
+            return true;
+        } finally
+        {
+            MoveEmitLock.Release();
         }
     }
 
@@ -3959,6 +4089,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             => pathConnector.Type switch
             {
                 EdgeType.Walk      => MoveAsync(pathConnector.End, innerToken),
+                EdgeType.Hop       => HopAsync(pathConnector.End),
                 EdgeType.Town      => UseTownAsync(innerToken),
                 EdgeType.Blink     => BlinkLegAsync(pathConnector, options.BlinkMpReserve, innerToken),
                 EdgeType.Leave     => LeaveMapAsync(),
@@ -3973,6 +4104,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             throw new ArgumentNullException(nameof(endDestinations));
 
         var start = Character.ToLocation();
+
+        //ponytail: blocks every hop for 5 s after a landing; replace with a client-side score tracker fed by position updates
+        var hopScore = Stopwatch.GetElapsedTime(Interlocked.Read(ref HopLandedAt)) < HOP_COOLDOWN
+            ? float.PositiveInfinity
+            : options.HopScore;
 
         //recall off covers the whole route; blink is priced for a mage alone, against the character's current
         //cooldown, penalty and mana
@@ -3991,7 +4127,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                     ? Math.Max(0f, penalty.RemainingMs)
                     : 0f,
                 Mp = Character.MP,
-                MaxMp = Character.MaxMP
+                MaxMp = Character.MaxMP,
+                HopScore = hopScore
             });
 
         var edgesWalked = 0;
@@ -4008,7 +4145,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             try
             {
                 //a leg ends on a timer, so the character can still be short of where the next leg starts
-                if ((edge.Type == EdgeType.Walk) && (Character.DistanceWithMapCheck(edge.Start) > LEG_START_TOLERANCE))
+                if (edge.Type is EdgeType.Walk or EdgeType.Hop && (Character.DistanceWithMapCheck(edge.Start) > LEG_START_TOLERANCE))
                     await Task.Delay(PingManager.LowPercentileOffset * 2, cancellationToken ?? CancellationToken.None);
 
                 await HandlePathConnectorAsync(edge, cancellationToken);
@@ -5005,7 +5142,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         => TownFailures.TryGetValue(map, out var failedAt) && (Stopwatch.GetElapsedTime(failedAt) < TOWN_FAILURE_MEMORY);
 
     /// <summary>
-    ///     The reason <see cref="MoveAsync" /> gives when it refuses a leg for crossing a wall.
+    ///     The reason <see cref="MoveAsync(IPoint, Nullable{CancellationToken}, bool)" /> gives when it refuses a leg for
+    ///     crossing a wall.
     /// </summary>
     private const string WALL_REFUSAL = "leg crosses a wall";
 
@@ -6183,8 +6321,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Serializes game data, initializes caches and pathfinding
     /// </summary>
-    /// <param name="unlockedDoors"></param>
-    public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null)
+    /// <param name="unlockedDoors">
+    ///     Doors to unlock before the pathfinder is built.
+    /// </param>
+    /// <param name="cheat">
+    ///     Specifies whether routes may include hops: straight moves across water or a wall between pieces of ground no walk
+    ///     joins.
+    /// </param>
+    public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null, bool cheat = false)
     {
         var tasks = new List<Task>
         {
@@ -6208,7 +6352,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 door?.Unlock();
             }
 
-        Pathfinder.Initialize();
+        Pathfinder.Initialize(cheat);
     }
 
     protected void SetCooldown(string skillName, float? cooldownMs = null)

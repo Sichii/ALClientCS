@@ -167,7 +167,11 @@ public static class Pathfinder
     /// <summary>
     ///     Builds every map's mesh and the portal graph between them. CPU-heavy; several hundred milliseconds.
     /// </summary>
-    public static void Initialize()
+    /// <param name="cheat">
+    ///     Specifies whether the graph includes hops: straight moves across walls or water, between pieces of
+    ///     ground no walk joins or where the walk around is long.
+    /// </param>
+    public static void Initialize(bool cheat = false)
     {
         var built = new ConcurrentDictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
 
@@ -196,7 +200,7 @@ public static class Pathfinder
             });
 
         Meshes = new Dictionary<string, NavMesh>(built, StringComparer.OrdinalIgnoreCase);
-        Graph = new PortalGraph(Meshes);
+        Graph = new PortalGraph(Meshes, cheat);
 
         timer.Stop();
         Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");

@@ -19,5 +19,10 @@ public enum EdgeType : byte
     Transport = 1 << 2,
     Door = 1 << 3,
     Leave = 1 << 4,
-    Blink = 1 << 5
+    Blink = 1 << 5,
+
+    /// <summary>
+    ///     One straight move between two pieces of ground no walk joins.
+    /// </summary>
+    Hop = 1 << 6
 }

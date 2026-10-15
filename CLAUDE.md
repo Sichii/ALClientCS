@@ -203,9 +203,26 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   readiness, both now and at the moment of its next cast, since a wait the least price absorbs lets the penalty run
   down. With blink on, an A* lower bound orders the queue), and expands the winner into `PathEdge`s. Any of N ends:
   the first taken wins. Blink off leaves the route untouched.
+- **Wall hops** exist only after `Initialize(cheat: true)` (`ALClient.InitializeAsync` takes the same flag). A hop is a
+  fixed straight candidate built at startup, several per pair of separate mesh pieces (takeoffs spread apart, length
+  capped), trimmed to the stretch from where its line first leaves walkable ground to where it last returns, both ends
+  on
+  ground the server accepts. Inside one piece, a shortcut hop crosses a wall or water where the
+  walk between its ends is at least twice its length and 100 longer, best saving first, ends spread apart, capped per
+  piece. None on `no_bounds`, instance or generated maps. Each carries a depth
+  profile (distance to walkable ground along it). A search takes a hop only with a known `WalkSpeed`, and replays the
+  server's in-motion penalty along it from the score the route carries (`PathOptions.HopScore` seeds it; walks decay
+  it at the server's slowest update gap, the replay assumes the fastest); a peak of 45 or more refuses the hop, since
+  the server halves hp and sends the character to spawn over 60. The estimate can run about one lattice level low near
+  the shore (the server truncates positions to its 10-unit lattice); the 15-point margin, and the server's walkable
+  area reaching past our mesh edges, absorb that. `SmartMoveAsync` refuses every hop for 5 s after one lands, since
+  nothing tracks the score between routes. A hop leg goes out as one unchecked move with no cancellation. Every move
+  goes through one locked emit, and a move a hop overtook is refused (callers re-plan): a move sent mid-hop is jailed,
+  and a stale one would walk back across.
 
 `PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the
-`Exit`. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to eyeball one, since no test asserts visually.
+`Exit`, and an `EdgeType.Hop` leg is a wall hop. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to
+eyeball one, since no test asserts visually.
 
 **A daily-dungeon floor is not in G and never in the world graph.** The server generates a run's floors and streams them
 over `map_chunk`; `Pathfinder.RegisterGeneratedRun` files them into `GameData.Maps`/`Geometry` (copy-on-write, so

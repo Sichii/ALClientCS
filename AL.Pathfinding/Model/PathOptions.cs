@@ -42,6 +42,11 @@ public sealed record PathOptions
     public float BlinkReadyInMs { get; init; }
 
     /// <summary>
+    ///     The estimated in-motion penalty score at the start of the route; 0 unless the caller tracks it.
+    /// </summary>
+    public float HopScore { get; init; }
+
+    /// <summary>
     ///     The largest the bar can hold; read only when <see cref="BlinkMpPerSecond" /> is set.
     /// </summary>
     public float MaxMp { get; init; }
@@ -62,7 +67,8 @@ public sealed record PathOptions
     public bool UseTown { get; init; } = true;
 
     /// <summary>
-    ///     If populated, the character's speed, which prices a recall and a blink; nominal when null.
+    ///     If populated, the character's speed, which prices a recall and a blink and decides which hops are safe; nominal when
+    ///     null, and no hop is taken.
     /// </summary>
     public float? WalkSpeed { get; init; }
 }

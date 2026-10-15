@@ -186,6 +186,11 @@ internal sealed class SearchScratch
         public TravelState State;
 
         /// <summary>
+        ///     The estimated in-motion penalty score on arrival.
+        /// </summary>
+        public float HopScore;
+
+        /// <summary>
         ///     The arrival this one came from, or -1 for the start.
         /// </summary>
         public int Parent;

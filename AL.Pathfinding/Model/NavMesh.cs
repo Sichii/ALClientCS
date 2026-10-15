@@ -402,18 +402,22 @@ public sealed class NavMesh
     ///     The one target's triangle, or -1 to search the whole mesh.
     /// </param>
     /// <param name="stopPoint">The one target's point.</param>
+    /// <param name="maxCost">
+    ///     The cost past which the search stops; a vertex costing more keeps a cost no lower than this, or none.
+    /// </param>
     internal void Search(
         int start,
         Point entry,
         SearchScratch scratch,
         int stopTriangle = -1,
-        Point stopPoint = default)
+        Point stopPoint = default,
+        float maxCost = float.MaxValue)
     {
         scratch.ResetVertices(Mesh.Vertices.Length);
         scratch.SearchTriangle = start;
 
         //with one target, the search ends once nothing left in the queue can beat the best corner of its triangle
-        var bound = float.MaxValue;
+        var bound = maxCost;
 
         for (var slot = 0; slot < 3; slot++)
         {
