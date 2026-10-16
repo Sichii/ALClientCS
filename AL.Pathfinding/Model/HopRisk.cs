@@ -13,12 +13,23 @@ internal static class HopRisk
     public const float SAMPLE_STEP = 5f;
 
     /// <summary>
-    ///     The highest peak a hop may reach: 15 under the server's limit of 60, which covers score the client cannot see and
-    ///     an estimate running a lattice level low near the shore.
+    ///     The highest peak a hop may reach: 5 under the server's limit of 60, which covers an estimate running a lattice level
+    ///     low near the shore; the depth estimate's own overstatement covers the rest.
     /// </summary>
-    public const float SAFE_SCORE = 45f;
+    public const float SAFE_SCORE = 55f;
+
+    /// <summary>
+    ///     The score past which the server halves the character's hp and sends it back to the map's spawn.
+    /// </summary>
+    public const float SERVER_LIMIT = 60f;
 
     private const float SCORE_DECAY = 0.99f;
+
+    /// <summary>
+    ///     The score a walk rounds down to 0; under it no hop's peak moves by more than a point, which
+    ///     <see cref="SAFE_SCORE" />'s margin covers.
+    /// </summary>
+    private const float MIN_SCORE = 1f;
 
     /// <summary>
     ///     The shortest gap between two of the server's updates of a moving player; a shorter gap means more ticks and a
@@ -27,10 +38,10 @@ internal static class HopRisk
     private const float SERVER_TICK_SECONDS = 0.075f;
 
     /// <summary>
-    ///     The longest gap between two of the server's updates of a moving player, which reschedules its loop between 75 ms
-    ///     and 1 s; fewer ticks decay less, so a walk's decay assumes this one.
+    ///     The gap assumed between two of the server's updates of a moving player when decaying a score: a little over the
+    ///     75 ms the server reschedules its loop at unless the loop itself runs long.
     /// </summary>
-    private const float DECAY_TICK_SECONDS = 1f;
+    private const float DECAY_TICK_SECONDS = 0.083f;
 
     private const float LATTICE_STEP = 10f;
     private const float MAX_PENALTY = 7f;
@@ -137,8 +148,19 @@ internal static class HopRisk
     /// </summary>
     /// <param name="score">The score at the start of the walk.</param>
     /// <param name="seconds">How long the walk takes.</param>
-    /// <returns>The decayed score.</returns>
-    public static float DecayWhileWalking(float score, float seconds) => score * MathF.Pow(SCORE_DECAY, seconds / DECAY_TICK_SECONDS);
+    /// <returns>
+    ///     The decayed score, or 0 once it falls under <see cref="MIN_SCORE" />.
+    /// </returns>
+    /// <remarks>
+    ///     Without the floor a decayed score never reaches 0, so a search keeps every longer walk as a new lower-score arrival
+    ///     and never ends when no route exists.
+    /// </remarks>
+    public static float DecayWhileWalking(float score, float seconds)
+    {
+        var decayed = score * MathF.Pow(SCORE_DECAY, seconds / DECAY_TICK_SECONDS);
+
+        return decayed < MIN_SCORE ? 0f : decayed;
+    }
 
     /// <summary>
     ///     Determines whether a move started from a score of 0 stays under <see cref="SAFE_SCORE" /> at the given speed.

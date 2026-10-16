@@ -101,10 +101,10 @@ public class HopRiskTests
                   .Be(float.PositiveInfinity);
 
     [Test]
-    public void TheLimitLeavesFifteenUnderTheServers()
+    public void TheLimitLeavesFiveUnderTheServers()
         => HopRisk.SAFE_SCORE
                   .Should()
-                  .Be(45f);
+                  .Be(55f);
 
     [Test]
     public void AReplayFromNothingPeaksWhereThePeakScoreDoes()
@@ -140,8 +140,14 @@ public class HopRiskTests
     }
 
     [Test]
-    public void WalkingDecaysTheScoreOncePerSlowestServerTick()
+    public void WalkingDecaysTheScoreOncePer83Ms()
         => HopRisk.DecayWhileWalking(30f, 2f)
                   .Should()
-                  .BeApproximately(29.403f, 0.001f);
+                  .BeApproximately(30f * MathF.Pow(0.99f, 2f / 0.083f), 0.001f);
+
+    [Test]
+    public void WalkingRoundsAScoreUnderOneToZero()
+        => HopRisk.DecayWhileWalking(1.05f, 1f)
+                  .Should()
+                  .Be(0f);
 }

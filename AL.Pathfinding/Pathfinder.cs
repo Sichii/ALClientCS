@@ -95,6 +95,14 @@ public static class Pathfinder
     }
 
     /// <summary>
+    ///     Decays an in-motion penalty score over time spent moving on solid ground.
+    /// </summary>
+    /// <param name="score">The score at the start.</param>
+    /// <param name="seconds">How long the character has moved since.</param>
+    /// <returns>The decayed score.</returns>
+    public static float DecayHopScore(float score, float seconds) => HopRisk.DecayWhileWalking(score, seconds);
+
+    /// <summary>
     ///     Finds the cheapest route from a start to any of several ends. A walk stops inside an end's radius rather than on
     ///     it.
     /// </summary>

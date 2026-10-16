@@ -73,14 +73,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private TaskCompletionSource? HopLanding;
 
     /// <summary>
-    ///     The <see cref="Stopwatch" /> timestamp at which the last hop landed or failed; 0 before the first.
+    ///     The estimated in-motion penalty score as of <see cref="HopScoreAt" />. The server keeps the real one and never
+    ///     sends it, so this is raised by each hop and decays as if the character had kept moving since, which runs high.
     /// </summary>
-    private long HopLandedAt;
+    private float HopScore;
 
     /// <summary>
-    ///     How long after a hop lands every route is planned without hops, since its penalty score is not tracked.
+    ///     The <see cref="Stopwatch" /> timestamp <see cref="HopScore" /> was set at; 0 before the first hop.
     /// </summary>
-    private static readonly TimeSpan HOP_COOLDOWN = TimeSpan.FromSeconds(5);
+    private long HopScoreAt;
+
+    private readonly Lock HopScoreSync = new();
 
     /// <summary>
     ///     The monsters a killing hit removed, kept until the death frame names them, since that frame carries only the id.
@@ -3214,13 +3217,13 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Asynchronously walks a hop in one straight move, which nothing may cut short.
     /// </summary>
-    /// <param name="landing">Where the hop lands.</param>
-    private async Task HopAsync(IPoint landing)
+    /// <param name="hop">The hop leg.</param>
+    private async Task HopAsync(PathEdge hop)
     {
         var landed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var hop = MoveAsync(
-            landing,
+        var move = MoveAsync(
+            hop.End,
             null,
             true,
             landed);
@@ -3228,12 +3231,26 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the hold lifts whether the hop lands or fails
         try
         {
-            await hop;
+            await move;
         } finally
         {
-            Interlocked.Exchange(ref HopLandedAt, Stopwatch.GetTimestamp());
+            lock (HopScoreSync)
+            {
+                HopScore = Math.Max(CalculateHopScore(), hop.HopScore);
+                HopScoreAt = Stopwatch.GetTimestamp();
+            }
+
             landed.SetResult();
         }
+    }
+
+    private float CalculateHopScore()
+    {
+        lock (HopScoreSync)
+            return Pathfinder.DecayHopScore(
+                HopScore,
+                (float)Stopwatch.GetElapsedTime(HopScoreAt)
+                                .TotalSeconds);
     }
 
     /// <summary>
@@ -4093,7 +4110,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             => pathConnector.Type switch
             {
                 EdgeType.Walk      => MoveAsync(pathConnector.End, innerToken),
-                EdgeType.Hop       => HopAsync(pathConnector.End),
+                EdgeType.Hop       => HopAsync(pathConnector),
                 EdgeType.Town      => UseTownAsync(innerToken),
                 EdgeType.Blink     => BlinkLegAsync(pathConnector, options.BlinkMpReserve, innerToken),
                 EdgeType.Leave     => LeaveMapAsync(),
@@ -4109,10 +4126,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         var start = Character.ToLocation();
 
-        //ponytail: blocks every hop for 5 s after a landing; replace with a client-side score tracker fed by position updates
-        var hopScore = Stopwatch.GetElapsedTime(Interlocked.Read(ref HopLandedAt)) < HOP_COOLDOWN
-            ? float.PositiveInfinity
-            : options.HopScore;
+        var hopScore = MathF.Max(options.HopScore, CalculateHopScore());
 
         //recall off covers the whole route; blink is priced for a mage alone, against the character's current
         //cooldown, penalty and mana

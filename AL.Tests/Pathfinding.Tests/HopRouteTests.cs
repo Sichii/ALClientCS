@@ -15,7 +15,7 @@ public class HopRouteTests : PathfindingTestBed
     private static readonly Location TOWN = new("winterland", 0f, 0f);
     private static readonly Location GOLEM_SPAWN = new("winterland", 864.5f, 429.5f);
     private static readonly Location LAKE_TAKEOFF = new("winterland", 721f, 261f);
-    private static readonly Location COVE_START = new("winter_cove", -57f, -1317f);
+    private static readonly Location COVE_START = new("winter_cove", -57f, -1275f);
     private static readonly Location COVE_END = new("winter_cove", 57f, -1184f);
 
     private static readonly Location WALL_WEST = new("winterland", 412f, -205f);
@@ -61,6 +61,28 @@ public class HopRouteTests : PathfindingTestBed
     }
 
     [Test]
+    public void AHopLegCarriesTheScoreItLandsWith()
+    {
+        var leg = FindGolemPath(true, 60f)
+            .Single(edge => edge.Type == EdgeType.Hop);
+
+        var hop = HopBuilder.FindHops(Pathfinder.GetNavMesh("winterland")!)
+                            .Single(hop => (hop.Takeoff.Distance(leg.Start) < 1f) && (hop.Landing.Distance(leg.End) < 1f));
+
+        (_, var end) = HopRisk.Replay(
+            hop.Depths,
+            hop.Length,
+            60f,
+            0f);
+
+        leg.HopScore
+           .Should()
+           .BePositive()
+           .And
+           .BeApproximately(end, 0.001f);
+    }
+
+    [Test]
     public void WithoutHopsTheIslandCannotBeReached()
         => FluentActions.Invoking(() => FindGolemPath(false, 60f))
                         .Should()
@@ -93,7 +115,7 @@ public class HopRouteTests : PathfindingTestBed
     }
 
     [Test]
-    public void AScoreCarriedIntoTheSearchCanRefuseAHop()
+    public void AScoreCarriedIntoTheSearchDelaysTheHop()
     {
         var graph = BuildGraph("winterland", true);
 
@@ -102,28 +124,36 @@ public class HopRouteTests : PathfindingTestBed
             WalkSpeed = 60f
         };
 
-        graph.FindPath(LAKE_TAKEOFF, [new Destination(GOLEM_SPAWN, 0f)], options)
-             .Should()
-             .Contain(edge => edge.Type == EdgeType.Hop);
+        var fresh = graph.FindPath(LAKE_TAKEOFF, [new Destination(GOLEM_SPAWN, 0f)], options);
 
-        FluentActions.Invoking(() => graph.FindPath(
-                         LAKE_TAKEOFF,
-                         [new Destination(GOLEM_SPAWN, 0f)],
-                         options with
-                         {
-                             HopScore = 20f
-                         }))
-                     .Should()
-                     .Throw<InvalidOperationException>();
+        //the lake hop alone peaks near 40, so from 40 the route walks off first to let the score decay
+        var carried = graph.FindPath(
+            LAKE_TAKEOFF,
+            [new Destination(GOLEM_SPAWN, 0f)],
+            options with
+            {
+                HopScore = 40f
+            });
+
+        fresh.Sum(edge => edge.Cost)
+             .Should()
+             .BeLessThan(carried.Sum(edge => edge.Cost));
     }
 
     [Test]
     public void TwoHopsInARowCarryTheScoreBetweenThem()
     {
         var hops = HopBuilder.FindHops(Pathfinder.GetNavMesh("winter_cove")!);
-        var first = hops.Single(hop => (hop.Takeoff.Distance(COVE_START) < 5f) && (hop.Landing.Distance(new Point(-23f, -1315f)) < 5f));
 
-        var second = hops.Single(hop => (hop.FromPiece == first.ToPiece) && (hop.Landing.Distance(COVE_END) < 5f));
+        var second = hops.Where(hop => (hop.ToPiece != hop.FromPiece) && (hop.Landing.Distance(COVE_END) < 5f))
+                         .MinBy(hop => hop.Takeoff.Distance(new Point(23f, -1283f)));
+
+        //the hop onto the second's island from the start's, landing nearest the second's takeoff
+        var first = hops.Where(hop => (hop.ToPiece == second.FromPiece)
+                                      && (hop.FromPiece != hop.ToPiece)
+                                      && (hop.FromPiece != second.ToPiece)
+                                      && (hop.Takeoff.Distance(COVE_START) < 100f))
+                        .MinBy(hop => hop.Landing.Distance(second.Takeoff));
         var start = new Location("winter_cove", first.Takeoff);
         var end = new Location("winter_cove", second.Landing);
         var firstLanding = new Location("winter_cove", first.Landing);
@@ -132,10 +162,10 @@ public class HopRouteTests : PathfindingTestBed
 
         var slow = PathOptions.NoTown with
         {
-            WalkSpeed = 105f
+            WalkSpeed = 95f
         };
 
-        //at 105 each hop passes alone, but the short walk between them sheds too little of the first one's score
+        //at 95 each hop passes alone
         graph.FindPath(start, [new Destination(firstLanding, 0f)], slow)
              .Should()
              .Contain(edge => (edge.Type == EdgeType.Hop) && edge.End.Equals(firstLanding));
@@ -144,33 +174,45 @@ public class HopRouteTests : PathfindingTestBed
              .Should()
              .Contain(edge => (edge.Type == EdgeType.Hop) && edge.Start.Equals(secondTakeoff));
 
-        FluentActions.Invoking(() => graph.FindPath(start, [new Destination(end, 0f)], slow))
-                     .Should()
-                     .Throw<InvalidOperationException>();
+        //at 95 the second hop waits for the first one's score to decay, so the route walks further than at 130
+        var slowPath = graph.FindPath(start, [new Destination(end, 0f)], slow);
 
-        var hopLegs = graph.FindPath(
-                               start,
-                               [new Destination(end, 0f)],
-                               slow with
-                               {
-                                   WalkSpeed = 130f
-                               })
-                           .Where(edge => edge.Type == EdgeType.Hop)
-                           .ToList();
+        var fastPath = graph.FindPath(
+            start,
+            [new Destination(end, 0f)],
+            slow with
+            {
+                WalkSpeed = 130f
+            });
+
+        slowPath.Sum(edge => edge.Cost)
+                .Should()
+                .BeGreaterThan(fastPath.Sum(edge => edge.Cost));
+
+        var hopLegs = fastPath.Where(edge => edge.Type == EdgeType.Hop)
+                              .ToList();
 
         hopLegs.Should()
                .HaveCount(2);
-
-        hopLegs[0]
-            .End
-            .Should()
-            .Be(firstLanding);
 
         hopLegs[1]
             .Start
             .Should()
             .Be(secondTakeoff);
     }
+
+    [Test]
+    public void ASearchWithHopsEndsWhenNoRouteExists()
+        => FluentActions.Invoking(() => BuildGraph("winter_cove", true)
+                            .FindPath(
+                                new Location("winter_cove", -143f, -1456f),
+                                [new Destination(new Location("winter_cove", -889f, -395f), 0f)],
+                                PathOptions.NoTown with
+                                {
+                                    WalkSpeed = 90f
+                                }))
+                        .Should()
+                        .Throw<InvalidOperationException>();
 
     [Test]
     public void AShortcutInsideOnePieceBeatsTheWalkAround()

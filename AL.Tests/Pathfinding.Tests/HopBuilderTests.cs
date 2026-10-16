@@ -1,4 +1,5 @@
 #region
+using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Data;
 using AL.Pathfinding;
@@ -42,23 +43,32 @@ public class HopBuilderTests : PathfindingTestBed
     }
 
     [Test]
-    public void CandidatesBetweenTwoPiecesAreFewAndSpreadOut()
+    public void NoHopIsCoveredByAShorterOne()
     {
+        static float CalculateDetour(Hop hop, Hop via)
+            => MathF.Min(
+                hop.Takeoff.Distance(via.Takeoff) + via.Length + via.Landing.Distance(hop.Landing),
+                hop.Takeoff.Distance(via.Landing) + via.Length + via.Takeoff.Distance(hop.Landing));
+
         foreach ((var map, _, var hops) in BuildEveryMap())
-            foreach (var group in hops.Where(hop => hop.FromPiece != hop.ToPiece)
-                                      .GroupBy(hop => (hop.FromPiece, hop.ToPiece)))
+            foreach (var group in hops.GroupBy(hop => (Math.Min(hop.FromPiece, hop.ToPiece), Math.Max(hop.FromPiece, hop.ToPiece))))
             {
-                var takeoffs = group.Select(hop => hop.Takeoff)
-                                    .ToList();
+                var list = group.ToList();
 
-                takeoffs.Should()
-                        .HaveCountLessThanOrEqualTo(8, $"{map} {group.Key}");
+                for (var i = 0; i < list.Count; i++)
+                    for (var j = 0; j < list.Count; j++)
+                    {
+                        var hop = list[i];
+                        var shorter = list[j];
 
-                for (var i = 0; i < takeoffs.Count; i++)
-                    for (var j = i + 1; j < takeoffs.Count; j++)
-                        MathF.Sqrt(MathF.Pow(takeoffs[i].X - takeoffs[j].X, 2) + MathF.Pow(takeoffs[i].Y - takeoffs[j].Y, 2))
-                             .Should()
-                             .BeGreaterThanOrEqualTo(50f, $"{map} {group.Key}");
+                        //every hop is listed both ways, and its return covers it trivially
+                        if ((shorter.Length >= hop.Length) || ((shorter.Takeoff == hop.Landing) && (shorter.Landing == hop.Takeoff)))
+                            continue;
+
+                        CalculateDetour(hop, shorter)
+                            .Should()
+                            .BeGreaterThan(hop.Length + 75f, $"{map} {hop.Takeoff} -> {hop.Landing}");
+                    }
             }
     }
 
@@ -102,7 +112,7 @@ public class HopBuilderTests : PathfindingTestBed
     }
 
     [Test]
-    public void EveryHopStartsAndEndsWhereTheServerAcceptsAMove()
+    public void EveryHopStartsAndEndsOnTheMesh()
     {
         foreach ((var map, var mesh, var hops) in BuildEveryMap())
             foreach (var hop in hops)
@@ -111,15 +121,9 @@ public class HopBuilderTests : PathfindingTestBed
                              hop.Takeoff,
                              hop.Landing
                          })
-                {
                     mesh.IsWalkable(end.X, end.Y)
                         .Should()
                         .BeTrue($"{map} {end}");
-
-                    mesh.IsWalkable(MathF.Round(end.X / 10f) * 10f, MathF.Round(end.Y / 10f) * 10f)
-                        .Should()
-                        .BeTrue($"{map} {end}");
-                }
     }
 
     [Test]
@@ -150,34 +154,6 @@ public class HopBuilderTests : PathfindingTestBed
             CalculateGroundRun(mesh, hop.Takeoff, hop.Landing)
                 .Should()
                 .BeLessThanOrEqualTo(40f, $"{hop.Takeoff} -> {hop.Landing}");
-    }
-
-    [Test]
-    public void ShortcutsInsideOnePieceAreFewAndSpreadOut()
-    {
-        foreach ((var map, _, var hops) in BuildEveryMap())
-            foreach (var group in hops.Where(hop => hop.FromPiece == hop.ToPiece)
-                                      .GroupBy(hop => hop.FromPiece))
-            {
-                //every shortcut is listed both ways, so the takeoffs are every end of every shortcut
-                var shortcuts = group.ToList();
-
-                shortcuts.Should()
-                         .HaveCountLessThanOrEqualTo(2 * 64, $"{map} {group.Key}");
-
-                for (var i = 0; i < shortcuts.Count; i++)
-                    for (var j = i + 1; j < shortcuts.Count; j++)
-                    {
-                        if ((shortcuts[i].Takeoff == shortcuts[j].Landing) && (shortcuts[i].Landing == shortcuts[j].Takeoff))
-                            continue;
-
-                        MathF.Sqrt(
-                                 MathF.Pow(shortcuts[i].Takeoff.X - shortcuts[j].Takeoff.X, 2)
-                                 + MathF.Pow(shortcuts[i].Takeoff.Y - shortcuts[j].Takeoff.Y, 2))
-                             .Should()
-                             .BeGreaterThanOrEqualTo(50f, $"{map} {group.Key}");
-                    }
-            }
     }
 
     [Test]

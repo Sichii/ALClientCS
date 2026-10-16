@@ -204,19 +204,22 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   down. With blink on, an A* lower bound orders the queue), and expands the winner into `PathEdge`s. Any of N ends:
   the first taken wins. Blink off leaves the route untouched.
 - **Wall hops** exist only after `Initialize(cheat: true)` (`ALClient.InitializeAsync` takes the same flag). A hop is a
-  fixed straight candidate built at startup, several per pair of separate mesh pieces (takeoffs spread apart, length
-  capped), trimmed to the stretch from where its line first leaves walkable ground to where it last returns, both ends
-  on
-  ground the server accepts. Inside one piece, a shortcut hop crosses a wall or water where the
-  walk between its ends is at least twice its length and 100 longer, best saving first, ends spread apart, capped per
-  piece. None on `no_bounds`, instance or generated maps. Each carries a depth
-  profile (distance to walkable ground along it). A search takes a hop only with a known `WalkSpeed`, and replays the
-  server's in-motion penalty along it from the score the route carries (`PathOptions.HopScore` seeds it; walks decay
-  it at the server's slowest update gap, the replay assumes the fastest); a peak of 45 or more refuses the hop, since
-  the server halves hp and sends the character to spawn over 60. The estimate can run about one lattice level low near
-  the shore (the server truncates positions to its 10-unit lattice); the 15-point margin, and the server's walkable
-  area reaching past our mesh edges, absorb that. `SmartMoveAsync` refuses every hop for 5 s after one lands, since
-  nothing tracks the score between routes. A hop leg goes out as one unchecked move with no cancellation. Every move
+  fixed straight candidate built at startup, from one edge vertex to another with no walkable ground between them (a
+  line that crosses floor is not built), length capped, shortest first, dropped when going via a shorter kept hop is
+  under 75 longer. Both ends lie on the mesh, which the server accepts. Between separate mesh pieces each vertex tries
+  the nearest vertex across; inside one piece, a shortcut hop crosses a wall or water where the walk between its ends
+  is at least twice its length and 100 longer. A hop whose penalty passes the server's 60 even at speed 200 is not
+  built. None on `no_bounds`, instance or generated maps. Each carries a depth profile (distance to walkable ground
+  along it). A search takes a hop only with a known `WalkSpeed`, and replays the server's in-motion penalty along it
+  from the score the route carries (`PathOptions.HopScore` seeds it; walks decay it at an assumed 83 ms update gap and
+  round under 1 to 0, the replay assumes the fastest 75 ms); a peak of 55 or more refuses the hop, since the server
+  halves hp and sends the character to spawn over 60. The estimate can run about one lattice level low near the shore
+  (the server truncates positions to its 10-unit lattice); the 5-point margin, the depth estimate overstating any
+  crossing that is not diagonal, and the server's walkable area reaching past our mesh edges absorb that. **Never
+  tighten
+  the depth estimate without widening that margin.** The server never sends the score, so each client keeps an estimate:
+  a landing raises it to the hop leg's `PathEdge.HopScore`, it decays as if the character kept moving, and
+  `SmartMoveAsync` seeds every route from it. A hop leg goes out as one unchecked move with no cancellation. Every move
   goes through one locked emit, and a move a hop overtook is refused (callers re-plan): a move sent mid-hop is jailed,
   and a stale one would walk back across.
 

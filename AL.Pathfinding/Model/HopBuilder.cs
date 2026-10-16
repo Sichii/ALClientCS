@@ -37,21 +37,6 @@ internal sealed class HopBuilder
     private const float MAX_HOP_LENGTH = 200f;
 
     /// <summary>
-    ///     How far back along the hop an end may be pulled to find ground the server accepts.
-    /// </summary>
-    private const float MAX_INSET = 20f;
-
-    private const float INSET_STEP = 2f;
-
-    /// <summary>
-    ///     The most hops kept per direction between two pieces.
-    /// </summary>
-    private const int MAX_CANDIDATES = 8;
-
-    /// <summary>The most shortcuts kept inside one piece.</summary>
-    private const int MAX_SHORTCUTS_PER_PIECE = 64;
-
-    /// <summary>
     ///     How many times longer than a shortcut the walk between its ends must be.
     /// </summary>
     private const float MIN_WALK_RATIO = 2f;
@@ -62,11 +47,15 @@ internal sealed class HopBuilder
     private const float MIN_WALK_SAVING = 100f;
 
     /// <summary>
-    ///     The least distance between the takeoffs, and between the landings, of two hops kept between the same pieces.
+    ///     A speed above what a character reaches with strong gear and buffs; a hop that passes the server's limit even at it
+    ///     is refused at every real speed, so it is not built.
     /// </summary>
-    private const float CANDIDATE_SPACING = 50f;
+    private const float MAX_SPEED = 200f;
 
-    private const float LATTICE_STEP = 10f;
+    /// <summary>
+    ///     How much longer than a hop the way through a kept hop may be before the hop counts as adding nothing.
+    /// </summary>
+    private const float DETOUR_ALLOWANCE = 75f;
 
     /// <summary>The edge vertices of every piece.</summary>
     private readonly int[][] Edges;
@@ -90,8 +79,7 @@ internal sealed class HopBuilder
 
     /// <summary>
     ///     Finds the hops between every two pieces of a map's mesh that come within <see cref="MAX_HOP_LENGTH" /> of each
-    ///     other, up to <see cref="MAX_CANDIDATES" /> per direction, spread along the gap, then the shortcuts inside each
-    ///     piece.
+    ///     other, then the shortcuts inside each piece.
     /// </summary>
     /// <param name="mesh">The map's mesh.</param>
     /// <returns>Every hop, each paired with its return.</returns>
@@ -121,6 +109,13 @@ internal sealed class HopBuilder
         {
             var depths = BuildProfile(hop);
 
+            var returnDepths = depths.Reverse()
+                                     .ToArray();
+
+            if ((HopRisk.CalculatePeakScore(depths, hop.Length, MAX_SPEED) >= HopRisk.SERVER_LIMIT)
+                && (HopRisk.CalculatePeakScore(returnDepths, hop.Length, MAX_SPEED) >= HopRisk.SERVER_LIMIT))
+                continue;
+
             hops.Add(
                 hop with
                 {
@@ -134,8 +129,7 @@ internal sealed class HopBuilder
                     hop.Landing,
                     hop.Takeoff,
                     hop.Length,
-                    depths.Reverse()
-                          .ToArray()));
+                    returnDepths));
         }
     }
 
@@ -184,41 +178,6 @@ internal sealed class HopBuilder
         }
 
         return MathF.Sqrt(best);
-    }
-
-    /// <summary>
-    ///     Calculates how far a line stays on the mesh from its start, to the unit, checking every
-    ///     <see cref="HopRisk.SAMPLE_STEP" /> for where it leaves.
-    /// </summary>
-    /// <param name="start">The line's start.</param>
-    /// <param name="end">The line's end.</param>
-    /// <returns>
-    ///     The distance to the last walkable point before the line leaves the mesh, or its length if no sample is off it.
-    /// </returns>
-    private float CalculateGroundRun(Point start, Point end)
-    {
-        const float TRIM_STEP = 1f;
-        var length = start.Distance(end);
-        var dx = (end.X - start.X) / length;
-        var dy = (end.Y - start.Y) / length;
-
-        //a coarse pass finds the first sample off the mesh, a fine one the last ground before it
-        for (var distance = HopRisk.SAMPLE_STEP; distance < length; distance += HopRisk.SAMPLE_STEP)
-        {
-            if (IsWalkableAlong(distance))
-                continue;
-
-            var run = distance - HopRisk.SAMPLE_STEP;
-
-            while (IsWalkableAlong(run + TRIM_STEP))
-                run += TRIM_STEP;
-
-            return run;
-        }
-
-        return length;
-
-        bool IsWalkableAlong(float distance) => Mesh.IsWalkable(start.X + dx * distance, start.Y + dy * distance);
     }
 
     private static float CalculateRequiredWalk(float length) => MathF.Max(length * MIN_WALK_RATIO, length + MIN_WALK_SAVING);
@@ -296,87 +255,63 @@ internal sealed class HopBuilder
     }
 
     /// <summary>
-    ///     Finds the shortest crossings between two pieces, each trimmed to the stretch that leaves the mesh and its ends
-    ///     pulled back onto ground the server accepts, and keeps the shortest ones whose takeoffs and landings are both
-    ///     <see cref="CANDIDATE_SPACING" /> from every kept one.
+    ///     Finds the crossing from every edge vertex of either piece to the nearest edge vertex of the other, where the line
+    ///     between them stays off the mesh, and keeps the shortest that no kept one covers.
     /// </summary>
     /// <param name="from">The piece the hops leave.</param>
     /// <param name="to">The piece the hops land on.</param>
     /// <returns>
-    ///     The kept hops from <paramref name="from" /> to <paramref name="to" />, with no profile yet.
+    ///     The hops from <paramref name="from" /> to <paramref name="to" />, with no profile yet.
     /// </returns>
     private List<Hop> FindCandidates(int from, int to)
     {
         var vertices = Mesh.Mesh.Vertices;
-        var candidates = new List<Hop>();
+        var pairs = new HashSet<(Point Takeoff, Point Landing)>();
 
-        //the nearest crossing seen from each side, so a gap one side lines with few vertices is still spread out
+        //the nearest crossing seen from each side, so a gap one side lines with few vertices is still covered
         foreach (var vertex in Edges[from])
-            if (TryFindNearest(vertices[vertex], Edges[to], out var nearest)
-                && TryTrim(
-                    vertices[vertex],
-                    nearest,
-                    out var takeoff,
-                    out var landing)
-                && TryBuildCandidate(
-                    from,
-                    to,
-                    takeoff,
-                    landing,
-                    out var hop))
-                candidates.Add(hop);
+            if (TryFindNearest(vertices[vertex], Edges[to], out var nearest) && IsOffMeshBetween(vertices[vertex], nearest))
+                pairs.Add((vertices[vertex], nearest));
 
         foreach (var vertex in Edges[to])
-            if (TryFindNearest(vertices[vertex], Edges[from], out var nearest)
-                && TryTrim(
-                    nearest,
-                    vertices[vertex],
-                    out var takeoff,
-                    out var landing)
-                && TryBuildCandidate(
-                    from,
-                    to,
-                    takeoff,
-                    landing,
-                    out var hop))
-                candidates.Add(hop);
-
-        candidates.Sort((a, b) => a.Length.CompareTo(b.Length));
+            if (TryFindNearest(vertices[vertex], Edges[from], out var nearest) && IsOffMeshBetween(nearest, vertices[vertex]))
+                pairs.Add((nearest, vertices[vertex]));
 
         var kept = new List<Hop>();
 
-        foreach (var candidate in candidates)
+        foreach ((var takeoff, var landing) in pairs.OrderBy(pair => pair.Takeoff.Distance(pair.Landing)))
         {
-            if (kept.Count == MAX_CANDIDATES)
-                break;
+            var hop = new Hop(
+                from,
+                to,
+                takeoff,
+                landing,
+                takeoff.Distance(landing),
+                []);
 
-            if (kept.All(hop => (hop.Takeoff.Distance(candidate.Takeoff) >= CANDIDATE_SPACING)
-                                && (hop.Landing.Distance(candidate.Landing) >= CANDIDATE_SPACING)))
-                kept.Add(candidate);
+            if (!IsCoveredByKept(kept, hop))
+                kept.Add(hop);
         }
 
         return kept;
     }
 
     /// <summary>
-    ///     Finds the straight moves between two edge points of one piece that leave the mesh, trimmed to the stretch that
-    ///     leaves it, that save a long walk, and keeps the ones that save the most whose ends are all
-    ///     <see cref="CANDIDATE_SPACING" /> from every kept one's.
+    ///     Finds the straight moves between two edge vertices of one piece that stay off the mesh between them and save a
+    ///     long walk, and keeps the shortest that no kept one covers.
     /// </summary>
     /// <param name="piece">The piece the shortcuts leave and land on.</param>
     /// <returns>
-    ///     The kept shortcuts, one direction each, with no profile yet.
+    ///     The shortcuts, one direction each, with no profile yet.
     /// </returns>
     private List<Hop> FindShortcuts(int piece)
     {
         var vertices = Mesh.Mesh.Vertices;
         var edges = Edges[piece];
         var scratch = SearchScratch.Rent();
-        var queue = new PriorityQueue<(Point Start, Point End, Hop? Shortcut), float>(Comparer<float>.Create((a, b) => b.CompareTo(a)));
+        var candidates = new List<Hop>();
 
-        //an inset end lies within MAX_INSET of its trimmed end, so the ends' walk is at most this longer than the trimmed ends'
-        const float INSET_SLACK = 2f * MAX_INSET;
-        var maxCost = CalculateRequiredWalk(MAX_HOP_LENGTH) - INSET_SLACK;
+        var maxCost = CalculateRequiredWalk(MAX_HOP_LENGTH);
 
         for (var i = 0; i < edges.Length; i++)
         {
@@ -391,78 +326,55 @@ internal sealed class HopBuilder
             for (var j = i + 1; j < edges.Length; j++)
             {
                 var end = vertices[edges[j]];
+                var length = start.Distance(end);
 
-                if ((start.Distance(end) > MAX_HOP_LENGTH)
-                    || !TryTrim(
-                        start,
-                        end,
-                        out var takeoff,
-                        out var landing))
-                    continue;
-
-                //vertex-search cost bounds the pulled walk between the vertices from above, and each trimmed stretch is ground
-                var walk = scratch.VertexCost[edges[j]] + start.Distance(takeoff) + end.Distance(landing);
-                var length = takeoff.Distance(landing);
-
-                if (walk >= (CalculateRequiredWalk(length) - INSET_SLACK))
-                    queue.Enqueue((takeoff, landing, null), walk - length);
+                //vertex-search cost bounds the pulled walk between the vertices from above
+                if ((length <= MAX_HOP_LENGTH)
+                    && (scratch.VertexCost[edges[j]] >= CalculateRequiredWalk(length))
+                    && IsOffMeshBetween(start, end))
+                    candidates.Add(
+                        new Hop(
+                            piece,
+                            piece,
+                            start,
+                            end,
+                            length,
+                            []));
             }
         }
 
-        //an inset lengthens a shortcut and its walk alike, so a measured shortcut taken from the queue saves at least as much
-        //as any bound still in it
+        candidates.Sort((a, b) => a.Length.CompareTo(b.Length));
+
         var kept = new List<Hop>();
 
-        while ((kept.Count < MAX_SHORTCUTS_PER_PIECE) && queue.TryDequeue(out var pair, out _))
+        foreach (var hop in candidates)
         {
-            if (pair.Shortcut is { } measured)
-            {
-                if (IsSpaced(kept, measured))
-                    kept.Add(measured);
-
-                continue;
-            }
-
-            if (!TryBuildCandidate(
-                    piece,
-                    piece,
-                    pair.Start,
-                    pair.End,
-                    out var hop)
-                || !IsSpaced(kept, hop)
-                || !LeavesMesh(hop.Takeoff, hop.Landing))
+            if (IsCoveredByKept(kept, hop))
                 continue;
 
             var walk = CalculateWalkLength(hop, scratch);
 
             if ((walk < float.MaxValue) && (walk >= CalculateRequiredWalk(hop.Length)))
-                queue.Enqueue((pair.Start, pair.End, hop), walk - hop.Length);
+                kept.Add(hop);
         }
 
         return kept;
     }
 
-    private bool IsOnPiece(int piece, float x, float y)
-    {
-        var triangle = Mesh.Mesh.FindTriangle(x, y);
-
-        return (triangle >= 0) && (Pieces[triangle] == piece);
-    }
-
     /// <summary>
-    ///     Determines whether both ends of a shortcut lie <see cref="CANDIDATE_SPACING" /> from both ends of every kept one.
+    ///     Determines whether a kept hop already joins a hop's ends: going straight to it, across it and straight on is within
+    ///     <see cref="DETOUR_ALLOWANCE" /> of the hop's own length.
     /// </summary>
-    /// <param name="kept">The shortcuts kept so far.</param>
-    /// <param name="candidate">The shortcut to check.</param>
+    /// <param name="kept">The hops kept so far.</param>
+    /// <param name="candidate">The hop to check.</param>
     /// <returns>
-    ///     <c>true</c> if no end of the candidate is near an end of a kept shortcut; otherwise, <c>false</c>.
+    ///     <c>true</c> if a kept hop covers the candidate; otherwise, <c>false</c>.
     /// </returns>
-    private static bool IsSpaced(List<Hop> kept, Hop candidate)
-        => kept.All(hop
-            => (hop.Takeoff.Distance(candidate.Takeoff) >= CANDIDATE_SPACING)
-               && (hop.Takeoff.Distance(candidate.Landing) >= CANDIDATE_SPACING)
-               && (hop.Landing.Distance(candidate.Takeoff) >= CANDIDATE_SPACING)
-               && (hop.Landing.Distance(candidate.Landing) >= CANDIDATE_SPACING));
+    private static bool IsCoveredByKept(List<Hop> kept, Hop candidate)
+        => kept.Any(hop => MathF.Min(
+                               candidate.Takeoff.Distance(hop.Takeoff) + hop.Length + hop.Landing.Distance(candidate.Landing),
+                               candidate.Takeoff.Distance(hop.Landing) + hop.Length + hop.Takeoff.Distance(candidate.Landing))
+                           <= (candidate.Length + DETOUR_ALLOWANCE));
 
     private static int[] LabelPieces(TriangleMesh mesh, out int pieceCount)
     {
@@ -499,59 +411,25 @@ internal sealed class HopBuilder
     }
 
     /// <summary>
-    ///     Determines whether a straight line leaves the mesh at any sample its depth profile takes between its ends.
+    ///     Determines whether a straight line stays off the mesh at every sample its depth profile takes between its ends.
     /// </summary>
     /// <param name="start">The line's start.</param>
     /// <param name="end">The line's end.</param>
     /// <returns>
-    ///     <c>true</c> if a sample between the ends is off the mesh; otherwise, <c>false</c>.
+    ///     <c>true</c> if there is a sample between the ends and none is on the mesh; otherwise, <c>false</c>.
     /// </returns>
-    private bool LeavesMesh(Point start, Point end)
+    private bool IsOffMeshBetween(Point start, Point end)
     {
         var length = start.Distance(end);
         var dx = (end.X - start.X) / length;
         var dy = (end.Y - start.Y) / length;
 
+        if (length <= (2f * HopRisk.SAMPLE_STEP))
+            return false;
+
         for (var distance = HopRisk.SAMPLE_STEP; distance <= (length - HopRisk.SAMPLE_STEP); distance += HopRisk.SAMPLE_STEP)
-            if (!Mesh.IsWalkable(start.X + dx * distance, start.Y + dy * distance))
-                return true;
-
-        return false;
-    }
-
-    private bool TryBuildCandidate(
-        int from,
-        int to,
-        Point takeoff,
-        Point landing,
-        out Hop hop)
-    {
-        hop = default;
-
-        if (!TryInset(
-                from,
-                takeoff,
-                landing,
-                out var insetTakeoff)
-            || !TryInset(
-                to,
-                landing,
-                takeoff,
-                out var insetLanding))
-            return false;
-
-        var length = insetTakeoff.Distance(insetLanding);
-
-        if (length > MAX_HOP_LENGTH)
-            return false;
-
-        hop = new Hop(
-            from,
-            to,
-            insetTakeoff,
-            insetLanding,
-            length,
-            []);
+            if (Mesh.IsWalkable(start.X + dx * distance, start.Y + dy * distance))
+                return false;
 
         return true;
     }
@@ -578,93 +456,5 @@ internal sealed class HopBuilder
         }
 
         return found;
-    }
-
-    /// <summary>
-    ///     Pulls a hop's end back along the hop, away from the other end, until it and its lattice rounding both lie on its
-    ///     piece.
-    /// </summary>
-    /// <param name="piece">The piece the end belongs on.</param>
-    /// <param name="end">The end to pull back.</param>
-    /// <param name="other">The hop's other end.</param>
-    /// <param name="inset">The pulled-back end.</param>
-    /// <returns>
-    ///     <c>true</c> if a point within <see cref="MAX_INSET" /> qualifies; otherwise, <c>false</c>.
-    /// </returns>
-    private bool TryInset(
-        int piece,
-        Point end,
-        Point other,
-        out Point inset)
-    {
-        inset = default;
-
-        var length = end.Distance(other);
-
-        if (length <= 0f)
-            return false;
-
-        var dx = (end.X - other.X) / length;
-        var dy = (end.Y - other.Y) / length;
-
-        for (var distance = 0f; distance <= MAX_INSET; distance += INSET_STEP)
-        {
-            var x = end.X + dx * distance;
-            var y = end.Y + dy * distance;
-
-            if (IsOnPiece(piece, x, y)
-                && IsOnPiece(piece, MathF.Round(x / LATTICE_STEP) * LATTICE_STEP, MathF.Round(y / LATTICE_STEP) * LATTICE_STEP))
-            {
-                inset = new Point(x, y);
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    ///     Trims a line between two points on the mesh to the stretch from where it first leaves the mesh to where it last
-    ///     returns; ground the line touches in between stays inside.
-    /// </summary>
-    /// <param name="start">The line's start.</param>
-    /// <param name="end">The line's end.</param>
-    /// <param name="takeoff">
-    ///     The last walkable sample before the line first leaves the mesh.
-    /// </param>
-    /// <param name="landing">
-    ///     The first walkable sample after the line last returns to the mesh.
-    /// </param>
-    /// <returns>
-    ///     <c>true</c> if the line leaves the mesh between two separate ground runs; otherwise, <c>false</c>.
-    /// </returns>
-    private bool TryTrim(
-        Point start,
-        Point end,
-        out Point takeoff,
-        out Point landing)
-    {
-        takeoff = default;
-        landing = default;
-
-        var length = start.Distance(end);
-        var startRun = CalculateGroundRun(start, end);
-
-        if (startRun >= length)
-            return false;
-
-        var endRun = CalculateGroundRun(end, start);
-
-        if ((startRun + endRun) >= length)
-            return false;
-
-        var dx = (end.X - start.X) / length;
-        var dy = (end.Y - start.Y) / length;
-
-        takeoff = new Point(start.X + dx * startRun, start.Y + dy * startRun);
-        landing = new Point(end.X - dx * endRun, end.Y - dy * endRun);
-
-        return true;
     }
 }

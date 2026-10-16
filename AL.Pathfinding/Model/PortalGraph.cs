@@ -28,8 +28,20 @@ internal sealed class PortalGraph
 
     private readonly Dictionary<(string Map, int Spawn), int> ArrivalIndex = new(MapSpawnComparer.Instance);
     private readonly Dictionary<string, List<int>> ArrivalsOnMap = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<int>> CornersOnMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<int>> DeparturesOnMap = new(StringComparer.OrdinalIgnoreCase);
     private readonly int[] EdgeStart;
+
+    /// <summary>
+    ///     Where each node's edges that a search with blink alone takes begin, inside its run of <see cref="StaticEdges" />.
+    /// </summary>
+    private readonly int[] BlinkOnlyStart;
+
+    /// <summary>The hop edges, added to the static edges at build.</summary>
+    private readonly List<Edge> HopEdges = [];
+
+    /// <summary>Every hop, indexed by <see cref="Edge.Hop" />.</summary>
+    private readonly List<Hop> Hops = [];
 
     private readonly IReadOnlyDictionary<string, NavMesh> Meshes;
     private readonly List<Node> Nodes = [];
@@ -117,7 +129,7 @@ internal sealed class PortalGraph
                 AddHops(mesh, map, mapHops);
         }
 
-        (StaticEdges, EdgeStart) = BuildStaticEdges();
+        (StaticEdges, EdgeStart, BlinkOnlyStart) = BuildStaticEdges();
         (ReverseEdges, ReverseStart) = BuildReverseEdges();
     }
 
@@ -132,53 +144,67 @@ internal sealed class PortalGraph
     internal static bool AllowsHops(GMap map) => map is { Boundless: false, Instance: false, Generated: null };
 
     /// <summary>
-    ///     Adds a takeoff and a landing node for every hop on a map; the takeoff's only edge is the hop.
+    ///     Adds one node for every corner a hop on a map leaves or lands on, both an arrival and a departure, and the hop's
+    ///     edge between its two corners.
     /// </summary>
     /// <param name="mesh">The map's mesh.</param>
     /// <param name="map">The map's key.</param>
     /// <param name="hops">The map's hops.</param>
     private void AddHops(NavMesh mesh, string map, List<Hop> hops)
     {
+        var corners = new Dictionary<Point, int>();
+        var mapCorners = new List<int>();
+        CornersOnMap[map] = mapCorners;
+
         foreach (var hop in hops)
         {
-            var takeoffTriangle = mesh.FindStartTriangle(hop.Takeoff.X, hop.Takeoff.Y, out var takeoffEntry);
-            var landingTriangle = mesh.FindStartTriangle(hop.Landing.X, hop.Landing.Y, out var landingEntry);
-
-            if ((takeoffTriangle < 0) || (landingTriangle < 0))
+            if (!TryGetCorner(hop.Takeoff, out var takeoff) || !TryGetCorner(hop.Landing, out var landing))
                 continue;
 
-            var landing = Nodes.Count;
+            HopEdges.Add(
+                new Edge(
+                    takeoff,
+                    landing,
+                    EdgeType.Hop,
+                    hop.Length,
+                    Hops.Count));
+            Hops.Add(hop);
+        }
+
+        return;
+
+        bool TryGetCorner(Point point, out int index)
+        {
+            if (corners.TryGetValue(point, out index))
+                return true;
+
+            var triangle = mesh.FindStartTriangle(point.X, point.Y, out var entry);
+
+            if (triangle < 0)
+                return false;
+
+            index = Nodes.Count;
 
             Nodes.Add(
                 new Node
                 {
                     Mesh = mesh,
-                    Location = new Location(map, hop.Landing),
-                    Triangle = landingTriangle,
-                    Entry = landingEntry,
-                    BlinkEntry = landingEntry
+                    Location = new Location(map, point),
+                    Triangle = triangle,
+                    Entry = entry,
+                    BlinkEntry = entry,
+                    Reach = Reach.CreateCircle(point.X, point.Y, 0f)
                 });
 
             ArrivalsOnMap[map]
-                .Add(landing);
-
-            var takeoff = Nodes.Count;
-
-            Nodes.Add(
-                new Node
-                {
-                    Mesh = mesh,
-                    Location = new Location(map, hop.Takeoff),
-                    Triangle = takeoffTriangle,
-                    Entry = takeoffEntry,
-                    BlinkEntry = takeoffEntry,
-                    Reach = Reach.CreateCircle(hop.Takeoff.X, hop.Takeoff.Y, 0f),
-                    Hop = hop,
-                    HopLanding = landing
-                });
+                .Add(index);
 
             DeparturesOnMap[map]
-                .Add(takeoff);
+                .Add(index);
+            mapCorners.Add(index);
+            corners[point] = index;
+
+            return true;
         }
     }
 
@@ -238,9 +264,9 @@ internal sealed class PortalGraph
         return (edges, start);
     }
 
-    private (Edge[] Edges, int[] Start) BuildStaticEdges()
+    private (Edge[] Edges, int[] Start, int[] BlinkOnlyStart) BuildStaticEdges()
     {
-        var edges = new List<Edge>();
+        var edges = new List<Edge>(HopEdges);
         var scratch = SearchScratch.Rent();
         var mainSpawn = ArrivalIndex.TryGetValue(("main", 0), out var main) ? main : -1;
 
@@ -248,18 +274,6 @@ internal sealed class PortalGraph
         {
             var node = Nodes[index];
             var map = node.Location.Map;
-
-            if (node.Hop is { } hop)
-            {
-                edges.Add(
-                    new Edge(
-                        index,
-                        node.HopLanding,
-                        EdgeType.Hop,
-                        hop.Length));
-
-                continue;
-            }
 
             if (node.Exit is { } exit)
             {
@@ -287,6 +301,9 @@ internal sealed class PortalGraph
 
             foreach (var departure in DeparturesOnMap[map])
             {
+                if (departure == index)
+                    continue;
+
                 var target = Nodes[departure];
 
                 var cost = node.Mesh.CalculateWalkCost(
@@ -305,7 +322,8 @@ internal sealed class PortalGraph
                             index,
                             departure,
                             EdgeType.Blink,
-                            float.MaxValue));
+                            float.MaxValue,
+                            BlinkOnly: true));
 
                     continue;
                 }
@@ -338,8 +356,12 @@ internal sealed class PortalGraph
                         CONSTANTS.TRANSPORT_HEURISTIC));
         }
 
-        edges.Sort((a, b) => a.From.CompareTo(b.From));
+        MarkWalksThroughCorners(edges);
+
+        //each node's edges a search without blink takes come first
+        edges.Sort((a, b) => a.From != b.From ? a.From.CompareTo(b.From) : a.BlinkOnly.CompareTo(b.BlinkOnly));
         var start = new int[Nodes.Count + 1];
+        var blinkOnlyStart = new int[Nodes.Count];
 
         foreach (var edge in edges)
             start[edge.From + 1]++;
@@ -347,7 +369,60 @@ internal sealed class PortalGraph
         for (var i = 1; i < start.Length; i++)
             start[i] += start[i - 1];
 
-        return (edges.ToArray(), start);
+        for (var node = 0; node < Nodes.Count; node++)
+        {
+            var i = start[node];
+
+            while ((i < start[node + 1]) && !edges[i].BlinkOnly)
+                i++;
+
+            blinkOnlyStart[node] = i;
+        }
+
+        return (edges.ToArray(), start, blinkOnlyStart);
+    }
+
+    /// <summary>
+    ///     Marks every walk no shorter than walking to another hop corner on its map and on from there, so a search without
+    ///     blink takes the two shorter walks instead; a search with blink keeps it, since one cast can replace it whole.
+    /// </summary>
+    /// <param name="edges">The static edges, marked in place.</param>
+    private void MarkWalksThroughCorners(List<Edge> edges)
+    {
+        //covers the rounding in two pulled walks along what is one path; each mark leans on strictly shorter walks, so the
+        //error adds up only along a chain of them
+        const float TOLERANCE = 0.5f;
+
+        var walks = new Dictionary<(int From, int To), float>();
+
+        foreach (var edge in edges)
+            if (edge.Type == EdgeType.Walk)
+                walks[(edge.From, edge.To)] = edge.Cost;
+
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var edge = edges[i];
+
+            if ((edge.Type != EdgeType.Walk) || !CornersOnMap.TryGetValue(Nodes[edge.From].Location.Map, out var corners))
+                continue;
+
+            foreach (var corner in corners)
+                if ((corner != edge.From)
+                    && (corner != edge.To)
+                    && walks.TryGetValue((edge.From, corner), out var first)
+                    && (first > TOLERANCE)
+                    && walks.TryGetValue((corner, edge.To), out var second)
+                    && (second > TOLERANCE)
+                    && ((first + second) <= (edge.Cost + TOLERANCE)))
+                {
+                    edges[i] = edge with
+                    {
+                        BlinkOnly = true
+                    };
+
+                    break;
+                }
+        }
     }
 
     /// <summary>
@@ -733,7 +808,7 @@ internal sealed class PortalGraph
             scratch,
             new ArrivalSearch(
                 scratch,
-                Nodes,
+                Hops,
                 options,
                 townCost,
                 startNode),
@@ -884,6 +959,10 @@ internal sealed class PortalGraph
                         cursorPoint = polyline[i];
                     }
 
+                    //a hop corner may walk on, so the next walk leaves from its node; an exit's next leg is its door
+                    if (!isEnd && Nodes[edge.To].Exit is null)
+                        MoveCursor(Nodes[edge.To]);
+
                     break;
                 }
 
@@ -942,7 +1021,10 @@ internal sealed class PortalGraph
                             EdgeType.Hop,
                             cursor,
                             landing.Location,
-                            edge.Cost));
+                            edge.Cost)
+                        {
+                            HopScore = scratch.Arrivals[arrivalId].HopScore
+                        });
                     MoveCursor(landing);
                     startSearchHeld = false;
 
@@ -1044,6 +1126,8 @@ internal sealed class PortalGraph
     {
         search.OfferStart(options);
 
+        var blinkOn = options.BlinkCost is not null;
+
         while (scratch.ArrivalQueue.TryDequeue(out var arrivalId, out _))
         {
             var from = scratch.Arrivals[arrivalId];
@@ -1055,7 +1139,7 @@ internal sealed class PortalGraph
                 return arrivalId;
 
             if (from.Node < Nodes.Count)
-                for (var i = EdgeStart[from.Node]; i < EdgeStart[from.Node + 1]; i++)
+                for (var i = EdgeStart[from.Node]; i < (blinkOn ? EdgeStart[from.Node + 1] : BlinkOnlyStart[from.Node]); i++)
                     search.Relax(
                         StaticEdges[i],
                         i,
@@ -1080,6 +1164,11 @@ internal sealed class PortalGraph
     private readonly struct ArrivalSearch
     {
         /// <summary>
+        ///     How much more hop score an arrival may carry and still make a dearer one at the same node pointless.
+        /// </summary>
+        private const float HOP_SCORE_SLACK = 2f;
+
+        /// <summary>
         ///     Whether casts are priced at all; false leaves every state the default and the queue ordered by cost alone.
         /// </summary>
         private readonly bool BlinkOn;
@@ -1099,7 +1188,7 @@ internal sealed class PortalGraph
         /// </summary>
         private readonly float? HopSpeed;
 
-        private readonly List<Node> Nodes;
+        private readonly List<Hop> Hops;
         private readonly SearchScratch Scratch;
         private readonly float Speed;
         private readonly int StartNode;
@@ -1112,19 +1201,19 @@ internal sealed class PortalGraph
         /// <param name="scratch">
         ///     The calling thread's scratch, holding the arrivals and, with blink on, the lower bounds.
         /// </param>
-        /// <param name="nodes">The graph's nodes, read for a takeoff's hop.</param>
+        /// <param name="hops">The graph's hops, read for a hop edge's depth profile.</param>
         /// <param name="options">The search's pricing and starting state.</param>
         /// <param name="townCost">The price of a recall at the character's speed.</param>
         /// <param name="startNode">The search's virtual start node.</param>
         public ArrivalSearch(
             SearchScratch scratch,
-            List<Node> nodes,
+            List<Hop> hops,
             PathOptions options,
             float townCost,
             int startNode)
         {
             Scratch = scratch;
-            Nodes = nodes;
+            Hops = hops;
             BlinkOn = options.BlinkCost is not null;
             Clock = BlinkOn ? new BlinkClock(options) : default;
             Floor = options.BlinkCost ?? float.MaxValue;
@@ -1236,7 +1325,7 @@ internal sealed class PortalGraph
                     if (HopSpeed is not { } speed)
                         return;
 
-                    var hop = Nodes[edge.From].Hop.Value;
+                    var hop = Hops[edge.Hop];
 
                     (var peak, var end) = HopRisk.Replay(
                         hop.Depths,
@@ -1331,18 +1420,38 @@ internal sealed class PortalGraph
         /// <param name="a">The arrival that may beat.</param>
         /// <param name="b">The arrival that may be beaten.</param>
         /// <returns>
-        ///     <c>true</c> if <paramref name="a" /> costs no more, carries no more hop score, and is at least as ready now and at
-        ///     the next cast; otherwise, <c>false</c>.
+        ///     <c>true</c> if <paramref name="a" /> costs no more, carries at most <see cref="HOP_SCORE_SLACK" /> more hop score,
+        ///     and is at least as ready now and at the next cast; otherwise, <c>false</c>.
         /// </returns>
+        /// <remarks>
+        ///     Without the slack, every longer walk between hop corners keeps a new arrival that costs a little more for a little
+        ///     less score, and a search with no route never ends; with it a node keeps at most one arrival per slack of score.
+        ///     Each arrival still carries its own score, so the slack can only miss a slightly better route, never pass an unsafe
+        ///     hop.
+        /// </remarks>
         private bool Beats(in SearchScratch.Arrival a, in SearchScratch.Arrival b)
-            => (a.Cost <= b.Cost) && (a.HopScore <= b.HopScore) && Clock.IsAtLeastAsWellPlaced(a.State, b.State);
+            => (a.Cost <= b.Cost) && (a.HopScore <= (b.HopScore + HOP_SCORE_SLACK)) && Clock.IsAtLeastAsWellPlaced(a.State, b.State);
     }
 
+    /// <summary>Represents one edge of the graph.</summary>
+    /// <param name="From">The node the edge leaves.</param>
+    /// <param name="To">The node the edge reaches.</param>
+    /// <param name="Type">How the edge is travelled.</param>
+    /// <param name="Cost">The edge's price in walk units.</param>
+    /// <param name="Hop">
+    ///     The index into <see cref="Hops" /> of a <see cref="EdgeType.Hop" /> edge's hop; -1 on every other edge.
+    /// </param>
+    /// <param name="BlinkOnly">
+    ///     Whether only a search with blink takes the edge: a pair no walk joins, or a walk no shorter than the two walks
+    ///     through another hop corner.
+    /// </param>
     internal readonly record struct Edge(
         int From,
         int To,
         EdgeType Type,
-        float Cost);
+        float Cost,
+        int Hop = -1,
+        bool BlinkOnly = false);
 
     private sealed class MapSpawnComparer : IEqualityComparer<(string Map, int Spawn)>
     {
@@ -1363,16 +1472,6 @@ internal sealed class PortalGraph
 
         public required Point Entry { get; init; }
         public Exit? Exit { get; init; }
-
-        /// <summary>
-        ///     If populated, the hop this node takes off on; its only edge leads to <see cref="HopLanding" />.
-        /// </summary>
-        public Hop? Hop { get; init; }
-
-        /// <summary>
-        ///     The node the hop lands on, or -1 for a node that is no takeoff.
-        /// </summary>
-        public int HopLanding { get; init; } = -1;
 
         public required ILocation Location { get; init; }
         public required NavMesh Mesh { get; init; }

@@ -16,6 +16,11 @@ public readonly record struct PathEdge(
     float Cost)
 {
     /// <summary>
+    ///     The estimated in-motion penalty score when a <see cref="EdgeType.Hop" /> leg lands; 0 on every other leg.
+    /// </summary>
+    public float HopScore { get; init; }
+
+    /// <summary>
     ///     Formats the leg as its type, both ends and cost, for logs.
     /// </summary>
     /// <returns>The leg as one line of text.</returns>
