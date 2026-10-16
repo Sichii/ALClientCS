@@ -471,6 +471,7 @@ internal sealed class PortalGraph
         var bounds = scratch.LowerBound;
         var queue = scratch.LowerBoundQueue;
         var floor = options.BlinkCost ?? float.MaxValue;
+        var blinkOff = options.BlinkCost is null;
         var landing = Math.Max(options.BlinkCost ?? 0f, CONSTANTS.BLINK_LANDING_MS * GetSpeed(options) / 1000f);
         var useTown = options.UseTown;
 
@@ -510,6 +511,10 @@ internal sealed class PortalGraph
             for (var i = ReverseStart[node]; i < ReverseStart[node + 1]; i++)
             {
                 var edge = StaticEdges[ReverseEdges[i]];
+
+                if (edge.BlinkOnly && blinkOff)
+                    continue;
+
                 var through = bound + CalculateCheapest(edge);
 
                 if (through < bounds[edge.From])
@@ -532,7 +537,7 @@ internal sealed class PortalGraph
             => edge.Type switch
             {
                 EdgeType.Walk  => edge.Cost >= floor ? Math.Min(edge.Cost, landing) : edge.Cost,
-                EdgeType.Blink => landing,
+                EdgeType.Blink => blinkOff ? float.PositiveInfinity : landing,
                 EdgeType.Town  => useTown ? townCost : float.PositiveInfinity,
                 _              => edge.Cost
             };
@@ -795,14 +800,13 @@ internal sealed class PortalGraph
         var nodeCount = firstEnd + endList.Count;
         scratch.IndexSearchEdges(nodeCount);
 
-        if (blinkOn)
-            ComputeLowerBounds(
-                scratch,
-                startNode,
-                firstEnd,
-                nodeCount,
-                options,
-                townCost);
+        ComputeLowerBounds(
+            scratch,
+            startNode,
+            firstEnd,
+            nodeCount,
+            options,
+            townCost);
 
         var winner = Search(
             scratch,
@@ -1199,7 +1203,7 @@ internal sealed class PortalGraph
         ///     Initializes a new instance of the <see cref="ArrivalSearch" /> struct for one search.
         /// </summary>
         /// <param name="scratch">
-        ///     The calling thread's scratch, holding the arrivals and, with blink on, the lower bounds.
+        ///     The calling thread's scratch, holding the arrivals and the lower bounds.
         /// </param>
         /// <param name="hops">The graph's hops, read for a hop edge's depth profile.</param>
         /// <param name="options">The search's pricing and starting state.</param>
@@ -1357,7 +1361,7 @@ internal sealed class PortalGraph
         private void Offer(in SearchScratch.Arrival arrival)
         {
             var node = arrival.Node;
-            var lowerBound = BlinkOn ? Scratch.LowerBound[node] : 0f;
+            var lowerBound = Scratch.LowerBound[node];
 
             if (float.IsPositiveInfinity(lowerBound))
                 return;
@@ -1384,7 +1388,6 @@ internal sealed class PortalGraph
             Scratch.Arrivals.Add(arrival);
             live.Add(newId);
 
-            //with blink off the bound is zero and the queue is ordered by cost alone
             Scratch.ArrivalQueue.Enqueue(newId, arrival.Cost + lowerBound);
         }
 
@@ -1415,13 +1418,14 @@ internal sealed class PortalGraph
         }
 
         /// <summary>
-        ///     Determines whether one arrival makes another at the same node pointless.
+        ///     Determines whether one arrival makes another at the same node pointless. The cheaper one is compared after waiting
+        ///     out the difference in cost, since standing still turns it into the dearer one's state.
         /// </summary>
         /// <param name="a">The arrival that may beat.</param>
         /// <param name="b">The arrival that may be beaten.</param>
         /// <returns>
         ///     <c>true</c> if <paramref name="a" /> costs no more, carries at most <see cref="HOP_SCORE_SLACK" /> more hop score,
-        ///     and is at least as ready now and at the next cast; otherwise, <c>false</c>.
+        ///     and after that wait is at least as ready now and at the next cast; otherwise, <c>false</c>.
         /// </returns>
         /// <remarks>
         ///     Without the slack, every longer walk between hop corners keeps a new arrival that costs a little more for a little
@@ -1430,7 +1434,9 @@ internal sealed class PortalGraph
         ///     hop.
         /// </remarks>
         private bool Beats(in SearchScratch.Arrival a, in SearchScratch.Arrival b)
-            => (a.Cost <= b.Cost) && (a.HopScore <= (b.HopScore + HOP_SCORE_SLACK)) && Clock.IsAtLeastAsWellPlaced(a.State, b.State);
+            => (a.Cost <= b.Cost)
+               && (a.HopScore <= (b.HopScore + HOP_SCORE_SLACK))
+               && Clock.IsAtLeastAsWellPlaced(Clock.AdvanceTime(a.State, (b.Cost - a.Cost) / Speed * 1000f), b.State);
     }
 
     /// <summary>Represents one edge of the graph.</summary>

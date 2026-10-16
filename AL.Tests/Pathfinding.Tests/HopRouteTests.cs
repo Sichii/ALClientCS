@@ -1,4 +1,5 @@
 #region
+using System.Diagnostics;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Data;
@@ -213,6 +214,37 @@ public class HopRouteTests : PathfindingTestBed
                                 }))
                         .Should()
                         .Throw<InvalidOperationException>();
+
+    [Test]
+    public void ASearchWithHopsAndBlinkEndsAcrossMaps()
+    {
+        var meshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
+
+        foreach ((var name, _) in GameData.Maps.Entries)
+            if (Pathfinder.GetNavMesh(name) is { } mesh)
+                meshes[name] = mesh;
+
+        var graph = new PortalGraph(meshes, true);
+        var started = Stopwatch.GetTimestamp();
+
+        graph.FindPath(
+                 new Location("uhills", -17f, -515f),
+                 [new Destination(new Location("level2e", 121f, 493f), 0f)],
+                 PathOptions.NoTown with
+                 {
+                     WalkSpeed = 143.7f,
+                     HopScore = 25.84f,
+                     BlinkCost = 500f,
+                     Mp = 5000f,
+                     MaxMp = 5000f
+                 })
+             .Should()
+             .NotBeEmpty();
+
+        Stopwatch.GetElapsedTime(started)
+                 .Should()
+                 .BeLessThan(TimeSpan.FromSeconds(10));
+    }
 
     [Test]
     public void AShortcutInsideOnePieceBeatsTheWalkAround()

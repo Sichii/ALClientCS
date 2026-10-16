@@ -201,7 +201,9 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   cooldown, `penalty_cd` and optionally the bar, never under `BlinkCost`; that least price is what keeps a short walk
   from being split into casts by a recall or a door and back. A node keeps every arrival no other beats on cost and on
   readiness, both now and at the moment of its next cast, since a wait the least price absorbs lets the penalty run
-  down. With blink on, an A* lower bound orders the queue), and expands the winner into `PathEdge`s. Any of N ends:
+  down; the cheaper arrival is compared after waiting out the difference in cost, which is also what stops a search
+  with blink from walking loops between hop corners to age its clock. An A* lower bound orders the queue), and expands
+  the winner into `PathEdge`s. Any of N ends:
   the first taken wins. Blink off leaves the route untouched.
 - **Wall hops** exist only after `Initialize(cheat: true)` (`ALClient.InitializeAsync` takes the same flag). A hop is a
   fixed straight candidate built at startup, from one edge vertex to another with no walkable ground between them (a
@@ -216,8 +218,8 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   halves hp and sends the character to spawn over 60. The estimate can run about one lattice level low near the shore
   (the server truncates positions to its 10-unit lattice); the 5-point margin, the depth estimate overstating any
   crossing that is not diagonal, and the server's walkable area reaching past our mesh edges absorb that. **Never
-  tighten
-  the depth estimate without widening that margin.** The server never sends the score, so each client keeps an estimate:
+  tighten the depth estimate without widening that margin.** The server never sends the score, so each client keeps an
+  estimate:
   a landing raises it to the hop leg's `PathEdge.HopScore`, it decays as if the character kept moving, and
   `SmartMoveAsync` seeds every route from it. A hop leg goes out as one unchecked move with no cancellation. Every move
   goes through one locked emit, and a move a hop overtook is refused (callers re-plan): a move sent mid-hop is jailed,
