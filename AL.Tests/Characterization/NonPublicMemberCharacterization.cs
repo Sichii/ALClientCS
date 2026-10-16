@@ -166,6 +166,7 @@ public sealed class NonPublicMemberCharacterization
                      "AL.Data.Sets.GSet.Tiers",
                      "AL.SocketClient.ALSocketClient.Connected",
                      "AL.SocketClient.ALSocketClient.LastDisconnectReason",
+                     "AL.SocketClient.Model.Character.LastPredictions",
                      "AL.SocketClient.Model.Condition.IsCompensated",
                      "AL.SocketClient.Model.EntityBase.HitBox",
                      "AL.SocketClient.Model.EntityBase.IsCompensated",

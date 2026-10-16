@@ -43,8 +43,8 @@ public sealed record Prediction : IOptionalObject
     ///         Nums[3]/10 + Nums[2]/100 + Nums[1]/1000 + Nums[0]/10000
     ///     </c> .
     ///     <br />
-    ///     <b>Only readable while the attempt is in flight</b>: the placeholder holding this is replaced the moment
-    ///     <c>upgrade_success</c> or <c>upgrade_fail</c> lands.
+    ///     The placeholder holding this is replaced on the tick that resolves the attempt, often with the last digits
+    ///     still unread; <see cref="Character.LastPredictions" /> keeps them.
     /// </summary>
     /// <remarks>
     ///     The digits arrive one at a time, each once the remaining time falls under 80%, 64%, 40%, then 30% (capped at 3s) of

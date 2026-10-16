@@ -1986,6 +1986,10 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return Task.FromResult(result);
             });
 
+        Character.ClearPrediction(inventorySlot1);
+        Character.ClearPrediction(inventorySlot2);
+        Character.ClearPrediction(inventorySlot3);
+
         await Socket.EmitAsync(
             ALSocketEmitType.Compound,
             new
@@ -4821,6 +4825,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
                 return Task.FromResult(result);
             });
+
+        Character.ClearPrediction(inventorySlot);
 
         await Socket.EmitAsync(
             ALSocketEmitType.Upgrade,

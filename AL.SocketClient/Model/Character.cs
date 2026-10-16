@@ -329,6 +329,27 @@ public class Character : Player, IEquatable<Character>
     }
 
     /// <summary>
+    ///     The last prediction <c>q_data</c> sent for each inventory slot. Outlives the inventory frame that retires the
+    ///     placeholder, which arrives straight after the <c>q_data</c> carrying the roll's last digits.
+    /// </summary>
+    public IReadOnlyDictionary<int, Prediction> LastPredictions { get; private set; } = new Dictionary<int, Prediction>();
+
+    /// <summary>
+    ///     Forgets the last prediction for an inventory slot, so an attempt started there is never read with a finished
+    ///     attempt's digits.
+    /// </summary>
+    /// <param name="inventorySlot">The slot the next attempt runs in.</param>
+    public void ClearPrediction(int inventorySlot)
+    {
+        if (!LastPredictions.ContainsKey(inventorySlot))
+            return;
+
+        var predictions = new Dictionary<int, Prediction>(LastPredictions);
+        predictions.Remove(inventorySlot);
+        LastPredictions = predictions;
+    }
+
+    /// <summary>
     ///     Folds an in-progress upgrade or compound's detail onto the inventory slot it belongs to.
     /// </summary>
     /// <param name="inventorySlot">The slot holding the operation's placeholder.</param>
@@ -340,6 +361,11 @@ public class Character : Player, IEquatable<Character>
     public void Update(int inventorySlot, Prediction prediction)
     {
         ArgumentNullException.ThrowIfNull(prediction);
+
+        LastPredictions = new Dictionary<int, Prediction>(LastPredictions)
+        {
+            [inventorySlot] = prediction
+        };
 
         //null before the first character frame lands
         // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
