@@ -735,6 +735,30 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     }
 
     /// <summary>
+    ///     Gets the time left until a skill comes off cooldown.
+    /// </summary>
+    /// <param name="skillName">The name of the skill.</param>
+    /// <returns>
+    ///     The time left, or <see cref="TimeSpan.Zero" /> when the skill is off cooldown.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">skillName</exception>
+    public TimeSpan GetRemainingCooldown(string skillName)
+    {
+        if (string.IsNullOrEmpty(skillName))
+            throw new ArgumentNullException(nameof(skillName));
+
+        var data = GameData.Skills[skillName];
+
+        if (data == null)
+            return TimeSpan.Zero;
+
+        if (!Cooldowns.TryGetValue(data.GetCooldownKey(skillName), out var cooldown) || cooldown.CanUse())
+            return TimeSpan.Zero;
+
+        return TimeSpan.FromMilliseconds(Math.Max(0f, cooldown.RemainingMS));
+    }
+
+    /// <summary>
     ///     Determines whether a player is within trade range.
     /// </summary>
     /// <param name="player">The player to trade with.</param>

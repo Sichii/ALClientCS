@@ -1,4 +1,5 @@
 #region
+using System.Diagnostics;
 using AL.Core.Interfaces;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
@@ -12,22 +13,22 @@ namespace AL.Client.Model;
 public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 {
     /// <summary>
-    ///     The time, in milliseconds, <see cref="CompensateOnce" /> stops short of the round trip, so the next use aims just
-    ///     past the server's expiry rather than exactly at it.
+    ///     The clock reading when this cooldown was recorded.
     /// </summary>
-    /// <remarks>
-    ///     The offset is a 5th percentile of the ping window and the server keeps no grace, so a leg quicker than the offset
-    ///     arrives before the cooldown expires and is refused.
-    /// </remarks>
-    private const float JITTER_GUARD_MS = 5f;
+    private readonly long StartedAt = Stopwatch.GetTimestamp();
+
+    /// <summary>
+    ///     The time <see cref="CompensateOnce" /> counts as already gone.
+    /// </summary>
+    private TimeSpan Offset;
 
     /// <summary>The cooldown of the skill.</summary>
     public float CooldownMs { get; init; }
 
     /// <summary>
-    ///     Gets the amount of milliseconds that have elapsed since a skill was used.
+    ///     The time that has elapsed since the skill was used, read off the clock.
     /// </summary>
-    public TimeSpan Elapsed { get; set; }
+    public TimeSpan Elapsed => Stopwatch.GetElapsedTime(StartedAt) + Offset;
 
     public bool IsCompensated { get; private set; }
 
@@ -50,11 +51,16 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 
         IsCompensated = true;
 
-        Elapsed += offset - TimeSpan.FromMilliseconds(JITTER_GUARD_MS);
+        //a 5th-percentile round trip with no margin: the server keeps no grace, so a quicker leg is refused
+        Offset += offset;
     }
 
-    /// <inheritdoc />
-    public void Update(TimeSpan delta) => Elapsed += delta;
+    /// <summary>
+    ///     Does nothing: <see cref="Elapsed" /> reads the clock, so a cooldown ends on time rather than at the client's next
+    ///     update, which runs only every 33ms.
+    /// </summary>
+    /// <param name="delta">Unused.</param>
+    public void Update(TimeSpan delta) { }
 
     /// <summary>Whether or not the skill can be used.</summary>
     /// <returns>

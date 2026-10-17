@@ -1332,7 +1332,7 @@ internal sealed class PortalGraph
                     var hop = Hops[edge.Hop];
 
                     (var peak, var end) = HopRisk.Replay(
-                        hop.Depths,
+                        hop.Penalties,
                         hop.Length,
                         speed,
                         origin.HopScore);

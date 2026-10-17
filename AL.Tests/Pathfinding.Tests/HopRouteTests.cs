@@ -43,7 +43,7 @@ public class HopRouteTests : PathfindingTestBed
     [Test]
     public void ACharacterFastEnoughHopsOntoTheIceGolemIsland()
     {
-        var path = FindGolemPath(true, 60f);
+        var path = FindGolemPath(true, 30f);
 
         path.Count(edge => edge.Type == EdgeType.Hop)
             .Should()
@@ -64,16 +64,16 @@ public class HopRouteTests : PathfindingTestBed
     [Test]
     public void AHopLegCarriesTheScoreItLandsWith()
     {
-        var leg = FindGolemPath(true, 60f)
+        var leg = FindGolemPath(true, 30f)
             .Single(edge => edge.Type == EdgeType.Hop);
 
         var hop = HopBuilder.FindHops(Pathfinder.GetNavMesh("winterland")!)
                             .Single(hop => (hop.Takeoff.Distance(leg.Start) < 1f) && (hop.Landing.Distance(leg.End) < 1f));
 
         (_, var end) = HopRisk.Replay(
-            hop.Depths,
+            hop.Penalties,
             hop.Length,
-            60f,
+            30f,
             0f);
 
         leg.HopScore
@@ -127,7 +127,7 @@ public class HopRouteTests : PathfindingTestBed
 
         var fresh = graph.FindPath(LAKE_TAKEOFF, [new Destination(GOLEM_SPAWN, 0f)], options);
 
-        //the lake hop alone peaks near 40, so from 40 the route walks off first to let the score decay
+        //from a carried 40 the lake hop would pass the limit, so the route walks off first to let the score decay
         var carried = graph.FindPath(
             LAKE_TAKEOFF,
             [new Destination(GOLEM_SPAWN, 0f)],
@@ -163,10 +163,10 @@ public class HopRouteTests : PathfindingTestBed
 
         var slow = PathOptions.NoTown with
         {
-            WalkSpeed = 95f
+            WalkSpeed = 50f
         };
 
-        //at 95 each hop passes alone
+        //at 50 each hop passes alone
         graph.FindPath(start, [new Destination(firstLanding, 0f)], slow)
              .Should()
              .Contain(edge => (edge.Type == EdgeType.Hop) && edge.End.Equals(firstLanding));
@@ -175,7 +175,7 @@ public class HopRouteTests : PathfindingTestBed
              .Should()
              .Contain(edge => (edge.Type == EdgeType.Hop) && edge.Start.Equals(secondTakeoff));
 
-        //at 95 the second hop waits for the first one's score to decay, so the route walks further than at 130
+        //at 50 the second hop waits for the first one's score to decay, so the route walks further than at 60
         var slowPath = graph.FindPath(start, [new Destination(end, 0f)], slow);
 
         var fastPath = graph.FindPath(
@@ -183,7 +183,7 @@ public class HopRouteTests : PathfindingTestBed
             [new Destination(end, 0f)],
             slow with
             {
-                WalkSpeed = 130f
+                WalkSpeed = 60f
             });
 
         slowPath.Sum(edge => edge.Cost)
@@ -210,7 +210,7 @@ public class HopRouteTests : PathfindingTestBed
                                 [new Destination(new Location("winter_cove", -889f, -395f), 0f)],
                                 PathOptions.NoTown with
                                 {
-                                    WalkSpeed = 90f
+                                    WalkSpeed = 80f
                                 }))
                         .Should()
                         .Throw<InvalidOperationException>();

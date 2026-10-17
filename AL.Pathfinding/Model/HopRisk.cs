@@ -8,13 +8,13 @@ namespace AL.Pathfinding.Model;
 internal static class HopRisk
 {
     /// <summary>
-    ///     The distance between two samples of a hop's depth profile.
+    ///     The distance between two samples of a hop's penalty profile.
     /// </summary>
-    public const float SAMPLE_STEP = 5f;
+    public const float SAMPLE_STEP = 1f;
 
     /// <summary>
-    ///     The highest peak a hop may reach: 5 under the server's limit of 60, which covers an estimate running a lattice level
-    ///     low near the shore; the depth estimate's own overstatement covers the rest.
+    ///     The highest peak a hop may reach: 5 under the server's limit of 60, for the score carried in from moves the client
+    ///     cannot see and for walls that moved since the estimate was checked against the server's grid.
     /// </summary>
     public const float SAFE_SCORE = 55f;
 
@@ -43,59 +43,39 @@ internal static class HopRisk
     /// </summary>
     private const float DECAY_TICK_SECONDS = 0.083f;
 
-    private const float LATTICE_STEP = 10f;
-    private const float MAX_PENALTY = 7f;
-
     /// <summary>
-    ///     Turns a straight-line distance into an upper bound on the lattice's four-neighbour steps.
+    ///     Calculates the score one tick adds while the character is in a cell of the server's grid.
     /// </summary>
-    private static readonly float STEPS_PER_DISTANCE = MathF.Sqrt(2f) / LATTICE_STEP;
-
-    /// <summary>
-    ///     Calculates the score one tick adds while the character stands at the given depth from solid ground.
-    /// </summary>
-    /// <param name="depth">
-    ///     The distance from the character to the nearest solid ground.
+    /// <param name="level">
+    ///     The cell's level: its fewest four-neighbour steps from ground, 8 past the server's reach.
     /// </param>
     /// <returns>The penalty, from 0 to 7.</returns>
-    /// <remarks>
-    ///     Near the shore this can run one lattice level low, since the server truncates positions to its 10-unit lattice;
-    ///     <see cref="SAFE_SCORE" />'s margin and the server's walkable area reaching past our mesh edges absorb that.
-    /// </remarks>
-    public static float CalculatePenalty(float depth)
-    {
-        if (depth <= 0f)
-            return 0f;
-
-        var level = MathF.Ceiling(depth * STEPS_PER_DISTANCE);
-
-        return Math.Clamp(level - 1f, 0f, MAX_PENALTY);
-    }
+    public static float CalculatePenalty(int level) => Math.Max(0, level - 1);
 
     /// <summary>
-    ///     Calculates the highest score reached while replaying a straight move along a depth profile.
+    ///     Calculates the highest score reached while replaying a straight move along a penalty profile.
     /// </summary>
-    /// <param name="depths">
-    ///     The depth at every <see cref="SAMPLE_STEP" /> along the move.
+    /// <param name="penalties">
+    ///     The penalty at every <see cref="SAMPLE_STEP" /> along the move.
     /// </param>
     /// <param name="length">The length of the move.</param>
     /// <param name="speed">The character's speed in units per second.</param>
     /// <returns>
     ///     The peak score; infinite when the speed is not positive or too slow to cross.
     /// </returns>
-    public static float CalculatePeakScore(ReadOnlySpan<float> depths, float length, float speed)
+    public static float CalculatePeakScore(ReadOnlySpan<float> penalties, float length, float speed)
         => Replay(
-                depths,
+                penalties,
                 length,
                 speed,
                 0f)
             .Peak;
 
     /// <summary>
-    ///     Replays a straight move along a depth profile from a score already carried into it.
+    ///     Replays a straight move along a penalty profile from a score already carried into it.
     /// </summary>
-    /// <param name="depths">
-    ///     The depth at every <see cref="SAMPLE_STEP" /> along the move.
+    /// <param name="penalties">
+    ///     The penalty at every <see cref="SAMPLE_STEP" /> along the move.
     /// </param>
     /// <param name="length">The length of the move.</param>
     /// <param name="speed">The character's speed in units per second.</param>
@@ -105,7 +85,7 @@ internal static class HopRisk
     ///     crossing would take over 100,000 server updates.
     /// </returns>
     public static (float Peak, float End) Replay(
-        ReadOnlySpan<float> depths,
+        ReadOnlySpan<float> penalties,
         float length,
         float speed,
         float startScore)
@@ -124,7 +104,7 @@ internal static class HopRisk
             return (float.PositiveInfinity, float.PositiveInfinity);
 
         var ticks = (int)tickCount;
-        var last = depths.Length - 1;
+        var last = penalties.Length - 1;
         var score = startScore;
         var peak = 0f;
 
@@ -133,10 +113,10 @@ internal static class HopRisk
             var at = MathF.Min(tick * step, length);
             var sample = Math.Min(last, (int)(at / SAMPLE_STEP));
 
-            //the samples bracket the character; the deeper one keeps the estimate from lagging into the water
-            var depth = MathF.Max(depths[sample], depths[Math.Min(last, sample + 1)]);
+            //the samples bracket the character; the higher one covers a cell the line clips between them
+            var penalty = MathF.Max(penalties[sample], penalties[Math.Min(last, sample + 1)]);
 
-            score = score * SCORE_DECAY + CalculatePenalty(depth);
+            score = score * SCORE_DECAY + penalty;
             peak = MathF.Max(peak, score);
         }
 
@@ -165,14 +145,14 @@ internal static class HopRisk
     /// <summary>
     ///     Determines whether a move started from a score of 0 stays under <see cref="SAFE_SCORE" /> at the given speed.
     /// </summary>
-    /// <param name="depths">
-    ///     The depth at every <see cref="SAMPLE_STEP" /> along the move.
+    /// <param name="penalties">
+    ///     The penalty at every <see cref="SAMPLE_STEP" /> along the move.
     /// </param>
     /// <param name="length">The length of the move.</param>
     /// <param name="speed">The character's speed in units per second.</param>
     /// <returns>
     ///     <c>true</c> if the speed is positive and the peak stays under the limit; otherwise, <c>false</c>.
     /// </returns>
-    public static bool IsSafe(ReadOnlySpan<float> depths, float length, float speed)
-        => CalculatePeakScore(depths, length, speed) < SAFE_SCORE;
+    public static bool IsSafe(ReadOnlySpan<float> penalties, float length, float speed)
+        => CalculatePeakScore(penalties, length, speed) < SAFE_SCORE;
 }

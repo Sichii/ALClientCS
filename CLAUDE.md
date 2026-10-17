@@ -211,15 +211,17 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
   under 75 longer. Both ends lie on the mesh, which the server accepts. Between separate mesh pieces each vertex tries
   the nearest vertex across; inside one piece, a shortcut hop crosses a wall or water where the walk between its ends
   is at least twice its length and 100 longer. A hop whose penalty passes the server's 60 even at speed 200 is not
-  built. None on `no_bounds`, instance or generated maps. Each carries a depth profile (distance to walkable ground
-  along it). A search takes a hop only with a known `WalkSpeed`, and replays the server's in-motion penalty along it
-  from the score the route carries (`PathOptions.HopScore` seeds it; walks decay it at an assumed 83 ms update gap and
-  round under 1 to 0, the replay assumes the fastest 75 ms); a peak of 55 or more refuses the hop, since the server
-  halves hp and sends the character to spawn over 60. The estimate can run about one lattice level low near the shore
-  (the server truncates positions to its 10-unit lattice); the 5-point margin, the depth estimate overstating any
-  crossing that is not diagonal, and the server's walkable area reaching past our mesh edges absorb that. **Never
-  tighten the depth estimate without widening that margin.** The server never sends the score, so each client keeps an
-  estimate:
+  built. None on `no_bounds`, instance or generated maps. Each carries a penalty profile, one sample per unit: the
+  server's grid level under it, rebuilt from our walls. The server floods its 10-unit grid from the spawns with a
+  bare-point move check, so its ground reaches the wall lines rather than the mesh's padded edge; a grid point counts as
+  ground when it is on the mesh or reached from just past the padding without crossing a line, and positions truncate
+  toward zero onto the grid as the server's `phash` does. A search takes a hop only with a known `WalkSpeed`, and
+  replays the server's in-motion penalty along it from the score the route carries (`PathOptions.HopScore` seeds it;
+  walks decay it at an assumed 83 ms update gap and round under 1 to 0, the replay assumes the fastest 75 ms); a peak
+  of 55 or more refuses the hop, since the server halves hp and sends the character to spawn over 60. The 5-point margin
+  covers the score carried from moves the client cannot see and walls that moved since the last check. **After
+  changing the profile, run `HopPenaltyRecorder` against the server's `precomputed_map_data.js`: no sample may read
+  under the server's penalty.** The server never sends the score, so each client keeps an estimate:
   a landing raises it to the hop leg's `PathEdge.HopScore`, it decays as if the character kept moving, and
   `SmartMoveAsync` seeds every route from it. A hop leg goes out as one unchecked move with no cancellation. Every move
   goes through one locked emit, and a move a hop overtook is refused (callers re-plan): a move sent mid-hop is jailed,

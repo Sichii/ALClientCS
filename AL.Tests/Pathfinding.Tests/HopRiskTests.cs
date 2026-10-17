@@ -12,12 +12,12 @@ namespace AL.Tests.Pathfinding.Tests;
 public class HopRiskTests
 {
     [Test]
-    [Arguments(0f, 0f)]
-    [Arguments(5f, 0f)]
-    [Arguments(10f, 1f)]
-    [Arguments(100f, 7f)]
-    public void ThePenaltyGrowsOnePerLatticeStepPastTheFirst(float depth, float penalty)
-        => HopRisk.CalculatePenalty(depth)
+    [Arguments(0, 0f)]
+    [Arguments(1, 0f)]
+    [Arguments(2, 1f)]
+    [Arguments(8, 7f)]
+    public void ThePenaltyGrowsOnePerLatticeStepPastTheFirst(int level, float penalty)
+        => HopRisk.CalculatePenalty(level)
                   .Should()
                   .Be(penalty);
 
@@ -25,14 +25,14 @@ public class HopRiskTests
     public void ASlowCrossingOfDeepWaterIsUnsafe()
     {
         //40 units at 3.75 per tick is 11 ticks of 7: 7 * (1 - 0.99^11) / 0.01
-        var depths = Enumerable.Repeat(100f, 9)
-                               .ToArray();
+        var penalties = Enumerable.Repeat(7f, 41)
+                                  .ToArray();
 
-        HopRisk.CalculatePeakScore(depths, 40f, 50f)
+        HopRisk.CalculatePeakScore(penalties, 40f, 50f)
                .Should()
                .BeApproximately(73.3f, 0.1f);
 
-        HopRisk.IsSafe(depths, 40f, 50f)
+        HopRisk.IsSafe(penalties, 40f, 50f)
                .Should()
                .BeFalse();
     }
@@ -41,27 +41,27 @@ public class HopRiskTests
     public void AFastCrossingOfDeepWaterIsSafe()
     {
         //40 units at 15 per tick is 3 ticks of 7: 7 + 6.93 + 6.8607
-        var depths = Enumerable.Repeat(100f, 9)
-                               .ToArray();
+        var penalties = Enumerable.Repeat(7f, 41)
+                                  .ToArray();
 
-        HopRisk.CalculatePeakScore(depths, 40f, 200f)
+        HopRisk.CalculatePeakScore(penalties, 40f, 200f)
                .Should()
                .BeApproximately(20.79f, 0.01f);
 
-        HopRisk.IsSafe(depths, 40f, 200f)
+        HopRisk.IsSafe(penalties, 40f, 200f)
                .Should()
                .BeTrue();
     }
 
     [Test]
     public void ACrossingThatNeverLeavesTheGroundCostsNothing()
-        => HopRisk.CalculatePeakScore(new float[9], 40f, 10f)
+        => HopRisk.CalculatePeakScore(new float[41], 40f, 10f)
                   .Should()
                   .Be(0f);
 
     [Test]
     public void NoSpeedIsNeverSafe()
-        => HopRisk.IsSafe(new float[9], 40f, 0f)
+        => HopRisk.IsSafe(new float[41], 40f, 0f)
                   .Should()
                   .BeFalse();
 
@@ -72,11 +72,11 @@ public class HopRiskTests
     [Arguments(1e-30f)]
     public void AReplayWithoutRealSpeedEnds(float speed)
     {
-        var depths = Enumerable.Repeat(100f, 9)
-                               .ToArray();
+        var penalties = Enumerable.Repeat(7f, 41)
+                                  .ToArray();
 
         HopRisk.Replay(
-                   depths,
+                   penalties,
                    40f,
                    speed,
                    0f)
@@ -84,7 +84,7 @@ public class HopRiskTests
                .Should()
                .Be(float.PositiveInfinity);
 
-        HopRisk.CalculatePeakScore(depths, 40f, speed)
+        HopRisk.CalculatePeakScore(penalties, 40f, speed)
                .Should()
                .Be(float.PositiveInfinity);
     }
@@ -109,17 +109,17 @@ public class HopRiskTests
     [Test]
     public void AReplayFromNothingPeaksWhereThePeakScoreDoes()
     {
-        var depths = Enumerable.Repeat(100f, 9)
-                               .ToArray();
+        var penalties = Enumerable.Repeat(7f, 41)
+                                  .ToArray();
 
         HopRisk.Replay(
-                   depths,
+                   penalties,
                    40f,
                    50f,
                    0f)
                .Peak
                .Should()
-               .Be(HopRisk.CalculatePeakScore(depths, 40f, 50f));
+               .Be(HopRisk.CalculatePeakScore(penalties, 40f, 50f));
     }
 
     [Test]
@@ -127,7 +127,7 @@ public class HopRiskTests
     {
         //40 units at 3.75 per tick is 11 ticks; the first decays before anything is added
         (var peak, var end) = HopRisk.Replay(
-            new float[9],
+            new float[41],
             40f,
             50f,
             20f);

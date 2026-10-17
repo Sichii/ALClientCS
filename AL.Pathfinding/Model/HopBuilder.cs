@@ -1,6 +1,7 @@
 #region
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Pathfinding.Definitions;
 #endregion
 
 namespace AL.Pathfinding.Model;
@@ -14,8 +15,8 @@ namespace AL.Pathfinding.Model;
 /// <param name="Takeoff">Where the hop starts, on the piece it leaves.</param>
 /// <param name="Landing">Where the hop ends, on the piece it lands on.</param>
 /// <param name="Length">The distance from takeoff to landing.</param>
-/// <param name="Depths">
-///     The distance to the nearest ground at every <see cref="HopRisk.SAMPLE_STEP" /> from takeoff, the last on the
+/// <param name="Penalties">
+///     The score the server adds per update at every <see cref="HopRisk.SAMPLE_STEP" /> from takeoff, the last on the
 ///     landing.
 /// </param>
 internal readonly record struct Hop(
@@ -24,7 +25,7 @@ internal readonly record struct Hop(
     Point Takeoff,
     Point Landing,
     float Length,
-    float[] Depths);
+    float[] Penalties);
 
 /// <summary>
 ///     Provides the candidate hops between the separate pieces of one map's walkable mesh, and the shortcuts inside each.
@@ -60,10 +61,12 @@ internal sealed class HopBuilder
     /// <summary>The edge vertices of every piece.</summary>
     private readonly int[][] Edges;
 
-    private readonly NavMesh Mesh;
+    /// <summary>
+    ///     The server's grid level of every cell a profile has sampled, keyed by <see cref="CalculateCellKey" />.
+    /// </summary>
+    private readonly Dictionary<long, int> Levels = [];
 
-    /// <summary>The mesh's outer edges, two ends per edge.</summary>
-    private readonly Point[] OuterEdges;
+    private readonly NavMesh Mesh;
 
     private readonly int PieceCount;
 
@@ -74,7 +77,7 @@ internal sealed class HopBuilder
     {
         Mesh = mesh;
         Pieces = LabelPieces(mesh.Mesh, out PieceCount);
-        Edges = CollectEdgeVertices(out OuterEdges);
+        Edges = CollectEdgeVertices();
     }
 
     /// <summary>
@@ -107,19 +110,17 @@ internal sealed class HopBuilder
     {
         foreach (var hop in found)
         {
-            var depths = BuildProfile(hop);
+            var penalties = BuildProfile(hop.Takeoff, hop.Landing, hop.Length);
+            var returnPenalties = BuildProfile(hop.Landing, hop.Takeoff, hop.Length);
 
-            var returnDepths = depths.Reverse()
-                                     .ToArray();
-
-            if ((HopRisk.CalculatePeakScore(depths, hop.Length, MAX_SPEED) >= HopRisk.SERVER_LIMIT)
-                && (HopRisk.CalculatePeakScore(returnDepths, hop.Length, MAX_SPEED) >= HopRisk.SERVER_LIMIT))
+            if ((HopRisk.CalculatePeakScore(penalties, hop.Length, MAX_SPEED) >= HopRisk.SERVER_LIMIT)
+                && (HopRisk.CalculatePeakScore(returnPenalties, hop.Length, MAX_SPEED) >= HopRisk.SERVER_LIMIT))
                 continue;
 
             hops.Add(
                 hop with
                 {
-                    Depths = depths
+                    Penalties = penalties
                 });
 
             hops.Add(
@@ -129,56 +130,158 @@ internal sealed class HopBuilder
                     hop.Landing,
                     hop.Takeoff,
                     hop.Length,
-                    returnDepths));
+                    returnPenalties));
         }
     }
 
     /// <summary>
-    ///     Builds a hop's depth profile: 0 on walkable ground, otherwise the distance to the nearest outer edge of the mesh.
+    ///     Builds a straight move's penalty profile from the server's grid level under every sample.
     /// </summary>
-    /// <param name="hop">The hop to profile.</param>
+    /// <param name="start">Where the move starts.</param>
+    /// <param name="end">Where the move ends.</param>
+    /// <param name="length">The distance from start to end.</param>
     /// <returns>
-    ///     The depth at every <see cref="HopRisk.SAMPLE_STEP" /> from takeoff, the last on the landing.
+    ///     The penalty at every <see cref="HopRisk.SAMPLE_STEP" /> from the start, the last on the end.
     /// </returns>
-    private float[] BuildProfile(Hop hop)
+    private float[] BuildProfile(Point start, Point end, float length)
     {
-        var depths = new float[(int)(hop.Length / HopRisk.SAMPLE_STEP) + 1];
-        var dx = (hop.Landing.X - hop.Takeoff.X) / hop.Length;
-        var dy = (hop.Landing.Y - hop.Takeoff.Y) / hop.Length;
+        var penalties = new float[(int)(length / HopRisk.SAMPLE_STEP) + 1];
+        var dx = (end.X - start.X) / length;
+        var dy = (end.Y - start.Y) / length;
 
-        for (var i = 0; i < depths.Length; i++)
+        for (var i = 0; i < penalties.Length; i++)
         {
-            var sample = i == (depths.Length - 1)
-                ? hop.Landing
-                : new Point(hop.Takeoff.X + dx * i * HopRisk.SAMPLE_STEP, hop.Takeoff.Y + dy * i * HopRisk.SAMPLE_STEP);
+            var sample = i == (penalties.Length - 1)
+                ? end
+                : new Point(start.X + dx * i * HopRisk.SAMPLE_STEP, start.Y + dy * i * HopRisk.SAMPLE_STEP);
 
-            depths[i] = Mesh.IsWalkable(sample) ? 0f : CalculateDistanceToEdges(sample);
+            penalties[i] = HopRisk.CalculatePenalty(CalculateLevel(sample.X, sample.Y));
         }
 
-        return depths;
+        return penalties;
     }
 
-    // ponytail: every sample against every outer edge; a grid of edges if hop counts grow
-    private float CalculateDistanceToEdges(Point point)
+    /// <summary>
+    ///     Calculates the server's grid level under a position: the fewest four-neighbour steps on its 10-unit grid from the
+    ///     position's cell to a ground point, capped at 8.
+    /// </summary>
+    /// <param name="x">The position's x.</param>
+    /// <param name="y">The position's y.</param>
+    /// <returns>The level, from 0 to 8.</returns>
+    /// <remarks>
+    ///     The server truncates a position toward zero onto the grid, so the cell is not the nearest grid point.
+    /// </remarks>
+    private int CalculateLevel(float x, float y)
     {
-        var best = float.MaxValue;
+        const int GRID_STEP = 10;
+        const int UNREACHED_LEVEL = 8;
 
-        for (var i = 0; i < OuterEdges.Length; i += 2)
-        {
-            var start = OuterEdges[i];
-            var end = OuterEdges[i + 1];
-            var ex = end.X - start.X;
-            var ey = end.Y - start.Y;
-            var sqr = ex * ex + ey * ey;
-            var t = sqr > 0f ? Math.Clamp(((point.X - start.X) * ex + (point.Y - start.Y) * ey) / sqr, 0f, 1f) : 0f;
-            var dx = start.X + t * ex - point.X;
-            var dy = start.Y + t * ey - point.Y;
+        var ix = (int)x;
+        var iy = (int)y;
+        var cx = ix - ix % GRID_STEP;
+        var cy = iy - iy % GRID_STEP;
+        var key = CalculateCellKey(cx, cy);
 
-            best = MathF.Min(best, dx * dx + dy * dy);
-        }
+        if (Levels.TryGetValue(key, out var cached))
+            return cached;
 
-        return MathF.Sqrt(best);
+        var found = UNREACHED_LEVEL;
+
+        for (var level = 0; (level < UNREACHED_LEVEL) && (found == UNREACHED_LEVEL); level++)
+            for (var step = -level; step <= level; step++)
+            {
+                var gx = cx + step * GRID_STEP;
+                var gy = (level - Math.Abs(step)) * GRID_STEP;
+
+                if (IsGround(gx, cy + gy) || IsGround(gx, cy - gy))
+                {
+                    found = level;
+
+                    break;
+                }
+            }
+
+        Levels[key] = found;
+
+        return found;
     }
+
+    private static long CalculateCellKey(int x, int y) => ((long)x << 32) | unchecked((uint)y);
+
+    /// <summary>
+    ///     Determines whether a grid point is ground to the server, whose grid reaches the bare wall lines rather than the
+    ///     padded edge of the mesh: on the mesh, or reached without crossing a wall line from just past the padding.
+    /// </summary>
+    /// <param name="x">The grid point's x.</param>
+    /// <param name="y">The grid point's y.</param>
+    /// <returns>
+    ///     <c>true</c> if the point is ground; otherwise, <c>false</c>.
+    /// </returns>
+    private bool IsGround(int x, int y)
+    {
+        if (Mesh.IsWalkable(x, y))
+            return true;
+
+        (var halfWidth, var verticalNorth, var verticalNotNorth) = CONSTANTS.DEFAULT_BOUNDING_BASE;
+
+        //a wall pads by the half width beside it, by the north part below it and by the rest above it
+        var side = halfWidth + 1f;
+        var below = verticalNorth + 1f;
+        var above = -(verticalNotNorth + 1f);
+
+        return IsReachedFrom(
+                   x,
+                   y,
+                   side,
+                   0f)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   -side,
+                   0f)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   0f,
+                   below)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   0f,
+                   above)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   side,
+                   below)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   -side,
+                   below)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   side,
+                   above)
+               || IsReachedFrom(
+                   x,
+                   y,
+                   -side,
+                   above);
+    }
+
+    private bool IsReachedFrom(
+        int x,
+        int y,
+        float dx,
+        float dy)
+        => Mesh.IsWalkable(x + dx, y + dy)
+        && Mesh.Walls.CanMoveLine(
+            x + dx,
+            y + dy,
+            x,
+            y);
 
     private static float CalculateRequiredWalk(float length) => MathF.Max(length * MIN_WALK_RATIO, length + MIN_WALK_SAVING);
 
@@ -222,11 +325,10 @@ internal sealed class HopBuilder
             scratch);
     }
 
-    private int[][] CollectEdgeVertices(out Point[] outerEdges)
+    private int[][] CollectEdgeVertices()
     {
         var mesh = Mesh.Mesh;
         var sets = new HashSet<int>[PieceCount];
-        var ends = new List<Point>();
 
         for (var piece = 0; piece < PieceCount; piece++)
             sets[piece] = [];
@@ -236,19 +338,12 @@ internal sealed class HopBuilder
             for (var slot = 0; slot < 3; slot++)
                 if (mesh.Neighbours[t * 3 + slot] < 0)
                 {
-                    var start = mesh.Corners[t * 3 + (slot + 1) % 3];
-                    var end = mesh.Corners[t * 3 + (slot + 2) % 3];
+                    sets[Pieces[t]]
+                        .Add(mesh.Corners[t * 3 + (slot + 1) % 3]);
 
                     sets[Pieces[t]]
-                        .Add(start);
-
-                    sets[Pieces[t]]
-                        .Add(end);
-                    ends.Add(mesh.Vertices[start]);
-                    ends.Add(mesh.Vertices[end]);
+                        .Add(mesh.Corners[t * 3 + (slot + 2) % 3]);
                 }
-
-        outerEdges = ends.ToArray();
 
         return sets.Select(set => set.ToArray())
                    .ToArray();
@@ -411,7 +506,7 @@ internal sealed class HopBuilder
     }
 
     /// <summary>
-    ///     Determines whether a straight line stays off the mesh at every sample its depth profile takes between its ends.
+    ///     Determines whether a straight line stays off the mesh at every 5 units between its ends.
     /// </summary>
     /// <param name="start">The line's start.</param>
     /// <param name="end">The line's end.</param>
@@ -420,14 +515,16 @@ internal sealed class HopBuilder
     /// </returns>
     private bool IsOffMeshBetween(Point start, Point end)
     {
+        const float STEP = 5f;
+
         var length = start.Distance(end);
         var dx = (end.X - start.X) / length;
         var dy = (end.Y - start.Y) / length;
 
-        if (length <= (2f * HopRisk.SAMPLE_STEP))
+        if (length <= (2f * STEP))
             return false;
 
-        for (var distance = HopRisk.SAMPLE_STEP; distance <= (length - HopRisk.SAMPLE_STEP); distance += HopRisk.SAMPLE_STEP)
+        for (var distance = STEP; distance <= (length - STEP); distance += STEP)
             if (Mesh.IsWalkable(start.X + dx * distance, start.Y + dy * distance))
                 return false;
 
