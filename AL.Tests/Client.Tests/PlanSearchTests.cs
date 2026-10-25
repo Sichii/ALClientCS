@@ -299,7 +299,7 @@ public sealed class PlanSearchTests
         const int PITY_START_LEVEL = 6;
         const int TARGET_LEVEL = 8;
 
-        UpgradePlanner CreatePlanner(bool countPity, int pityStartLevel)
+        static UpgradePlanner CreatePlanner(bool countPity, int pityStartLevel)
             => new(
                 WSHIELD_THRESHOLDS,
                 SCROLL_PRICES,

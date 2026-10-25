@@ -728,9 +728,9 @@ internal abstract class PlannerBase
 
         for (var step = 0; (step < MAX_STEPS) && ((high - low) > (TOLERANCE * Math.Max(1, high))); step++)
         {
-            var mid = lowExcess == highExcess ? (low + high) / 2 : (low * highExcess - high * lowExcess) / (highExcess - lowExcess);
+            var mid = (low * highExcess - high * lowExcess) / (highExcess - lowExcess);
 
-            if ((mid <= low) || (mid >= high))
+            if (!((mid > low) && (mid < high)))
                 mid = (low + high) / 2;
 
             var midExcess = settleFunc(mid) - mid;

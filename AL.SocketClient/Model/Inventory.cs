@@ -12,7 +12,10 @@ public sealed class Inventory : IReadOnlyList<Item?>
     public IReadOnlyList<Item?> Items { get; }
     public int Count => Items.Count;
 
-    /// <inheritdoc cref="Inventory(IReadOnlyList{Item}, IReadOnlyList{JsonNode})" />
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="Inventory" /> class with no slots as the server sent them.
+    /// </summary>
+    /// <param name="items">The items in each slot.</param>
     internal Inventory(IReadOnlyList<Item?>? items)
         : this(items, null) { }
 

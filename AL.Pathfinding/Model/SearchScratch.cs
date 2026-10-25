@@ -135,13 +135,14 @@ internal sealed class SearchScratch
         {
             var grown = new List<int>[nodes];
             Array.Copy(NodeArrivals, grown, NodeArrivals.Length);
+
+            for (var i = NodeArrivals.Length; i < nodes; i++)
+                grown[i] = [];
+
             NodeArrivals = grown;
             SearchEdgeStart = new int[nodes + 1];
             LowerBound = new float[nodes];
         }
-
-        for (var i = 0; i < nodes; i++)
-            NodeArrivals[i] ??= [];
 
         ResetArrivals(nodes);
         SearchEdges.Clear();

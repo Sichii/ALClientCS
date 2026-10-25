@@ -39,7 +39,7 @@ public class FalsyConverter<T> : JsonConverter<T>
 
             //an unrecognized enum name degrades to Default rather than taking the whole frame with it
             case JsonTokenType.String when underlying.IsEnum:
-                return EnumHelper.TryParse(underlying, reader.GetString(), out var enumValue) ? (T)enumValue! : Default;
+                return EnumHelper.TryParse(underlying, reader.GetString(), out var enumValue) ? (T)enumValue : Default;
 
             case JsonTokenType.Number when underlying.IsEnum:
                 return (T)Enum.ToObject(underlying, reader.GetInt64());

@@ -276,7 +276,7 @@ public class BlinkCorpusTests : PathfindingTestBed
                 {
                     MinBlinkCost = floor
                 };
-                var recordedFloor = floor == corpus.Floor;
+                var recordedFloor = floor.Equals(corpus.Floor);
                 var rows = new List<Row>();
 
                 foreach (var trip in corpus.Trips)
@@ -419,7 +419,7 @@ public class BlinkCorpusTests : PathfindingTestBed
         var exit = to.IsExit
             ? GameData.Maps[to.Map]
                       ?.Exits
-                      .FirstOrDefault(candidate => (candidate.X == to.X) && (candidate.Y == to.Y))
+                      .FirstOrDefault(candidate => candidate.X.Equals(to.X) && candidate.Y.Equals(to.Y))
             : null;
         var reach = exit is null ? Reach.CreateCircle(to.X, to.Y, 0f) : new Reach(exit.ReachBand, exit.ReachRange);
 

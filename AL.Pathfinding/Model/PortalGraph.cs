@@ -1313,13 +1313,13 @@ internal sealed class PortalGraph
 
                     //a cast may replace only a walk at least the floor long
                     if (edge.Cost >= Floor)
-                        OfferBlink(edge, next, origin);
+                        OfferBlink(next, origin);
 
                     return;
 
                 //a pair only a cast joins stays unjoined while blink is off
                 case EdgeType.Blink:
-                    OfferBlink(edge, next, origin);
+                    OfferBlink(next, origin);
 
                     return;
 
@@ -1395,14 +1395,11 @@ internal sealed class PortalGraph
         ///     Offers the cast along an edge, priced at the time it takes in walk units but never under the floor; nothing when
         ///     blink is off or the bar can never pay for it.
         /// </summary>
-        /// <param name="edge">
-        ///     The walk the cast replaces, or the pair it bridges.
-        /// </param>
         /// <param name="next">
-        ///     The walked arrival along the same edge, which the cast differs from only in price and state.
+        ///     The walked arrival along the edge, which the cast differs from only in price and state.
         /// </param>
         /// <param name="origin">The arrival the cast is made from.</param>
-        private void OfferBlink(in Edge edge, SearchScratch.Arrival next, in SearchScratch.Arrival origin)
+        private void OfferBlink(SearchScratch.Arrival next, in SearchScratch.Arrival origin)
         {
             if (!BlinkOn)
                 return;

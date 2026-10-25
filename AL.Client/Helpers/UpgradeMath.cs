@@ -1120,7 +1120,7 @@ public static class UpgradeMath
         if ((shinyGrade < gradeAtZero) || (gradeAtZero > 2))
             return false;
 
-        var doubled = (shinyGrade > gradeAtZero) || ((shinyGrade == 2) && (itemValue <= 20_000_000));
+        var doubled = (shinyGrade > gradeAtZero) || (shinyGrade is 2 && (itemValue <= 20_000_000));
 
         chance = (doubled ? 0.32 : 0.16)
                  * gradeAtZero switch

@@ -959,16 +959,16 @@ public class UpgradeMathTests
         rednose.Should()
                .NotBeNull();
 
-        rednose!.Grades
-                .Should()
-                .Equal(
-                    [
-                        2,
-                        4,
-                        6,
-                        7
-                    ],
-                    "the rows below walk grade 0 to grade 2, and that is what makes rednose walk it");
+        rednose.Grades
+               .Should()
+               .Equal(
+                   [
+                       2,
+                       4,
+                       6,
+                       7
+                   ],
+                   "the rows below walk grade 0 to grade 2, and that is what makes rednose walk it");
 
         //+0 to +2 at the grade at +0, then the grade two levels below the one being left: +1, +2, +3 and +4
         UpgradeMath.GetLevelChances(rednose)
@@ -1125,13 +1125,13 @@ public class UpgradeMathTests
         earring.Should()
                .NotBeNull();
 
-        earring!.Grades
-                .Should()
-                .Equal(
-                    0,
-                    2,
-                    6,
-                    7);
+        earring.Grades
+               .Should()
+               .Equal(
+                   0,
+                   2,
+                   6,
+                   7);
 
         UpgradeMath.GetLevelChances(earring)
                    .Select(row => (double?)row.Chance)
@@ -1226,16 +1226,16 @@ public class UpgradeMathTests
         firebow.Should()
                .NotBeNull();
 
-        firebow!.Grades
-                .Should()
-                .Equal(
-                    [
-                        0,
-                        8,
-                        10,
-                        12
-                    ],
-                    "the figures below are the grade 1 row, and that is what puts firebow on it");
+        firebow.Grades
+               .Should()
+               .Equal(
+                   [
+                       0,
+                       8,
+                       10,
+                       12
+                   ],
+                   "the figures below are the grade 1 row, and that is what puts firebow on it");
 
         UpgradeMath.GetLevelChances(firebow)
                    .Select(row => (double?)row.Chance)
@@ -1310,7 +1310,7 @@ public class UpgradeMathTests
              .NotBeNull("some upgradeable or compoundable item in the game declares no grades of its own");
 
         //Accessor rather than Name: the item key is what the datum is filed under, Name is the display string
-        UpgradeMath.CalculateGrade(named!.Accessor, 8)
+        UpgradeMath.CalculateGrade(named.Accessor, 8)
                    .Should()
                    .Be(0);
 
@@ -1355,7 +1355,7 @@ public class UpgradeMathTests
             ]
         };
 
-        double Chance(GItem item, float shinyGrade, long value)
+        static double Chance(GItem item, float shinyGrade, long value)
             => UpgradeMath.TryGetShinyChance(
                 item,
                 new GItem
