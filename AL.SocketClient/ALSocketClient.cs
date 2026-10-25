@@ -36,11 +36,13 @@ public sealed class ALSocketClient : IALSocketClient
     /// <remarks>
     ///     <c>map_protocol</c> is the dungeon's client-version gate and <c>no_graphics</c> asks for a headless subset of a
     ///     generated floor. Both are separate from the same-named fields on the <c>auth</c> emit, which the server reads from
-    ///     the frame rather than the handshake.
+    ///     the frame rather than the handshake. <c>entity_delta</c> asks for entities as their changed fields only, which
+    ///     <see cref="EntityDeltaDecoder" /> rebuilds.
     /// </remarks>
     private static readonly KeyValuePair<string, string>[] HEADLESS_HANDSHAKE_QUERY =
     [
         new("map_protocol", "1"),
+        new("entity_delta", "1"),
         new("no_graphics", "1")
     ];
 
@@ -48,12 +50,21 @@ public sealed class ALSocketClient : IALSocketClient
     ///     <see cref="HEADLESS_HANDSHAKE_QUERY" /> without <c>no_graphics</c>, for a socket that receives a generated floor's
     ///     art.
     /// </summary>
-    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY = [new("map_protocol", "1")];
+    private static readonly KeyValuePair<string, string>[] HANDSHAKE_QUERY =
+    [
+        new("map_protocol", "1"),
+        new("entity_delta", "1")
+    ];
 
     /// <summary>
     ///     The time a frame may wait, or a handler may run, before it is logged. Nothing is dropped past it.
     /// </summary>
     private static readonly TimeSpan QUEUE_LAG_WARN = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>
+    ///     The entity packets held for this connection, read and written only on the transport's receive loop.
+    /// </summary>
+    private readonly EntityDeltaDecoder EntityDeltas = new();
 
     /// <summary>
     ///     Frames waiting to be handled, in the order the transport read them off the wire.
@@ -464,6 +475,10 @@ RAW JSON:
         {
             var eventName = message.Event;
 
+            //ahead of the subscription checks, so a removal nobody subscribes to still drops the entity's held packet
+            if (message.JsonArray is { Count: > 0 } frame && !EntityDeltas.Decode(eventName, frame[0]))
+                _ = RequestFullUpdateAsync();
+
             if (!EnumHelper.TryParse(eventName, out ALSocketMessageType messageType))
                 return;
 
@@ -540,6 +555,21 @@ RAW JSON:
                 Logger.Warn($"Handler for \"{frame.EventName}\" took {handling.TotalMilliseconds:N0}ms.");
 
             previousEvent = frame.EventName;
+        }
+    }
+
+    /// <summary>
+    ///     Asynchronously asks the server to resend every entity in view in full, after a delta arrived without its base.
+    /// </summary>
+    private async Task RequestFullUpdateAsync()
+    {
+        try
+        {
+            await EmitAsync(ALSocketEmitType.SendUpdates)
+                .ConfigureAwait(false);
+        } catch (InvalidOperationException e)
+        {
+            Logger.Warn($"Failed to request a full entity update. {e.Message}");
         }
     }
 
