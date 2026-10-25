@@ -3763,13 +3763,17 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 return TaskCache.FALSE;
             });
 
-        await Socket.EmitAsync(
-            ALSocketEmitType.Sell,
-            new
-            {
-                num = inventorySlot,
-                quantity
-            });
+        var payload = new Dictionary<string, object>
+        {
+            ["num"] = inventorySlot,
+            ["quantity"] = quantity
+        };
+
+        //the server refuses with item_changed when the slot no longer holds the item named here
+        if (Character.Inventory.TryGetSentItem(inventorySlot, out var sentItem))
+            payload["item"] = sentItem;
+
+        await Socket.EmitAsync(ALSocketEmitType.Sell, payload);
 
         var expectation = await source.Task.WithNetworkTimeout();
         expectation.ThrowIfUnsuccessful();

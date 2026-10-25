@@ -15,6 +15,12 @@ public record GEvent
     public IReadOnlyList<IReadOnlyList<GCamp>>? Camps { get; init; }
 
     /// <summary>
+    ///     Trick or Treat's doors. A knock names a door by its index here, and has to come from within 80 of it. Null on every
+    ///     other event.
+    /// </summary>
+    public IReadOnlyList<GTrickOrTreatDoor>? Doors { get; init; }
+
+    /// <summary>
     ///     How long the event runs once it starts, in seconds - minutes for the daily and nightly bosses, weeks for a seasonal
     ///     one.
     /// </summary>

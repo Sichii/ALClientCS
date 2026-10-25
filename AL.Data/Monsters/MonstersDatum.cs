@@ -169,6 +169,9 @@ public class MonstersDatum : DatumBase<GMonster>
     [JsonPropertyName("fvampire")]
     public GMonster Fvampire { get; init; } = null!;
 
+    [JsonPropertyName("gargoyle")]
+    public GMonster Gargoyle { get; init; } = null!;
+
     [JsonPropertyName("gbluepro")]
     public GMonster Gbluepro { get; init; } = null!;
 
@@ -177,6 +180,9 @@ public class MonstersDatum : DatumBase<GMonster>
 
     [JsonPropertyName("ghost")]
     public GMonster Ghost { get; init; } = null!;
+
+    [JsonPropertyName("ghoul")]
+    public GMonster Ghoul { get; init; } = null!;
 
     [JsonPropertyName("goblin")]
     public GMonster Goblin { get; init; } = null!;
@@ -214,11 +220,17 @@ public class MonstersDatum : DatumBase<GMonster>
     [JsonPropertyName("hen")]
     public GMonster Hen { get; init; } = null!;
 
+    [JsonPropertyName("horseman")]
+    public GMonster Horseman { get; init; } = null!;
+
     [JsonPropertyName("icegolem")]
     public GMonster Icegolem { get; init; } = null!;
 
     [JsonPropertyName("iceroamer")]
     public GMonster Iceroamer { get; init; } = null!;
+
+    [JsonPropertyName("jackowalker")]
+    public GMonster Jackowalker { get; init; } = null!;
 
     [JsonPropertyName("jr")]
     public GMonster Jr { get; init; } = null!;
@@ -456,6 +468,9 @@ public class MonstersDatum : DatumBase<GMonster>
 
     [JsonPropertyName("zapper0")]
     public GMonster Zapper0 { get; init; } = null!;
+
+    [JsonPropertyName("zombie")]
+    public GMonster Zombie { get; init; } = null!;
 
     internal override void BuildLookupTable()
     {

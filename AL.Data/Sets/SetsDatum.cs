@@ -13,6 +13,9 @@ public class SetsDatum : DatumBase<GSet>
     [JsonPropertyName("bunny")]
     public GSet Bunny { get; init; } = null!;
 
+    [JsonPropertyName("crookedkeys")]
+    public GSet Crookedkeys { get; init; } = null!;
+
     [JsonPropertyName("fury")]
     public GSet Fury { get; init; } = null!;
 

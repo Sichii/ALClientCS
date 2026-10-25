@@ -578,7 +578,8 @@ public enum ArmorSet
     Legends,
     Homecoming,
     Oathkeeper,
-    Watchers
+    Watchers,
+    CrookedKeys
 }
 
 /// <summary>
@@ -807,7 +808,10 @@ public enum Condition
     Exposed,
     Frenzied,
     Stonebreak,
-    Sundered
+    Sundered,
+    Hexed,
+    Rising,
+    Spooked
 }
 
 /// <summary>

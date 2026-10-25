@@ -125,6 +125,9 @@ public class MonsterGoldDatum : DatumBase<int?>
     [JsonPropertyName("fvampire")]
     public int? Fvampire { get; init; }
 
+    [JsonPropertyName("gargoyle")]
+    public int? Gargoyle { get; init; }
+
     [JsonPropertyName("gbluepro")]
     public int? Gbluepro { get; init; }
 
@@ -133,6 +136,9 @@ public class MonsterGoldDatum : DatumBase<int?>
 
     [JsonPropertyName("ghost")]
     public int? Ghost { get; init; }
+
+    [JsonPropertyName("ghoul")]
+    public int? Ghoul { get; init; }
 
     [JsonPropertyName("goblin")]
     public int? Goblin { get; init; }
@@ -170,11 +176,17 @@ public class MonsterGoldDatum : DatumBase<int?>
     [JsonPropertyName("hen")]
     public int? Hen { get; init; }
 
+    [JsonPropertyName("horseman")]
+    public int? Horseman { get; init; }
+
     [JsonPropertyName("icegolem")]
     public int? Icegolem { get; init; }
 
     [JsonPropertyName("iceroamer")]
     public int? Iceroamer { get; init; }
+
+    [JsonPropertyName("jackowalker")]
+    public int? Jackowalker { get; init; }
 
     [JsonPropertyName("jr")]
     public int? Jr { get; init; }
@@ -412,4 +424,7 @@ public class MonsterGoldDatum : DatumBase<int?>
 
     [JsonPropertyName("zapper0")]
     public int? Zapper0 { get; init; }
+
+    [JsonPropertyName("zombie")]
+    public int? Zombie { get; init; }
 }

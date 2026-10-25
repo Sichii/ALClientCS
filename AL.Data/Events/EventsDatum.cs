@@ -31,11 +31,17 @@ public class EventsDatum : DatumBase<GEvent>
     [JsonPropertyName("goobrawl")]
     public GEvent Goobrawl { get; init; } = null!;
 
+    [JsonPropertyName("graveyard")]
+    public GEvent Graveyard { get; init; } = null!;
+
     [JsonPropertyName("halloween")]
     public GEvent Halloween { get; init; } = null!;
 
     [JsonPropertyName("holidayseason")]
     public GEvent Holidayseason { get; init; } = null!;
+
+    [JsonPropertyName("horseman")]
+    public GEvent Horseman { get; init; } = null!;
 
     [JsonPropertyName("icegolem")]
     public GEvent Icegolem { get; init; } = null!;
@@ -43,6 +49,12 @@ public class EventsDatum : DatumBase<GEvent>
     [JsonPropertyName("lunarnewyear")]
     public GEvent Lunarnewyear { get; init; } = null!;
 
+    [JsonPropertyName("trickortreat")]
+    public GEvent Trickortreat { get; init; } = null!;
+
     [JsonPropertyName("valentines")]
     public GEvent Valentines { get; init; } = null!;
+
+    [JsonPropertyName("witchcipher")]
+    public GEvent Witchcipher { get; init; } = null!;
 }

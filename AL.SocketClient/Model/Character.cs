@@ -35,6 +35,13 @@ public class Character : Player, IEquatable<Character>
     public AnniversaryStatus? Anniversary { get; protected set; }
 
     /// <summary>
+    ///     If populated, this character's Trick or Treat day. The server sends it only while Halloween runs.
+    /// </summary>
+    [JsonPropertyName("trickortreat")]
+    [JsonInclude]
+    public TrickOrTreatStatus? TrickOrTreat { get; protected set; }
+
+    /// <summary>
     ///     If populated, this character is inside of a bank.
     ///     <br />
     ///     This property only populates while you are inside of a bank, and hold information about gold and items this

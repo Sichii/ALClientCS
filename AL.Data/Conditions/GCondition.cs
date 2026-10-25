@@ -88,6 +88,12 @@ public sealed record GCondition : AttributedRecordBase
     public int Heal { get; init; }
 
     /// <summary>
+    ///     The percent more damage the carrier takes, as on Cursed, Hexed and Marked.
+    /// </summary>
+    [JsonPropertyName("incdmgamp")]
+    public int IncomingDamageAmp { get; init; }
+
+    /// <summary>
     ///     Names another condition. Only the fire-essence burn carries it, and nothing acts on it.
     /// </summary>
     public string? Intensity { get; init; }

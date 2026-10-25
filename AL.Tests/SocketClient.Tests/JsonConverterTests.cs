@@ -77,6 +77,66 @@ public class JsonConverterTests
     }
 
     [Test]
+    public void DeserializeTrickOrTreatStatusTest()
+    {
+        const string CHARACTER_WITH_STATUS = @"{
+   ""id"":""sichi"",
+   ""trickortreat"":{
+      ""doors"":[0,3],
+      ""doors_left"":5,
+      ""stamps"":12
+   }
+}";
+
+        var obj = TestJson.Socket<CharacterData>(CHARACTER_WITH_STATUS);
+
+        obj!.TrickOrTreat
+            .Should()
+            .BeEquivalentTo(
+                new TrickOrTreatStatus
+                {
+                    Doors =
+                    [
+                        0,
+                        3
+                    ],
+                    DoorsLeft = 5,
+                    Stamps = 12
+                });
+    }
+
+    [Test]
+    public void InventorySentItemTest()
+    {
+        const string CHARACTER_WITH_ITEMS = @"{
+   ""id"":""sichi"",
+   ""items"":[{""name"":""wbook0"",""level"":2,""p"":""shiny""},null,{""q"":12,""name"":""hpot0""}]
+}";
+
+        var inventory = TestJson.Socket<CharacterData>(CHARACTER_WITH_ITEMS)!.Inventory;
+
+        inventory.TryGetSentItem(0, out var book)
+                 .Should()
+                 .BeTrue();
+
+        book!.ToJsonString()
+             .Should()
+             .Be(@"{""name"":""wbook0"",""level"":2,""p"":""shiny""}");
+
+        inventory.TryGetSentItem(1, out _)
+                 .Should()
+                 .BeFalse();
+
+        inventory.TryGetSentItem(3, out _)
+                 .Should()
+                 .BeFalse();
+
+        inventory[2]!.Quantity
+                     .Should()
+                     .Be(12);
+    }
+
+    [Test]
     public void DeserializeCharacterDataTest()
     {
         var obj = TestJson.Socket<CharacterData>(Fixture.ReadCommittedSnapshot("character-frame.json")!);
@@ -337,6 +397,65 @@ public class JsonConverterTests
            .Available
            .Should()
            .BeNull();
+    }
+
+    [Test]
+    public void DeserializeEventScheduleTest()
+    {
+        //the lineup and season fields as the server's broadcast_e publishes them
+        const string EVENT_AND_BOSS_DATA = @"{
+   ""halloween"":true,
+   ""schedule"":{
+      ""dailies"":[13,20],
+      ""nightlies"":[23],
+      ""night"":false,
+      ""time_offset"":1,
+      ""realm"":""EUI"",
+      ""server_time"":1792800000000,
+      ""events"":[
+         {""id"":""2026-10-24-0-horseman"",""event"":""horseman"",""at"":1792796400000,""status"":""finished"",""season"":""halloween"",""started"":1792796400500,""ended"":1792798000000},
+         {""id"":""2026-10-24-13-dailies"",""event"":""crabxx"",""at"":1792843200000,""status"":""scheduled""}
+      ],
+      ""repeats"":[
+         {""id"":""2026-10-24-1-graveyard"",""event"":""graveyard"",""at"":1792801800000,""status"":""scheduled"",""season"":""halloween"",""every"":7200000}
+      ]
+   },
+   ""event_flags"":{""halloween"":true,""valentines"":false},
+   ""event_ends"":{""halloween"":1793664000000}
+}";
+
+        var obj = TestJson.Socket<EventAndBossData>(EVENT_AND_BOSS_DATA)!;
+
+        obj.Schedule!.Events
+           .Select(scheduled => (scheduled.Event, scheduled.Status))
+           .Should()
+           .Equal(("horseman", "finished"), ("crabxx", "scheduled"));
+
+        obj.Schedule
+           .Events[0]
+           .Ended
+           .Should()
+           .Be(1792798000000L);
+
+        obj.Schedule
+           .Repeats
+           .Single()
+           .Every
+           .Should()
+           .Be(7200000L);
+
+        obj.Schedule
+           .Realm
+           .Should()
+           .Be("EUI");
+
+        obj.EventFlags!["halloween"]
+           .Should()
+           .BeTrue();
+
+        obj.EventEnds!["halloween"]
+           .Should()
+           .Be(1793664000000L);
     }
 
     [Test]

@@ -616,7 +616,13 @@ public enum GameResponseType
     ///     A swap the offering merchant has no bag space to receive.
     /// </summary>
     [EnumMember(Value = "trade_swap_space")]
-    TradeSwapSpace
+    TradeSwapSpace,
+
+    /// <summary>
+    ///     A sell or destroy whose slot no longer holds the item the client named.
+    /// </summary>
+    [EnumMember(Value = "item_changed")]
+    ItemChanged
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

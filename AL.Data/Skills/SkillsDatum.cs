@@ -298,6 +298,9 @@ public class SkillsDatum : DatumBase<GSkill>
     [JsonPropertyName("shield_slam")]
     public GSkill ShieldSlam { get; init; } = null!;
 
+    [JsonPropertyName("sinisterlaugh")]
+    public GSkill Sinisterlaugh { get; init; } = null!;
+
     [JsonPropertyName("smash")]
     public GSkill Smash { get; init; } = null!;
 

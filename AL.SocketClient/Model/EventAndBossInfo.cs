@@ -11,6 +11,18 @@ public record EventAndBossInfo
 {
     public bool EggHunt { get; init; }
 
+    /// <summary>
+    ///     If populated, when each running season with a set end time ends, in UTC unix milliseconds, keyed by season.
+    /// </summary>
+    [JsonPropertyName("event_ends")]
+    public IReadOnlyDictionary<string, long>? EventEnds { get; init; }
+
+    /// <summary>
+    ///     If populated, which seasons are on, keyed by season. A season turns false here at its end time.
+    /// </summary>
+    [JsonPropertyName("event_flags")]
+    public IReadOnlyDictionary<string, bool>? EventFlags { get; init; }
+
     /// <summary>Whether the Halloween event is running.</summary>
     /// <remarks>
     ///     While it is, <c>mrpumpkin</c> and <c>mrgreen</c> are also keys on <see cref="BossInfo" /> - live, or carrying the
@@ -33,7 +45,8 @@ public record EventAndBossInfo
     ///     Contains information about bosses on this server.
     /// </summary>
     /// <remarks>
-    ///     Every object-valued field of the snapshot lands here, so <c>schedule</c> and <c>duels</c> are keys too. Filter
+    ///     Every object-valued field of the snapshot lands here, so <c>schedule</c>, <c>duels</c>, <c>event_flags</c> and
+    ///     <c>event_ends</c> are keys too. Filter
     ///     against <c>GameData.Events</c> to keep only the ones that are events.
     /// </remarks>
     [JsonIgnore]

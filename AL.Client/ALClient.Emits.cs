@@ -357,6 +357,51 @@ public abstract partial class ALClient
     }
 
     /// <summary>
+    ///     Asynchronously knocks on a Trick or Treat door, which has to be within 80 of the character.
+    /// </summary>
+    /// <param name="door">
+    ///     The door's index into <c>G.events.trickortreat.doors</c>.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///     The server refused the knock: <c>trickortreat_season</c>, <c>trickortreat_door</c> (too far),
+    ///     <c>trickortreat_knocked</c>, <c>trickortreat_limit</c> or <c>cant_in_bank</c>.
+    /// </exception>
+    public async Task KnockAsync(int door)
+    {
+        //the server settles two account counters in its database before it answers
+        const int KNOCK_TIMEOUT_MS = 5000;
+
+        var requestId = RequestId.Create();
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (!requestId.EqualsI(data.RequestId!))
+                    return TaskCache.FALSE;
+
+                var result = data.Failed
+                    ? source.TrySetResult($"Failed to knock on door {door}. ({data.Reason ?? data.ResponseType.ToString()})")
+                    : source.TrySetResult(Expectation.Success);
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Interaction,
+            new
+            {
+                type = "knock",
+                door,
+                request_id = requestId
+            });
+
+        var expectation = await source.Task.WithTimeout(KNOCK_TIMEOUT_MS);
+        expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
     ///     Asynchronously sets this character's home to the current server. The game refuses another change for 36 hours.
     /// </summary>
     /// <returns>
@@ -528,16 +573,22 @@ public abstract partial class ALClient
     /// </summary>
     /// <param name="inventorySlot">The slot holding the item.</param>
     /// <param name="quantity">
-    ///     The number of items to destroy, or null for the whole stack.
+    ///     The number of items to destroy, or null for one.
     /// </param>
     public Task DestroyAsync(int inventorySlot, int? quantity = null)
-        => Socket.EmitAsync(
-            ALSocketEmitType.Destroy,
-            new
-            {
-                num = inventorySlot,
-                q = quantity
-            });
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["num"] = inventorySlot,
+            ["q"] = quantity
+        };
+
+        //the server refuses with item_changed when the slot no longer holds the item named here
+        if (Character.Inventory.TryGetSentItem(inventorySlot, out var sentItem))
+            payload["item"] = sentItem;
+
+        return Socket.EmitAsync(ALSocketEmitType.Destroy, payload);
+    }
 
     /// <summary>
     ///     Asynchronously buys and exchanges a token or quest item in one step.

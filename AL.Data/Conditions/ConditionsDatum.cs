@@ -112,6 +112,9 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("hardshell")]
     public GCondition Hardshell { get; init; } = null!;
 
+    [JsonPropertyName("hexed")]
+    public GCondition Hexed { get; init; } = null!;
+
     [JsonPropertyName("holidayspirit")]
     public GCondition Holidayspirit { get; init; } = null!;
 
@@ -217,6 +220,9 @@ public class ConditionsDatum : DatumBase<GCondition>
     [JsonPropertyName("rimeshell")]
     public GCondition Rimeshell { get; init; } = null!;
 
+    [JsonPropertyName("rising")]
+    public GCondition Rising { get; init; } = null!;
+
     [JsonPropertyName("rspeed")]
     public GCondition Rspeed { get; init; } = null!;
 
@@ -234,6 +240,9 @@ public class ConditionsDatum : DatumBase<GCondition>
 
     [JsonPropertyName("slowness")]
     public GCondition Slowness { get; init; } = null!;
+
+    [JsonPropertyName("spooked")]
+    public GCondition Spooked { get; init; } = null!;
 
     [JsonPropertyName("stack")]
     public GCondition Stack { get; init; } = null!;

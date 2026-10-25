@@ -1,5 +1,6 @@
 #region
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AL.SocketClient.Model;
 #endregion
@@ -17,9 +18,12 @@ public sealed class InventoryConverter : JsonConverter<Inventory>
         if (reader.TokenType == JsonTokenType.Null)
             return null;
 
-        var items = JsonSerializer.Deserialize<List<Item?>>(ref reader, options);
+        var slots = JsonSerializer.Deserialize<List<JsonNode?>>(ref reader, options) ?? [];
 
-        return new Inventory(items);
+        var items = slots.Select(slot => slot?.Deserialize<Item>(options))
+                         .ToList();
+
+        return new Inventory(items, slots);
     }
 
     public override void Write(Utf8JsonWriter writer, Inventory value, JsonSerializerOptions options)

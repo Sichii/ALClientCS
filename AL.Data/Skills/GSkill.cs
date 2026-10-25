@@ -53,6 +53,12 @@ public sealed record GSkill : AttributedRecordBase
     public Condition Condition { get; init; }
 
     /// <summary>
+    ///     Purify's extra damage for each buff or debuff on the target. Zero on every other skill.
+    /// </summary>
+    [JsonPropertyName("condition_damage")]
+    public float ConditionDamage { get; init; }
+
+    /// <summary>
     ///     If populated, the name of the item this skill consumes when used.
     /// </summary>
     public string? Consume { get; init; }
@@ -244,6 +250,20 @@ public sealed record GSkill : AttributedRecordBase
     ///     Usually <c>skill_</c> and the skill's own key, but some skills borrow a condition's or an item's art.
     /// </remarks>
     public string? Skin { get; init; }
+
+    /// <summary>
+    ///     The most Purify's per-stack damage adds on top of <see cref="ConditionDamage" /> for a rogue's stacks. Zero on
+    ///     every other skill.
+    /// </summary>
+    [JsonPropertyName("stack_bonus_cap")]
+    public float StackBonusCap { get; init; }
+
+    /// <summary>
+    ///     Purify's extra damage per rogue stack on the target, capped at <see cref="StackBonusCap" />. Zero on every other
+    ///     skill.
+    /// </summary>
+    [JsonPropertyName("stack_damage")]
+    public float StackDamage { get; init; }
 
     /// <summary>
     ///     What this skill may be aimed at: a monster, a player, or either. Absent means the skill takes no target at all, and
