@@ -402,6 +402,54 @@ public abstract partial class ALClient
     }
 
     /// <summary>
+    ///     Asynchronously brews one Witch's Cipher mix in the Witch's cauldron, using up its ingredients.
+    /// </summary>
+    /// <param name="mix">One ingredient name per slot, in order.</param>
+    /// <exception cref="ArgumentNullException">mix</exception>
+    /// <exception cref="InvalidOperationException">
+    ///     The server refused: <c>witchcipher_not_live</c>, <c>distance</c> (more than 400 from the Witch),
+    ///     <c>cant_in_bank</c>, <c>invalid</c>, <c>witchcipher_ingredients</c>, <c>witchcipher_elsewhere</c> or
+    ///     <c>witchcipher_no_mixes</c>.
+    /// </exception>
+    public async Task BrewWitchCipherAsync(IReadOnlyList<string> mix)
+    {
+        ArgumentNullException.ThrowIfNull(mix);
+
+        //the server reads and writes the account's day in its database before it answers
+        const int BREW_TIMEOUT_MS = 5000;
+
+        var requestId = RequestId.Create();
+        var source = new TaskCompletionSource<Expectation>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var gameResponseCallback = Socket.On<GameResponseData>(
+            ALSocketMessageType.GameResponse,
+            data =>
+            {
+                if (!requestId.EqualsI(data.RequestId!))
+                    return TaskCache.FALSE;
+
+                var result = data.Failed
+                    ? source.TrySetResult($"Failed to brew {string.Join(", ", mix)}. ({data.Reason ?? data.ResponseType.ToString()})")
+                    : source.TrySetResult(Expectation.Success);
+
+                return Task.FromResult(result);
+            });
+
+        await Socket.EmitAsync(
+            ALSocketEmitType.Interaction,
+            new
+            {
+                type = "witchcipher",
+                action = "brew",
+                items = mix,
+                request_id = requestId
+            });
+
+        var expectation = await source.Task.WithTimeout(BREW_TIMEOUT_MS);
+        expectation.ThrowIfUnsuccessful();
+    }
+
+    /// <summary>
     ///     Asynchronously sets this character's home to the current server. The game refuses another change for 36 hours.
     /// </summary>
     /// <returns>

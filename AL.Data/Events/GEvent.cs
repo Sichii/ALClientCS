@@ -32,6 +32,16 @@ public record GEvent
     public IReadOnlyList<GEncounter>? Encounters { get; init; }
 
     /// <summary>
+    ///     How long the Witch's Cipher's gathering lasts from the start of a round, in seconds. Zero on every other event.
+    /// </summary>
+    public int Gathering { get; init; }
+
+    /// <summary>
+    ///     The Witch's Cipher's ingredients, in the order the server numbers recipes by. Null on every other event.
+    /// </summary>
+    public IReadOnlyList<GWitchIngredient>? Ingredients { get; init; }
+
+    /// <summary>
     ///     Whether the event can be joined from wherever the character is standing, rather than only by walking to where it is
     ///     happening. Carried by the daily and nightly bosses; absent, and so false, on every seasonal one.
     /// </summary>
@@ -45,9 +55,19 @@ public record GEvent
     public IReadOnlyList<GStockItem?>? MerchantStock { get; init; }
 
     /// <summary>
+    ///     How many Witch's Cipher mixes an account may brew per UTC day. Zero on every other event.
+    /// </summary>
+    public int Mixes { get; init; }
+
+    /// <summary>
     ///     The event's display name — "Giga Crab", "Goo Brawl", "A/B Testing".
     /// </summary>
     public string Name { get; init; } = null!;
+
+    /// <summary>
+    ///     How many ingredients make a Witch's Cipher mix. Zero on every other event.
+    /// </summary>
+    public int Slots { get; init; }
 
     /// <summary>
     ///     What the client draws the event as. Usually a monster skin - the boss the event is about, or one of the things it

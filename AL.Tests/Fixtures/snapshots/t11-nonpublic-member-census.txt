@@ -101,6 +101,7 @@ non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	MaxXP
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	PCourage	pcourage
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	Tax	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	TrickOrTreat	trickortreat
+non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	WitchCipher	witchcipher
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.Character	XPMultiplier	xpm
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	ABS	
 non-public-setter	instance	AL.SocketClient	AL.SocketClient.Model.EntityBase	Angle	

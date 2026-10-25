@@ -42,6 +42,12 @@ public record EventAndBossInfo
     public bool Valentines { get; init; }
 
     /// <summary>
+    ///     If populated, the Witch's Cipher round. Also a key on <see cref="BossInfo" />, like every object-valued field.
+    /// </summary>
+    [JsonPropertyName("witchcipher")]
+    public WitchCipherRound? WitchCipher { get; init; }
+
+    /// <summary>
     ///     Contains information about bosses on this server.
     /// </summary>
     /// <remarks>

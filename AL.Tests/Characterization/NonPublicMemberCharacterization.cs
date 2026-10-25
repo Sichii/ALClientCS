@@ -226,11 +226,11 @@ public sealed class NonPublicMemberCharacterization
         frameReachable.Should()
                       .OnlyContain(entry => entry.Category == NON_PUBLIC_SETTER);
 
-        // 93 of the 109 instance non-public setters live on EntityBase/Player/Character/Monster; the other 16 are on
+        // 94 of the 110 instance non-public setters live on EntityBase/Player/Character/Monster; the other 16 are on
         // GGeometry/GDoor/GSkill/BossInfo, which are static or boss data rather than an entity frame. The count
         // below moves whenever a frame-reachable setter is added or one moves off an entity type
         frameReachable.Should()
-                      .HaveCount(108);
+                      .HaveCount(109);
 
         // the setters the start, player and entities frames drive away from their defaults. Five of Phase 11's eight
         // Character stats are non-default in the captured start frame; incdmgamp, mcourage and pcourage stay
@@ -238,7 +238,7 @@ public sealed class NonPublicMemberCharacterization
         covered.Should()
                .HaveCount(63, "the start/player/entities frames drive 63 setters away from their defaults");
 
-        // The 45 setters no captured frame exercises to a non-default value. These are the members a
+        // The 46 setters no captured frame exercises to a non-default value. These are the members a
         // migration reviewer must eyeball by hand — no value assertion can guard them here. The 26
         // AttributedObjectBase stats are attributed setters the frames happen to leave at zero.
         uncovered.Should()
@@ -277,6 +277,7 @@ public sealed class NonPublicMemberCharacterization
                      "Character.Fear",
                      "Character.MapChangeCount",
                      "Character.TrickOrTreat",
+                     "Character.WitchCipher",
 
                      // Phase 11: three of the eight new Character stats stay default in every captured frame
                      "Character.IncomingDamageAmp",

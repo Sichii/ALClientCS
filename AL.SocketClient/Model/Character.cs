@@ -42,6 +42,13 @@ public class Character : Player, IEquatable<Character>
     public TrickOrTreatStatus? TrickOrTreat { get; protected set; }
 
     /// <summary>
+    ///     If populated, the account's Witch's Cipher day. The server sends it only while a round runs.
+    /// </summary>
+    [JsonPropertyName("witchcipher")]
+    [JsonInclude]
+    public WitchCipherStatus? WitchCipher { get; protected set; }
+
+    /// <summary>
     ///     If populated, this character is inside of a bank.
     ///     <br />
     ///     This property only populates while you are inside of a bank, and hold information about gold and items this

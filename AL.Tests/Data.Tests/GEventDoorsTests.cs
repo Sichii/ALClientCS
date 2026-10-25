@@ -26,4 +26,33 @@ public class GEventDoorsTests
                     .Should()
                     .Equal(new GTrickOrTreatDoor("halloween", 331, -210), new GTrickOrTreatDoor("spookytown", -130, -60));
     }
+
+    [Test]
+    public void IngredientsTest()
+    {
+        const string WITCH_CIPHER = """
+                                    {
+                                      "name": "Witch's Cipher",
+                                      "ingredients": [["verdantspore", ["goo", "bee"]], ["frostscale", ["boar"]]],
+                                      "slots": 5,
+                                      "mixes": 5,
+                                      "gathering": 1200
+                                    }
+                                    """;
+
+        var witchCipher = TestJson.Data<GEvent>(WITCH_CIPHER)!;
+
+        witchCipher.Ingredients!.Select(ingredient => ingredient.Name)
+                   .Should()
+                   .Equal("verdantspore", "frostscale");
+
+        witchCipher.Ingredients![0]
+                   .Monsters
+                   .Should()
+                   .Equal("goo", "bee");
+
+        witchCipher.Slots
+                   .Should()
+                   .Be(5);
+    }
 }
