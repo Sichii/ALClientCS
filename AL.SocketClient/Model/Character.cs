@@ -16,7 +16,6 @@ namespace AL.SocketClient.Model;
 ///     Mutated by <see cref="NewMapData" />, <see cref="ILocation" />
 /// </remarks>
 /// <seealso cref="Player" />
-/// <seealso cref="IMutable{TMutator}" />
 public class Character : Player, IEquatable<Character>
 {
     /// <summary>

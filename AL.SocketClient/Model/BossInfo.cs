@@ -1,18 +1,14 @@
 #region
 using System.Text.Json.Serialization;
-using AL.Core.Definitions;
 using AL.Core.Interfaces;
 using AL.Core.Json.SystemTextJson;
-using AL.Core.Model;
 #endregion
 
 namespace AL.SocketClient.Model;
 
 /// <summary>Represents information about a boss monster.</summary>
 /// <seealso cref="ILocation" />
-/// <seealso cref="IMutable{TMutator}" />
-/// <remarks>Mutated by <see cref="Mutation" /></remarks>
-public record BossInfo : ILocation, IMutable<Mutation>
+public record BossInfo : ILocation
 {
     /// <summary>
     ///     For the anniversary event, whether the featured player can be reached right now. The server keeps the round on them
@@ -75,12 +71,9 @@ public record BossInfo : ILocation, IMutable<Mutation>
 
     public virtual bool Equals(ILocation? other) => ILocation.Comparer.Equals(this, other);
 
-    public void Mutate(Mutation mutator)
+    public void SetFullHP(float maxHP)
     {
-        if (mutator.Attribute == ALAttribute.Hp)
-        {
-            HP = mutator.Mutator;
-            MaxHP = mutator.Mutator;
-        }
+        HP = maxHP;
+        MaxHP = maxHP;
     }
 }

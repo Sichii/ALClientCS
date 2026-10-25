@@ -9,7 +9,6 @@ using AL.Core.Definitions;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Interfaces;
-using AL.Core.Model;
 using AL.SocketClient.Definitions;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
@@ -27,7 +26,6 @@ namespace AL.SocketClient.Model;
 /// <seealso cref="IInstancedLocation" />
 /// <seealso cref="IDeltaUpdatable" />
 /// <seealso cref="IPingCompensated" />
-/// <seealso cref="IMutable{TMutator}" />
 /// <seealso cref="IEquatable{T}" />
 public abstract class EntityBase : AttributedObjectBase,
                                    IBounding,
@@ -35,7 +33,6 @@ public abstract class EntityBase : AttributedObjectBase,
                                    IInstancedLocation,
                                    IDeltaUpdatable,
                                    IPingCompensated,
-                                   IMutable<Mutation>,
                                    IKeyPresenceCapturable,
                                    IEquatable<EntityBase>
 {
@@ -273,11 +270,7 @@ public abstract class EntityBase : AttributedObjectBase,
             _            => EntityUpdateField.None
         };
 
-    public void Mutate(Mutation mutator)
-    {
-        if (mutator.Attribute == ALAttribute.Hp)
-            HP += Convert.ToInt32(mutator.Mutator);
-    }
+    public void ApplyDamage(float damage) => HP -= Convert.ToInt32(damage);
 
     public void Update(TimeSpan delta)
     {

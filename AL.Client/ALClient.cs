@@ -22,7 +22,6 @@ using AL.Core.Extensions;
 using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
-using AL.Core.Model;
 using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
@@ -5949,7 +5948,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         } else if (data.Damage != 0)
         {
             var entity = GetEntity(data.Id);
-            entity?.Mutate(new Mutation(ALAttribute.Hp, -data.Damage));
+            entity?.ApplyDamage(data.Damage);
         }
 
         if (data.Reflect != 0)
@@ -5957,7 +5956,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             //the reflect shape omits "source", and "source" is the attack type rather than an id anyway.
             //"hid" is the attacker, which is who takes the reflected damage.
             var sourceEntity = GetEntity(data.HitId);
-            sourceEntity?.Mutate(new Mutation(ALAttribute.Hp, -data.Reflect));
+            sourceEntity?.ApplyDamage(data.Reflect);
         }
 
         return TaskCache.FALSE;
@@ -6032,7 +6031,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 if (mData == null)
                     continue;
 
-                bossInfo.Mutate(new Mutation(ALAttribute.Hp, mData.HP));
+                bossInfo.SetFullHP(mData.HP);
             }
 
         return TaskCache.FALSE;

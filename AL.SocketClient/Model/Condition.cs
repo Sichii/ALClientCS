@@ -1,7 +1,6 @@
 #region
 using System.Text.Json.Serialization;
 using AL.Core.Abstractions;
-using AL.Core.Interfaces;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
 #endregion
@@ -185,8 +184,6 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     /// </remarks>
     [JsonPropertyName("xp_multiplier")]
     public float? XpMultiplier { get; init; }
-
-    string IMutable.Id => string.Empty;
 
     /// <summary>Gets the remaining cooldown in milliseconds.</summary>
     public float RemainingMs => DurationMs - (float)Elapsed.TotalMilliseconds;

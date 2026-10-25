@@ -1,6 +1,5 @@
 #region
 using System.Diagnostics;
-using AL.Core.Interfaces;
 using AL.SocketClient.Interfaces;
 using Chaos.Time.Abstractions;
 #endregion
@@ -31,9 +30,6 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
     public TimeSpan Elapsed => Stopwatch.GetElapsedTime(StartedAt) + Offset;
 
     public bool IsCompensated { get; private set; }
-
-    //TODO: maybe make this the skill name, but there's really no point
-    string IMutable.Id => string.Empty;
 
     /// <summary>Gets the remaining cooldown in milliseconds.</summary>
     public float RemainingMS => CooldownMs - (float)Elapsed.TotalMilliseconds;

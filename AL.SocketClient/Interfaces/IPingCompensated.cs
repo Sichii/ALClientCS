@@ -1,5 +1,4 @@
 #region
-using AL.Core.Interfaces;
 #endregion
 
 namespace AL.SocketClient.Interfaces;
@@ -7,7 +6,7 @@ namespace AL.SocketClient.Interfaces;
 /// <summary>
 ///     Provides an interface for objects that are offset to be pseudo-equivalent to what's on the server.
 /// </summary>
-public interface IPingCompensated : IMutable
+public interface IPingCompensated
 {
     /// <summary>
     ///     Whether or not this object has already been compensated.
