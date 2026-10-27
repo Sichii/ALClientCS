@@ -567,6 +567,32 @@ public class JsonConverterTests
     }
 
     [Test]
+    public void DeserializeMailClaimStateTest()
+    {
+        // taken holds a claim token while a claim is in flight; a cave reward may attach gold instead of an item
+        const string MAIL = @"{ ""id"":""ML_cave:1"", ""taken"":""mailclaim_abc"", ""can_take"":true, ""item"":""{\""gold\"":5000}"" }";
+
+        var mail = TestJson.Api<Mail>(MAIL);
+
+        mail!.Taken
+             .Should()
+             .BeTrue();
+
+        mail.CanTake
+            .Should()
+            .BeTrue();
+
+        mail.Item!.Gold
+            .Should()
+            .Be(5000);
+
+        mail.Item
+            .Name
+            .Should()
+            .BeNull();
+    }
+
+    [Test]
     public void DeserializeNewMapDataTest()
     {
         const string NEW_MAP_DATA = @"{

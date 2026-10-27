@@ -81,17 +81,12 @@ public sealed class AlApiClient : IAlApiClient
         Logger.Info($"Deleting mail {mail.Id}");
 
         //the server looks up mid exactly as pull_mail sent it, unlike read_mail, which prepends "ML_" itself
-        var request = new APIRequest(
-            Method.Post,
+        await PostAsync(
             APIMethod.DeleteMail,
             new
             {
                 mid = mail.Id
-            },
-            Auth,
-            CookieDomain);
-
-        await Client.ExecutePostAsync(request);
+            });
     }
 
     public async IAsyncEnumerable<Mail> GetMailAsync()
@@ -161,18 +156,13 @@ public sealed class AlApiClient : IAlApiClient
 
         Logger.Info($"Marking mail {mail.Id} as read");
 
-        //the server prepends "ML_" itself, so a full id would miss as "ML_ML_..." and the mail never be marked read
-        var request = new APIRequest(
-            Method.Post,
+        //the server prepends "ML_" to an id that lacks it, so the bare id resolves either way
+        await PostAsync(
             APIMethod.ReadMail,
             new
             {
                 mail = mail.Id.StartsWith("ML_", StringComparison.Ordinal) ? mail.Id["ML_".Length..] : mail.Id
-            },
-            Auth,
-            CookieDomain);
-
-        await Client.ExecutePostAsync(request);
+            });
     }
 
     public async Task RenewAuthAsync()

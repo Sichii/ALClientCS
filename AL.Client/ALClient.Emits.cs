@@ -977,8 +977,11 @@ public abstract partial class ALClient
     ///     Asynchronously takes the item attached to a received mail into the inventory.
     /// </summary>
     /// <param name="mailId">The id of the mail.</param>
+    /// <param name="requestId">
+    ///     If populated, the token every answer to this emit echoes as <c>request_id</c>.
+    /// </param>
     /// <exception cref="ArgumentNullException">mailId</exception>
-    public Task TakeMailItemAsync(string mailId)
+    public Task TakeMailItemAsync(string mailId, string? requestId = null)
     {
         ArgumentNullException.ThrowIfNull(mailId);
 
@@ -986,7 +989,8 @@ public abstract partial class ALClient
             ALSocketEmitType.TakeMailItem,
             new
             {
-                id = mailId
+                id = mailId,
+                request_id = requestId
             });
     }
     #endregion

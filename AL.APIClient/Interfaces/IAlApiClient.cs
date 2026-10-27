@@ -14,10 +14,11 @@ public interface IAlApiClient
     AuthUser Auth { get; }
 
     /// <summary>
-    ///     Asynchronously deletes a mail. The server allows this for a mail whose attached item was never taken, and deleting
-    ///     one destroys the item.
+    ///     Asynchronously deletes a mail from this account's mailbox. The server refuses it on a received mail whose item
+    ///     was never taken; a sent mail only leaves the sender's view.
     /// </summary>
     /// <param name="mail">The mail to delete.</param>
+    /// <exception cref="InvalidOperationException">The server refused the delete.</exception>
     Task DeleteMailAsync(Mail mail);
 
     /// <summary>

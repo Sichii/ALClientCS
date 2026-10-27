@@ -9,11 +9,18 @@ namespace AL.APIClient.Model;
 /// </summary>
 public sealed record MailItem
 {
+    /// <summary>
+    ///     The gold a cave reward carries instead of an item. Zero on an item.
+    /// </summary>
+    public long Gold { get; init; }
+
     /// <summary>The item's level.</summary>
     public int Level { get; init; }
 
-    /// <summary>The item's name.</summary>
-    public string Name { get; init; } = null!;
+    /// <summary>
+    ///     If populated, the item's name. Null on a gold attachment.
+    /// </summary>
+    public string? Name { get; init; }
 
     /// <summary>The quantity, for stackable items.</summary>
     [JsonPropertyName("q")]

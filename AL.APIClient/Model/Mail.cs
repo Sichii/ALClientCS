@@ -1,5 +1,6 @@
 #region
 using System.Text.Json.Serialization;
+using AL.APIClient.Json.SystemTextJson;
 #endregion
 
 namespace AL.APIClient.Model;
@@ -9,6 +10,13 @@ namespace AL.APIClient.Model;
 /// </summary>
 public sealed record Mail
 {
+    /// <summary>
+    ///     Whether this account is the mail's receiver, and so may claim its <see cref="Item" />. False on mail this account
+    ///     sent, which the mailbox lists too.
+    /// </summary>
+    [JsonPropertyName("can_take")]
+    public bool CanTake { get; init; }
+
     /// <summary>The name of the person the mail is from.</summary>
     [JsonPropertyName("fro")]
     public string From { get; init; } = null!;
@@ -37,8 +45,9 @@ public sealed record Mail
     public string Subject { get; init; } = string.Empty;
 
     /// <summary>
-    ///     Whether or not the item was taken from this mail.
+    ///     Whether or not the item was taken from this mail, or a claim on it is in flight.
     /// </summary>
+    [JsonConverter(typeof(MailTakenConverter))]
     public bool Taken { get; init; }
 
     /// <summary>The name of the person this mail is to.</summary>
