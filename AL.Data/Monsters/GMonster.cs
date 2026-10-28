@@ -147,6 +147,11 @@ public sealed record GMonster : AttributedRecordBase
     public bool Passive { get; init; }
 
     /// <summary>
+    ///     If true, being hit never makes this monster target its attacker, and it never levels up on its own.
+    /// </summary>
+    public bool Peaceful { get; init; }
+
+    /// <summary>
     ///     If true, this monster spawns permanently under the poisonous condition, which is what makes its hits apply
     ///     <see cref="Condition.Poisoned" />.
     /// </summary>
