@@ -4132,6 +4132,31 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         if (endDestinations.Equals(default))
             throw new ArgumentNullException(nameof(endDestinations));
 
+        //a walk ends on the client's clock, which can run ahead of the server's, so a door can refuse a character the
+        //server still has a few steps short of it
+        async Task UseDoorAsync(PathEdge door, CancellationToken? innerToken)
+        {
+            int[] retryDelaysMs =
+            [
+                50,
+                100,
+                175,
+                275,
+                400
+            ];
+
+            for (var retry = 0;; retry++)
+                try
+                {
+                    await TransportAsync(door.End.Map, ((Exit)door.Start).ToSpawnIndex);
+
+                    return;
+                } catch (InvalidOperationException e) when ((retry < retryDelaysMs.Length) && e.Message.ContainsI("can't reach"))
+                {
+                    await Task.Delay(retryDelaysMs[retry], innerToken ?? CancellationToken.None);
+                }
+        }
+
         // ReSharper disable once SwitchExpressionHandlesSomeKnownEnumValuesWithExceptionInDefault
         Task HandlePathConnectorAsync(PathEdge pathConnector, CancellationToken? innerToken = null)
             => pathConnector.Type switch
@@ -4141,8 +4166,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 EdgeType.Town      => UseTownAsync(innerToken),
                 EdgeType.Blink     => BlinkLegAsync(pathConnector, options.BlinkMpReserve, innerToken),
                 EdgeType.Leave     => LeaveMapAsync(),
-                EdgeType.Door      => TransportAsync(pathConnector.End.Map, ((Exit)pathConnector.Start).ToSpawnIndex),
-                EdgeType.Transport => TransportAsync(pathConnector.End.Map, ((Exit)pathConnector.Start).ToSpawnIndex),
+                EdgeType.Door      => UseDoorAsync(pathConnector, innerToken),
+                EdgeType.Transport => UseDoorAsync(pathConnector, innerToken),
                 _                  => throw new ArgumentOutOfRangeException($"Unexpected path connectorType: {pathConnector.Type}")
             };
 
