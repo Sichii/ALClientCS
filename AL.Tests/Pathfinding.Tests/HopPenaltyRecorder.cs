@@ -139,7 +139,7 @@ public class HopPenaltyRecorder : PathfindingTestBed
 
             if (mesh is null
                 || GameData.Maps[map] is not { } gMap
-                || !PortalGraph.AllowsHops(gMap)
+                || !HopBuilder.AllowsHops(gMap)
                 || !grids.TryGetValue(map, out var grid))
                 continue;
 

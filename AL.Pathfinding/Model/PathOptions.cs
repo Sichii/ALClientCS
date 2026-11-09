@@ -67,6 +67,11 @@ public sealed record PathOptions
     public bool UseTown { get; init; } = true;
 
     /// <summary>
+    ///     Whether a route may take a wall hop. A hop is also refused when <see cref="WalkSpeed" /> is unknown.
+    /// </summary>
+    public bool UseHops { get; init; }
+
+    /// <summary>
     ///     If populated, the character's speed, which prices a recall and a blink and decides which hops are safe; nominal when
     ///     null, and no hop is taken.
     /// </summary>

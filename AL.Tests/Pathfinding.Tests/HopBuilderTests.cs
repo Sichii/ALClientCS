@@ -163,11 +163,12 @@ public class HopBuilderTests : PathfindingTestBed
         foreach ((var map, var mesh, var hops) in BuildEveryMap())
         {
             //the map alone, so no door or transport through another map stands in for the walk
-            var graph = new PortalGraph(
+            var graph = new DirectedGraph(
                 new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase)
                 {
                     [map] = mesh
-                });
+                },
+                false);
 
             foreach (var hop in hops.Where(hop => hop.FromPiece == hop.ToPiece))
             {

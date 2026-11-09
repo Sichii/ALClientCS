@@ -1,4 +1,7 @@
 #region
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using AL.Core.Extensions;
 using AL.Core.Geometry;
@@ -645,6 +648,97 @@ public class BlinkLegTests : PathfindingTestBed
                .Type
                .Should()
                .Be(EdgeType.Blink);
+    }
+
+    [Test]
+    public void WalledOffGroundIsReachedOnlyByABlink()
+    {
+        var walled = new Location("main", -1086, -931);
+        var across = new Destination(new Location("main", 1891, -47), 0);
+
+        FluentActions.Invoking(() => Pathfinder.FindPath(walled, [across], PathOptions.NoTown))
+                     .Should()
+                     .Throw<InvalidOperationException>();
+
+        Pathfinder.FindPath(
+                      walled,
+                      [across],
+                      PathOptions.NoTown with
+                      {
+                          BlinkCost = 400f
+                      })
+                  .Should()
+                  .ContainSingle()
+                  .Which
+                  .Type
+                  .Should()
+                  .Be(EdgeType.Blink);
+    }
+
+    /// <summary>
+    ///     Routes a seeded set with blink off, and again with blink on but a bar that can never pay for a cast: the two cost
+    ///     the same. Prints a digest of the blink-off routes, to compare against the same set routed before blink was added.
+    /// </summary>
+    [Test]
+    public void BlinkOffIsUnchanged()
+    {
+        const int ROUTES = 300;
+
+        var rng = new Random(20261109);
+        var digest = new StringBuilder();
+
+        var options = PathOptions.Default with
+        {
+            WalkSpeed = 30f
+        };
+
+        var unpayable = options with
+        {
+            BlinkCost = 400f,
+            BlinkMpPerSecond = 0f,
+            Mp = 0f,
+            MaxMp = 0f
+        };
+
+        foreach ((var start, var end) in SamplePairs(rng, ROUTES))
+        {
+            var destination = new Destination(end, (float)(rng.NextDouble() * 40));
+            var expected = TryFind(start, destination, options);
+            var actual = TryFind(start, destination, unpayable);
+
+            actual.Error
+                  .Should()
+                  .Be(expected.Error, $"{start} -> {destination}");
+
+            actual.Legs
+                  .Sum(leg => leg.Cost)
+                  .Should()
+                  .BeApproximately(expected.Legs.Sum(leg => leg.Cost), 0.01f, $"{start} -> {destination}");
+
+            digest.AppendLine(
+                expected.Error
+                ?? string.Join(
+                    " | ",
+                    expected.Legs.Select(leg => string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{leg.Type} {ILocation.ToString(leg.Start)} {ILocation.ToString(leg.End)} {leg.Cost:F3}"))));
+        }
+
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(digest.ToString())));
+
+        Console.WriteLine($"BLINK OFF routes={ROUTES} digest={hash}");
+    }
+
+    private static (string? Error, IReadOnlyList<PathEdge> Legs) TryFind(ILocation start, Destination end, PathOptions options)
+    {
+        try
+        {
+            return (null, Pathfinder.FindPath(start, [end], options));
+        } catch (InvalidOperationException e)
+        {
+            return (e.GetType()
+                     .Name, []);
+        }
     }
 
     private sealed record Case(

@@ -4090,7 +4090,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="endDestinations">A collection of potential end locations.</param>
     /// <param name="options">
     ///     How the route is priced: recall, walking speed, blink. Null means recall on and no blink. The walker fills in the
-    ///     character's own speed and ignores blink on anything but a mage.
+    ///     character's own speed and ignores blink on anything but a mage. Hops only when <see cref="PathOptions.UseHops" />
+    ///     is set.
     /// </param>
     /// <param name="cancellationToken">A token used to cancel this action.</param>
     /// <exception cref="ArgumentNullException">endDestinations</exception>
@@ -6396,11 +6397,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <param name="unlockedDoors">
     ///     Doors to unlock before the pathfinder is built.
     /// </param>
-    /// <param name="cheat">
-    ///     Specifies whether routes may include hops: straight moves across water or a wall between pieces of ground no walk
-    ///     joins.
-    /// </param>
-    public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null, bool cheat = false)
+    public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null)
     {
         var tasks = new List<Task>
         {
@@ -6424,7 +6421,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 door?.Unlock();
             }
 
-        Pathfinder.Initialize(cheat);
+        Pathfinder.Initialize();
     }
 
     protected void SetCooldown(string skillName, float? cooldownMs = null)

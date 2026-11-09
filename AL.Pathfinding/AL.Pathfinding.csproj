@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <Title>AL.Pathfinding</Title>
-        <Description>Pathfinding library for the ALClientCS project. Exact server movement rules, a per-map triangle mesh with funnel string-pulling, and a portal graph between maps.</Description>
+        <Description>Pathfinding library for the ALClientCS project. Exact server movement rules, a per-map triangle mesh searched over its vertices and pulled tight with a funnel, and a table of walks between doors.</Description>
     </PropertyGroup>
 
     <ItemGroup>

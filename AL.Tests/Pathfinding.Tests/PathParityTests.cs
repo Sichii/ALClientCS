@@ -76,7 +76,7 @@ public class PathParityTests : PathfindingTestBed
             oldMicros += recorded.Micros;
             oldBytes += recorded.Bytes;
 
-            if (recorded.Found && !found && !TouchesUnreachableGround(recorded))
+            if (recorded.Found && !found && !TouchesUnreachableGround(recorded.Start.Map, recorded.End.Map))
                 missing.Add(recorded.Id);
 
             if (!recorded.Found && found)
@@ -140,10 +140,26 @@ public class PathParityTests : PathfindingTestBed
     ///     that so much as starts on one is off the table. Staying inside one copy, or leaving one, needs no key and is still
     ///     held to the record.
     /// </summary>
-    private static bool TouchesUnreachableGround(Case recorded)
-        => (GameData.Maps[recorded.Start.Map]?.World == WorldType.Dungeon)
-           || (GameData.Maps[recorded.End.Map]?.World == WorldType.Dungeon)
-           || (BehindAKey.Contains(recorded.End.Map) && !recorded.End.Map.Equals(recorded.Start.Map, StringComparison.OrdinalIgnoreCase));
+    /// <param name="startMap">
+    ///     The map the route starts on.
+    /// </param>
+    /// <param name="endMap">
+    ///     The map the route ends on.
+    /// </param>
+    /// <returns>
+    ///     <c>
+    ///         true
+    ///     </c>
+    ///     if the route touches unreachable ground; otherwise,
+    ///     <c>
+    ///         false
+    ///     </c>
+    ///     .
+    /// </returns>
+    internal static bool TouchesUnreachableGround(string startMap, string endMap)
+        => (GameData.Maps[startMap]?.World == WorldType.Dungeon)
+           || (GameData.Maps[endMap]?.World == WorldType.Dungeon)
+           || (BehindAKey.Contains(endMap) && !endMap.Equals(startMap, StringComparison.OrdinalIgnoreCase));
 
     private static bool TryFind(Case recorded, out IReadOnlyList<PathEdge> path)
     {

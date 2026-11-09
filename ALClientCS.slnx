@@ -3,6 +3,7 @@
         <Project Path="AL.MemberGenerator/AL.MemberGenerator.csproj"/>
     </Folder>
     <Project Path="AL.APIClient/AL.APIClient.csproj"/>
+    <Project Path="AL.Benchmarks/AL.Benchmarks.csproj"/>
     <Project Path="AL.Client/AL.Client.csproj"/>
     <Project Path="AL.Core/AL.Core.csproj"/>
     <Project Path="AL.Data/AL.Data.csproj"/>

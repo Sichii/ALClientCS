@@ -100,7 +100,7 @@ ALClientCS.slnx (net10.0)
 ├── AL.Data            — static 'G' game data (GameData), enriched with derived members
 ├── AL.APIClient       — REST layer: login, server list, character list (RestSharp)
 ├── AL.SocketClient    — socket.io transport and the raw socket event model (SocketIOClient)
-├── AL.Pathfinding     — exact server movement rules, triangle mesh + funnel (Poly2Tri at build), portal graph
+├── AL.Pathfinding     — exact server movement rules, triangle mesh (Poly2Tri at build), vertex search + funnel, door table
 ├── AL.Client          — ALClient and per-class subclasses; the public entry point
 ├── AL.MemberGenerator — codegen console tool, emits a `dataMembers` folder and keeps the previous G fetch under `snapshots/` for a value diff (not shipped)
 ├── AL.Visualizer      — standalone CLI that renders navmeshes/paths to PNG via SkiaSharp (not shipped)
@@ -182,7 +182,7 @@ changes.
 ### Pathfinding (`AL.Pathfinding`)
 
 Built once by `Pathfinder.Initialize()`; every query after that is lock-free. The geometry queries (`CanMove`, `IsWall`,
-`IsWalkable`, `TryFindNearestWalkable`) are allocation-free once warm; a search allocates only its result legs.
+`IsWalkable`, `TryFindNearestWalkable`) are allocation-free once warm; a search allocates its candidate walks and legs.
 
 - **`WallLines`** is the server's own `can_move`, line for line: sorted line arrays, four corner tracks of the collision
   base plus two fence tracks at the destination, `EPS`/`REPS` as the server has them. `Pathfinder.CanMove` and `IsWall`
@@ -190,42 +190,56 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
 - **`TriangleMesh`** is the walkable ground per map, from the raster flood, vertex trace and Poly2Tri triangulation at
   build. Flat arrays, neighbour ids, a uniform grid for `FindTriangle`. `IsWalkable` and `TryFindNearestWalkable` are
   containment in it: the flood fill's answer without the raster. The server's move-endpoint grid is not modelled.
-- **A walk on one map** is Dijkstra over the mesh vertices along triangle edges into `[ThreadStatic]` scratch, the
-  vertex path turned into a triangle corridor by rotating each vertex's fan, then `Funnel` (simple stupid funnel) over
-  the corridor, a farthest-first straightening pass with the exact line test, then a trim to the goal's `Reach` (a
-  rectangle band plus a range: a door is the real rounded rectangle the server opens from, a destination a circle).
-- **`PortalGraph`** joins maps: arrival nodes (spawns something lands on), departure nodes (exits), static walk costs
-  funnelled at build, town and leave edges, and a blink-only edge wherever no walk joins an arrival to an exit. A search
-  adds a virtual start and its ends, runs Dijkstra over arrivals with `PathOptions` pricing recall and blink against the
-  walks (a walk at least `BlinkCost` long is offered both walked and cast, the cast priced at its real time from the
-  cooldown, `penalty_cd` and optionally the bar, never under `BlinkCost`; that least price is what keeps a short walk
-  from being split into casts by a recall or a door and back. A node keeps every arrival no other beats on cost and on
-  readiness, both now and at the moment of its next cast, since a wait the least price absorbs lets the penalty run
-  down; the cheaper arrival is compared after waiting out the difference in cost, which is also what stops a search
-  with blink from walking loops between hop corners to age its clock. An A* lower bound orders the queue), and expands
-  the winner into `PathEdge`s. Any of N ends:
-  the first taken wins. Blink off leaves the route untouched.
-- **Wall hops** exist only after `Initialize(cheat: true)` (`ALClient.InitializeAsync` takes the same flag). A hop is a
-  fixed straight candidate built at startup, from one edge vertex to another with no walkable ground between them (a
-  line that crosses floor is not built), length capped, shortest first, dropped when going via a shorter kept hop is
-  under 75 longer. Both ends lie on the mesh, which the server accepts. Between separate mesh pieces each vertex tries
-  the nearest vertex across; inside one piece, a shortcut hop crosses a wall or water where the walk between its ends
-  is at least twice its length and 100 longer. A hop whose penalty passes the server's 60 even at speed 200 is not
+  `NavMesh` holds both per map, and is what `Pathfinder.GetNavMesh` returns.
+- **A walk on one map** is Dijkstra over the mesh vertices into `[ThreadStatic]` `MeshScratch`: `NodeMesh` links the
+  same triangles as graph nodes, `MeshGraph` flattens their vertices (coordinate order) and the hop ends into CSR
+  arrays. The vertex path is pulled tight by a funnel over the triangles it crossed, then a farthest-first
+  straightening pass with the exact line test (straightening alone where the funnel fails), then trimmed to the
+  target's `Reach` (a rectangle band plus a range: a door is the real rounded rectangle the server opens from, a
+  destination a circle).
+- **`DoorTable`** joins maps: arrival nodes (each map's town spawn, every exit's landing spawn, `main`'s first for
+  `leave`), departure nodes (unlocked exits), the walk from every arrival to every exit on its map found and smoothed
+  once at build, door/transport (the bank door priced at `BANK_DOOR_COST`), town and leave edges, and a blink-only edge
+  wherever no walk joins an arrival to an exit. A search finds the walks into each end with one backward mesh search
+  from it, read at every arrival on its map, and the walks out of the start with one forward search; each is smoothed
+  and priced before `DoorSearch` runs. `DoorSearch` runs Dijkstra over arrivals with `PathOptions` pricing recall and
+  blink against the walks (a walk at least `BlinkCost` long is offered both walked and cast, the cast priced at its
+  real time from the cooldown, `penalty_cd` and optionally the bar, never under `BlinkCost`; that least price is what
+  keeps a short walk from being split into casts by a recall or a door and back. A node keeps every arrival no other
+  beats on cost and on readiness, both now and at the moment of its next cast, since a wait the least price absorbs
+  lets the penalty run down; the cheaper arrival is compared after waiting out the difference in cost. An A* lower
+  bound orders the queue), and expands the winner into `PathEdge`s. Any of N ends: the first taken wins. Blink off
+  leaves the route untouched.
+- **Wall hops** are always built into the one world graph; a search takes them only when `PathOptions.UseHops` is set.
+  A hop is a fixed straight candidate built at startup, from one edge vertex to another with no walkable ground
+  between them (a line that crosses floor is not built), length capped, shortest first, dropped when going via a
+  shorter kept hop is under 75 longer. Both ends lie on the mesh, which the server accepts. Between separate mesh
+  pieces each vertex tries the nearest vertex across; inside one piece, a shortcut hop crosses a wall or water where
+  the walk between its ends is at least twice its length and 100 longer; that walk-around is still measured with the
+  funnel walk on `NavMesh`, not the vertex search. A hop whose penalty passes the server's 60 even at speed 200 is not
   built. None on `no_bounds`, instance or generated maps. Each carries a penalty profile, one sample per unit: the
   server's grid level under it, rebuilt from our walls. The server floods its 10-unit grid from the spawns with a
-  bare-point move check, so its ground reaches the wall lines rather than the mesh's padded edge; a grid point counts as
-  ground when it is on the mesh or reached from just past the padding without crossing a line, and positions truncate
-  toward zero onto the grid as the server's `phash` does. A search takes a hop only with a known `WalkSpeed`, and
-  replays the server's in-motion penalty along it from the score the route carries (`PathOptions.HopScore` seeds it;
-  walks decay it at an assumed 83 ms update gap and round under 1 to 0, the replay assumes the fastest 75 ms); a peak
-  of 55 or more refuses the hop, since the server halves hp and sends the character to spawn over 60. The 5-point margin
-  covers the score carried from moves the client cannot see and walls that moved since the last check. **After
-  changing the profile, run `HopPenaltyRecorder` against the server's `precomputed_map_data.js`: no sample may read
-  under the server's penalty.** The server never sends the score, so each client keeps an estimate:
-  a landing raises it to the hop leg's `PathEdge.HopScore`, it decays as if the character kept moving, and
-  `SmartMoveAsync` seeds every route from it. A hop leg goes out as one unchecked move with no cancellation. Every move
-  goes through one locked emit, and a move a hop overtook is refused (callers re-plan): a move sent mid-hop is jailed,
-  and a stale one would walk back across.
+  bare-point move check, so its ground reaches the wall lines rather than the mesh's padded edge; a grid point counts
+  as ground when it is on the mesh or reached from just past the padding without crossing a line, and positions
+  truncate toward zero onto the grid as the server's `phash` does. A search takes a hop only with a known `WalkSpeed`,
+  and replays the server's in-motion penalty along it from the score the route carries (`PathOptions.HopScore` seeds
+  it; walks decay it at an assumed 83 ms update gap and round under 1 to 0, the replay assumes the fastest 75 ms); a
+  peak of 55 or more refuses the hop, since the server halves hp and sends the character to spawn over 60. **The score
+  crosses doors:** the server resets it only at login and after a penalty, and decays it only while moving. A walk
+  whose hops were checked from a score of 0 (the stored walks with hops, and the walks into an end) is taken only by a
+  route carrying none, else its walk without hops is; a walk out of the start that takes a hop keeps a copy without
+  hops the same way. The stored walks with hops are built at speed bands 40, 60, 90 and 200, keeping the best walk per
+  band, so a walk safe at 60 but not at 200 is kept; a search reads the highest band at or below its speed (40 below
+  that), and none above 200. Each such walk carries the slowest whole speed it holds at, compared against the
+  search's speed rounded down. The mesh search keeps one cost per vertex, so a walk that must loop between two hops to
+  let the score decay is never found. The 5-point margin covers the score carried from moves the client cannot see
+  and walls that moved since the last check. **After changing the profile, run `HopPenaltyRecorder` against the
+  server's `precomputed_map_data.js`: no sample may read under the server's penalty.** The server never sends the score,
+  so
+  each client keeps an estimate: a landing raises it to the hop leg's `PathEdge.HopScore`, it decays as if the
+  character kept moving, and `SmartMoveAsync` seeds every route from it. A hop leg goes out as one unchecked move with
+  no cancellation. Every move goes through one locked emit, and a move a hop overtook is refused (callers re-plan): a
+  move sent mid-hop is jailed, and a stale one would walk back across.
 
 `PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the
 `Exit`, and an `EdgeType.Hop` leg is a wall hop. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to
@@ -233,7 +247,7 @@ eyeball one, since no test asserts visually.
 
 **A daily-dungeon floor is not in G and never in the world graph.** The server generates a run's floors and streams them
 over `map_chunk`; `Pathfinder.RegisterGeneratedRun` files them into `GameData.Maps`/`Geometry` (copy-on-write, so
-readers need no lock), builds their meshes, and gives the run a portal graph of its own that a route starting on a floor
+readers need no lock), builds their meshes, and gives the run a graph of its own that a route starting on a floor
 uses. Nothing routes from the world into a run - the keeper pulls the party in over an `interaction` - so a `FindPath`
 from `main` to a floor finds nothing, by design. `GMap.Generated` is how to tell a floor from a map; a run's floors
 leave the tables two hours after a later run replaces them.

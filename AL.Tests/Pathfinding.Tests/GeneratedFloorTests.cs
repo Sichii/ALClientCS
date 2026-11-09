@@ -11,7 +11,7 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     A dungeon run's floors get meshes of their own the moment they arrive, and a portal graph of their own that joins
+///     A dungeon run's floors get meshes of their own the moment they arrive, and a graph of their own that joins
 ///     them through the stairs. The world graph never learns about a run: nothing walks into one, the party is pulled in
 ///     by the keeper, so a route only ever starts on a floor. Taking the run out drops its meshes, its graph and its map
 ///     records together.

@@ -5,9 +5,13 @@ using AL.Core.Geometry;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Represents everything a search writes to, held per thread so searches never share state and never allocate once
-///     warm.
+///     Represents everything a door search and a mesh walk measurement write to, held per thread so searches never share
+///     state and never allocate once warm.
 /// </summary>
+/// <remarks>
+///     The vertex fields, <see cref="Corridor" /> and <see cref="Polyline" /> serve only <see cref="HopBuilder" />'s
+///     funnel walk.
+/// </remarks>
 internal sealed class SearchScratch
 {
     [ThreadStatic]
@@ -26,18 +30,9 @@ internal sealed class SearchScratch
 
     public readonly PriorityQueue<int, float> LowerBoundQueue = new();
     public readonly List<Point> Polyline = [];
-    public readonly List<PortalGraph.Edge> SearchEdges = [];
+    public readonly List<DoorSearch.Edge> SearchEdges = [];
     public readonly List<int> VertexChain = [];
     public readonly PriorityQueue<int, float> VertexQueue = new();
-    public Point[] EndEntry = [];
-
-    /// <summary>
-    ///     The current search's ends, resolved onto their meshes; a null mesh is an end that resolved nowhere.
-    /// </summary>
-    public NavMesh?[] EndMesh = [];
-
-    public Reach[] EndReach = [];
-    public int[] EndTriangle = [];
 
     /// <summary>
     ///     A lower bound per node on the price still to pay to reach an end; infinite where no end can be reached.
@@ -49,7 +44,7 @@ internal sealed class SearchScratch
     /// </summary>
     public List<int>[] NodeArrivals = [];
 
-    private PortalGraph.Edge[] SearchEdgeBuffer = [];
+    private DoorSearch.Edge[] SearchEdgeBuffer = [];
 
     /// <summary>
     ///     Where each node's edges start in <see cref="SearchEdges" /> once <see cref="IndexSearchEdges" /> has sorted them.
@@ -64,7 +59,7 @@ internal sealed class SearchScratch
     public int[] VertexParent = [];
 
     /// <summary>
-    ///     Sorts <see cref="SearchEdges" /> by <see cref="PortalGraph.Edge.From" /> and fills <see cref="SearchEdgeStart" />.
+    ///     Sorts <see cref="SearchEdges" /> by <see cref="DoorSearch.Edge.From" /> and fills <see cref="SearchEdgeStart" />.
     ///     The sort is stable, so the edges out of one node are relaxed in the order they were added.
     /// </summary>
     /// <param name="nodes">The number of nodes in the search.</param>
@@ -73,7 +68,7 @@ internal sealed class SearchScratch
         var count = SearchEdges.Count;
 
         if (SearchEdgeBuffer.Length < count)
-            SearchEdgeBuffer = new PortalGraph.Edge[Math.Max(count, SearchEdgeBuffer.Length * 2)];
+            SearchEdgeBuffer = new DoorSearch.Edge[Math.Max(count, SearchEdgeBuffer.Length * 2)];
 
         Array.Clear(SearchEdgeStart, 0, nodes + 1);
 
@@ -114,19 +109,6 @@ internal sealed class SearchScratch
 
         Arrivals.Clear();
         ArrivalQueue.Clear();
-    }
-
-    public void ResetEnds(int ends)
-    {
-        if (EndMesh.Length < ends)
-        {
-            EndMesh = new NavMesh?[ends];
-            EndTriangle = new int[ends];
-            EndEntry = new Point[ends];
-            EndReach = new Reach[ends];
-        }
-
-        Array.Clear(EndMesh, 0, ends);
     }
 
     public void ResetNodes(int nodes)
@@ -197,7 +179,7 @@ internal sealed class SearchScratch
         public int Parent;
 
         /// <summary>
-        ///     The edge that made it: a static edge's index, or <see cref="PortalGraph" />'s static count plus a search edge's.
+        ///     The edge that made it: a static edge's index, or the <see cref="DoorSearch" />'s static count plus a search edge's.
         /// </summary>
         public int EdgeIndex;
 

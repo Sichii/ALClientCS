@@ -1,6 +1,7 @@
 #region
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Data.Maps;
 using AL.Pathfinding.Definitions;
 #endregion
 
@@ -51,7 +52,7 @@ internal sealed class HopBuilder
     ///     A speed above what a character reaches with strong gear and buffs; a hop that passes the server's limit even at it
     ///     is refused at every real speed, so it is not built.
     /// </summary>
-    private const float MAX_SPEED = 200f;
+    internal const float MAX_SPEED = 200f;
 
     /// <summary>
     ///     How much longer than a hop the way through a kept hop may be before the hop counts as adding nothing.
@@ -79,6 +80,16 @@ internal sealed class HopBuilder
         Pieces = LabelPieces(mesh.Mesh, out PieceCount);
         Edges = CollectEdgeVertices();
     }
+
+    /// <summary>
+    ///     Determines whether hops are built on a map: never where the server keeps no walkable area, on an instance, or on a
+    ///     generated floor, which puts a player back on the side of a wall they came from.
+    /// </summary>
+    /// <param name="map">The map's game data.</param>
+    /// <returns>
+    ///     <c>true</c> if the map may have hops; otherwise, <c>false</c>.
+    /// </returns>
+    internal static bool AllowsHops(GMap map) => map is { Boundless: false, Instance: false, Generated: null };
 
     /// <summary>
     ///     Finds the hops between every two pieces of a map's mesh that come within <see cref="MAX_HOP_LENGTH" /> of each

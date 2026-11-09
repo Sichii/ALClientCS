@@ -11,11 +11,16 @@ using AL.Pathfinding.Definitions;
 namespace AL.Pathfinding.Model;
 
 /// <summary>
-///     Represents one map's navigation: the exact wall test and the triangle mesh, with the per-map search over it. Every
-///     method is safe to call from any thread.
+///     Represents one map's ground: the exact wall test and the triangle mesh of walkable ground. Every method is safe to
+///     call from any thread.
 /// </summary>
 public sealed class NavMesh
 {
+    /// <summary>
+    ///     The lattice a blink's landing is rounded onto, and the step the server checks around it.
+    /// </summary>
+    private const float BLINK_LATTICE = 10f;
+
     private readonly int MaxX;
     private readonly int MaxY;
 
@@ -170,45 +175,6 @@ public sealed class NavMesh
         }
     }
 
-    private bool AreLegsClear(List<Point> polyline)
-    {
-        for (var i = 1; i < polyline.Count; i++)
-            if (!CanMove(polyline[i - 1], polyline[i]))
-                return false;
-
-        return true;
-    }
-
-    private void BuildMidpointPolyline(
-        List<int> corridor,
-        Point start,
-        Point end,
-        List<Point> polyline)
-    {
-        polyline.Clear();
-        polyline.Add(start);
-
-        for (var i = 0; i < (corridor.Count - 1); i++)
-        {
-            var from = corridor[i];
-            var to = corridor[i + 1];
-
-            for (var slot = 0; slot < 3; slot++)
-            {
-                if (Mesh.Neighbour(from, slot) != to)
-                    continue;
-
-                var a = Mesh.Vertices[Mesh.Corners[from * 3 + (slot + 1) % 3]];
-                var b = Mesh.Vertices[Mesh.Corners[from * 3 + (slot + 2) % 3]];
-                polyline.Add(new Point((a.X + b.X) / 2f, (a.Y + b.Y) / 2f));
-
-                break;
-            }
-        }
-
-        polyline.Add(end);
-    }
-
     /// <summary>Calculates the total length of a polyline.</summary>
     /// <param name="polyline">The polyline to measure.</param>
     /// <returns>The sum of its legs.</returns>
@@ -224,17 +190,14 @@ public sealed class NavMesh
     }
 
     /// <summary>
-    ///     Calculates the length of the walk <see cref="Search" /> found to an end, pulled and trimmed as the emitted walk is
-    ///     but not smoothed.
+    ///     Calculates the length of the walk <see cref="Search" /> found to an end, pulled through its corridor and cut where
+    ///     it first gets inside the reach.
     /// </summary>
     /// <param name="start">The search's start point.</param>
     /// <param name="triangle">The triangle holding the end.</param>
-    /// <param name="end">The entry the walk's end resolved to.</param>
+    /// <param name="end">The walk's end.</param>
     /// <param name="reach">Where the walk counts as arrived.</param>
     /// <param name="scratch">The calling thread's search state.</param>
-    /// <param name="reversed">
-    ///     Specifies whether the search ran from the far end.
-    /// </param>
     /// <returns>
     ///     The walk's length, or <see cref="float.MaxValue" /> when the triangle was never reached.
     /// </returns>
@@ -243,19 +206,104 @@ public sealed class NavMesh
         int triangle,
         Point end,
         in Reach reach,
-        SearchScratch scratch,
-        bool reversed = false)
-        => TryWalk(
+        SearchScratch scratch)
+    {
+        var polyline = scratch.Polyline;
+        polyline.Clear();
+
+        if ((triangle < 0) || !TryBuildCorridor(triangle, end, scratch))
+            return float.MaxValue;
+
+        Funnel.Pull(
+            Mesh,
+            CollectionsMarshal.AsSpan(scratch.Corridor),
             start,
-            triangle,
             end,
-            reach,
-            scratch,
-            scratch.Polyline,
-            reversed,
-            true)
-            ? CalculateLength(scratch.Polyline)
-            : float.MaxValue;
+            polyline);
+
+        TrimToReach(polyline, reach);
+
+        return CalculateLength(polyline);
+    }
+
+    /// <summary>
+    ///     Determines whether the server would land a blink aimed at a point: the lattice cell it rounds to and the eight
+    ///     around it must all be ground.
+    /// </summary>
+    /// <param name="x">The point's x.</param>
+    /// <param name="y">The point's y.</param>
+    /// <returns>
+    ///     <c>true</c> if the blink lands; otherwise, <c>false</c> .
+    /// </returns>
+    private bool CanLand(float x, float y)
+    {
+        var cellX = MathF.Round(x / BLINK_LATTICE) * BLINK_LATTICE;
+        var cellY = MathF.Round(y / BLINK_LATTICE) * BLINK_LATTICE;
+
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dy = -1; dy <= 1; dy++)
+                if (!IsWalkable(cellX + dx * BLINK_LATTICE, cellY + dy * BLINK_LATTICE))
+                    return false;
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Finds where a blink aimed at a point inside a reach is sent: the point, or the nearest lattice cell inside the
+    ///     reach that the server will land.
+    /// </summary>
+    /// <param name="reach">The reach the cast is aimed into.</param>
+    /// <param name="entry">The point the cast is aimed at.</param>
+    /// <returns>
+    ///     The landing point, or the entry when no cell in the reach takes one.
+    /// </returns>
+    /// <remarks>
+    ///     The server searches only three cells along the axes for a landing, so an entry on the edge of the ground can refuse
+    ///     every cast aimed at it.
+    /// </remarks>
+    internal Point FindBlinkLanding(Reach reach, Point entry)
+    {
+        //wide enough to cover a door's reach
+        const int BLINK_LANDING_RINGS = 12;
+
+        if (CanLand(entry.X, entry.Y))
+            return entry;
+
+        var originX = MathF.Round(entry.X / BLINK_LATTICE) * BLINK_LATTICE;
+        var originY = MathF.Round(entry.Y / BLINK_LATTICE) * BLINK_LATTICE;
+
+        for (var ring = 1; ring <= BLINK_LANDING_RINGS; ring++)
+            for (var dx = -ring; dx <= ring; dx++)
+                for (var dy = -ring; dy <= ring; dy++)
+                {
+                    if ((Math.Abs(dx) != ring) && (Math.Abs(dy) != ring))
+                        continue;
+
+                    var x = originX + dx * BLINK_LATTICE;
+                    var y = originY + dy * BLINK_LATTICE;
+
+                    if (reach.Contains(x, y) && CanLand(x, y))
+                        return new Point(x, y);
+                }
+
+        //nothing in the reach takes one, so the leg keeps the entry
+        return entry;
+    }
+
+    /// <summary>
+    ///     Finds where a blink aimed at a route's end is sent: the edge of the end's radius nearest the caster, pulled in by a
+    ///     lattice step so the server's rounding keeps it inside.
+    /// </summary>
+    /// <param name="end">The route's end.</param>
+    /// <param name="from">Where the caster stands.</param>
+    /// <returns>The landing point.</returns>
+    internal Point FindEndLanding(ICircle end, Point from)
+    {
+        var reach = Reach.CreateCircle(end.X, end.Y, Math.Max(0f, end.Radius - BLINK_LATTICE));
+        (var x, var y) = reach.FindNearestEdgePoint(from.X, from.Y);
+
+        return FindBlinkLanding(reach, new Point(x, y));
+    }
 
     /// <summary>
     ///     Determines whether a character can move in a straight line from start to end, by the server's own test.
@@ -332,31 +380,6 @@ public sealed class NavMesh
         entry = Mesh.Vertices[vertex];
 
         return Mesh.GetVertexTriangle(vertex);
-    }
-
-    /// <summary>
-    ///     Turns a pulled polyline into the emitted walk: reversed if asked, smoothed unless it is only a price, then cut
-    ///     where it first gets inside the reach.
-    /// </summary>
-    /// <param name="polyline">The pulled polyline, edited in place.</param>
-    /// <param name="reach">Where the walk counts as arrived.</param>
-    /// <param name="reversed">
-    ///     Specifies whether the search ran from the far end.
-    /// </param>
-    /// <param name="pricing">Specifies whether the polyline is only a price.</param>
-    private void Finish(
-        List<Point> polyline,
-        in Reach reach,
-        bool reversed,
-        bool pricing)
-    {
-        if (reversed)
-            polyline.Reverse();
-
-        if (!pricing)
-            Smooth(polyline);
-
-        TrimToReach(polyline, reach);
     }
 
     internal static bool IsSamePoint(Point a, Point b) => (MathF.Abs(a.X - b.X) < 0.001f) && (MathF.Abs(a.Y - b.Y) < 0.001f);
@@ -462,38 +485,6 @@ public sealed class NavMesh
                     + Mesh.Vertices[vertex]
                           .Distance(stopPoint));
         }
-    }
-
-    /// <summary>
-    ///     Collapses the polyline onto the fewest legs the move test accepts, scanning back from the end for the farthest
-    ///     vertex each one can reach in a straight line.
-    /// </summary>
-    /// <param name="polyline">The polyline, edited in place.</param>
-    private void Smooth(List<Point> polyline)
-    {
-        if (polyline.Count < 3)
-            return;
-
-        var kept = 1;
-
-        for (var i = 0; i < (polyline.Count - 1);)
-        {
-            var next = i + 1;
-
-            for (var j = polyline.Count - 1; j > next; j--)
-                if (CanMove(polyline[i], polyline[j]))
-                {
-                    next = j;
-
-                    break;
-                }
-
-            //compacts in place: the write index never passes the read index
-            polyline[kept++] = polyline[next];
-            i = next;
-        }
-
-        polyline.RemoveRange(kept, polyline.Count - kept);
     }
 
     /// <summary>
@@ -660,72 +651,4 @@ public sealed class NavMesh
         return false;
     }
 
-    /// <summary>
-    ///     Builds the walk <see cref="Search" /> found to an end, pulled, smoothed and trimmed to stop inside the reach.
-    /// </summary>
-    /// <param name="start">The search's start point.</param>
-    /// <param name="endTriangle">The triangle holding the end.</param>
-    /// <param name="end">The entry the walk's end resolved to.</param>
-    /// <param name="reach">Where the walk counts as arrived.</param>
-    /// <param name="scratch">The calling thread's search state.</param>
-    /// <param name="polyline">
-    ///     The list the walk is written into; empty when the start is already inside the reach.
-    /// </param>
-    /// <param name="reversed">
-    ///     Specifies whether the search ran from the far end, which flips the polyline first.
-    /// </param>
-    /// <param name="pricing">
-    ///     Specifies whether the walk is only a price, which skips the smoothing and the leg check.
-    /// </param>
-    /// <returns>
-    ///     <c>true</c> if the end was reached; otherwise, <c>false</c> .
-    /// </returns>
-    internal bool TryWalk(
-        Point start,
-        int endTriangle,
-        Point end,
-        in Reach reach,
-        SearchScratch scratch,
-        List<Point> polyline,
-        bool reversed = false,
-        bool pricing = false)
-    {
-        polyline.Clear();
-
-        if ((endTriangle < 0) || !TryBuildCorridor(endTriangle, end, scratch))
-            return false;
-
-        var corridor = scratch.Corridor;
-
-        Funnel.Pull(
-            Mesh,
-            CollectionsMarshal.AsSpan(corridor),
-            start,
-            end,
-            polyline);
-
-        Finish(
-            polyline,
-            reach,
-            reversed,
-            pricing);
-
-        //a leg fails only on a malformed corridor; a leg between two portal midpoints of one triangle cannot leave it
-        if (pricing || AreLegsClear(polyline))
-            return true;
-
-        BuildMidpointPolyline(
-            corridor,
-            start,
-            end,
-            polyline);
-
-        Finish(
-            polyline,
-            reach,
-            reversed,
-            pricing);
-
-        return true;
-    }
 }

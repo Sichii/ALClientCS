@@ -1,6 +1,7 @@
 #region
 using AL.Core.Extensions;
 using AL.Core.Geometry;
+using AL.Core.Interfaces;
 using AL.Data;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
@@ -12,6 +13,125 @@ namespace AL.Tests.Pathfinding.Tests;
 
 public class FindPathTests : PathfindingTestBed
 {
+    private static readonly Destination FAR_RIGHT_OF_MAIN = new(new Location("main", 1937f, -12f), 0f);
+
+    /// <summary>
+    ///     The far right of main back to its town spawn, at a slow speed: the recall is taken, priced at the speed's three
+    ///     seconds of walking times the premium, and turning recall off removes it.
+    /// </summary>
+    [Test]
+    public void ARecallIsPricedAtTheCharactersSpeed()
+    {
+        const float SPEED = 30f;
+
+        var spawn = GameData.Maps.Main.Spawns[0];
+        var home = new Destination(new Location("main", spawn.X, spawn.Y), 0f);
+
+        Pathfinder.FindPath(
+                      FAR_RIGHT_OF_MAIN,
+                      [home],
+                      new PathOptions
+                      {
+                          WalkSpeed = SPEED
+                      })
+                  .Should()
+                  .ContainSingle(edge => edge.Type == EdgeType.Town)
+                  .Which
+                  .Cost
+                  .Should()
+                  .Be(3f * SPEED * CONSTANTS.TOWN_RISK_PREMIUM);
+
+        Pathfinder.FindPath(
+                      FAR_RIGHT_OF_MAIN,
+                      [home],
+                      new PathOptions
+                      {
+                          WalkSpeed = SPEED,
+                          UseTown = false
+                      })
+                  .Should()
+                  .NotBeEmpty()
+                  .And
+                  .NotContain(edge => edge.Type == EdgeType.Town);
+    }
+
+    [Test]
+    public void AStartInsideOneOfSeveralEndsIsOneZeroCostLeg()
+    {
+        var at = new Location("main", 0, 0);
+
+        var leg = Pathfinder.FindPath(
+                                at,
+                                [
+                                    FAR_RIGHT_OF_MAIN,
+                                    new Destination(new Location("main", 10, 0), 20f)
+                                ])
+                            .Should()
+                            .ContainSingle()
+                            .Subject;
+
+        leg.Type
+           .Should()
+           .Be(EdgeType.Walk);
+
+        leg.Cost
+           .Should()
+           .Be(0f);
+
+        ILocation.Comparer
+                 .Equals(leg.End, at)
+                 .Should()
+                 .BeTrue();
+    }
+
+    [Test]
+    public void AStartEqualToAnEndOfRadiusZeroIsOneZeroCostLeg()
+    {
+        var at = new Location("main", 0, 0);
+
+        var leg = Pathfinder.FindPath(at, [new Destination(at, 0f)])
+                            .Should()
+                            .ContainSingle()
+                            .Subject;
+
+        leg.Cost
+           .Should()
+           .Be(0f);
+
+        ILocation.Comparer
+                 .Equals(leg.End, at)
+                 .Should()
+                 .BeTrue();
+    }
+
+    [Test]
+    public void AStartOnAWallStepsOntoWalkableGroundFirst()
+    {
+        var lines = GameData.Geometry["main"]!.VerticalLines;
+        var line = lines[lines.Count / 2];
+        var start = new Location("main", line.Point1.X, (line.Point1.Y + line.Point2.Y) / 2f);
+        var spawn = GameData.Maps.Main.Spawns[0];
+
+        var path = Pathfinder.FindPath(start, [new Destination(new Location("main", spawn.X, spawn.Y), 0f)]);
+
+        path.Should()
+            .HaveCountGreaterThan(1);
+
+        path[0]
+            .Type
+            .Should()
+            .Be(EdgeType.Walk);
+
+        Pathfinder.IsWalkable(path[0].End)
+                  .Should()
+                  .BeTrue();
+
+        ILocation.Comparer
+                 .Equals(path[1].Start, path[0].End)
+                 .Should()
+                 .BeTrue();
+    }
+
     /// <summary>
     ///     A start that already satisfies the end still yields one leg, so a caller that takes the last leg as its arrival
     ///     finds where it stands there, and the leg walks nowhere: exactly on the end, and inside its radius.

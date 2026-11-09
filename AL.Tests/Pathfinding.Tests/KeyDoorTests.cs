@@ -9,7 +9,7 @@ using FluentAssertions;
 namespace AL.Tests.Pathfinding.Tests;
 
 /// <summary>
-///     Holds the four key-locked dungeon doors out of the portal graph. A dungeon is entered with the <c>enter</c> emit
+///     Holds the four key-locked dungeon doors out of the door table. A dungeon is entered with the <c>enter</c> emit
 ///     and a key; a transport through one of these doors answers <c>cant_enter</c> (node/server.js:5642).
 /// </summary>
 public class KeyDoorTests : PathfindingTestBed

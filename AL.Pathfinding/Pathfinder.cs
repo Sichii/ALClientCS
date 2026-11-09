@@ -39,11 +39,21 @@ public static class Pathfinder
     //ponytail: a run is dropped when a later run arrives this long after it. Nothing here knows when the last
     //character in the process has left a run, so a run outlives its 24 minutes by this margin at most
     private static readonly TimeSpan RUN_LIFETIME = TimeSpan.FromHours(2);
-    private static IReadOnlyDictionary<string, NavMesh> Meshes = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
-    private static PortalGraph? Graph;
 
-    private static IReadOnlyDictionary<string, (PortalGraph Graph, DateTime RegisteredAt)> RunGraphs
-        = new Dictionary<string, (PortalGraph, DateTime)>(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    ///     The world's graph, with wall hops built in; a search takes them only when <see cref="PathOptions.UseHops" /> is
+    ///     set.
+    /// </summary>
+    internal static DirectedGraph? Graph { get; private set; }
+
+    /// <summary>
+    ///     Every map's ground, the world's and every registered run's floors.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, NavMesh> Meshes { get; private set; }
+        = new Dictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
+
+    private static IReadOnlyDictionary<string, (DirectedGraph Graph, DateTime RegisteredAt)> RunGraphs
+        = new Dictionary<string, (DirectedGraph, DateTime)>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Determines whether a character can move in a straight line from start to end on a map, by the server's own test.
@@ -117,6 +127,7 @@ public static class Pathfinder
     /// <returns>The route's legs.</returns>
     /// <exception cref="System.ArgumentNullException">start</exception>
     /// <exception cref="System.ArgumentNullException">ends</exception>
+    /// <exception cref="System.ArgumentException">ends is empty.</exception>
     /// <exception cref="InvalidOperationException">
     ///     Pathfinding is not initialized, or no end can be reached.
     /// </exception>
@@ -128,7 +139,8 @@ public static class Pathfinder
         ArgumentNullException.ThrowIfNull(ends);
 
         return GetGraph(start.Map)
-            .FindPath(start, ends, options ?? PathOptions.Default);
+               .FindPath(start, ends, options ?? PathOptions.Default)
+               .ConvertAll(edge => edge.ToPathEdge());
     }
 
     /// <inheritdoc cref="FindPath{T}" />
@@ -150,9 +162,9 @@ public static class Pathfinder
     ///     Gets the graph a search starting on a map routes over: a run's own on its floors, the world's everywhere else.
     /// </summary>
     /// <param name="map">The map the search starts on.</param>
-    /// <returns>The portal graph.</returns>
+    /// <returns>The graph.</returns>
     /// <exception cref="InvalidOperationException"><see cref="Initialize" /> has not run.</exception>
-    private static PortalGraph GetGraph(string map)
+    private static DirectedGraph GetGraph(string map)
     {
         // ReSharper disable once InconsistentlySynchronizedField
         if (GameData.Maps[map]?.Generated is { } generated && RunGraphs.TryGetValue(generated.Run, out var run))
@@ -173,13 +185,9 @@ public static class Pathfinder
     public static NavMesh? GetNavMesh(string? name) => name is not null && Meshes.TryGetValue(name, out var mesh) ? mesh : null;
 
     /// <summary>
-    ///     Builds every map's mesh and the portal graph between them. CPU-heavy; several hundred milliseconds.
+    ///     Builds every map's mesh, then the graph between them with wall hops built in. CPU-heavy.
     /// </summary>
-    /// <param name="cheat">
-    ///     Specifies whether the graph includes hops: straight moves across walls or water, between pieces of
-    ///     ground no walk joins or where the walk around is long.
-    /// </param>
-    public static void Initialize(bool cheat = false)
+    public static void Initialize()
     {
         var built = new ConcurrentDictionary<string, NavMesh>(StringComparer.OrdinalIgnoreCase);
 
@@ -208,7 +216,7 @@ public static class Pathfinder
             });
 
         Meshes = new Dictionary<string, NavMesh>(built, StringComparer.OrdinalIgnoreCase);
-        Graph = new PortalGraph(Meshes, cheat);
+        Graph = new DirectedGraph(Meshes, true);
 
         timer.Stop();
         Logger.Info($"Prepared maps in {timer.ElapsedMilliseconds}ms");
@@ -250,7 +258,7 @@ public static class Pathfinder
     }
 
     /// <summary>
-    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own portal graph.
+    ///     Files a dungeon run's floors into the game data and builds their meshes and the run's own graph.
     /// </summary>
     /// <param name="bundle">The run's floors as the server sent them.</param>
     /// <exception cref="System.ArgumentNullException">bundle</exception>
@@ -292,9 +300,9 @@ public static class Pathfinder
 
             Meshes = meshes;
 
-            RunGraphs = new Dictionary<string, (PortalGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase)
+            RunGraphs = new Dictionary<string, (DirectedGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase)
             {
-                [bundle.Run] = (new PortalGraph(runMeshes), registeredAt)
+                [bundle.Run] = (new DirectedGraph(runMeshes, false), registeredAt)
             };
         }
     }
@@ -352,7 +360,7 @@ public static class Pathfinder
             foreach (var map in GetFloors(run))
                 meshes.Remove(map.Accessor);
 
-            var graphs = new Dictionary<string, (PortalGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase);
+            var graphs = new Dictionary<string, (DirectedGraph, DateTime)>(RunGraphs, StringComparer.OrdinalIgnoreCase);
             graphs.Remove(run);
 
             Meshes = meshes;

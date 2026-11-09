@@ -115,26 +115,254 @@ public readonly struct Reach
         if (!Contains(x1, y1))
             return false;
 
-        var outside = 0f;
-        var inside = 1f;
-
-        //the reach is convex, so one crossing lies between an outside start and an inside end
-        //24 halvings of a leg under 16k units is under a thousandth of a unit
-        for (var i = 0; i < 24; i++)
+        //an end inside always has an entry; a segment grazing the edge can miss it by rounding, so it enters at the end
+        if (!TryFindFirstEntry(
+                x0,
+                y0,
+                x1,
+                y1,
+                out entryX,
+                out entryY))
         {
-            var mid = (outside + inside) / 2f;
-            var midX = x0 + (x1 - x0) * mid;
-            var midY = y0 + (y1 - y0) * mid;
-
-            if (Contains(midX, midY))
-                inside = mid;
-            else
-                outside = mid;
+            entryX = x1;
+            entryY = y1;
         }
 
-        entryX = x0 + (x1 - x0) * inside;
-        entryY = y0 + (y1 - y0) * inside;
-
         return true;
+    }
+
+    /// <summary>
+    ///     Finds the first point along a segment that lies inside the reach, wherever the segment ends.
+    /// </summary>
+    /// <param name="x0">The segment start's x.</param>
+    /// <param name="y0">The segment start's y.</param>
+    /// <param name="x1">The segment end's x.</param>
+    /// <param name="y1">The segment end's y.</param>
+    /// <param name="entryX">
+    ///     The entry point's x, or the start's when the segment never enters.
+    /// </param>
+    /// <param name="entryY">
+    ///     The entry point's y, or the start's when the segment never enters.
+    /// </param>
+    /// <returns>
+    ///     <c>true</c> if the segment has a point that tests inside the reach; otherwise, <c>false</c> .
+    /// </returns>
+    /// <remarks>
+    ///     Exact rather than searched: the reach is the band widened by the range on x, the band widened by it on y, and a
+    ///     circle of the range on each corner, and the entry is the earliest of the segment's entries into those six.
+    /// </remarks>
+    public bool TryFindFirstEntry(
+        float x0,
+        float y0,
+        float x1,
+        float y1,
+        out float entryX,
+        out float entryY)
+    {
+        entryX = x0;
+        entryY = y0;
+
+        if (Contains(x0, y0))
+            return true;
+
+        double dx = x1 - x0;
+        double dy = y1 - y0;
+        double range = Range;
+        var band = Band;
+
+        var t = CalculateRectangleEntry(
+            band.Left - range,
+            band.Top,
+            band.Right + range,
+            band.Bottom,
+            x0,
+            y0,
+            dx,
+            dy);
+
+        t = Math.Min(
+            t,
+            CalculateRectangleEntry(
+                band.Left,
+                band.Top - range,
+                band.Right,
+                band.Bottom + range,
+                x0,
+                y0,
+                dx,
+                dy));
+
+        t = Math.Min(
+            t,
+            CalculateCircleEntry(
+                band.Left - x0,
+                band.Top - y0,
+                range,
+                dx,
+                dy));
+
+        t = Math.Min(
+            t,
+            CalculateCircleEntry(
+                band.Right - x0,
+                band.Top - y0,
+                range,
+                dx,
+                dy));
+
+        t = Math.Min(
+            t,
+            CalculateCircleEntry(
+                band.Left - x0,
+                band.Bottom - y0,
+                range,
+                dx,
+                dy));
+
+        t = Math.Min(
+            t,
+            CalculateCircleEntry(
+                band.Right - x0,
+                band.Bottom - y0,
+                range,
+                dx,
+                dy));
+
+        if (t > 1)
+            return false;
+
+        entryX = (float)(x0 + dx * t);
+        entryY = (float)(y0 + dy * t);
+
+        //the exact entry can round to just outside; step in from a hundred-thousandth of a unit, doubling, until it
+        //tests inside. A graze that never does is no entry
+        var step = 1e-5 / Math.Sqrt(dx * dx + dy * dy);
+
+        for (var i = 0; (i < 12) && !Contains(entryX, entryY); i++, step *= 2)
+        {
+            var nudged = Math.Min(1, t + step);
+            var nx = nudged < 1 ? (float)(x0 + dx * nudged) : x1;
+            var ny = nudged < 1 ? (float)(y0 + dy * nudged) : y1;
+
+            if (!Contains(nx, ny))
+                continue;
+
+            entryX = nx;
+            entryY = ny;
+        }
+
+        if (Contains(entryX, entryY))
+            return true;
+
+        entryX = x0;
+        entryY = y0;
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Calculates where a segment from outside first enters a circle, as a fraction of the segment.
+    /// </summary>
+    /// <param name="cx">
+    ///     The circle centre's x, relative to the segment start.
+    /// </param>
+    /// <param name="cy">
+    ///     The circle centre's y, relative to the segment start.
+    /// </param>
+    /// <param name="radius">The circle's radius.</param>
+    /// <param name="dx">The segment's x extent.</param>
+    /// <param name="dy">The segment's y extent.</param>
+    /// <returns>
+    ///     The entry fraction, or <see cref="double.MaxValue" /> when the segment misses.
+    /// </returns>
+    private static double CalculateCircleEntry(
+        double cx,
+        double cy,
+        double radius,
+        double dx,
+        double dy)
+    {
+        var a = dx * dx + dy * dy;
+
+        if (a <= 0)
+            return double.MaxValue;
+
+        var b = dx * cx + dy * cy;
+        var c = cx * cx + cy * cy - radius * radius;
+        var discriminant = b * b - a * c;
+
+        if (discriminant < 0)
+            return double.MaxValue;
+
+        var t = (b - Math.Sqrt(discriminant)) / a;
+
+        return t is >= 0 and <= 1 ? t : double.MaxValue;
+    }
+
+    /// <summary>
+    ///     Calculates where a segment from outside first enters a rectangle, as a fraction of the segment, by clipping it
+    ///     against each pair of sides in turn.
+    /// </summary>
+    /// <param name="left">The rectangle's least x.</param>
+    /// <param name="top">The rectangle's least y.</param>
+    /// <param name="right">The rectangle's greatest x.</param>
+    /// <param name="bottom">The rectangle's greatest y.</param>
+    /// <param name="x0">The segment start's x.</param>
+    /// <param name="y0">The segment start's y.</param>
+    /// <param name="dx">The segment's x extent.</param>
+    /// <param name="dy">The segment's y extent.</param>
+    /// <returns>
+    ///     The entry fraction, or <see cref="double.MaxValue" /> when the segment misses.
+    /// </returns>
+    private static double CalculateRectangleEntry(
+        double left,
+        double top,
+        double right,
+        double bottom,
+        double x0,
+        double y0,
+        double dx,
+        double dy)
+    {
+        var enter = 0d;
+        var leave = 1d;
+
+        if (!ClipSlab(
+                left - x0,
+                right - x0,
+                dx,
+                ref enter,
+                ref leave)
+            || !ClipSlab(
+                top - y0,
+                bottom - y0,
+                dy,
+                ref enter,
+                ref leave))
+            return double.MaxValue;
+
+        return enter;
+
+        static bool ClipSlab(
+            double low,
+            double high,
+            double d,
+            ref double enter,
+            ref double leave)
+        {
+            if (d == 0)
+                return (low <= 0) && (high >= 0);
+
+            var t0 = low / d;
+            var t1 = high / d;
+
+            if (t0 > t1)
+                (t0, t1) = (t1, t0);
+
+            enter = Math.Max(enter, t0);
+            leave = Math.Min(leave, t1);
+
+            return enter <= leave;
+        }
     }
 }
