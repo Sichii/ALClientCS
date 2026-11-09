@@ -223,6 +223,28 @@ public class EntityMergeTests
     }
 
     [Test]
+    public void BackfilledSpeedResetsAChargingMonster()
+    {
+        //a chasing monster moves at its charge; once it drops its target the server omits speed, meaning the def again
+        var live = TestJson.Socket<Monster>(
+            @"{ ""id"":""ent1"", ""type"":""ent"", ""x"":10, ""y"":20, ""speed"":48, ""target"":""merchant"" }");
+        var scared = TestJson.Socket<Monster>(@"{ ""id"":""ent1"", ""type"":""ent"", ""x"":12, ""y"":20 }");
+
+        live.Should()
+            .NotBeNull();
+
+        scared.Should()
+              .NotBeNull();
+
+        scared.BackfillSoftDefault(EntityUpdateField.Speed, 12);
+        live.Update(scared);
+
+        live.Speed
+            .Should()
+            .Be(12f);
+    }
+
+    [Test]
     public void PresentFieldsRecordsExactlyTheKeysTheFrameCarried()
     {
         const string FULL

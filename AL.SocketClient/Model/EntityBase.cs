@@ -368,6 +368,7 @@ public abstract class EntityBase : AttributedObjectBase,
 
     /// <summary>
     ///     Seeds a soft property from its game-data default, unless the frame this entity was deserialized from carried it.
+    ///     The field then counts as carried, so <see cref="Update(EntityBase)" /> resets a live entity to the default.
     /// </summary>
     /// <param name="field">The soft property.</param>
     /// <param name="value">Its game-data default.</param>
@@ -431,6 +432,8 @@ public abstract class EntityBase : AttributedObjectBase,
 
                 break;
         }
+
+        PresentFields |= field;
     }
 
     public void CorrectAndCompensate(IPoint point, TimeSpan offset)

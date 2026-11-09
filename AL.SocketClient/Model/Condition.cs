@@ -29,7 +29,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     Lone Wolf carries none, because it ends when a second character logs in rather than on a clock.
     /// </remarks>
     [JsonPropertyName("expires")]
-    public long? Expires { get; init; }
+    public double? Expires { get; init; }
 
     /// <summary>
     ///     If populated, this encouragement bonus's share of the gold multiplier.
@@ -96,7 +96,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     If populated, the Unix time in milliseconds at which the New Player bonus drops to its next <see cref="Phase" /> .
     /// </summary>
     [JsonPropertyName("phase_ends")]
-    public long? PhaseEnds { get; init; }
+    public double? PhaseEnds { get; init; }
 
     /// <summary>
     ///     If populated, the points the server credits this character with on a coop boss: its accumulated damage and healing,
@@ -173,7 +173,7 @@ public sealed record Condition : AttributedRecordBase, IPingCompensated, IDeltaU
     ///     not clear it.
     /// </remarks>
     [JsonPropertyName("until")]
-    public long? Until { get; init; }
+    public double? Until { get; init; }
 
     /// <summary>
     ///     If populated, this encouragement bonus's share of the experience multiplier.

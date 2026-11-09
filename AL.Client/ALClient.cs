@@ -6471,13 +6471,14 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             monster.UpdateMap(@in, map);
             monster.CompensateOnce(PingManager.LowPercentileOffset);
 
+            //every frame is a full packet that omits each soft property equal to its def, so an omitted one is back at
+            //its def: a scared monster's speed drops from charge to speed without the frame naming it
+            monster.BackfillSoftDefaults();
+
             if (Monsters.TryGetValue(monster.Id, out var existingMonster))
                 existingMonster.Update(monster);
             else
             {
-                //a freshly-sighted monster carries only the soft properties that differ from its def; fill the rest
-                monster.BackfillSoftDefaults();
-
                 var monsterData = monster.GetData();
 
                 monster.SetBoundingBase(monsterData.BoundingBase);

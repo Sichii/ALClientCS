@@ -261,6 +261,25 @@ public class ToleranceTests
     }
 
     [Test]
+    public void EncouragementExpiresMayBeFractional()
+    {
+        const string ENTITY = @"{
+   ""id"":""Zeldrus"",
+   ""s"":{ ""encouragement_returning"":{ ""gold_multiplier"":3, ""xp_multiplier"":3, ""luck_multiplier"":3, ""expires"":1798641750840.5, ""ms"":4388506617.5 } }
+}";
+
+        var obj = TestJson.Socket<Player>(ENTITY);
+
+        obj.Should()
+           .NotBeNull();
+
+        obj.Conditions[Condition.EncouragementReturning]
+           .Expires
+           .Should()
+           .Be(1798641750840.5);
+    }
+
+    [Test]
     public void UnknownGameResponseCodeDegradesToUnknown()
     {
         var fromObject = TestJson.Socket<GameResponseData>(@"{ ""response"":""not_a_real_code_at_all"" }");
