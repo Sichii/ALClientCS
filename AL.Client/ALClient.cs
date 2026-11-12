@@ -100,6 +100,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private readonly FifoAutoReleasingSemaphoreSlim Sync = new(1, 1);
 
     /// <summary>
+    ///     The doors passed to <see cref="InitializeAsync" /> as unlocked for this account.
+    /// </summary>
+    public static IReadOnlyList<ILocation> UnlockedDoors { get; private set; } = [];
+
+    /// <summary>
     ///     This will be populated and persist after the first time this character enters the bank.
     /// </summary>
     public BankInfo? Bank { get; private set; }
@@ -6412,14 +6417,15 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         await Task.WhenAll(tasks);
 
-        if (unlockedDoors != null)
-            foreach (var doorLoc in unlockedDoors)
-            {
-                var gMap = GameData.Maps[doorLoc.Map];
-                var door = gMap!.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, doorLoc));
+        UnlockedDoors = unlockedDoors?.ToList() ?? [];
 
-                door?.Unlock();
-            }
+        foreach (var doorLoc in UnlockedDoors)
+        {
+            var gMap = GameData.Maps[doorLoc.Map];
+            var door = gMap!.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, doorLoc));
+
+            door?.Unlock();
+        }
 
         Pathfinder.Initialize();
     }
