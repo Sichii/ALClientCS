@@ -26,9 +26,15 @@ public sealed class PingManager : AsyncDeltaLoop
     private const double HIGH_OFFSET_PERCENTILE = 95d;
 
     /// <summary>
-    ///     The number of pings the window holds, the last 200 seconds at one every 4 seconds.
+    ///     The number of pings the window holds, the last 400 seconds at one every 4 seconds.
     /// </summary>
-    private const int WINDOW_SIZE = 50;
+    private const int WINDOW_SIZE = 100;
+
+    /// <summary>
+    ///     Whether the next tick is skipped. Ticks come every 2 seconds, so a full window pings on every other one and an
+    ///     unfilled window fills twice as fast.
+    /// </summary>
+    private bool SkipTick;
 
     public long PingCount;
 
@@ -43,12 +49,26 @@ public sealed class PingManager : AsyncDeltaLoop
 
     /// <summary>
     ///     A fast round trip for this connection: the <see cref="OFFSET_PERCENTILE" />th percentile of the window, or 100ms
-    ///     until the first ping lands. Entity positions, cooldown compensation and the correction grace all scale off it.
+    ///     until the first ping lands. Entity positions and the correction grace scale off it.
     /// </summary>
     /// <remarks>
     ///     Below 21 samples the nearest rank is index 0, so a partly filled window reads as its minimum.
     /// </remarks>
     internal TimeSpan LowPercentileOffset
+    {
+        get => field == TimeSpan.Zero ? UNMEASURED_FLOOR : field;
+
+        private set;
+    }
+
+    /// <summary>
+    ///     The fastest round trip in the window, or 100ms until the first ping lands. Cooldowns count it as already gone.
+    /// </summary>
+    /// <remarks>
+    ///     A refused cast costs a whole round trip and a late one only its lateness, so cooldowns take the least time lost
+    ///     from the minimum rather than a percentile.
+    /// </remarks>
+    internal TimeSpan MinimumOffset
     {
         get => field == TimeSpan.Zero ? UNMEASURED_FLOOR : field;
 
@@ -73,7 +93,7 @@ public sealed class PingManager : AsyncDeltaLoop
     public TimeSpan Jitter => HighPercentileOffset - LowPercentileOffset;
 
     // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
-    protected override float PollingRate { get; } = 1f / 4f; //once per 4 seconds
+    protected override float PollingRate { get; } = 1f / 2f; //once per 2 seconds
 
     internal PingManager(ALClient client)
         : base(client) { }
@@ -107,6 +127,14 @@ public sealed class PingManager : AsyncDeltaLoop
 
     protected override async Task DoWorkAsync(TimeSpan delta, CancellationToken cancellationToken)
     {
+        if (History.Count == WINDOW_SIZE)
+        {
+            SkipTick = !SkipTick;
+
+            if (SkipTick)
+                return;
+        }
+
         var ts = Stopwatch.GetTimestamp();
         await Client.PingAsync(Interlocked.Increment(ref PingCount));
         var elapsed = Stopwatch.GetElapsedTime(ts);
@@ -117,6 +145,7 @@ public sealed class PingManager : AsyncDeltaLoop
             elapsed
         ];
 
+        MinimumOffset = CalculatePercentile(History, 0d);
         LowPercentileOffset = CalculatePercentile(History, OFFSET_PERCENTILE);
         HighPercentileOffset = CalculatePercentile(History, HIGH_OFFSET_PERCENTILE);
     }

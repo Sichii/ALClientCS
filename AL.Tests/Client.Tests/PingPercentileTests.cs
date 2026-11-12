@@ -7,7 +7,7 @@ namespace AL.Tests.Client.Tests;
 
 /// <summary>
 ///     What the ping window reads as at a percentile. Entity position compensation is scaled by the 5th, and the reason it
-///     is not the minimum is that one freak-fast round trip pins a minimum for the window's whole 200 seconds - so the
+///     is not the minimum is that one freak-fast round trip pins a minimum for the window's whole 400 seconds - so the
 ///     last test here is the point of that choice rather than a corner case.
 /// </summary>
 public class PingPercentileTests

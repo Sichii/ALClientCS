@@ -270,20 +270,20 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public bool HasComputer => Character.Inventory.ContainsItem("computer") || Character.Inventory.ContainsItem("supercomputer");
 
     /// <summary>
-    ///     A fast socket round trip for this connection: the 5th percentile of the last fifty pings, floored at 100ms until
+    ///     A fast socket round trip for this connection: the 5th percentile of the last hundred pings, floored at 100ms until
     ///     the first one lands.
     /// </summary>
     public TimeSpan LowPercentileRoundTrip => PingManager.LowPercentileOffset;
 
     /// <summary>
-    ///     A slow socket round trip for this connection: the 95th percentile of the last fifty pings, floored at 100ms until
+    ///     A slow socket round trip for this connection: the 95th percentile of the last hundred pings, floored at 100ms until
     ///     the first one lands.
     /// </summary>
     public TimeSpan HighPercentileRoundTrip => PingManager.HighPercentileOffset;
 
     /// <summary>
-    ///     The socket round trips this connection measured over the last 200 seconds, one every 4 seconds, oldest first. Empty
-    ///     until the first ping lands.
+    ///     The last hundred socket round trips this connection measured, one every 4 seconds (every 2 until there are a
+    ///     hundred), oldest first. Empty until the first ping lands.
     /// </summary>
     /// <remarks>
     ///     <see cref="PingManager.CalculatePercentile" /> reads any percentile off it.
@@ -6090,7 +6090,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //the name is already resolved to the shared skill and the ms already multiplied, so this must not
         //go through SetCooldown. the attack_ms correction can be negative, which the browser clamps to 0.
         var cooldownInfo = new CooldownInfo(Math.Max(0f, timeoutMs));
-        cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
+        cooldownInfo.CompensateOnce(PingManager.MinimumOffset);
 
         //the server resolves share before it emits but never the group, so use_hp is the whole potion set
         var cooldownKey = GameData.Skills[data.SkillName]
@@ -6457,7 +6457,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
                 cooldownMs ??= data.CooldownMS;
 
             var cooldownInfo = new CooldownInfo(cooldownMs.Value * cooldownMultiplier);
-            cooldownInfo.CompensateOnce(PingManager.LowPercentileOffset);
+            cooldownInfo.CompensateOnce(PingManager.MinimumOffset);
 
             Cooldowns.AddOrUpdate(cooldownKey, cooldownInfo, (_, _) => cooldownInfo);
         }

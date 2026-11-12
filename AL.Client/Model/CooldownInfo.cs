@@ -47,7 +47,7 @@ public sealed class CooldownInfo : IPingCompensated, IDeltaUpdatable
 
         IsCompensated = true;
 
-        //a 5th-percentile round trip with no margin: the server keeps no grace, so a quicker leg is refused
+        //the fastest round trip with no margin: the server keeps no grace, so a quicker pair of legs is refused
         Offset += offset;
     }
 
