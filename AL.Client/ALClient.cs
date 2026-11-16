@@ -23,6 +23,7 @@ using AL.Core.Geometry;
 using AL.Core.Helpers;
 using AL.Core.Interfaces;
 using AL.Data;
+using AL.Data.Maps;
 using AL.Pathfinding;
 using AL.Pathfinding.Definitions;
 using AL.Pathfinding.Model;
@@ -100,9 +101,9 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     private readonly FifoAutoReleasingSemaphoreSlim Sync = new(1, 1);
 
     /// <summary>
-    ///     The doors passed to <see cref="InitializeAsync" /> as unlocked for this account.
+    ///     The bank maps passed to <see cref="InitializeAsync" /> as unlocked for this account.
     /// </summary>
-    public static IReadOnlyList<ILocation> UnlockedDoors { get; private set; } = [];
+    public static IReadOnlyList<string> UnlockedMaps { get; private set; } = [];
 
     /// <summary>
     ///     This will be populated and persist after the first time this character enters the bank.
@@ -6399,10 +6400,11 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     /// <summary>
     ///     Serializes game data, initializes caches and pathfinding
     /// </summary>
-    /// <param name="unlockedDoors">
-    ///     Doors to unlock before the pathfinder is built.
+    /// <param name="unlockedMaps">
+    ///     The bank maps this account has unlocked, <c>bank_b</c> and <c>bank_u</c>. Their doors are unlocked before the
+    ///     pathfinder is built.
     /// </param>
-    public static async Task InitializeAsync(IEnumerable<ILocation>? unlockedDoors = null)
+    public static async Task InitializeAsync(IEnumerable<string>? unlockedMaps = null)
     {
         var tasks = new List<Task>
         {
@@ -6417,17 +6419,47 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
 
         await Task.WhenAll(tasks);
 
-        UnlockedDoors = unlockedDoors?.ToList() ?? [];
+        UnlockedMaps = unlockedMaps?.ToList() ?? [];
 
-        foreach (var doorLoc in UnlockedDoors)
-        {
-            var gMap = GameData.Maps[doorLoc.Map];
-            var door = gMap!.Doors.FirstOrDefault(d => IPoint.Comparer.Equals(d, doorLoc));
-
-            door?.Unlock();
-        }
+        foreach (var gMap in GameData.Maps.Values)
+            foreach (var door in gMap.Doors)
+                if (CanPassDoor(gMap, door, UnlockedMaps))
+                    door.Unlock();
 
         Pathfinder.Initialize();
+    }
+
+    /// <summary>
+    ///     Determines whether an account can pass a bank door the game data marks as locked.
+    /// </summary>
+    /// <param name="fromMap">The map the door is on.</param>
+    /// <param name="door">The door.</param>
+    /// <param name="unlockedMaps">The bank maps the account has unlocked.</param>
+    /// <returns>
+    ///     true if the door is account locked and the server lets this account through; otherwise, false.
+    /// </returns>
+    /// <remarks>
+    ///     The server checks the lock only against the destination, and only when the destination is a bank map.
+    /// </remarks>
+    /// <exception cref="System.ArgumentNullException">fromMap</exception>
+    /// <exception cref="System.ArgumentNullException">door</exception>
+    /// <exception cref="System.ArgumentNullException">unlockedMaps</exception>
+    public static bool CanPassDoor(GMap fromMap, GDoor door, IReadOnlyCollection<string> unlockedMaps)
+    {
+        ArgumentNullException.ThrowIfNull(fromMap);
+
+        ArgumentNullException.ThrowIfNull(door);
+
+        ArgumentNullException.ThrowIfNull(unlockedMaps);
+
+        if (door.LockType != DoorLockType.AccountLocked)
+            return false;
+
+        if (unlockedMaps.ContainsI(door.DestinationMap))
+            return true;
+
+        //the way out of an unlocked bank map to an ordinary one
+        return unlockedMaps.ContainsI(fromMap.Accessor) && GameData.Maps[door.DestinationMap] is { Mount: false };
     }
 
     protected void SetCooldown(string skillName, float? cooldownMs = null)

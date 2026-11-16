@@ -128,8 +128,8 @@ and `blink`. Pathfinding also works inside the Cave of Many Dreams.
 `Pathfinder.Initialize()` instead.
 
 Routes skip doors that need a key, and the locked bank floors (`bank_b` and `bank_u`). The server never tells the client
-which bank floors your account has unlocked. If you have unlocked them, pass their door locations to
-`ALClient.InitializeAsync(unlockedDoors)`.
+which bank floors your account has unlocked. If you have unlocked them, pass their map names to
+`ALClient.InitializeAsync(unlockedMaps)`.
 
 ## Objects that change under you
 

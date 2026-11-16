@@ -243,7 +243,8 @@ Built once by `Pathfinder.Initialize()`; every query after that is lock-free. Th
 
 `PathEdge(Type, Start, End, Cost)` is the whole public shape of a route; on a `Door`/`Transport` leg `Start` is the
 `Exit`, and an `EdgeType.Hop` leg is a wall hop. `AL.Visualizer` renders meshes and paths to PNG; run it by hand to
-eyeball one, since no test asserts visually.
+eyeball one, since no test asserts visually. **It is a library of drawing primitives, not a place for one-off output.**
+To render something specific, call it from a throwaway caller; don't edit `AL.Visualizer` to produce one image.
 
 **A daily-dungeon floor is not in G and never in the world graph.** The server generates a run's floors and streams them
 over `map_chunk`; `Pathfinder.RegisterGeneratedRun` files them into `GameData.Maps`/`Geometry` (copy-on-write, so

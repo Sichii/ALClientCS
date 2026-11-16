@@ -10,6 +10,7 @@
         <ProjectReference Include="..\AL.Client\AL.Client.csproj"/>
         <!-- the generator's value diff is the one piece of the refresh with logic worth pinning -->
         <ProjectReference Include="..\AL.MemberGenerator\AL.MemberGenerator.csproj"/>
+        <ProjectReference Include="..\AL.Visualizer\AL.Visualizer.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
