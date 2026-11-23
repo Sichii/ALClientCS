@@ -24,7 +24,7 @@ namespace AL.Tests.Client.Tests;
 public class BurnTests : GameDataTestBed
 {
     [Test]
-    public void ABurnTicksAFifthOfItsIntensityOnTheInstanceUpdateGrid()
+    public void ABurnTicksAFifthOfItsIntensityAWholeUpdatePastItsInterval()
     {
         //the arithmetic below is written out against this, so a change to it should fail here rather than silently
         //move what the combat lanes decline to shoot
@@ -34,27 +34,20 @@ public class BurnTests : GameDataTestBed
                 .Should()
                 .Be(210);
 
-        //210ms first clears on the third 75ms update, so the real tick is 225 and 1100ms holds 4 whole ones at
-        //ceil(1000 / 5) = 200 apiece - exactly 800 damage still to come
-        Burning(799)
+        //210ms plus a 75ms update is 285, so 1100ms holds 3 whole ticks at ceil(1000 / 5) = 200 apiece - 600 to come
+        Burning(599)
             .WillBurnToDeath()
             .Should()
             .BeTrue();
 
         //level with the total is not dead - the comparison is strictly greater
-        Burning(800)
+        Burning(600)
             .WillBurnToDeath()
             .Should()
             .BeFalse();
 
-        //the band a 210ms tick got wrong: it fits a fifth tick into the same 1100ms and calls this one a corpse
-        Burning(999)
-            .WillBurnToDeath()
-            .Should()
-            .BeFalse();
-
-        //and the band the interval-derived damage got wrong on top of it: 5 ticks of 210 came to 1050
-        Burning(1020)
+        //the band a 225ms tick got wrong: the server's updates run slower than 75ms, so its fourth tick may not come
+        Burning(799)
             .WillBurnToDeath()
             .Should()
             .BeFalse();

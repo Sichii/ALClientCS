@@ -199,10 +199,11 @@ public static class EntityExtensions
 
         const double INSTANCE_UPDATE_MS = 75;
 
-        //the server polls conditions once per instance update, at least 75ms apart, so a burn ticks on the first
-        //update at or after its interval
+        //the server polls conditions once per instance update, a little over 75ms apart and sometimes skipping one, and
+        //a burn ticks on the first update at or after its interval. A whole update past the interval is the slowest
+        //normal spacing, so this undercounts the ticks rather than leaving a monster alive at the end of its burn
         var interval = GameData.Conditions.Burned.IntervalMS;
-        var tickMs = Math.Ceiling(interval / INSTANCE_UPDATE_MS) * INSTANCE_UPDATE_MS;
+        var tickMs = interval + INSTANCE_UPDATE_MS;
 
         //RemainingMs, not DurationMs - the latter is the wire value from whenever the frame arrived
         var remainingTicks = Math.Floor(burning.RemainingMs / tickMs);
