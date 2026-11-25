@@ -62,9 +62,16 @@ public sealed class ALSocketClient : IALSocketClient
     private static readonly TimeSpan QUEUE_LAG_WARN = TimeSpan.FromMilliseconds(50);
 
     /// <summary>
-    ///     The entity packets held for this connection, read and written only on the transport's receive loop.
+    ///     The entity packets held for this connection, written only on the transport's receive loop and read there or, under
+    ///     <see cref="FrameLock" />, by <see cref="WithEntitySnapshot{T}" />.
     /// </summary>
     private readonly EntityDeltaDecoder EntityDeltas = new();
+
+    /// <summary>
+    ///     Held across a frame's decode and its <see cref="OnFrame" /> raise, and across <see cref="WithEntitySnapshot{T}" />,
+    ///     so a snapshot never falls between a frame's decode and its raise.
+    /// </summary>
+    private readonly Lock FrameLock = new();
 
     /// <summary>
     ///     Frames waiting to be handled, in the order the transport read them off the wire.
@@ -397,6 +404,33 @@ RAW JSON:
     /// </summary>
     public event EventHandler<LimitDcReportData>? OnLimitDcReport;
 
+    /// <summary>
+    ///     Occurs for every event frame, with its event name and decoded payload, after entity deltas are expanded and before
+    ///     typed dispatch. Raised on the transport's receive loop, so a handler must return quickly and never await.
+    /// </summary>
+    /// <remarks>
+    ///     The payload is read-only: the decoder keeps its entity packets as the base of the next delta.
+    /// </remarks>
+    public event Action<string, JsonNode?>? OnFrame;
+
+    /// <summary>
+    ///     Builds a <c>type: "all"</c> frame from the entity packets held now and passes it to a callback, with no frame
+    ///     decoded or raised meanwhile.
+    /// </summary>
+    /// <typeparam name="T">The callback's result type.</typeparam>
+    /// <param name="attach">
+    ///     Receives the frame, a deep clone it may keep, and typically subscribes to <see cref="OnFrame" />.
+    /// </param>
+    /// <returns>What <paramref name="attach" /> returns.</returns>
+    /// <exception cref="System.ArgumentNullException">attach</exception>
+    public T WithEntitySnapshot<T>(Func<JsonObject, T> attach)
+    {
+        ArgumentNullException.ThrowIfNull(attach);
+
+        lock (FrameLock)
+            return attach(EntityDeltas.Snapshot());
+    }
+
     public void Unsub<T>(ALSocketMessageType socketMessageType, Func<T, Task<bool>> callback)
     {
         if (Subscriptions.TryGetValue(socketMessageType, out var invocationList))
@@ -476,8 +510,19 @@ RAW JSON:
             var eventName = message.Event;
 
             //ahead of the subscription checks, so a removal nobody subscribes to still drops the entity's held packet
-            if (message.JsonArray is { Count: > 0 } frame && !EntityDeltas.Decode(eventName, frame[0]))
-                _ = RequestFullUpdateAsync();
+            if (message.JsonArray is { Count: > 0 } frame)
+            {
+                bool complete;
+
+                lock (FrameLock)
+                {
+                    complete = EntityDeltas.Decode(eventName, frame[0]);
+                    RaiseFrame(eventName, frame[0]);
+                }
+
+                if (!complete)
+                    _ = RequestFullUpdateAsync();
+            }
 
             if (!EnumHelper.TryParse(eventName, out ALSocketMessageType messageType))
                 return;
@@ -512,6 +557,23 @@ RAW JSON:
             //carry the raw payload, or a dropped frame is indistinguishable from one never sent
             Logger.Error($"Dropped frame: {message.ReceivedText}. {e}");
         }
+    }
+
+    private void RaiseFrame(string eventName, JsonNode? data)
+    {
+        if (OnFrame is not { } handlers)
+            return;
+
+        foreach (var handler in handlers.GetInvocationList()
+                                        .Cast<Action<string, JsonNode?>>())
+            try
+            {
+                handler(eventName, data);
+            } catch (Exception e)
+            {
+                //one thrower must not starve the rest
+                Logger.Error($"OnFrame subscriber threw on \"{eventName}\". {e}");
+            }
     }
 
     /// <summary>

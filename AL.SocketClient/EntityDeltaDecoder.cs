@@ -16,9 +16,9 @@ internal sealed class EntityDeltaDecoder
     private const string REMOVED_KEY = "~";
 
     /// <summary>
-    ///     The last full packet received for each entity id, the base the next delta applies to.
+    ///     The last full packet received for each entity id, the base the next delta applies to, and which list it came from.
     /// </summary>
-    private readonly Dictionary<string, JsonObject> Packets = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (bool IsMonster, JsonObject Packet)> Packets = new(StringComparer.Ordinal);
 
     /// <summary>
     ///     Rewrites every delta in a frame into the full packet it stands for, in place.
@@ -46,6 +46,28 @@ internal sealed class EntityDeltaDecoder
         }
     }
 
+    /// <summary>
+    ///     Builds a <c>type: "all"</c> frame from the packets held now, as deep clones.
+    /// </summary>
+    /// <returns>
+    ///     A frame with a <c>players</c> and a <c>monsters</c> array.
+    /// </returns>
+    internal JsonObject Snapshot()
+    {
+        var players = new JsonArray();
+        var monsters = new JsonArray();
+
+        foreach ((var isMonster, var packet) in Packets.Values)
+            (isMonster ? monsters : players).Add(packet.DeepClone());
+
+        return new JsonObject
+        {
+            ["type"] = "all",
+            ["players"] = players,
+            ["monsters"] = monsters
+        };
+    }
+
     private bool DecodeEntities(JsonObject? entities)
     {
         if (entities is null)
@@ -54,12 +76,12 @@ internal sealed class EntityDeltaDecoder
         if (entities["type"] is JsonValue typeValue && typeValue.TryGetValue(out string? type) && (type == "all"))
             Packets.Clear();
 
-        var complete = DecodeList(entities["players"] as JsonArray);
+        var complete = DecodeList(entities["players"] as JsonArray, false);
 
-        return DecodeList(entities["monsters"] as JsonArray) && complete;
+        return DecodeList(entities["monsters"] as JsonArray, true) && complete;
     }
 
-    private bool DecodeList(JsonArray? list)
+    private bool DecodeList(JsonArray? list, bool isMonster)
     {
         if (list is null)
             return true;
@@ -81,7 +103,8 @@ internal sealed class EntityDeltaDecoder
                     continue;
                 }
 
-                var full = held.DeepClone()
+                var full = held.Packet
+                               .DeepClone()
                                .AsObject();
 
                 foreach ((var key, var value) in entry)
@@ -96,7 +119,7 @@ internal sealed class EntityDeltaDecoder
             }
 
             //held by reference; nothing writes to a frame's nodes once it is decoded
-            Packets[id] = entry;
+            Packets[id] = (isMonster, entry);
         }
 
         return complete;

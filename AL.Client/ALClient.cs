@@ -1219,6 +1219,12 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
     public event EventHandler<ALSocketEmitType>? OnEmit;
 
     /// <summary>
+    ///     Occurs after a walk was emitted and <see cref="Character" /> carries its destination, on the thread that walks.
+    ///     A handler must not block or await.
+    /// </summary>
+    public event EventHandler? OnMoveStarted;
+
+    /// <summary>
     ///     <inheritdoc cref="ALSocketClient.OnLimitDcReport" /> Stable across reconnects.
     /// </summary>
     public event EventHandler<LimitDcReportData>? OnLimitDcReport;
@@ -3189,6 +3195,8 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
         //taken off the write itself, so a frame landing in between cannot raise it
         moveNumAtEmit = Character.SetMoving(point)
                                  .MoveNum;
+
+        OnMoveStarted?.Invoke(this, EventArgs.Empty);
 
         //set beside moveNumAtEmit, since the callback above is gated on it
         setMovingAt = DateTime.UtcNow;

@@ -121,6 +121,51 @@ public class MessageHandlerTests : SocketTestBed
                            .BeTrue();
     }
 
+    [Test]
+    public void OnFrame_RaisesDecodedPayload()
+    {
+        var seen = new List<(string EventName, string Payload)>();
+
+        Socket.OnFrame += (eventName, data) => seen.Add((eventName, data!.ToJsonString()));
+
+        ISerializer serializer = new ALSocketClient.SynchronousSerializer(Socket, SocketJson.Options);
+
+        serializer.Deserialize(
+            EngineIO.V4,
+            @"42[""entities"",{""type"":""xy"",""players"":[],""monsters"":[{""id"":""1"",""x"":5,""hp"":100}]}]");
+
+        serializer.Deserialize(EngineIO.V4, @"42[""entities"",{""players"":[],""monsters"":[{""id"":""1"",""~"":[],""x"":9}]}]");
+
+        seen.Should()
+            .HaveCount(2);
+
+        seen[1]
+            .EventName
+            .Should()
+            .Be("entities");
+
+        seen[1]
+            .Payload
+            .Should()
+            .Be(@"{""players"":[],""monsters"":[{""id"":""1"",""x"":9,""hp"":100}]}");
+    }
+
+    [Test]
+    public void OnFrame_ThrowingSubscriberDoesNotStopOthers()
+    {
+        var seen = new List<string>();
+
+        Socket.OnFrame += (_, _) => throw new InvalidOperationException("boom");
+        Socket.OnFrame += (eventName, _) => seen.Add(eventName);
+
+        ISerializer serializer = new ALSocketClient.SynchronousSerializer(Socket, SocketJson.Options);
+
+        serializer.Deserialize(EngineIO.V4, @"42[""entities"",{""players"":[],""monsters"":[]}]");
+
+        seen.Should()
+            .Equal("entities");
+    }
+
     /// <summary>
     ///     The wire assumption SendPartyInviteAsync's <c>game_response</c> arm rests on: three of the four server party paths
     ///     answer with one of these and never emit the "Invited X to party" <c>game_log</c> the success arm waits for
