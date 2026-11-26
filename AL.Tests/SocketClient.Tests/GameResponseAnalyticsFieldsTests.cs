@@ -7,7 +7,7 @@ using FluentAssertions;
 
 namespace AL.Tests.SocketClient.Tests;
 
-public class GameResponseLedgerFieldsTests
+public class GameResponseAnalyticsFieldsTests
 {
     [Test]
     public void ExactGoldSurvivesAboveFloatPrecision()
