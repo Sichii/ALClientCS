@@ -622,7 +622,19 @@ public enum GameResponseType
     ///     A sell or destroy whose slot no longer holds the item the client named.
     /// </summary>
     [EnumMember(Value = "item_changed")]
-    ItemChanged
+    ItemChanged,
+
+    /// <summary>Thanks for a donation to the lost-and-found.</summary>
+    [EnumMember(Value = "donate_thx")]
+    DonateThx,
+
+    /// <summary>A donation reply that carries gum.</summary>
+    [EnumMember(Value = "donate_gum")]
+    DonateGum,
+
+    /// <summary>A donation too small to be accepted.</summary>
+    [EnumMember(Value = "donate_low")]
+    DonateLow
 }
 
 [StjJson.JsonConverter(typeof(StjConverters.TolerantStringEnumConverterFactory))]

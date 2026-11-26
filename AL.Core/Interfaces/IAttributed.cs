@@ -51,7 +51,7 @@ public interface IAttributed
 
     public float FrequencyMod { get; }
 
-    public float Gold { get; }
+    public double Gold { get; }
 
     public float GoldSteal { get; }
 

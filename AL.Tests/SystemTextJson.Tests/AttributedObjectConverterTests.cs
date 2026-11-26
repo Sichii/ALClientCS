@@ -177,7 +177,7 @@ public sealed class AttributedObjectConverterTests
         public float FreezeResistance { get; init; }
         public float Frequency { get; init; }
         public float FrequencyMod { get; init; }
-        public float Gold { get; init; }
+        public double Gold { get; init; }
         public float GoldSteal { get; init; }
         public float HP { get; init; }
         public float HealMod { get; init; }

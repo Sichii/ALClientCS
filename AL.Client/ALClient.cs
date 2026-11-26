@@ -3627,7 +3627,7 @@ public abstract partial class ALClient : IAsyncDisposable, IDeltaUpdatable
             {
                 var result = data.ResponseType switch
                 {
-                    GameResponseType.LostAndFoundInfo => source.TrySetResult(data.Gold),
+                    GameResponseType.LostAndFoundInfo => source.TrySetResult((float)data.Gold),
                     _                                 => false
                 };
 

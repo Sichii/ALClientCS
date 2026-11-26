@@ -20,7 +20,7 @@
   "IAttributed.FreezeResistance : Single => (clr:FreezeResistance)",
   "IAttributed.Frequency : Single => (clr:Frequency)",
   "IAttributed.FrequencyMod : Single => (clr:FrequencyMod)",
-  "IAttributed.Gold : Single => (clr:Gold)",
+  "IAttributed.Gold : Double => (clr:Gold)",
   "IAttributed.GoldSteal : Single => (clr:GoldSteal)",
   "IAttributed.HP : Single => (clr:HP)",
   "IAttributed.HealMod : Single => (clr:HealMod)",

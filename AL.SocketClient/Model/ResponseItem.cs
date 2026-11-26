@@ -29,7 +29,10 @@ public sealed record ResponseItem : ISimpleItem, IOptionalObject
 
     public string Name { get; init; } = null!;
 
-    // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
+    /// <summary>The item's title, when it has one.</summary>
+    [JsonPropertyName("p")]
+    public Prediction? Prediction { get; init; }
+
     [JsonPropertyName("q")]
-    public int Quantity { get; } = 1;
+    public int Quantity { get; init; } = 1;
 }

@@ -61,7 +61,7 @@ public abstract record AttributedRecordBase : IAttributed
     [JsonPropertyName("frequencym")]
     public float FrequencyMod { get; init; }
 
-    public float Gold { get; init; }
+    public double Gold { get; init; }
 
     public float GoldSteal { get; init; }
 

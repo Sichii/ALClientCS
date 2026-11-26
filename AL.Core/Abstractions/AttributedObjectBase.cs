@@ -80,7 +80,7 @@ public abstract class AttributedObjectBase : IAttributed
     public float FrequencyMod { get; protected set; }
 
     [JsonInclude]
-    public float Gold { get; protected set; }
+    public double Gold { get; protected set; }
 
     [JsonInclude]
     public float GoldSteal { get; protected set; }

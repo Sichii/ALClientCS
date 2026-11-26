@@ -64,7 +64,7 @@ public sealed record GameResponseData : IOptionalObject
     /// <summary>
     ///     The cost of the item bought, or on a correlated slots settlement the machine's fixed price for that pull.
     /// </summary>
-    public int Cost { get; init; }
+    public long Cost { get; init; }
 
     /// <summary>
     ///     The distance to the entity you are too far away from.
@@ -107,7 +107,7 @@ public sealed record GameResponseData : IOptionalObject
     ///     The amount of gold sent or received. Fractional for alchemy, which scales gold by a rate.
     /// </summary>
     [JsonPropertyName("gold")]
-    public float Gold { get; init; }
+    public double Gold { get; init; }
 
     /// <summary>
     ///     The grace of the item to be upgrade/compounded successfully.
