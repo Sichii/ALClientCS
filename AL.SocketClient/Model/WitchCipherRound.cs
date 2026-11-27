@@ -63,6 +63,22 @@ public sealed record WitchCipherRound
     public bool IsBrewing(DateTime utcNow) => Live && (ToUnixMs(utcNow) >= GatherEnd) && (ToUnixMs(utcNow) < End);
 
     /// <summary>
+    ///     Determines whether the round is running and still taking mixes, gathering included.
+    /// </summary>
+    /// <param name="utcNow">The current time, in UTC.</param>
+    /// <returns>
+    ///     <c>true</c> if the round is live and has not ended; otherwise, <c>false</c> .
+    /// </returns>
+    public bool IsLive(DateTime utcNow) => Live && (ToUnixMs(utcNow) < End);
+
+    /// <summary>Calculates how long the round has left.</summary>
+    /// <param name="utcNow">The current time, in UTC.</param>
+    /// <returns>
+    ///     The milliseconds until the round ends, negative once it has ended.
+    /// </returns>
+    public long CalculateRemainingMs(DateTime utcNow) => End - ToUnixMs(utcNow);
+
+    /// <summary>
     ///     Determines whether a mix fits every clue on the current recipe, which is what makes it pay a Witch's Parcel.
     /// </summary>
     /// <param name="ingredients">

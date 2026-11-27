@@ -34,6 +34,7 @@ public class GEventDoorsTests
                                     {
                                       "name": "Witch's Cipher",
                                       "ingredients": [["verdantspore", ["goo", "bee"]], ["frostscale", ["boar"]]],
+                                      "loot": 0.003,
                                       "slots": 5,
                                       "mixes": 5,
                                       "gathering": 1200
@@ -54,5 +55,9 @@ public class GEventDoorsTests
         witchCipher.Slots
                    .Should()
                    .Be(5);
+
+        witchCipher.Loot
+                   .Should()
+                   .Be(0.003f);
     }
 }

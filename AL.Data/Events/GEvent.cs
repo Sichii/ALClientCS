@@ -48,6 +48,12 @@ public record GEvent
     public bool Join { get; init; }
 
     /// <summary>
+    ///     The Witch's Cipher ingredient's chance per kill for each 1,000 HP of the monster, while gathering lasts. Zero on
+    ///     every other event.
+    /// </summary>
+    public float Loot { get; init; }
+
+    /// <summary>
     ///     The daily dungeon's merchant stock: each merchant encounter offers one of these, picked at random. Null on every
     ///     other event.
     /// </summary>

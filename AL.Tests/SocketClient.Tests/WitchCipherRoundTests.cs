@@ -133,6 +133,18 @@ public class WitchCipherRoundTests
         round.IsBrewing(start.AddMinutes(29))
              .Should()
              .BeFalse();
+
+        round.IsLive(start.AddMinutes(5))
+             .Should()
+             .BeTrue();
+
+        round.IsLive(start.AddMinutes(29))
+             .Should()
+             .BeFalse();
+
+        round.CalculateRemainingMs(start.AddMinutes(25))
+             .Should()
+             .Be(180_000);
     }
 
     [Test]
